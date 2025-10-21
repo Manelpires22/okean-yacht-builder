@@ -10,6 +10,7 @@ interface SaveQuotationData {
   base_price: number;
   base_delivery_days: number;
   selected_options: SelectedOption[];
+  client_id?: string;
   client_name: string;
   client_email?: string;
   client_phone?: string;
@@ -45,6 +46,7 @@ export function useSaveQuotation() {
         .insert({
           quotation_number: quotationNumber,
           yacht_model_id: data.yacht_model_id,
+          client_id: data.client_id || null,
           client_name: data.client_name,
           client_email: data.client_email || null,
           client_phone: data.client_phone || null,

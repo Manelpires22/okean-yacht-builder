@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          company: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       option_categories: {
         Row: {
           created_at: string | null
@@ -196,6 +232,7 @@ export type Database = {
           base_delivery_days: number
           base_price: number
           client_email: string | null
+          client_id: string | null
           client_name: string
           client_phone: string | null
           created_at: string | null
@@ -217,6 +254,7 @@ export type Database = {
           base_delivery_days: number
           base_price: number
           client_email?: string | null
+          client_id?: string | null
           client_name: string
           client_phone?: string | null
           created_at?: string | null
@@ -238,6 +276,7 @@ export type Database = {
           base_delivery_days?: number
           base_price?: number
           client_email?: string | null
+          client_id?: string | null
           client_name?: string
           client_phone?: string | null
           created_at?: string | null
@@ -256,6 +295,13 @@ export type Database = {
           yacht_model_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotations_sales_representative_id_fkey"
             columns: ["sales_representative_id"]
