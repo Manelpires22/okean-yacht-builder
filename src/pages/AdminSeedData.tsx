@@ -39,16 +39,6 @@ const AdminSeedData = () => {
     }
   });
 
-  // Fetch seed control data to know which items are seed data
-  const { data: seedControlData } = useQuery({
-    queryKey: ['seed-control-data'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('seed_control' as any)
-        .select('entity_type, entity_id');
-      return ((data || []) as unknown) as Array<{ entity_type: string; entity_id: string }>;
-    }
-  });
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
@@ -91,26 +81,12 @@ const AdminSeedData = () => {
           .neq('id', '00000000-0000-0000-0000-000000000000');
         if (ymError) errors.push(`yacht_models: ${ymError.message}`);
 
-        // 6. Delete user_roles
-        const { error: urError } = await supabase
-          .from('user_roles' as any)
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        if (urError) errors.push(`user_roles: ${urError.message}`);
-
-        // 7. Delete users
+        // 6. Delete users
         const { error: uError } = await supabase
           .from('users' as any)
           .delete()
           .neq('id', '00000000-0000-0000-0000-000000000000');
         if (uError) errors.push(`users: ${uError.message}`);
-
-        // 8. Delete seed_control
-        const { error: scError } = await supabase
-          .from('seed_control' as any)
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        if (scError) errors.push(`seed_control: ${scError.message}`);
 
         if (errors.length > 0) {
           throw new Error(`Erros ao deletar: ${errors.join('; ')}`);
@@ -128,7 +104,6 @@ const AdminSeedData = () => {
       });
       setConfirmText("");
       queryClient.invalidateQueries({ queryKey: ['seed-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['seed-control-data'] });
       queryClient.invalidateQueries({ queryKey: ['admin-yacht-models'] });
       queryClient.invalidateQueries({ queryKey: ['admin-options'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
