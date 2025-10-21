@@ -584,6 +584,64 @@ const AdminSeedData = () => {
     }
   });
 
+  const associateOptionsToFerretti = useMutation({
+    mutationFn: async () => {
+      // 1. Get Ferretti 550
+      const { data: ferretti, error: ferrettiError } = await supabase
+        .from('yacht_models')
+        .select('id')
+        .eq('code', 'FY-550')
+        .maybeSingle();
+      
+      if (ferrettiError) throw ferrettiError;
+      if (!ferretti) throw new Error('Ferretti 550 não encontrado. Crie o modelo primeiro.');
+
+      // 2. Get all active options
+      const { data: options, error: optionsError } = await supabase
+        .from('options')
+        .select('id')
+        .eq('is_active', true);
+      
+      if (optionsError) throw optionsError;
+      if (!options || options.length === 0) throw new Error('Nenhum opcional encontrado');
+
+      // 3. Delete existing associations for Ferretti 550
+      await supabase
+        .from('option_yacht_models')
+        .delete()
+        .eq('yacht_model_id', ferretti.id);
+
+      // 4. Associate all options with Ferretti 550
+      const { error: insertError } = await supabase
+        .from('option_yacht_models')
+        .insert(
+          options.map((opt) => ({
+            option_id: opt.id,
+            yacht_model_id: ferretti.id,
+          }))
+        );
+      
+      if (insertError) throw insertError;
+
+      return { success: true, count: options.length };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "✅ Opcionais associados!",
+        description: `${data.count} opcionais foram associados ao Ferretti 550`
+      });
+      queryClient.invalidateQueries({ queryKey: ['option-yacht-models'] });
+      queryClient.invalidateQueries({ queryKey: ['options'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "❌ Erro ao associar opcionais",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
       // Delete in correct order to respect foreign keys
@@ -796,6 +854,56 @@ const AdminSeedData = () => {
                     <li><strong>Acabamentos Internos:</strong> 4 opcionais (R$ 256.000)</li>
                     <li><strong>Sistemas Adicionais:</strong> 2 opcionais (R$ 458.000)</li>
                   </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SEÇÃO 1C: ASSOCIAR OPCIONAIS AO FERRETTI 550 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Associar Opcionais ao Ferretti 550
+            </CardTitle>
+            <CardDescription>
+              Tornar todos os opcionais disponíveis para o Ferretti 550
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-900">
+              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">ℹ️ Informação</AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200">
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li>Associa <strong>todos os opcionais ativos</strong> ao Ferretti 550</li>
+                  <li>Remove associações anteriores do Ferretti 550</li>
+                  <li>Não afeta outros modelos de iates</li>
+                  <li>Útil após criar novos opcionais manualmente</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <Button
+              onClick={() => associateOptionsToFerretti.mutate()}
+              disabled={associateOptionsToFerretti.isPending}
+              className="w-full"
+              size="lg"
+              variant="secondary"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {associateOptionsToFerretti.isPending 
+                ? "A associar opcionais..." 
+                : "🔗 Associar Todos ao Ferretti 550"}
+            </Button>
+
+            {associateOptionsToFerretti.isSuccess && (
+              <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-900">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-green-900 dark:text-green-100">Sucesso!</AlertTitle>
+                <AlertDescription className="text-green-800 dark:text-green-200">
+                  Todos os opcionais ativos foram associados ao Ferretti 550!
                 </AlertDescription>
               </Alert>
             )}
