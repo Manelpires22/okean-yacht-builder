@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -70,9 +70,10 @@ export function OptionFormDialog({
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<OptionFormData>({
     resolver: zodResolver(optionSchema),
-    defaultValues: initialData || {
+    defaultValues: {
       code: "",
       name: "",
       description: "",
@@ -83,12 +84,44 @@ export function OptionFormDialog({
     },
   });
 
+  // Reset form when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        // Editing mode - populate with existing data
+        reset({
+          code: initialData.code || "",
+          name: initialData.name || "",
+          description: initialData.description || "",
+          category_id: initialData.category_id || "",
+          base_price: Number(initialData.base_price) || 0,
+          delivery_days_impact: Number(initialData.delivery_days_impact) || 0,
+          is_active: initialData.is_active ?? true,
+        });
+      } else {
+        // Create mode - reset to empty
+        reset({
+          code: "",
+          name: "",
+          description: "",
+          category_id: "",
+          base_price: 0,
+          delivery_days_impact: 0,
+          is_active: true,
+        });
+        setSelectedModelIds([]);
+      }
+    }
+  }, [open, initialData, reset]);
+
   // Load existing yacht models when editing
-  useState(() => {
+  useEffect(() => {
     if (existingModels && existingModels.length > 0) {
       setSelectedModelIds(existingModels.map((m: any) => m.yacht_model_id));
+    } else if (!optionId) {
+      setSelectedModelIds([]);
     }
-  });
+  }, [existingModels, optionId]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: OptionFormData) => {
