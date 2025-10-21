@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,17 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const navigate = useNavigate();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/admin");
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -4,10 +4,13 @@ import { Ship, Settings, Users, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useStats } from "@/hooks/useStats";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserMenu } from "@/components/admin/UserMenu";
 
 const Index = () => {
   const navigate = useNavigate();
   const { data: stats, isLoading } = useStats();
+  const { user, loading } = useAuth();
 
   const mainFeatures = [
     {
@@ -50,7 +53,13 @@ const Index = () => {
               <h1 className="text-3xl font-bold text-primary">OKEAN Yachts</h1>
               <p className="text-sm text-muted-foreground">Sistema de Configuração CPQ</p>
             </div>
-            <Button variant="outline">Login</Button>
+            {loading ? (
+              <Skeleton className="h-10 w-10 rounded-full" />
+            ) : user ? (
+              <UserMenu />
+            ) : (
+              <Button variant="outline" onClick={() => navigate("/auth")}>Login</Button>
+            )}
           </div>
         </div>
       </header>
