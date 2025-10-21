@@ -16,29 +16,49 @@ const AdminSeedData = () => {
   const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
   const [confirmText, setConfirmText] = useState("");
 
+  // Fetch real counts from actual tables
   const { data: seedStats, isLoading } = useQuery({
     queryKey: ['seed-stats'],
     queryFn: async () => {
-      const entities = ['yacht_models', 'option_categories', 'options', 'users', 'quotations'];
+      const entities = [
+        { type: 'yacht_models', table: 'yacht_models' as any },
+        { type: 'option_categories', table: 'option_categories' as any },
+        { type: 'options', table: 'options' as any },
+        { type: 'users', table: 'users' as any },
+        { type: 'quotations', table: 'quotations' as any }
+      ];
+      
       const counts = await Promise.all(
-        entities.map(async (entity) => {
+        entities.map(async ({ type, table }) => {
           const { count } = await supabase
-            .from('seed_control' as any)
-            .select('*', { count: 'exact', head: true })
-            .eq('entity_type', entity);
-          return { entity, count: count || 0 };
+            .from(table)
+            .select('*', { count: 'exact', head: true });
+          return { entity: type, count: count || 0 };
         })
       );
+      
       return counts;
+    }
+  });
+
+  // Fetch seed control data to know which items are seed data
+  const { data: seedControlData } = useQuery({
+    queryKey: ['seed-control-data'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('seed_control' as any)
+        .select('entity_type, entity_id');
+      return ((data || []) as unknown) as Array<{ entity_type: string; entity_id: string }>;
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (entityTypes: string[]) => {
-      const { error } = await (supabase.rpc as any)('clear_seed_data', {
+      const { data, error } = await (supabase.rpc as any)('clear_seed_data', {
         entity_types: entityTypes
       });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast({
@@ -48,9 +68,39 @@ const AdminSeedData = () => {
       setSelectedEntities([]);
       setConfirmText("");
       queryClient.invalidateQueries({ queryKey: ['seed-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['seed-control-data'] });
       queryClient.invalidateQueries({ queryKey: ['admin-yacht-models'] });
       queryClient.invalidateQueries({ queryKey: ['admin-options'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Falha ao remover dados: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('clear_all_data');
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Todos os dados removidos",
+        description: "TODOS os dados foram removidos permanentemente"
+      });
+      setSelectedEntities([]);
+      setConfirmText("");
+      queryClient.invalidateQueries({ queryKey: ['seed-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['seed-control-data'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-yacht-models'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-options'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
     onError: (error) => {
       toast({
@@ -102,6 +152,23 @@ const AdminSeedData = () => {
     deleteMutation.mutate(allEntities);
   };
 
+  const handleEmergencyDeleteAll = () => {
+    if (confirmText !== "CONFIRMAR") {
+      toast({
+        title: "Confirmação necessária",
+        description: "Digite CONFIRMAR para prosseguir",
+        variant: "destructive"
+      });
+      return;
+    }
+    deleteAllMutation.mutate();
+  };
+
+  // Get count of seed items per entity type
+  const getSeedCount = (entityType: string) => {
+    return seedControlData?.filter(item => item.entity_type === entityType).length || 0;
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -139,22 +206,35 @@ const AdminSeedData = () => {
                 </div>
               ))
             ) : (
-              seedStats?.map(({ entity, count }) => (
-                <div key={entity} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={entity}
-                    checked={selectedEntities.includes(entity)}
-                    onCheckedChange={() => handleToggle(entity)}
-                    disabled={count === 0}
-                  />
-                  <label
-                    htmlFor={entity}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                  >
-                    {entityLabels[entity]} ({count} registros)
-                  </label>
-                </div>
-              ))
+              seedStats?.map(({ entity, count }) => {
+                const seedCount = getSeedCount(entity);
+                return (
+                  <div key={entity} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Checkbox
+                        id={entity}
+                        checked={selectedEntities.includes(entity)}
+                        onCheckedChange={() => handleToggle(entity)}
+                        disabled={seedCount === 0}
+                      />
+                      <label
+                        htmlFor={entity}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {entityLabels[entity]}
+                      </label>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">{count}</span> total
+                      {seedCount > 0 && (
+                        <span className="ml-2 text-orange-600 dark:text-orange-400">
+                          ({seedCount} seed)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             )}
 
             <div className="pt-4 border-t space-y-4">
@@ -171,23 +251,45 @@ const AdminSeedData = () => {
                 />
               </div>
 
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleDelete}
-                  disabled={selectedEntities.length === 0 || deleteMutation.isPending}
-                  variant="destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Apagar Selecionados
-                </Button>
-                <Button
-                  onClick={handleDeleteAll}
-                  disabled={deleteMutation.isPending}
-                  variant="destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Apagar Tudo
-                </Button>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleDelete}
+                    disabled={selectedEntities.length === 0 || deleteMutation.isPending}
+                    variant="destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Apagar Selecionados (Seed)
+                  </Button>
+                  <Button
+                    onClick={handleDeleteAll}
+                    disabled={deleteMutation.isPending || !seedControlData?.length}
+                    variant="destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Apagar Todos os Seeds
+                  </Button>
+                </div>
+
+                <div className="pt-3 border-t">
+                  <Alert variant="destructive" className="mb-3">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>⚠️ EMERGÊNCIA - PERIGO</AlertTitle>
+                    <AlertDescription>
+                      Este botão apaga TODOS os dados do sistema, incluindo dados reais (não apenas seed).
+                      Use apenas em caso de emergência!
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    onClick={handleEmergencyDeleteAll}
+                    disabled={deleteAllMutation.isPending}
+                    variant="destructive"
+                    className="w-full bg-red-900 hover:bg-red-800 dark:bg-red-950 dark:hover:bg-red-900"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    🚨 LIMPAR TUDO (EMERGÊNCIA) 🚨
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
