@@ -291,6 +291,268 @@ const AdminSeedData = () => {
     }
   });
 
+  const updateFerretti550OptionsMutation = useMutation({
+    mutationFn: async () => {
+      // 1. Delete existing demo options
+      const { error: deleteError } = await supabase
+        .from('options')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (deleteError) throw deleteError;
+
+      // 2. Get category IDs
+      const { data: categories, error: catError } = await supabase
+        .from('option_categories')
+        .select('id, name');
+      
+      if (catError) throw catError;
+
+      const categoryMap = categories.reduce((acc, cat) => {
+        acc[cat.name] = cat.id;
+        return acc;
+      }, {} as Record<string, string>);
+
+      // 3. Insert 24 real options from FY-550-05_-_OPTS.docx
+      const { error: optError } = await supabase
+        .from('options')
+        .insert([
+          // ELETRÔNICOS (7)
+          {
+            code: 'ELET-3CMD',
+            name: '3º Comando',
+            description: 'Terceiro comando com controles completos de navegação',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 95000,
+            delivery_days_impact: 15,
+            is_active: true
+          },
+          {
+            code: 'ELET-UPGRADE-SIMRAD',
+            name: 'Upgrade telas Simrad',
+            description: 'Upgrade para 2x12" no comando + 1x12" no flybridge',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 120000,
+            delivery_days_impact: 10,
+            is_active: true
+          },
+          {
+            code: 'ELET-TV-43-SALAO',
+            name: 'TV 43" no salão com lift elétrico',
+            description: 'Televisão 43 polegadas no salão com sistema de elevação elétrica',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 35000,
+            delivery_days_impact: 5,
+            is_active: true
+          },
+          {
+            code: 'ELET-TV-32-MASTER',
+            name: 'TV 32" na cabine master',
+            description: 'Televisão 32 polegadas na cabine master',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 18000,
+            delivery_days_impact: 0,
+            is_active: true
+          },
+          {
+            code: 'ELET-TV-32-VIP',
+            name: 'TV 32" na cabine VIP',
+            description: 'Televisão 32 polegadas na cabine VIP',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 18000,
+            delivery_days_impact: 0,
+            is_active: true
+          },
+          {
+            code: 'ELET-TV-22-HOSPEDES',
+            name: 'TV 22" na cabine hóspedes',
+            description: 'Televisão 22 polegadas na cabine de hóspedes',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 12000,
+            delivery_days_impact: 0,
+            is_active: true
+          },
+          {
+            code: 'ELET-LUZES-SUBMERSAS',
+            name: '5 luzes submersas',
+            description: 'Kit com 5 luzes submersas LED para iluminação subaquática',
+            category_id: categoryMap['Eletrônicos'],
+            base_price: 42000,
+            delivery_days_impact: 7,
+            is_active: true
+          },
+          // EQUIPAMENTOS DE DECK (10)
+          {
+            code: 'DECK-BIMINI-TOP',
+            name: 'Bimini top com iluminação',
+            description: 'Bimini top cor areia com sistema de iluminação integrado',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 65000,
+            delivery_days_impact: 20,
+            is_active: true
+          },
+          {
+            code: 'DECK-PLATAFORMA-SUB',
+            name: 'Plataforma submergível deslizante',
+            description: 'Plataforma submergível deslizante com revestimento em teca',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 280000,
+            delivery_days_impact: 45,
+            is_active: true
+          },
+          {
+            code: 'DECK-PASSARELA-TELE',
+            name: 'Passarela de embarque telescópica',
+            description: 'Passarela telescópica para facilitar embarque e desembarque',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 95000,
+            delivery_days_impact: 15,
+            is_active: true
+          },
+          {
+            code: 'DECK-ESPACO-GOURMET',
+            name: 'Espaço Gourmet na popa',
+            description: 'Área gourmet completa na popa com churrasqueira e pia',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 85000,
+            delivery_days_impact: 25,
+            is_active: true
+          },
+          {
+            code: 'DECK-MESA-PROA-FV',
+            name: 'Mesa em fibra de vidro na proa',
+            description: 'Mesa em fibra de vidro para área de proa',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 12000,
+            delivery_days_impact: 10,
+            is_active: true
+          },
+          {
+            code: 'DECK-LONA-SOMBRA-PROA',
+            name: 'Lona de sombreamento na proa',
+            description: 'Lona retrátil para sombreamento da área de proa',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 8500,
+            delivery_days_impact: 5,
+            is_active: true
+          },
+          {
+            code: 'DECK-PORTA-COPOS-PROA',
+            name: 'Porta-copos em teca na proa',
+            description: 'Porta-copos em teca natural para área de proa',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 4200,
+            delivery_days_impact: 0,
+            is_active: true
+          },
+          {
+            code: 'DECK-LUMINARIAS-PROA',
+            name: '2 luminárias pop-up na proa',
+            description: 'Duas luminárias retráteis pop-up para iluminação da proa',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 15000,
+            delivery_days_impact: 5,
+            is_active: true
+          },
+          {
+            code: 'DECK-CADEIRAS-COCKPIT',
+            name: '2 cadeiras para o cockpit',
+            description: 'Par de cadeiras náuticas premium para área do cockpit',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 9800,
+            delivery_days_impact: 0,
+            is_active: true
+          },
+          {
+            code: 'DECK-GELADEIRA-FLY',
+            name: 'Geladeira no flybridge',
+            description: 'Geladeira náutica embutida no flybridge',
+            category_id: categoryMap['Equipamentos de Deck'],
+            base_price: 22000,
+            delivery_days_impact: 10,
+            is_active: true
+          },
+          // ACABAMENTOS INTERNOS (4)
+          {
+            code: 'ACAB-PISO-PARQUET',
+            name: 'Piso parquet no deck principal',
+            description: 'Piso em parquet no salão, cozinha e comando',
+            category_id: categoryMap['Acabamentos Internos'],
+            base_price: 145000,
+            delivery_days_impact: 40,
+            is_active: true
+          },
+          {
+            code: 'ACAB-CALACATA-MASTER',
+            name: 'Revestimento Calacata cabine master',
+            description: 'Revestimento em mármore Calacata na parede do box da cabine master',
+            category_id: categoryMap['Acabamentos Internos'],
+            base_price: 48000,
+            delivery_days_impact: 20,
+            is_active: true
+          },
+          {
+            code: 'ACAB-ICEMAKER-POPA',
+            name: 'Icemaker na praça de popa',
+            description: 'Máquina de gelo (icemaker) embutida na praça de popa',
+            category_id: categoryMap['Acabamentos Internos'],
+            base_price: 28000,
+            delivery_days_impact: 10,
+            is_active: true
+          },
+          {
+            code: 'ACAB-PINTURA-BELEZA',
+            name: 'Pintura linha da beleza em preto',
+            description: 'Pintura personalizada da linha da beleza em preto',
+            category_id: categoryMap['Acabamentos Internos'],
+            base_price: 35000,
+            delivery_days_impact: 15,
+            is_active: true
+          },
+          // SISTEMAS ADICIONAIS (2)
+          {
+            code: 'SIST-SEEKEEPER-NG6',
+            name: 'Estabilizador Seekeeper NG 6',
+            description: 'Sistema de estabilização giroscópica Seekeeper NG 6',
+            category_id: categoryMap['Sistemas Adicionais'],
+            base_price: 420000,
+            delivery_days_impact: 60,
+            is_active: true
+          },
+          {
+            code: 'SIST-ANTI-FOULING',
+            name: 'Pintura anti-fouling',
+            description: 'Pintura anti-incrustante de alta performance',
+            category_id: categoryMap['Sistemas Adicionais'],
+            base_price: 38000,
+            delivery_days_impact: 10,
+            is_active: true
+          }
+        ]);
+      
+      if (optError) throw optError;
+
+      return { success: true, count: 24 };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "✅ Opcionais atualizados!",
+        description: `${data.count} opcionais reais do Ferretti 550 foram cadastrados`
+      });
+      queryClient.invalidateQueries({ queryKey: ['seed-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-options'] });
+      queryClient.invalidateQueries({ queryKey: ['options'] });
+      queryClient.invalidateQueries({ queryKey: ['option-categories'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "❌ Erro ao atualizar opcionais",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
       // Delete in correct order to respect foreign keys
@@ -446,6 +708,62 @@ const AdminSeedData = () => {
                     <li>Ir para <strong>/admin/yacht-models</strong> ver o Ferretti 550</li>
                     <li>Ir para <strong>/admin/options</strong> ver os opcionais</li>
                     <li>Ir para <strong>/configurador</strong> testar o configurador</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* SEÇÃO 1B: ATUALIZAR OPCIONAIS FERRETTI 550 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Atualizar Opcionais Ferretti 550
+            </CardTitle>
+            <CardDescription>
+              Substituir opcionais de exemplo pelos 24 opcionais reais do documento
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-900">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertTitle className="text-amber-900 dark:text-amber-100">⚠️ Atenção</AlertTitle>
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <ul className="list-disc list-inside space-y-1 mt-2">
+                  <li>Vai <strong>deletar TODOS os opcionais</strong> existentes</li>
+                  <li>Vai inserir <strong>24 opcionais reais</strong> do Ferretti 550</li>
+                  <li>Distribuídos em: Eletrônicos (7), Equipamentos de Deck (10), Acabamentos (4), Sistemas (2)</li>
+                  <li>Total estimado: <strong>R$ 1.650.500</strong> em opcionais</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <Button
+              onClick={() => updateFerretti550OptionsMutation.mutate()}
+              disabled={updateFerretti550OptionsMutation.isPending}
+              className="w-full"
+              size="lg"
+              variant="outline"
+            >
+              <Database className="h-4 w-4 mr-2" />
+              {updateFerretti550OptionsMutation.isPending 
+                ? "A atualizar opcionais..." 
+                : "🔄 Atualizar para 24 Opcionais Reais"}
+            </Button>
+
+            {updateFerretti550OptionsMutation.isSuccess && (
+              <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-900">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <AlertTitle className="text-green-900 dark:text-green-100">Sucesso!</AlertTitle>
+                <AlertDescription className="text-green-800 dark:text-green-200">
+                  24 opcionais reais foram cadastrados! Categorias:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li><strong>Eletrônicos:</strong> 7 opcionais (R$ 340.000)</li>
+                    <li><strong>Equipamentos de Deck:</strong> 10 opcionais (R$ 596.500)</li>
+                    <li><strong>Acabamentos Internos:</strong> 4 opcionais (R$ 256.000)</li>
+                    <li><strong>Sistemas Adicionais:</strong> 2 opcionais (R$ 458.000)</li>
                   </ul>
                 </AlertDescription>
               </Alert>
