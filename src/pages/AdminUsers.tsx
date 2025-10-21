@@ -13,18 +13,48 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreateUserDialog } from "@/components/admin/CreateUserDialog";
+import { EditUserDialog } from "@/components/admin/EditUserDialog";
+import { UserRoleBadges } from "@/components/admin/UserRoleBadges";
+import { useState } from "react";
+
+interface UserWithRoles {
+  id: string;
+  full_name: string;
+  email: string;
+  department: string;
+  is_active: boolean;
+  roles: string[];
+}
 
 const AdminUsers = () => {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch users
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('*')
         .order('full_name');
       
-      if (error) throw error;
-      return data;
+      if (usersError) throw usersError;
+
+      // Fetch roles for all users
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      
+      if (rolesError) throw rolesError;
+
+      // Combine data
+      return usersData?.map(user => ({
+        ...user,
+        roles: rolesData?.filter(r => r.user_id === user.id).map(r => r.role) || []
+      })) || [];
     }
   });
 
@@ -36,7 +66,7 @@ const AdminUsers = () => {
             <h1 className="text-3xl font-bold">Utilizadores</h1>
             <p className="text-muted-foreground">Gerir utilizadores e permissões</p>
           </div>
-          <Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Utilizador
           </Button>
@@ -51,7 +81,6 @@ const AdminUsers = () => {
                 <TableHead>Departamento</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -64,13 +93,12 @@ const AdminUsers = () => {
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   </TableRow>
                 ))
               ) : users?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum utilizador encontrado
                   </TableCell>
                 </TableRow>
@@ -81,22 +109,24 @@ const AdminUsers = () => {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.department}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="text-xs">
-                        -
-                      </Badge>
+                      <UserRoleBadges roles={user.roles} />
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_active ? "default" : "secondary"}>
                         {user.is_active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        -
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Editar</Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -105,6 +135,17 @@ const AdminUsers = () => {
           </Table>
         </div>
       </div>
+
+      <CreateUserDialog 
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+      />
+
+      <EditUserDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        user={selectedUser}
+      />
     </AdminLayout>
   );
 };

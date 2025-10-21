@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Ship, Settings, Package, Users, Database, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserMenu } from "@/components/admin/UserMenu";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -51,6 +52,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
+        <div className="border-b border-border">
+          <div className="container flex items-center justify-end h-16">
+            <UserMenu />
+          </div>
+        </div>
         <div className="container py-8">
           {children}
         </div>
