@@ -2,9 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Ship, Settings, Users, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useStats } from "@/hooks/useStats";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { data: stats, isLoading } = useStats();
 
   const mainFeatures = [
     {
@@ -95,20 +98,32 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="text-center bg-primary text-primary-foreground">
             <CardHeader>
-              <CardTitle className="text-4xl font-bold">8</CardTitle>
+              {isLoading ? (
+                <Skeleton className="h-12 w-16 mx-auto bg-primary-foreground/20" />
+              ) : (
+                <CardTitle className="text-4xl font-bold">{stats?.modelsCount || 0}</CardTitle>
+              )}
               <CardDescription className="text-primary-foreground/80">Modelos Disponíveis</CardDescription>
             </CardHeader>
           </Card>
           <Card className="text-center bg-secondary text-secondary-foreground">
             <CardHeader>
-              <CardTitle className="text-4xl font-bold">150+</CardTitle>
-              <CardDescription className="text-secondary-foreground/80">Opcionais</CardDescription>
+              {isLoading ? (
+                <Skeleton className="h-12 w-16 mx-auto bg-secondary-foreground/20" />
+              ) : (
+                <CardTitle className="text-4xl font-bold">{stats?.categoriesCount || 0}</CardTitle>
+              )}
+              <CardDescription className="text-secondary-foreground/80">Categorias</CardDescription>
             </CardHeader>
           </Card>
           <Card className="text-center bg-accent text-accent-foreground">
             <CardHeader>
-              <CardTitle className="text-4xl font-bold">100%</CardTitle>
-              <CardDescription className="text-accent-foreground/80">Personalizável</CardDescription>
+              {isLoading ? (
+                <Skeleton className="h-12 w-16 mx-auto bg-accent-foreground/20" />
+              ) : (
+                <CardTitle className="text-4xl font-bold">{stats?.optionsCount || 0}</CardTitle>
+              )}
+              <CardDescription className="text-accent-foreground/80">Opcionais</CardDescription>
             </CardHeader>
           </Card>
         </div>
