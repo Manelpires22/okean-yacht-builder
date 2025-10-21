@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      option_yacht_models: {
+        Row: {
+          created_at: string | null
+          id: string
+          option_id: string
+          yacht_model_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          option_id: string
+          yacht_model_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          option_id?: string
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "option_yacht_models_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "option_yacht_models_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       options: {
         Row: {
           base_price: number

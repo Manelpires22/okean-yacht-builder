@@ -151,6 +151,7 @@ export default function Configurator() {
                     categories={categories}
                     selectedOptionIds={selectedOptionIds}
                     onToggleOption={handleToggleOption}
+                    yachtModelId={state.yacht_model_id}
                   />
                 ) : (
                   <p className="text-center text-muted-foreground py-12">

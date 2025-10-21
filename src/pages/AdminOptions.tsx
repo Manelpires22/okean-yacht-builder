@@ -7,9 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus } from "lucide-react";
+import { Plus, Edit2, Tag } from "lucide-react";
+import { OptionFormDialog } from "@/components/admin/options/OptionFormDialog";
+import { useOptionYachtModels } from "@/hooks/useOptionYachtModels";
 
 export default function AdminOptions() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingOption, setEditingOption] = useState<any>(null);
   const { data: categories, isLoading: loadingCategories } = useQuery({
     queryKey: ["option-categories"],
     queryFn: async () => {
@@ -27,12 +31,29 @@ export default function AdminOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("options")
-        .select("*, category:option_categories(name)")
+        .select(`
+          *,
+          category:option_categories(name),
+          option_yacht_models(
+            yacht_model_id,
+            yacht_model:yacht_models(id, name, code)
+          )
+        `)
         .order("name");
       if (error) throw error;
       return data;
     },
   });
+
+  const handleCreateOption = () => {
+    setEditingOption(null);
+    setDialogOpen(true);
+  };
+
+  const handleEditOption = (option: any) => {
+    setEditingOption(option);
+    setDialogOpen(true);
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -58,7 +79,7 @@ export default function AdminOptions() {
         <TabsContent value="options" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Opcionais Cadastrados</h2>
-            <Button>
+            <Button onClick={handleCreateOption}>
               <Plus className="mr-2 h-4 w-4" />
               Novo Opcional
             </Button>
@@ -71,6 +92,7 @@ export default function AdminOptions() {
                   <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Modelos Compatíveis</TableHead>
                   <TableHead>Preço Base</TableHead>
                   <TableHead>Impacto Prazo</TableHead>
                   <TableHead>Status</TableHead>
@@ -81,7 +103,7 @@ export default function AdminOptions() {
                 {loadingOptions ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      {Array.from({ length: 7 }).map((_, j) => (
+                      {Array.from({ length: 8 }).map((_, j) => (
                         <TableCell key={j}>
                           <Skeleton className="h-4 w-full" />
                         </TableCell>
@@ -96,6 +118,20 @@ export default function AdminOptions() {
                       <TableCell>
                         {option.category?.name || "Sem categoria"}
                       </TableCell>
+                      <TableCell>
+                        {option.option_yacht_models && option.option_yacht_models.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {option.option_yacht_models.map((rel: any) => (
+                              <Badge key={rel.yacht_model_id} variant="outline" className="text-xs">
+                                <Tag className="h-3 w-3 mr-1" />
+                                {rel.yacht_model?.code}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Nenhum</span>
+                        )}
+                      </TableCell>
                       <TableCell>{formatCurrency(Number(option.base_price))}</TableCell>
                       <TableCell>
                         {option.delivery_days_impact ? `+${option.delivery_days_impact} dias` : "-"}
@@ -106,15 +142,19 @@ export default function AdminOptions() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm">
-                          Editar
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditOption(option)}
+                        >
+                          <Edit2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       Nenhum opcional cadastrado
                     </TableCell>
                   </TableRow>
@@ -188,6 +228,13 @@ export default function AdminOptions() {
         </TabsContent>
       </Tabs>
       </div>
+
+      <OptionFormDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        optionId={editingOption?.id}
+        initialData={editingOption}
+      />
     </AdminLayout>
   );
 }

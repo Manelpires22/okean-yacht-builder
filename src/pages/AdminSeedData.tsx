@@ -532,6 +532,37 @@ const AdminSeedData = () => {
       
       if (optError) throw optError;
 
+      // 4. Get Ferretti 550 ID
+      const { data: ferretti, error: ferrettiError } = await supabase
+        .from('yacht_models')
+        .select('id')
+        .eq('code', 'FY-550')
+        .single();
+      
+      if (ferrettiError) throw ferrettiError;
+      if (!ferretti) throw new Error('Ferretti 550 não encontrado. Execute "Popular Dados de Demonstração" primeiro.');
+
+      // 5. Get all newly created options
+      const { data: newOptions, error: newOptError } = await supabase
+        .from('options')
+        .select('id');
+      
+      if (newOptError) throw newOptError;
+
+      // 6. Associate all options with Ferretti 550
+      if (newOptions && newOptions.length > 0) {
+        const { error: relationError } = await supabase
+          .from('option_yacht_models')
+          .insert(
+            newOptions.map((opt) => ({
+              option_id: opt.id,
+              yacht_model_id: ferretti.id,
+            }))
+          );
+        
+        if (relationError) throw relationError;
+      }
+
       return { success: true, count: 24 };
     },
     onSuccess: (data) => {

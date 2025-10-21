@@ -12,12 +12,14 @@ interface OptionCategorySectionProps {
   }>;
   selectedOptionIds: string[];
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
+  yachtModelId?: string;
 }
 
 export function OptionCategorySection({
   categories,
   selectedOptionIds,
   onToggleOption,
+  yachtModelId,
 }: OptionCategorySectionProps) {
   return (
     <Accordion type="multiple" className="w-full">
@@ -27,6 +29,7 @@ export function OptionCategorySection({
           category={category}
           selectedOptionIds={selectedOptionIds}
           onToggleOption={onToggleOption}
+          yachtModelId={yachtModelId}
         />
       ))}
     </Accordion>
@@ -37,12 +40,14 @@ function CategoryAccordionItem({
   category,
   selectedOptionIds,
   onToggleOption,
+  yachtModelId,
 }: {
   category: { id: string; name: string; description?: string };
   selectedOptionIds: string[];
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
+  yachtModelId?: string;
 }) {
-  const { data: options, isLoading } = useOptions(category.id);
+  const { data: options, isLoading } = useOptions(category.id, yachtModelId);
 
   const selectedCount = options?.filter((opt) =>
     selectedOptionIds.includes(opt.id)
