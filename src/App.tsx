@@ -13,6 +13,7 @@ import AdminYachtModels from "./pages/AdminYachtModels";
 import AdminOptions from "./pages/AdminOptions";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSeedData from "./pages/AdminSeedData";
+import Configurator from "./pages/Configurator";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/configurador" element={<ProtectedRoute><Configurator /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
