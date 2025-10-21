@@ -1,5 +1,7 @@
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
+import { useState } from "react";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import {
   FormControl,
   FormDescription,
@@ -11,6 +13,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Upload, X, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 export const yachtModelSchema = z.object({
   code: z.string()
@@ -24,7 +29,7 @@ export const yachtModelSchema = z.object({
   
   description: z.string().optional(),
   
-  image_url: z.string().url("URL inválida").optional().or(z.literal("")),
+  image_url: z.string().optional(),
   
   base_price: z.string().optional(),
   
@@ -42,6 +47,25 @@ interface YachtModelFormProps {
 }
 
 export function YachtModelForm({ form }: YachtModelFormProps) {
+  const { uploadImage, uploading } = useImageUpload();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(form.getValues("image_url") || null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await uploadImage(file, 'models');
+    if (url) {
+      form.setValue("image_url", url);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    form.setValue("image_url", "");
+    setPreviewUrl(null);
+  };
+
   return (
     <div className="space-y-4">
       <FormField
@@ -93,22 +117,52 @@ export function YachtModelForm({ form }: YachtModelFormProps) {
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="image_url"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>URL da Imagem</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="https://exemplo.com/imagem.jpg" 
-                {...field}
+      <div className="space-y-2">
+        <Label>Imagem do Modelo</Label>
+        <div className="flex flex-col gap-4">
+          {previewUrl ? (
+            <div className="relative">
+              <img
+                src={previewUrl}
+                alt="Preview"
+                className="w-full h-48 object-cover rounded-lg border"
               />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={handleRemoveImage}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center">
+              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground mb-4">
+                Clique para fazer upload de uma imagem
+              </p>
+              <p className="text-xs text-muted-foreground">
+                JPG, PNG ou WEBP (máx. 5MB)
+              </p>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="flex-1"
+            />
+            {uploading && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         <FormField

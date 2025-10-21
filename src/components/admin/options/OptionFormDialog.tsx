@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useOptionCategories } from "@/hooks/useOptions";
 import { useAllYachtModels, useOptionYachtModels } from "@/hooks/useOptionYachtModels";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, X } from "lucide-react";
 
 const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
@@ -59,6 +60,8 @@ export function OptionFormDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
+  const { uploadImage, uploading } = useImageUpload();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   
   const { data: categories } = useOptionCategories();
   const { data: yachtModels } = useAllYachtModels();
@@ -98,6 +101,7 @@ export function OptionFormDialog({
           delivery_days_impact: Number(initialData.delivery_days_impact) || 0,
           is_active: initialData.is_active ?? true,
         });
+        setPreviewUrl(initialData.image_url || null);
       } else {
         // Create mode - reset to empty
         reset({
@@ -110,6 +114,7 @@ export function OptionFormDialog({
           is_active: true,
         });
         setSelectedModelIds([]);
+        setPreviewUrl(null);
       }
     }
   }, [open, initialData, reset]);
@@ -123,13 +128,32 @@ export function OptionFormDialog({
     }
   }, [existingModels, optionId]);
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await uploadImage(file, 'options');
+    if (url) {
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setPreviewUrl(null);
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (data: OptionFormData) => {
       if (optionId) {
         // Update existing option
+        const updateData = {
+          ...data,
+          image_url: previewUrl || null,
+        };
+
         const { error: updateError } = await supabase
           .from("options")
-          .update(data)
+          .update(updateData)
           .eq("id", optionId);
 
         if (updateError) throw updateError;
@@ -163,6 +187,7 @@ export function OptionFormDialog({
           base_price: data.base_price,
           delivery_days_impact: data.delivery_days_impact || 0,
           is_active: data.is_active,
+          image_url: previewUrl || null,
         };
 
         const { data: newOption, error: createError } = await supabase
@@ -291,6 +316,53 @@ export function OptionFormDialog({
               placeholder="Descrição detalhada do opcional"
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Imagem do Opcional</Label>
+            <div className="flex flex-col gap-4">
+              {previewUrl ? (
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Clique para fazer upload de uma imagem
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, PNG ou WEBP (máx. 5MB)
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="flex-1"
+                />
+                {uploading && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
