@@ -14,7 +14,314 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      option_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      options: {
+        Row: {
+          base_price: number
+          category_id: string | null
+          code: string
+          cost: number | null
+          created_at: string | null
+          created_by: string | null
+          delivery_days_impact: number | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          technical_specifications: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_price: number
+          category_id?: string | null
+          code: string
+          cost?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          technical_specifications?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_price?: number
+          category_id?: string | null
+          code?: string
+          cost?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          technical_specifications?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "options_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "option_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "options_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_options: {
+        Row: {
+          created_at: string | null
+          delivery_days_impact: number | null
+          id: string
+          option_id: string | null
+          quantity: number | null
+          quotation_id: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_days_impact?: number | null
+          id?: string
+          option_id?: string | null
+          quantity?: number | null
+          quotation_id?: string | null
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          delivery_days_impact?: number | null
+          id?: string
+          option_id?: string | null
+          quantity?: number | null
+          quotation_id?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_options_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_options_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotations: {
+        Row: {
+          base_delivery_days: number
+          base_price: number
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          final_price: number
+          id: string
+          quotation_number: string
+          sales_representative_id: string | null
+          status: string
+          total_customizations_price: number | null
+          total_delivery_days: number
+          total_options_price: number | null
+          updated_at: string | null
+          valid_until: string
+          yacht_model_id: string | null
+        }
+        Insert: {
+          base_delivery_days: number
+          base_price: number
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_price: number
+          id?: string
+          quotation_number: string
+          sales_representative_id?: string | null
+          status: string
+          total_customizations_price?: number | null
+          total_delivery_days: number
+          total_options_price?: number | null
+          updated_at?: string | null
+          valid_until: string
+          yacht_model_id?: string | null
+        }
+        Update: {
+          base_delivery_days?: number
+          base_price?: number
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          final_price?: number
+          id?: string
+          quotation_number?: string
+          sales_representative_id?: string | null
+          status?: string
+          total_customizations_price?: number | null
+          total_delivery_days?: number
+          total_options_price?: number | null
+          updated_at?: string | null
+          valid_until?: string
+          yacht_model_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_sales_representative_id_fkey"
+            columns: ["sales_representative_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          department: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          department: string
+          email: string
+          full_name: string
+          id: string
+          is_active?: boolean | null
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          department?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      yacht_models: {
+        Row: {
+          base_delivery_days: number
+          base_price: number
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          technical_specifications: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_delivery_days: number
+          base_price: number
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          technical_specifications?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_delivery_days?: number
+          base_price?: number
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          technical_specifications?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "yacht_models_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
