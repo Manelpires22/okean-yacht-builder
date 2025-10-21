@@ -2,7 +2,6 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,8 +12,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CreateYachtModelDialog } from "@/components/admin/yacht-models/CreateYachtModelDialog";
+import { EditYachtModelDialog } from "@/components/admin/yacht-models/EditYachtModelDialog";
+import { useState } from "react";
 
 const AdminYachtModels = () => {
+  const [editingModel, setEditingModel] = useState<any>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
   const { data: models, isLoading } = useQuery({
     queryKey: ['admin-yacht-models'],
     queryFn: async () => {
@@ -28,6 +33,11 @@ const AdminYachtModels = () => {
     }
   });
 
+  const handleEdit = (model: any) => {
+    setEditingModel(model);
+    setEditDialogOpen(true);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -36,10 +46,7 @@ const AdminYachtModels = () => {
             <h1 className="text-3xl font-bold">Modelos de Iates</h1>
             <p className="text-muted-foreground">Gerir modelos de iates disponíveis</p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Modelo
-          </Button>
+          <CreateYachtModelDialog />
         </div>
 
         <div className="border rounded-lg">
@@ -71,10 +78,25 @@ const AdminYachtModels = () => {
               ) : (
                 models?.map((model) => (
                   <TableRow key={model.id}>
-                    <TableCell className="font-mono">{model.code}</TableCell>
-                    <TableCell className="font-medium">{model.name}</TableCell>
-                    <TableCell>€{model.base_price.toLocaleString()}</TableCell>
-                    <TableCell>{model.base_delivery_days}</TableCell>
+                    <TableCell className="font-mono text-xs">{model.code}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {model.image_url && (
+                          <img 
+                            src={model.image_url} 
+                            alt={model.name}
+                            className="h-10 w-16 object-cover rounded"
+                          />
+                        )}
+                        <span className="font-medium">{model.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {model.base_price ? `€${model.base_price.toLocaleString()}` : "A definir"}
+                    </TableCell>
+                    <TableCell>
+                      {model.base_delivery_days ? `${model.base_delivery_days}d` : "A definir"}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={model.is_active ? "default" : "secondary"}>
                         {model.is_active ? "Ativo" : "Inativo"}
@@ -82,11 +104,17 @@ const AdminYachtModels = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="text-xs">
-                        Seed
+                        {model.technical_specifications ? "Com specs" : "Sem specs"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">Editar</Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEdit(model)}
+                      >
+                        Editar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -94,6 +122,14 @@ const AdminYachtModels = () => {
             </TableBody>
           </Table>
         </div>
+
+        {editingModel && (
+          <EditYachtModelDialog
+            model={editingModel}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+          />
+        )}
       </div>
     </AdminLayout>
   );
