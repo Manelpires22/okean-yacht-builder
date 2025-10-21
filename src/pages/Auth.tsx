@@ -11,6 +11,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -58,17 +59,66 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordRecovery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Email necessário",
+        description: "Por favor, insira seu email",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?recovery=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Erro ao enviar email",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir a senha",
+      });
+      
+      setIsRecoveryMode(false);
+    } catch (error) {
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro ao enviar o email",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Login</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {isRecoveryMode ? "Recuperar Senha" : "Login"}
+          </CardTitle>
           <CardDescription>
-            Entre com suas credenciais para acessar o sistema
+            {isRecoveryMode
+              ? "Insira seu email para receber as instruções de recuperação"
+              : "Entre com suas credenciais para acessar o sistema"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={isRecoveryMode ? handlePasswordRecovery : handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -81,21 +131,53 @@ const Auth = () => {
                 disabled={loading}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
+            
+            {!isRecoveryMode && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIsRecoveryMode(true)}
+                    className="text-sm text-primary hover:underline"
+                    disabled={loading}
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "A entrar..." : "Entrar"}
+              {loading
+                ? isRecoveryMode
+                  ? "A enviar..."
+                  : "A entrar..."
+                : isRecoveryMode
+                ? "Enviar Email"
+                : "Entrar"}
             </Button>
+
+            {isRecoveryMode && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => setIsRecoveryMode(false)}
+                disabled={loading}
+              >
+                Voltar ao Login
+              </Button>
+            )}
           </form>
         </CardContent>
       </Card>
