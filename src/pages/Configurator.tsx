@@ -22,6 +22,8 @@ export default function Configurator() {
     setYachtModel,
     addOption,
     removeOption,
+    setBaseDiscount,
+    setOptionsDiscount,
     totals,
     clearConfiguration,
   } = useConfigurationState();
@@ -63,6 +65,9 @@ export default function Configurator() {
     client_name: string;
     client_email?: string;
     client_phone?: string;
+    base_discount_percentage?: number;
+    options_discount_percentage?: number;
+    notes?: string;
   }) => {
     if (!state.yacht_model_id) return;
 
@@ -74,6 +79,9 @@ export default function Configurator() {
       client_name: formData.client_name,
       client_email: formData.client_email,
       client_phone: formData.client_phone,
+      base_discount_percentage: state.base_discount_percentage,
+      options_discount_percentage: state.options_discount_percentage,
+      notes: formData.notes,
     });
 
     setSaveDialogOpen(false);
@@ -170,8 +178,14 @@ export default function Configurator() {
               totalPrice={totals.totalPrice}
               baseDeliveryDays={state.base_delivery_days}
               totalDeliveryDays={totals.totalDeliveryDays}
+              baseDiscountPercentage={state.base_discount_percentage}
+              optionsDiscountPercentage={state.options_discount_percentage}
+              finalBasePrice={totals.finalBasePrice}
+              finalOptionsPrice={totals.finalOptionsPrice}
               selectedOptions={state.selected_options}
               optionsData={allOptions}
+              onBaseDiscountChange={setBaseDiscount}
+              onOptionsDiscountChange={setOptionsDiscount}
               onSave={() => setSaveDialogOpen(true)}
             />
           </div>
@@ -183,6 +197,8 @@ export default function Configurator() {
         onOpenChange={setSaveDialogOpen}
         onSave={handleSaveQuotation}
         isLoading={saveQuotation.isPending}
+        baseDiscountPercentage={state.base_discount_percentage}
+        optionsDiscountPercentage={state.options_discount_percentage}
       />
     </div>
   );

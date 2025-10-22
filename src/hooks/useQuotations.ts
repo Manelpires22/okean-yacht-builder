@@ -164,7 +164,7 @@ export function useDuplicateQuotation() {
         .padStart(3, "0");
       const newQuotationNumber = `QT-${year}-${random}`;
 
-      // Create new quotation
+      // Create new quotation (TypeScript error will be fixed after types regenerate)
       const { data: newQuotation, error: createError } = await supabase
         .from("quotations")
         .insert({
@@ -177,8 +177,12 @@ export function useDuplicateQuotation() {
           sales_representative_id: original.sales_representative_id,
           status: "draft",
           base_price: original.base_price,
+          base_discount_percentage: 0,
+          final_base_price: original.base_price,
           base_delivery_days: original.base_delivery_days,
           total_options_price: original.total_options_price,
+          options_discount_percentage: 0,
+          final_options_price: original.total_options_price,
           total_customizations_price: original.total_customizations_price,
           discount_amount: 0,
           discount_percentage: 0,
@@ -187,7 +191,7 @@ export function useDuplicateQuotation() {
           valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             .toISOString()
             .split("T")[0],
-        })
+        } as any) // Temporary as any until types regenerate
         .select()
         .single();
 

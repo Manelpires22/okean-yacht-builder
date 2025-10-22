@@ -44,7 +44,8 @@ const saveQuotationSchema = z.object({
   client_email: z.string().email("Email inválido").optional().or(z.literal("")),
   client_phone: z.string().optional(),
   notes: z.string().optional(),
-  discount_percentage: z.number().min(0).max(100).optional(),
+  base_discount_percentage: z.number().min(0).max(100).optional(),
+  options_discount_percentage: z.number().min(0).max(100).optional(),
 });
 
 type SaveQuotationFormValues = z.infer<typeof saveQuotationSchema>;
@@ -54,7 +55,8 @@ interface SaveQuotationDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (data: SaveQuotationFormValues) => Promise<void>;
   isLoading?: boolean;
-  discountPercentage?: number;
+  baseDiscountPercentage?: number;
+  optionsDiscountPercentage?: number;
 }
 
 export function SaveQuotationDialog({
@@ -62,10 +64,11 @@ export function SaveQuotationDialog({
   onOpenChange,
   onSave,
   isLoading,
-  discountPercentage = 0,
+  baseDiscountPercentage = 0,
+  optionsDiscountPercentage = 0,
 }: SaveQuotationDialogProps) {
-  const requiresApproval = needsApproval(discountPercentage);
-  const approvalMessage = getDiscountApprovalMessage(discountPercentage);
+  const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
+  const approvalMessage = getDiscountApprovalMessage(baseDiscountPercentage, optionsDiscountPercentage);
 
   const form = useForm<SaveQuotationFormValues>({
     resolver: zodResolver(saveQuotationSchema),
@@ -74,7 +77,8 @@ export function SaveQuotationDialog({
       client_email: "",
       client_phone: "",
       notes: "",
-      discount_percentage: discountPercentage,
+      base_discount_percentage: baseDiscountPercentage,
+      options_discount_percentage: optionsDiscountPercentage,
     },
   });
 

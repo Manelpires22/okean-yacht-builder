@@ -286,6 +286,7 @@ export type Database = {
       quotations: {
         Row: {
           base_delivery_days: number
+          base_discount_percentage: number | null
           base_price: number
           client_email: string | null
           client_id: string | null
@@ -294,8 +295,11 @@ export type Database = {
           created_at: string | null
           discount_amount: number | null
           discount_percentage: number | null
+          final_base_price: number
+          final_options_price: number | null
           final_price: number
           id: string
+          options_discount_percentage: number | null
           quotation_number: string
           sales_representative_id: string | null
           status: string
@@ -308,6 +312,7 @@ export type Database = {
         }
         Insert: {
           base_delivery_days: number
+          base_discount_percentage?: number | null
           base_price: number
           client_email?: string | null
           client_id?: string | null
@@ -316,8 +321,11 @@ export type Database = {
           created_at?: string | null
           discount_amount?: number | null
           discount_percentage?: number | null
+          final_base_price: number
+          final_options_price?: number | null
           final_price: number
           id?: string
+          options_discount_percentage?: number | null
           quotation_number: string
           sales_representative_id?: string | null
           status: string
@@ -330,6 +338,7 @@ export type Database = {
         }
         Update: {
           base_delivery_days?: number
+          base_discount_percentage?: number | null
           base_price?: number
           client_email?: string | null
           client_id?: string | null
@@ -338,8 +347,11 @@ export type Database = {
           created_at?: string | null
           discount_amount?: number | null
           discount_percentage?: number | null
+          final_base_price?: number
+          final_options_price?: number | null
           final_price?: number
           id?: string
+          options_discount_percentage?: number | null
           quotation_number?: string
           sales_representative_id?: string | null
           status?: string

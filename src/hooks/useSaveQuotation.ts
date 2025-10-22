@@ -15,8 +15,8 @@ interface SaveQuotationData {
   client_name: string;
   client_email?: string;
   client_phone?: string;
-  discount_percentage?: number;
-  discount_amount?: number;
+  base_discount_percentage?: number;
+  options_discount_percentage?: number;
   notes?: string;
 }
 
@@ -41,14 +41,24 @@ export function useSaveQuotation() {
         0
       );
 
-      const finalPrice = data.base_price + totalOptionsPrice - (data.discount_amount || 0);
+      // Calculate discounted prices
+      const baseDiscountPercentage = data.base_discount_percentage || 0;
+      const optionsDiscountPercentage = data.options_discount_percentage || 0;
+      
+      const baseDiscountAmount = data.base_price * (baseDiscountPercentage / 100);
+      const finalBasePrice = data.base_price - baseDiscountAmount;
+      
+      const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
+      const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
+
+      const finalPrice = finalBasePrice + finalOptionsPrice;
       const totalDeliveryDays = data.base_delivery_days + maxDeliveryImpact;
 
       // Determine if approval is needed
-      const requiresApproval = needsApproval(data.discount_percentage || 0);
+      const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
       const initialStatus = requiresApproval ? "pending_approval" : "draft";
 
-      // Create quotation
+      // Create quotation (TypeScript error will be fixed after types regenerate)
       const { data: quotation, error: quotationError } = await supabase
         .from("quotations")
         .insert({
@@ -61,15 +71,19 @@ export function useSaveQuotation() {
           sales_representative_id: user.id,
           status: initialStatus,
           base_price: data.base_price,
+          base_discount_percentage: baseDiscountPercentage,
+          final_base_price: finalBasePrice,
           base_delivery_days: data.base_delivery_days,
           total_options_price: totalOptionsPrice,
+          options_discount_percentage: optionsDiscountPercentage,
+          final_options_price: finalOptionsPrice,
           total_customizations_price: 0,
-          discount_amount: data.discount_amount || 0,
-          discount_percentage: data.discount_percentage || 0,
+          discount_amount: baseDiscountAmount + optionsDiscountAmount,
+          discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,
           valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        })
+        } as any) // Temporary as any until types regenerate
         .select()
         .single();
 
@@ -103,9 +117,14 @@ export function useSaveQuotation() {
             requested_by: user.id,
             status: 'pending',
             request_details: {
-              discount_percentage: data.discount_percentage,
-              discount_amount: data.discount_amount,
-              original_price: data.base_price + totalOptionsPrice,
+              base_discount_percentage: baseDiscountPercentage,
+              options_discount_percentage: optionsDiscountPercentage,
+              base_discount_amount: baseDiscountAmount,
+              options_discount_amount: optionsDiscountAmount,
+              original_base_price: data.base_price,
+              original_options_price: totalOptionsPrice,
+              final_base_price: finalBasePrice,
+              final_options_price: finalOptionsPrice,
               final_price: finalPrice
             },
             notes: data.notes || null

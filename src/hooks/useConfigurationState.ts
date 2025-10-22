@@ -12,6 +12,8 @@ export interface ConfigurationState {
   base_price: number;
   base_delivery_days: number;
   selected_options: SelectedOption[];
+  base_discount_percentage: number;
+  options_discount_percentage: number;
 }
 
 const STORAGE_KEY = "yacht-configuration-draft";
@@ -23,12 +25,14 @@ export function useConfigurationState() {
       try {
         return JSON.parse(saved);
       } catch {
-        return {
-          yacht_model_id: null,
-          base_price: 0,
-          base_delivery_days: 0,
-          selected_options: [],
-        };
+    return {
+      yacht_model_id: null,
+      base_price: 0,
+      base_delivery_days: 0,
+      selected_options: [],
+      base_discount_percentage: 0,
+      options_discount_percentage: 0,
+    };
       }
     }
     return {
@@ -36,6 +40,8 @@ export function useConfigurationState() {
       base_price: 0,
       base_delivery_days: 0,
       selected_options: [],
+      base_discount_percentage: 0,
+      options_discount_percentage: 0,
     };
   });
 
@@ -50,7 +56,23 @@ export function useConfigurationState() {
       base_price: basePrice,
       base_delivery_days: baseDeliveryDays,
       selected_options: [],
+      base_discount_percentage: 0,
+      options_discount_percentage: 0,
     });
+  };
+
+  const setBaseDiscount = (percentage: number) => {
+    setState((prev) => ({
+      ...prev,
+      base_discount_percentage: Math.max(0, Math.min(100, percentage)),
+    }));
+  };
+
+  const setOptionsDiscount = (percentage: number) => {
+    setState((prev) => ({
+      ...prev,
+      options_discount_percentage: Math.max(0, Math.min(100, percentage)),
+    }));
   };
 
   const addOption = (option: SelectedOption) => {
@@ -82,6 +104,8 @@ export function useConfigurationState() {
       base_price: 0,
       base_delivery_days: 0,
       selected_options: [],
+      base_discount_percentage: 0,
+      options_discount_percentage: 0,
     });
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -97,10 +121,21 @@ export function useConfigurationState() {
       0
     );
 
+    // Calculate discounted prices
+    const baseDiscountAmount = state.base_price * (state.base_discount_percentage / 100);
+    const finalBasePrice = state.base_price - baseDiscountAmount;
+    
+    const optionsDiscountAmount = optionsTotal * (state.options_discount_percentage / 100);
+    const finalOptionsPrice = optionsTotal - optionsDiscountAmount;
+
     return {
-      totalPrice: state.base_price + optionsTotal,
+      totalPrice: finalBasePrice + finalOptionsPrice,
       totalDeliveryDays: state.base_delivery_days + maxDeliveryImpact,
       optionsPrice: optionsTotal,
+      finalBasePrice,
+      finalOptionsPrice,
+      baseDiscountAmount,
+      optionsDiscountAmount,
     };
   }, [state]);
 
@@ -110,6 +145,8 @@ export function useConfigurationState() {
     addOption,
     removeOption,
     updateOptionQuantity,
+    setBaseDiscount,
+    setOptionsDiscount,
     clearConfiguration,
     totals,
   };
