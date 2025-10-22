@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { generateQuotationNumber } from "@/lib/quotation-utils";
+import { needsApproval } from "@/lib/approval-utils";
 import { SelectedOption } from "./useConfigurationState";
 
 interface SaveQuotationData {
@@ -14,6 +15,9 @@ interface SaveQuotationData {
   client_name: string;
   client_email?: string;
   client_phone?: string;
+  discount_percentage?: number;
+  discount_amount?: number;
+  notes?: string;
 }
 
 export function useSaveQuotation() {
@@ -37,8 +41,12 @@ export function useSaveQuotation() {
         0
       );
 
-      const finalPrice = data.base_price + totalOptionsPrice;
+      const finalPrice = data.base_price + totalOptionsPrice - (data.discount_amount || 0);
       const totalDeliveryDays = data.base_delivery_days + maxDeliveryImpact;
+
+      // Determine if approval is needed
+      const requiresApproval = needsApproval(data.discount_percentage || 0);
+      const initialStatus = requiresApproval ? "pending_approval" : "draft";
 
       // Create quotation
       const { data: quotation, error: quotationError } = await supabase
@@ -51,13 +59,13 @@ export function useSaveQuotation() {
           client_email: data.client_email || null,
           client_phone: data.client_phone || null,
           sales_representative_id: user.id,
-          status: "draft",
+          status: initialStatus,
           base_price: data.base_price,
           base_delivery_days: data.base_delivery_days,
           total_options_price: totalOptionsPrice,
           total_customizations_price: 0,
-          discount_amount: 0,
-          discount_percentage: 0,
+          discount_amount: data.discount_amount || 0,
+          discount_percentage: data.discount_percentage || 0,
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,
           valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
@@ -85,13 +93,41 @@ export function useSaveQuotation() {
         if (optionsError) throw optionsError;
       }
 
+      // Create approval request if needed
+      if (requiresApproval) {
+        const { error: approvalError } = await supabase
+          .from("approvals")
+          .insert({
+            quotation_id: quotation.id,
+            approval_type: 'discount',
+            requested_by: user.id,
+            status: 'pending',
+            request_details: {
+              discount_percentage: data.discount_percentage,
+              discount_amount: data.discount_amount,
+              original_price: data.base_price + totalOptionsPrice,
+              final_price: finalPrice
+            },
+            notes: data.notes || null
+          });
+
+        if (approvalError) throw approvalError;
+      }
+
       return quotation;
     },
     onSuccess: (quotation) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["approvals-count"] });
+      
+      const message = quotation.status === 'pending_approval' 
+        ? `Cotação ${quotation.quotation_number} criada e enviada para aprovação!`
+        : `Cotação ${quotation.quotation_number} salva com sucesso!`;
+      
       toast({
-        title: "Cotação salva com sucesso!",
-        description: `Número: ${quotation.quotation_number}`,
+        title: "Sucesso!",
+        description: message,
       });
     },
     onError: (error: Error) => {

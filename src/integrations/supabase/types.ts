@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      approvals: {
+        Row: {
+          approval_type: Database["public"]["Enums"]["approval_type"]
+          created_at: string | null
+          id: string
+          notes: string | null
+          quotation_id: string
+          request_details: Json | null
+          requested_at: string
+          requested_by: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          approval_type: Database["public"]["Enums"]["approval_type"]
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          quotation_id: string
+          request_details?: Json | null
+          requested_at?: string
+          requested_by: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string | null
+        }
+        Update: {
+          approval_type?: Database["public"]["Enums"]["approval_type"]
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          quotation_id?: string
+          request_details?: Json | null
+          requested_at?: string
+          requested_by?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approvals_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           company: string | null
@@ -442,6 +498,8 @@ export type Database = {
         | "comercial"
         | "producao"
         | "financeiro"
+      approval_status: "pending" | "approved" | "rejected"
+      approval_type: "discount" | "customization"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -576,6 +634,8 @@ export const Constants = {
         "producao",
         "financeiro",
       ],
+      approval_status: ["pending", "approved", "rejected"],
+      approval_type: ["discount", "customization"],
     },
   },
 } as const

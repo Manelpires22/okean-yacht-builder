@@ -17,6 +17,7 @@ import Configurator from "./pages/Configurator";
 import Quotations from "@/pages/Quotations";
 import QuotationDetail from "@/pages/QuotationDetail";
 import Clients from "@/pages/Clients";
+import Approvals from "@/pages/Approvals";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,8 @@ const App = () => (
             <Route path="/cotacoes/:id" element={<ProtectedRoute><QuotationDetail /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/clientes" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+            <Route path="/aprovacoes" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />

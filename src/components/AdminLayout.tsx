@@ -1,8 +1,10 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
+import { Badge } from "@/components/ui/badge";
+import { usePendingApprovalsCount } from "@/hooks/useApprovals";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -10,6 +12,9 @@ interface AdminLayoutProps {
 
 const navItems = [
   { path: "/", icon: Home, label: "Início" },
+  { path: "/cotacoes", icon: FileText, label: "Cotações" },
+  { path: "/clientes", icon: UserCheck, label: "Clientes" },
+  { path: "/aprovacoes", icon: CheckSquare, label: "Aprovações", showBadge: true },
   { path: "/admin", icon: Settings, label: "Dashboard" },
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
@@ -19,6 +24,7 @@ const navItems = [
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
+  const { data: pendingCount = 0 } = usePendingApprovalsCount();
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -44,6 +50,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
+                {item.showBadge && pendingCount > 0 && (
+                  <Badge variant="destructive" className="ml-auto">
+                    {pendingCount}
+                  </Badge>
+                )}
               </Link>
             );
           })}

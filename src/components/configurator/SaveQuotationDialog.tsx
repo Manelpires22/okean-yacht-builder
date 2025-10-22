@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useClients, useCreateClient } from "@/hooks/useClients";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { needsApproval, getDiscountApprovalMessage } from "@/lib/approval-utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import {
   Command,
@@ -43,6 +44,7 @@ const saveQuotationSchema = z.object({
   client_email: z.string().email("Email inválido").optional().or(z.literal("")),
   client_phone: z.string().optional(),
   notes: z.string().optional(),
+  discount_percentage: z.number().min(0).max(100).optional(),
 });
 
 type SaveQuotationFormValues = z.infer<typeof saveQuotationSchema>;
@@ -52,6 +54,7 @@ interface SaveQuotationDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (data: SaveQuotationFormValues) => Promise<void>;
   isLoading?: boolean;
+  discountPercentage?: number;
 }
 
 export function SaveQuotationDialog({
@@ -59,7 +62,11 @@ export function SaveQuotationDialog({
   onOpenChange,
   onSave,
   isLoading,
+  discountPercentage = 0,
 }: SaveQuotationDialogProps) {
+  const requiresApproval = needsApproval(discountPercentage);
+  const approvalMessage = getDiscountApprovalMessage(discountPercentage);
+
   const form = useForm<SaveQuotationFormValues>({
     resolver: zodResolver(saveQuotationSchema),
     defaultValues: {
@@ -67,6 +74,7 @@ export function SaveQuotationDialog({
       client_email: "",
       client_phone: "",
       notes: "",
+      discount_percentage: discountPercentage,
     },
   });
 
@@ -87,6 +95,15 @@ export function SaveQuotationDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {requiresApproval && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Aprovação Necessária</AlertTitle>
+                <AlertDescription>
+                  {approvalMessage}. A cotação será enviada para aprovação após salvar.
+                </AlertDescription>
+              </Alert>
+            )}
             <FormField
               control={form.control}
               name="client_name"
