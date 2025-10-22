@@ -33,8 +33,11 @@ const App = () => (
             <Route path="/configurador" element={<ProtectedRoute><Configurator /></ProtectedRoute>} />
             <Route path="/configurator" element={<ProtectedRoute><Configurator /></ProtectedRoute>} />
             <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
+            <Route path="/cotacoes" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
             <Route path="/quotations/:id" element={<ProtectedRoute><QuotationDetail /></ProtectedRoute>} />
+            <Route path="/cotacoes/:id" element={<ProtectedRoute><QuotationDetail /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/clientes" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
