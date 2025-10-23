@@ -134,6 +134,34 @@ export function useUpdateQuotationStatus() {
   });
 }
 
+export function useDeleteQuotation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (quotationId: string) => {
+      const { error } = await supabase
+        .from("quotations")
+        .delete()
+        .eq("id", quotationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      toast({
+        title: "Cotação deletada com sucesso!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao deletar cotação",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useDuplicateQuotation() {
   const queryClient = useQueryClient();
 

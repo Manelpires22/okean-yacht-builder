@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuotations, useUpdateQuotationStatus, useDuplicateQuotation } from "@/hooks/useQuotations";
+import { useQuotations, useUpdateQuotationStatus, useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,9 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Eye, Copy, FileText } from "lucide-react";
+import { Search, Eye, Copy, FileText, Pencil, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -46,9 +59,24 @@ export default function Quotations() {
   const { data: quotations, isLoading } = useQuotations();
   const updateStatus = useUpdateQuotationStatus();
   const duplicateQuotation = useDuplicateQuotation();
+  const deleteQuotation = useDeleteQuotation();
+  const { data: userRoles } = useUserRole();
+  const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const isAdmin = userRoles?.roles?.includes('administrador');
+
+  const canEditQuotation = (quotation: any) => {
+    if (isAdmin) return true;
+    return quotation.sales_representative_id === user?.id && quotation.status === 'draft';
+  };
+
+  const canDeleteQuotation = (quotation: any) => {
+    if (isAdmin) return true;
+    return quotation.sales_representative_id === user?.id && quotation.status === 'draft';
+  };
 
   const filteredQuotations = quotations?.filter((q) => {
     const matchesSearch =
@@ -193,21 +221,70 @@ export default function Quotations() {
                         locale: ptBR,
                       })}
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/quotations/${quotation.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDuplicate(quotation.id)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/quotations/${quotation.id}`)}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        
+                        {canEditQuotation(quotation) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/configurator?edit=${quotation.id}`)}
+                            title="Editar cotação"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
+                        {canDeleteQuotation(quotation) && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                title="Deletar cotação"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja deletar a cotação {quotation.quotation_number}?
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteQuotation.mutate(quotation.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Deletar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDuplicate(quotation.id)}
+                          disabled={duplicateQuotation.isPending}
+                          title="Duplicar cotação"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
