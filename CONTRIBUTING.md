@@ -1576,6 +1576,193 @@ import { cn } from "@/lib/utils";
 <div className="p-6" />     // ✅ Correto
 ```
 
+### 9.7 Navegação Global (AppHeader)
+
+O sistema utiliza um **header global consistente** em todas as páginas principais (não-admin) para garantir navegação clara de volta ao home.
+
+#### 9.7.1 Componente AppHeader
+
+**Localização:** `src/components/AppHeader.tsx`
+
+**Características:**
+- ✅ Logo OKEAN Yachts **clicável** que navega para `/`
+- ✅ Botão "Início" adicional (opcional, hidden em mobile)
+- ✅ Título da página (breadcrumb simples)
+- ✅ UserMenu no canto direito
+- ✅ Sticky header com backdrop blur para contexto visual
+
+**Uso Padrão:**
+
+```typescript
+import { AppHeader } from "@/components/AppHeader";
+
+export default function MyPage() {
+  return (
+    <>
+      <AppHeader title="Título da Página" />
+      <div className="container mx-auto p-6">
+        {/* Conteúdo da página */}
+      </div>
+    </>
+  );
+}
+```
+
+**Props:**
+
+| Prop | Tipo | Default | Descrição |
+|------|------|---------|-----------|
+| `title` | `string \| undefined` | - | Título da página (breadcrumb) |
+| `showHomeButton` | `boolean` | `true` | Exibir botão "Início" adicional |
+
+**Exemplos de Uso:**
+
+```typescript
+// ✅ Página com título simples
+<AppHeader title="Cotações" />
+
+// ✅ Página com título dinâmico
+<AppHeader title={`Cotação ${quotation.quotation_number}`} />
+
+// ✅ Sem botão home adicional (logo ainda é clicável)
+<AppHeader title="Clientes" showHomeButton={false} />
+
+// ✅ Apenas logo e UserMenu (sem breadcrumb)
+<AppHeader />
+```
+
+#### 9.7.2 Páginas que Usam AppHeader
+
+**✅ Implementado em:**
+- `src/pages/Quotations.tsx`
+- `src/pages/Clients.tsx`
+- `src/pages/QuotationDetail.tsx`
+
+**❌ Não usado (tem navegação própria):**
+- `src/pages/Index.tsx` - Home (não precisa)
+- `src/pages/Configurator.tsx` - Tem layout específico
+- `src/pages/Auth.tsx` - Página de login
+
+#### 9.7.3 AdminLayout vs AppHeader
+
+**AdminLayout** (páginas `/admin/*`):
+- Usado para páginas administrativas
+- Sidebar com navegação vertical
+- Link "🏠 Voltar ao Início" destacado no topo da sidebar
+- UserMenu integrado ao layout
+
+**AppHeader** (páginas regulares):
+- Usado para páginas operacionais (cotações, clientes, etc)
+- Header horizontal fixo no topo
+- Logo clicável + botão "Início"
+- UserMenu no canto direito
+
+**Quando usar cada um:**
+
+```typescript
+// ✅ AdminLayout para páginas /admin/*
+export default function AdminYachtModels() {
+  return (
+    <AdminLayout>
+      {/* Conteúdo administrativo */}
+    </AdminLayout>
+  );
+}
+
+// ✅ AppHeader para páginas operacionais
+export default function Quotations() {
+  return (
+    <>
+      <AppHeader title="Cotações" />
+      <div className="container mx-auto p-6">
+        {/* Conteúdo operacional */}
+      </div>
+    </>
+  );
+}
+```
+
+#### 9.7.4 Navegação Hierárquica (Breadcrumbs Complexos)
+
+Para páginas com **navegação hierárquica** (ex: Cotação → Detalhe), combine `AppHeader` com botão "Voltar":
+
+```typescript
+export default function QuotationDetail() {
+  const navigate = useNavigate();
+  const { quotation } = useQuotationData();
+
+  return (
+    <>
+      <AppHeader title={`Cotação ${quotation.quotation_number}`} />
+      <div className="container mx-auto p-6 space-y-6">
+        {/* Botão voltar para lista */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/quotations")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Cotações
+        </Button>
+
+        {/* Conteúdo do detalhe */}
+      </div>
+    </>
+  );
+}
+```
+
+#### 9.7.5 Responsividade Mobile
+
+O `AppHeader` é **mobile-first**:
+
+```typescript
+// Logo sempre visível
+<h1 className="text-2xl font-bold">OKEAN Yachts</h1>
+
+// Botão "Início" oculto em mobile
+<Button className="hidden md:flex">
+  <Home className="h-4 w-4 mr-2" />
+  Início
+</Button>
+
+// Título oculto em telas pequenas (opcional)
+{title && (
+  <span className="font-medium hidden sm:inline">{title}</span>
+)}
+```
+
+#### 9.7.6 Checklist ao Criar Nova Página
+
+**Ao criar uma nova página, decidir:**
+
+- [ ] É página administrativa? → Usar `AdminLayout`
+- [ ] É página operacional? → Usar `AppHeader`
+- [ ] É a home ou login? → Não usar nenhum (layout próprio)
+- [ ] Precisa de breadcrumb? → Passar `title` prop
+- [ ] Precisa de botão "Voltar"? → Adicionar `Button` com `ArrowLeft`
+
+**Exemplo de checklist preenchido:**
+
+✅ **Nova página: "Aprovações Pendentes"**
+- ✅ É operacional (não admin)
+- ✅ Usar `AppHeader title="Aprovações Pendentes"`
+- ✅ Não precisa de botão voltar (acesso direto do menu)
+
+#### 9.7.7 Convenção de Commit
+
+Ao modificar navegação:
+
+```bash
+# Adicionar AppHeader em nova página
+feat(navigation): adicionar AppHeader na página de relatórios
+
+# Corrigir navegação
+fix(navigation): corrigir título do breadcrumb em QuotationDetail
+
+# Melhorar UX de navegação
+refactor(navigation): melhorar responsividade do AppHeader
+```
+
 ---
 
 ## 10. SEO Guidelines
@@ -2195,5 +2382,23 @@ Este documento é vivo e deve ser atualizado conforme o projeto evolui.
 
 ---
 
-**Última atualização:** 2025-01-16
-**Versão:** 1.0.0
+## Changelog
+
+### v1.1.0 (2025-10-23)
+**Adicionado:**
+- Seção 9.7: Navegação Global (AppHeader)
+  - Documentação completa do componente AppHeader
+  - Guia de uso para páginas operacionais vs administrativas
+  - Checklist para criação de novas páginas
+  - Convenções de responsividade mobile
+  - Padrões de breadcrumbs e navegação hierárquica
+
+**Contexto:** Implementado após padronizar navegação em todas as páginas do sistema (Quotations, Clients, QuotationDetail).
+
+### v1.0.0 (2025-01-16)
+- Versão inicial do guia de contribuição
+
+---
+
+**Última atualização:** 2025-10-23
+**Versão:** 1.1.0
