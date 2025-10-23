@@ -130,7 +130,7 @@ export function ImportDocumentDialog({
           </DialogTitle>
           <DialogDescription>
             Faça upload de um documento (PDF, Word, Excel) com especificações do iate. 
-            A IA irá extrair automaticamente os dados e preencher o formulário.
+            O ChatGPT (OpenAI GPT-5) irá extrair automaticamente os dados e preencher o formulário.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,7 +171,7 @@ export function ImportDocumentDialog({
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                  <p className="text-lg font-medium">Processando documento com IA...</p>
+                  <p className="text-lg font-medium">Processando documento com ChatGPT...</p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Isso pode levar alguns segundos dependendo do tamanho do arquivo.
                   </p>
@@ -250,7 +250,7 @@ export function ImportDocumentDialog({
               size="lg"
             >
               <Upload className="mr-2 h-4 w-4" />
-              Processar com IA
+              Processar com ChatGPT
             </Button>
           )}
         </div>
