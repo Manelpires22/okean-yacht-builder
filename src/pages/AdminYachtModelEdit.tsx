@@ -15,6 +15,7 @@ import { YachtModelBasicForm } from "@/components/admin/yacht-models/YachtModelB
 import { YachtModelSpecsForm } from "@/components/admin/yacht-models/YachtModelSpecsForm";
 import { YachtModelMemorialTab } from "@/components/admin/yacht-models/YachtModelMemorialTab";
 import { YachtModelOptionsTab } from "@/components/admin/yacht-models/YachtModelOptionsTab";
+import { ImportDocumentDialog } from "@/components/admin/yacht-models/ImportDocumentDialog";
 import { useState } from "react";
 
 export default function AdminYachtModelEdit() {
@@ -22,6 +23,7 @@ export default function AdminYachtModelEdit() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("basic");
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { data: model, isLoading } = useQuery({
     queryKey: ['yacht-model', modelId],
@@ -107,6 +109,45 @@ export default function AdminYachtModelEdit() {
     updateMutation.mutate(values);
   };
 
+  const handleImportData = (extractedData: any) => {
+    // Aplicar dados básicos
+    if (extractedData.basic_data) {
+      const basicData = extractedData.basic_data;
+      if (basicData.code) form.setValue('code', basicData.code);
+      if (basicData.name) form.setValue('name', basicData.name);
+      if (basicData.description) form.setValue('description', basicData.description);
+      if (basicData.base_price) form.setValue('base_price', basicData.base_price.toString());
+      if (basicData.base_delivery_days) form.setValue('base_delivery_days', basicData.base_delivery_days.toString());
+      if (basicData.registration_number) form.setValue('registration_number', basicData.registration_number);
+      if (basicData.delivery_date) form.setValue('delivery_date', basicData.delivery_date);
+    }
+
+    // Aplicar especificações
+    if (extractedData.specifications) {
+      const specs = extractedData.specifications;
+      if (specs.length_overall) form.setValue('length_overall', specs.length_overall.toString());
+      if (specs.hull_length) form.setValue('hull_length', specs.hull_length.toString());
+      if (specs.beam) form.setValue('beam', specs.beam.toString());
+      if (specs.draft) form.setValue('draft', specs.draft.toString());
+      if (specs.height_from_waterline) form.setValue('height_from_waterline', specs.height_from_waterline.toString());
+      if (specs.dry_weight) form.setValue('dry_weight', specs.dry_weight.toString());
+      if (specs.displacement_light) form.setValue('displacement_light', specs.displacement_light.toString());
+      if (specs.displacement_loaded) form.setValue('displacement_loaded', specs.displacement_loaded.toString());
+      if (specs.fuel_capacity) form.setValue('fuel_capacity', specs.fuel_capacity.toString());
+      if (specs.water_capacity) form.setValue('water_capacity', specs.water_capacity.toString());
+      if (specs.passengers_capacity) form.setValue('passengers_capacity', specs.passengers_capacity.toString());
+      if (specs.cabins) form.setValue('cabins', specs.cabins.toString());
+      if (specs.bathrooms) form.setValue('bathrooms', specs.bathrooms);
+      if (specs.engines) form.setValue('engines', specs.engines);
+      if (specs.hull_color) form.setValue('hull_color', specs.hull_color);
+      if (specs.max_speed) form.setValue('max_speed', specs.max_speed.toString());
+      if (specs.cruise_speed) form.setValue('cruise_speed', specs.cruise_speed.toString());
+      if (specs.range_nautical_miles) form.setValue('range_nautical_miles', specs.range_nautical_miles.toString());
+    }
+
+    toast.success(`Dados importados com sucesso! ${Object.keys(extractedData.basic_data || {}).length + Object.keys(extractedData.specifications || {}).length} campos preenchidos.`);
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -136,12 +177,23 @@ export default function AdminYachtModelEdit() {
             </div>
           </div>
           
-          {(activeTab === 'basic' || activeTab === 'specs') && (
-            <Button onClick={form.handleSubmit(onSubmit)} disabled={updateMutation.isPending}>
-              <Save className="mr-2 h-4 w-4" />
-              {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {(activeTab === 'basic' || activeTab === 'specs') && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setImportDialogOpen(true)}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4 rotate-90" />
+                  Importar Documento
+                </Button>
+                <Button onClick={form.handleSubmit(onSubmit)} disabled={updateMutation.isPending}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -170,6 +222,12 @@ export default function AdminYachtModelEdit() {
             <YachtModelOptionsTab yachtModelId={modelId!} />
           </TabsContent>
         </Tabs>
+
+        <ImportDocumentDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onDataExtracted={handleImportData}
+        />
       </div>
     </AdminLayout>
   );
