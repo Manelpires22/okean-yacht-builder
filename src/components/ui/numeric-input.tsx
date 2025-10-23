@@ -31,21 +31,17 @@ export function NumericInput({
   ...props
 }: NumericInputProps) {
   // Armazena valor interno como string de dígitos (sem formatação)
-  const [internalValue, setInternalValue] = useState<string>('');
-
-  // Sincronizar valor externo com interno quando componente monta ou valor muda
-  useEffect(() => {
+  // Inicializar apenas uma vez no mount, não reagir a mudanças externas
+  const [internalValue, setInternalValue] = useState<string>(() => {
     if (value) {
-      // Converter string do form (ex: "17.42") para centésimos (ex: "1742")
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         const cents = Math.round(numValue * Math.pow(10, decimals));
-        setInternalValue(cents.toString());
+        return cents.toString();
       }
-    } else {
-      setInternalValue('0');
     }
-  }, [value, decimals]);
+    return '0';
+  });
 
   // Formatar valor interno para exibição
   const formatDisplay = (digits: string): string => {

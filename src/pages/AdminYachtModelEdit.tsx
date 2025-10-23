@@ -49,15 +49,34 @@ export default function AdminYachtModelEdit() {
       image_url: model.image_url || "",
       base_price: model.base_price ? model.base_price.toString() : "",
       base_delivery_days: model.base_delivery_days ? model.base_delivery_days.toString() : "",
+      registration_number: model.registration_number || "",
+      delivery_date: model.delivery_date || "",
       is_active: model.is_active ?? true,
+      
+      // Specifications - Dimensions
       length_overall: model.length_overall ? model.length_overall.toString() : "",
+      hull_length: model.hull_length ? model.hull_length.toString() : "",
       beam: model.beam ? model.beam.toString() : "",
       draft: model.draft ? model.draft.toString() : "",
       height_from_waterline: model.height_from_waterline ? model.height_from_waterline.toString() : "",
+      
+      // Weights and Displacement
       dry_weight: model.dry_weight ? model.dry_weight.toString() : "",
+      displacement_light: model.displacement_light ? model.displacement_light.toString() : "",
+      displacement_loaded: model.displacement_loaded ? model.displacement_loaded.toString() : "",
+      
+      // Capacities
       fuel_capacity: model.fuel_capacity ? model.fuel_capacity.toString() : "",
       water_capacity: model.water_capacity ? model.water_capacity.toString() : "",
       passengers_capacity: model.passengers_capacity ? model.passengers_capacity.toString() : "",
+      cabins: model.cabins ? model.cabins.toString() : "",
+      bathrooms: model.bathrooms || "",
+      
+      // Engines and Hull
+      engines: model.engines || "",
+      hull_color: model.hull_color || "",
+      
+      // Performance
       max_speed: model.max_speed ? model.max_speed.toString() : "",
       cruise_speed: model.cruise_speed ? model.cruise_speed.toString() : "",
       range_nautical_miles: model.range_nautical_miles ? model.range_nautical_miles.toString() : "",
@@ -75,15 +94,34 @@ export default function AdminYachtModelEdit() {
           image_url: values.image_url || null,
           base_price: values.base_price ? parseFloat(values.base_price) : null,
           base_delivery_days: values.base_delivery_days ? parseInt(values.base_delivery_days) : null,
+          registration_number: values.registration_number || null,
+          delivery_date: values.delivery_date || null,
           is_active: values.is_active,
+          
+          // Specifications - Dimensions
           length_overall: values.length_overall ? parseFloat(values.length_overall) : null,
+          hull_length: values.hull_length ? parseFloat(values.hull_length) : null,
           beam: values.beam ? parseFloat(values.beam) : null,
           draft: values.draft ? parseFloat(values.draft) : null,
           height_from_waterline: values.height_from_waterline ? parseFloat(values.height_from_waterline) : null,
+          
+          // Weights and Displacement
           dry_weight: values.dry_weight ? parseFloat(values.dry_weight) : null,
+          displacement_light: values.displacement_light ? parseFloat(values.displacement_light) : null,
+          displacement_loaded: values.displacement_loaded ? parseFloat(values.displacement_loaded) : null,
+          
+          // Capacities
           fuel_capacity: values.fuel_capacity ? parseFloat(values.fuel_capacity) : null,
           water_capacity: values.water_capacity ? parseFloat(values.water_capacity) : null,
           passengers_capacity: values.passengers_capacity ? parseInt(values.passengers_capacity) : null,
+          cabins: values.cabins ? parseInt(values.cabins) : null,
+          bathrooms: values.bathrooms || null,
+          
+          // Engines and Hull
+          engines: values.engines || null,
+          hull_color: values.hull_color || null,
+          
+          // Performance
           max_speed: values.max_speed ? parseFloat(values.max_speed) : null,
           cruise_speed: values.cruise_speed ? parseFloat(values.cruise_speed) : null,
           range_nautical_miles: values.range_nautical_miles ? parseFloat(values.range_nautical_miles) : null,

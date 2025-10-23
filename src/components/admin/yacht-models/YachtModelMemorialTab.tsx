@@ -14,7 +14,6 @@ import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDial
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
 const CATEGORIES = [
-  { value: 'dimensoes', label: 'Dimensões' },
   { value: 'motorizacao', label: 'Motorização' },
   { value: 'sistema_eletrico', label: 'Sistema Elétrico' },
   { value: 'sistema_hidraulico', label: 'Sistema Hidráulico' },
@@ -40,7 +39,6 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
 
   const itemsByCategory = useMemo(() => {
     const grouped: Record<CategoryValue, any[]> = {
-      dimensoes: [],
       motorizacao: [],
       sistema_eletrico: [],
       sistema_hidraulico: [],

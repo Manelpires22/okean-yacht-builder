@@ -294,55 +294,6 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
         </AccordionItem>
 
         {/* MOTORIZAÇÃO */}
-        <AccordionItem value="engines">
-          <AccordionTrigger className="text-lg font-semibold">
-            🔧 Motorização e Costado
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-4 pt-4">
-              <FormField
-                control={form.control}
-                name="engines"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Motorização</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Ex: 2 x MAN i6 - 800CR 800 mhp / 588 kW at 2300 rpm - Shaft line/linha de eixo"
-                        className="min-h-[100px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Descrição completa da motorização, potência e transmissão
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="hull_color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cor do Costado</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Ex: Branco" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Cor do casco/costado da embarcação
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </AccordionContent>
-        </AccordionItem>
 
         {/* PERFORMANCE */}
         <AccordionItem value="performance">
