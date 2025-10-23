@@ -115,7 +115,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
         .insert({
           ...newOption,
           yacht_model_id: yachtModelId, // Automatically link to current model
-        })
+        } as any) // Cast needed until types are regenerated
         .select()
         .single();
       

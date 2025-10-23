@@ -549,18 +549,16 @@ const AdminSeedData = () => {
       
       if (newOptError) throw newOptError;
 
-      // 6. Associate all options with Ferretti 550
+      // 6. Associate all options with Ferretti 550 (update yacht_model_id directly)
       if (newOptions && newOptions.length > 0) {
-        const { error: relationError } = await supabase
-          .from('option_yacht_models')
-          .insert(
-            newOptions.map((opt) => ({
-              option_id: opt.id,
-              yacht_model_id: ferretti.id,
-            }))
-          );
-        
-        if (relationError) throw relationError;
+        for (const opt of newOptions) {
+          const { error: updateError } = await supabase
+            .from('options')
+            .update({ yacht_model_id: ferretti.id })
+            .eq('id', opt.id);
+          
+          if (updateError) throw updateError;
+        }
       }
 
       return { success: true, count: 24 };
@@ -605,23 +603,17 @@ const AdminSeedData = () => {
       if (optionsError) throw optionsError;
       if (!options || options.length === 0) throw new Error('Nenhum opcional encontrado');
 
-      // 3. Delete existing associations for Ferretti 550
-      await supabase
-        .from('option_yacht_models')
-        .delete()
-        .eq('yacht_model_id', ferretti.id);
-
-      // 4. Associate all options with Ferretti 550
-      const { error: insertError } = await supabase
-        .from('option_yacht_models')
-        .insert(
-          options.map((opt) => ({
-            option_id: opt.id,
-            yacht_model_id: ferretti.id,
-          }))
-        );
+      // 3. No need to delete associations - we'll update yacht_model_id directly
       
-      if (insertError) throw insertError;
+      // 4. Associate all options with Ferretti 550 by updating yacht_model_id
+      for (const opt of options) {
+        const { error: updateError } = await supabase
+          .from('options')
+          .update({ yacht_model_id: ferretti.id })
+          .eq('id', opt.id);
+        
+        if (updateError) throw updateError;
+      }
 
       return { success: true, count: options.length };
     },
