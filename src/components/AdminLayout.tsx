@@ -11,7 +11,7 @@ interface AdminLayoutProps {
 }
 
 const navItems = [
-  { path: "/", icon: Home, label: "Início" },
+  { path: "/", icon: Home, label: "🏠 Voltar ao Início", highlight: true },
   { path: "/cotacoes", icon: FileText, label: "Cotações" },
   { path: "/clientes", icon: UserCheck, label: "Clientes" },
   { path: "/aprovacoes", icon: CheckSquare, label: "Aprovações", showBadge: true },
@@ -43,6 +43,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 to={item.path}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  item.highlight && "border-t border-b border-border mt-2 mb-2",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuotations, useUpdateQuotationStatus, useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -106,14 +107,18 @@ export default function Quotations() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Cotações</h1>
-        <Button onClick={() => navigate("/configurator")}>
-          <FileText className="mr-2 h-4 w-4" />
-          Nova Cotação
-        </Button>
-      </div>
+    <>
+      <AppHeader title="Cotações" />
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">
+            Gerencie as cotações de iates personalizados
+          </p>
+          <Button onClick={() => navigate("/configurator")}>
+            <FileText className="mr-2 h-4 w-4" />
+            Nova Cotação
+          </Button>
+        </div>
 
       <Card>
         <CardHeader>
@@ -293,6 +298,7 @@ export default function Quotations() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

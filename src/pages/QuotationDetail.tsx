@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuotation } from "@/hooks/useQuotations";
+import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,19 +48,19 @@ export default function QuotationDetail() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate("/quotations")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
-        </Button>
-        <h1 className="text-3xl font-bold flex-1">
-          Cotação {quotation.quotation_number}
-        </h1>
-        <Badge className={statusColors[quotation.status]}>
-          {statusLabels[quotation.status]}
-        </Badge>
-      </div>
+    <>
+      <AppHeader title={`Cotação ${quotation.quotation_number}`} />
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate("/quotations")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar para Cotações
+          </Button>
+          <div className="flex-1" />
+          <Badge className={statusColors[quotation.status]}>
+            {statusLabels[quotation.status]}
+          </Badge>
+        </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -251,6 +252,7 @@ export default function QuotationDetail() {
           Gerar PDF
         </Button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

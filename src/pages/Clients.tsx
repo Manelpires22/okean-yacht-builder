@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useClients, useDeleteClient } from "@/hooks/useClients";
+import { useUserRole } from "@/hooks/useUserRole";
+import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,7 +27,6 @@ import { Search, Plus, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import ClientDialog from "@/components/clients/ClientDialog";
-import { useUserRole } from "@/hooks/useUserRole";
 
 export default function Clients() {
   const { data: clients, isLoading } = useClients();
@@ -71,14 +72,18 @@ export default function Clients() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Clientes</h1>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Cliente
-        </Button>
-      </div>
+    <>
+      <AppHeader title="Clientes" />
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-muted-foreground">
+            Gerencie a base de clientes
+          </p>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Cliente
+          </Button>
+        </div>
 
       <Card>
         <CardHeader>
@@ -184,5 +189,6 @@ export default function Clients() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }
