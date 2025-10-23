@@ -31,17 +31,38 @@ export function NumericInput({
   ...props
 }: NumericInputProps) {
   // Armazena valor interno como string de dígitos (sem formatação)
-  // Inicializar apenas uma vez no mount, não reagir a mudanças externas
+  // O valor recebido na prop 'value' JÁ É o valor correto (ex: "1500000" = 1.500.000)
+  // Internamente armazenamos como centavos: "1500000" vira "150000000" para exibir "1.500.000,00"
   const [internalValue, setInternalValue] = useState<string>(() => {
-    if (value) {
+    if (value && value !== '0') {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
-        const cents = Math.round(numValue * Math.pow(10, decimals));
-        return cents.toString();
+        // Multiplicar por 10^decimals para obter a unidade mínima (centavos)
+        const minimalUnits = Math.round(numValue * Math.pow(10, decimals));
+        return minimalUnits.toString();
       }
     }
     return '0';
   });
+
+  // Sincronizar com mudanças externas (ex: importação de documentos)
+  // Compara o valor externo convertido com o interno para evitar loops
+  useEffect(() => {
+    if (value && value !== '0') {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        const expectedInternalValue = Math.round(numValue * Math.pow(10, decimals)).toString();
+        // Apenas atualizar se o valor externo realmente mudou
+        if (expectedInternalValue !== internalValue) {
+          setInternalValue(expectedInternalValue);
+        }
+      }
+    } else if (value === '0' || value === '') {
+      if (internalValue !== '0') {
+        setInternalValue('0');
+      }
+    }
+  }, [value, decimals]);
 
   // Formatar valor interno para exibição
   const formatDisplay = (digits: string): string => {
@@ -80,7 +101,7 @@ export function NumericInput({
 
     const inputValue = e.target.value;
     
-    // Extrair apenas dígitos
+    // Extrair apenas dígitos do input do usuário
     const digitsOnly = inputValue.replace(/\D/g, '');
     
     if (!digitsOnly) {
@@ -89,9 +110,10 @@ export function NumericInput({
       return;
     }
 
+    // Atualizar valor interno (em unidades mínimas)
     setInternalValue(digitsOnly);
     
-    // Notificar mudança com valor numérico como string
+    // Converter para valor real e notificar
     const numericValue = getNumericValue(digitsOnly);
     onChange?.(numericValue.toString());
   };
