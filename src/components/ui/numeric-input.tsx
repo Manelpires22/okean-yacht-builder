@@ -46,21 +46,15 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
   });
 
   // Sincronizar com mudanças externas (ex: importação de documentos)
-  // Compara o valor externo convertido com o interno para evitar loops
   useEffect(() => {
     if (value && value !== '0') {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         const expectedInternalValue = Math.round(numValue * Math.pow(10, decimals)).toString();
-        // Apenas atualizar se o valor externo realmente mudou
-        if (expectedInternalValue !== internalValue) {
-          setInternalValue(expectedInternalValue);
-        }
+        setInternalValue(expectedInternalValue);
       }
     } else if (value === '0' || value === '') {
-      if (internalValue !== '0') {
-        setInternalValue('0');
-      }
+      setInternalValue('0');
     }
   }, [value, decimals]);
 
