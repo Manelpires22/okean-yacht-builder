@@ -147,7 +147,7 @@ export default function Configurator() {
               <TabsContent value="base" className="space-y-6 mt-6">
                 {selectedModel && (
                   <MemorialDescritivo
-                    specifications={selectedModel.technical_specifications}
+                    yachtModelId={selectedModel.id}
                     modelName={selectedModel.name}
                   />
                 )}

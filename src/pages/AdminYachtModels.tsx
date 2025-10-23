@@ -15,8 +15,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreateYachtModelDialog } from "@/components/admin/yacht-models/CreateYachtModelDialog";
 import { EditYachtModelDialog } from "@/components/admin/yacht-models/EditYachtModelDialog";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AdminYachtModels = () => {
+  const navigate = useNavigate();
   const [editingModel, setEditingModel] = useState<any>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -108,13 +110,22 @@ const AdminYachtModels = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEdit(model)}
-                      >
-                        Editar
-                      </Button>
+                      <div className="flex gap-2 justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEdit(model)}
+                        >
+                          Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(`/admin/yacht-models/${model.id}/memorial`)}
+                        >
+                          Memorial
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

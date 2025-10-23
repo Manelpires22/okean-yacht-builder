@@ -106,6 +106,71 @@ export type Database = {
         }
         Relationships: []
       }
+      memorial_items: {
+        Row: {
+          brand: string | null
+          category: Database["public"]["Enums"]["memorial_category"]
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          is_customizable: boolean | null
+          item_name: string
+          model: string | null
+          quantity: number | null
+          technical_specs: Json | null
+          unit: string | null
+          updated_at: string | null
+          yacht_model_id: string
+        }
+        Insert: {
+          brand?: string | null
+          category: Database["public"]["Enums"]["memorial_category"]
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          is_customizable?: boolean | null
+          item_name: string
+          model?: string | null
+          quantity?: number | null
+          technical_specs?: Json | null
+          unit?: string | null
+          updated_at?: string | null
+          yacht_model_id: string
+        }
+        Update: {
+          brand?: string | null
+          category?: Database["public"]["Enums"]["memorial_category"]
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          is_customizable?: boolean | null
+          item_name?: string
+          model?: string | null
+          quantity?: number | null
+          technical_specs?: Json | null
+          unit?: string | null
+          updated_at?: string | null
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memorial_items_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       option_categories: {
         Row: {
           created_at: string | null
@@ -512,6 +577,16 @@ export type Database = {
         | "financeiro"
       approval_status: "pending" | "approved" | "rejected"
       approval_type: "discount" | "customization"
+      memorial_category:
+        | "dimensoes"
+        | "motorizacao"
+        | "sistema_eletrico"
+        | "sistema_hidraulico"
+        | "acabamentos"
+        | "equipamentos"
+        | "seguranca"
+        | "conforto"
+        | "outros"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -648,6 +723,17 @@ export const Constants = {
       ],
       approval_status: ["pending", "approved", "rejected"],
       approval_type: ["discount", "customization"],
+      memorial_category: [
+        "dimensoes",
+        "motorizacao",
+        "sistema_eletrico",
+        "sistema_hidraulico",
+        "acabamentos",
+        "equipamentos",
+        "seguranca",
+        "conforto",
+        "outros",
+      ],
     },
   },
 } as const
