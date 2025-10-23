@@ -18,7 +18,7 @@ interface NumericInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
  * Input numérico estilo "caixa registradora" - digita da direita para esquerda
  * Exemplo: "0,00" → digita "1" → "0,01" → digita "7" → "0,17" → digita "4" → "1,74"
  */
-export function NumericInput({
+export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps>(({
   value = '',
   onChange,
   decimals = 2,
@@ -29,7 +29,7 @@ export function NumericInput({
   className,
   disabled,
   ...props
-}: NumericInputProps) {
+}, ref) => {
   // Armazena valor interno como string de dígitos (sem formatação)
   // O valor recebido na prop 'value' JÁ É o valor correto (ex: "1500000" = 1.500.000)
   // Internamente armazenamos como centavos: "1500000" vira "150000000" para exibir "1.500.000,00"
@@ -141,6 +141,7 @@ export function NumericInput({
   return (
     <div className="space-y-2">
       <Input
+        ref={ref}
         {...props}
         type="text"
         inputMode="numeric"
@@ -158,36 +159,62 @@ export function NumericInput({
       )}
     </div>
   );
-}
+});
+
+NumericInput.displayName = "NumericInput";
 
 // ========== VARIANTES ESPECIALIZADAS ==========
 
 interface CurrencyInputProps extends Omit<NumericInputProps, 'prefix' | 'decimals'> {}
 
-export function CurrencyInput(props: CurrencyInputProps) {
-  return <NumericInput prefix="R$" decimals={2} {...props} />;
-}
+export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} prefix="R$" decimals={2} {...props} />;
+  }
+);
+CurrencyInput.displayName = "CurrencyInput";
 
 interface MeterInputProps extends Omit<NumericInputProps, 'suffix' | 'decimals' | 'showConversion'> {}
 
-export function MeterInput(props: MeterInputProps) {
-  return <NumericInput suffix="m" decimals={2} showConversion="feet" {...props} />;
-}
+export const MeterInput = React.forwardRef<HTMLInputElement, MeterInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} suffix="m" decimals={2} showConversion="feet" {...props} />;
+  }
+);
+MeterInput.displayName = "MeterInput";
 
 interface LiterInputProps extends Omit<NumericInputProps, 'suffix' | 'decimals'> {}
 
-export function LiterInput(props: LiterInputProps) {
-  return <NumericInput suffix="L" decimals={0} {...props} />;
-}
+export const LiterInput = React.forwardRef<HTMLInputElement, LiterInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} suffix="L" decimals={0} {...props} />;
+  }
+);
+LiterInput.displayName = "LiterInput";
 
 interface KilogramInputProps extends Omit<NumericInputProps, 'suffix' | 'decimals'> {}
 
-export function KilogramInput(props: KilogramInputProps) {
-  return <NumericInput suffix="kg" decimals={0} {...props} />;
-}
+export const KilogramInput = React.forwardRef<HTMLInputElement, KilogramInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} suffix="kg" decimals={0} {...props} />;
+  }
+);
+KilogramInput.displayName = "KilogramInput";
 
 interface KnotInputProps extends Omit<NumericInputProps, 'suffix' | 'decimals'> {}
 
-export function KnotInput(props: KnotInputProps) {
-  return <NumericInput suffix="nós" decimals={1} {...props} />;
-}
+export const KnotInput = React.forwardRef<HTMLInputElement, KnotInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} suffix="nós" decimals={1} {...props} />;
+  }
+);
+KnotInput.displayName = "KnotInput";
+
+interface NauticalMileInputProps extends Omit<NumericInputProps, 'suffix' | 'decimals'> {}
+
+export const NauticalMileInput = React.forwardRef<HTMLInputElement, NauticalMileInputProps>(
+  (props, ref) => {
+    return <NumericInput ref={ref} suffix="mn" decimals={0} {...props} />;
+  }
+);
+NauticalMileInput.displayName = "NauticalMileInput";

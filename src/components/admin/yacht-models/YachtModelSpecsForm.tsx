@@ -21,6 +21,7 @@ import {
   KilogramInput, 
   LiterInput, 
   KnotInput, 
+  NauticalMileInput,
   NumericInput 
 } from "@/components/ui/numeric-input";
 
@@ -343,11 +344,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Autonomia (milhas náuticas)</FormLabel>
                     <FormControl>
-                      <NumericInput 
-                        suffix="mn"
-                        decimals={0}
-                        {...field} 
-                      />
+                      <NauticalMileInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Alcance em milhas náuticas
