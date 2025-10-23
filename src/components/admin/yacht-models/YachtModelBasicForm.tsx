@@ -145,7 +145,7 @@ export function YachtModelBasicForm({ form }: YachtModelBasicFormProps) {
           name="base_price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preço Base (€)</FormLabel>
+              <FormLabel>Preço Base (R$)</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
@@ -173,6 +173,44 @@ export function YachtModelBasicForm({ form }: YachtModelBasicFormProps) {
                 />
               </FormControl>
               <FormDescription>Opcional</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="registration_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Matrícula do Barco</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Ex: BR-1234-AB"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>Número de registro do barco</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="delivery_date"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Data de Entrega Prevista</FormLabel>
+              <FormControl>
+                <Input 
+                  type="date"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>Previsão de entrega</FormDescription>
               <FormMessage />
             </FormItem>
           )}

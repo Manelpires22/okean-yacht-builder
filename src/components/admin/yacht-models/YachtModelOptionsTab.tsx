@@ -1,8 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Table,
   TableBody,
@@ -78,7 +83,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
     queryFn: async () => {
       const { data, error } = await supabase
         .from('options')
-        .select('*, category:option_categories(name)')
+        .select('*, category:option_categories(id, name)')
         .eq('yacht_model_id', yachtModelId)
         .order('name');
       
@@ -86,6 +91,31 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       return data;
     },
   });
+
+  // Group options by category
+  const optionsByCategory = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    
+    categories?.forEach(cat => {
+      grouped[cat.id] = [];
+    });
+
+    options?.forEach(opt => {
+      if (opt.category && grouped[opt.category.id]) {
+        grouped[opt.category.id].push(opt);
+      }
+    });
+
+    return grouped;
+  }, [options, categories]);
+
+  // Find first category with options for default open
+  const defaultOpenCategory = useMemo(() => {
+    const catWithOptions = categories?.find(cat => 
+      optionsByCategory[cat.id]?.length > 0
+    );
+    return catWithOptions?.id || categories?.[0]?.id;
+  }, [optionsByCategory, categories]);
 
   const {
     register,
@@ -220,103 +250,140 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-96" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-4 w-96" />
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Opcionais do Modelo</CardTitle>
-              <CardDescription>
-                Gerencie os opcionais exclusivos deste modelo de iate
-              </CardDescription>
-            </div>
-            <Button onClick={handleCreateClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              Criar Novo Opcional
-            </Button>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Opcionais do Modelo</h2>
+            <p className="text-sm text-muted-foreground">
+              Gerencie os opcionais exclusivos deste modelo de iate
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          {!options || options.length === 0 ? (
-            <div className="text-center py-12 border-2 border-dashed rounded-lg">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum opcional cadastrado</h3>
-              <p className="text-muted-foreground mb-4">
-                Este modelo ainda não possui opcionais. Clique no botão acima para criar o primeiro opcional.
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Preço</TableHead>
-                  <TableHead className="text-right">Prazo (dias)</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {options.map((option) => (
-                  <TableRow key={option.id}>
-                    <TableCell className="font-mono text-sm">{option.code}</TableCell>
-                    <TableCell className="font-medium">{option.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{option.category?.name}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(option.base_price)}</TableCell>
-                    <TableCell className="text-right">
-                      {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={option.is_active ? "default" : "secondary"}>
-                        {option.is_active ? "Ativo" : "Inativo"}
+          <Button onClick={handleCreateClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Novo Opcional
+          </Button>
+        </div>
+
+        {!options || options.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed rounded-lg">
+            <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Nenhum opcional cadastrado</h3>
+            <p className="text-muted-foreground mb-4">
+              Este modelo ainda não possui opcionais. Clique no botão acima para criar o primeiro opcional.
+            </p>
+          </div>
+        ) : (
+          <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">
+            {categories?.map(cat => {
+              const categoryOptions = optionsByCategory[cat.id] || [];
+              const optionCount = categoryOptions.length;
+
+              return (
+                <AccordionItem key={cat.id} value={cat.id}>
+                  <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <span>{cat.name}</span>
+                      <Badge variant="outline" className="ml-auto mr-2">
+                        {optionCount} {optionCount === 1 ? 'opcional' : 'opcionais'}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(option)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingOptionId(option.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {categoryOptions.length > 0 ? (
+                      <div className="border rounded-lg">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Código</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead className="text-right">Preço</TableHead>
+                              <TableHead className="text-right">Prazo (dias)</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {categoryOptions.map((option) => (
+                              <TableRow key={option.id}>
+                                <TableCell className="font-mono text-sm">{option.code}</TableCell>
+                                <TableCell>
+                                  <div>
+                                    <p className="font-medium">{option.name}</p>
+                                    {option.description && (
+                                      <p className="text-sm text-muted-foreground line-clamp-1">
+                                        {option.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">{formatCurrency(option.base_price)}</TableCell>
+                                <TableCell className="text-right">
+                                  {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={option.is_active ? "default" : "secondary"}>
+                                    {option.is_active ? "Ativo" : "Inativo"}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEditClick(option)}
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setDeletingOptionId(option.id)}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="border rounded-lg p-12 text-center">
+                        <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-semibold mb-2">
+                          Nenhum opcional nesta categoria
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          Adicione opcionais à categoria {cat.name}
+                        </p>
+                        <Button onClick={handleCreateClick}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Adicionar Primeiro Opcional
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
+      </div>
 
       {/* Create/Edit Dialog */}
       <Dialog open={createDialogOpen || !!editingOption} onOpenChange={(open) => {

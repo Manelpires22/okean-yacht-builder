@@ -19,6 +19,12 @@ export const yachtModelBasicSchema = z.object({
   
   base_delivery_days: z.string().optional(),
   
+  registration_number: z.string()
+    .max(50, "Matrícula deve ter no máximo 50 caracteres")
+    .optional(),
+  
+  delivery_date: z.string().optional(), // ISO date string (YYYY-MM-DD)
+  
   is_active: z.boolean().default(true),
 });
 

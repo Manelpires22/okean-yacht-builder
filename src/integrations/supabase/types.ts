@@ -485,6 +485,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           cruise_speed: number | null
+          delivery_date: string | null
           description: string | null
           draft: number | null
           dry_weight: number | null
@@ -498,6 +499,7 @@ export type Database = {
           name: string
           passengers_capacity: number | null
           range_nautical_miles: number | null
+          registration_number: string | null
           technical_specifications: Json | null
           updated_at: string | null
           water_capacity: number | null
@@ -510,6 +512,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           cruise_speed?: number | null
+          delivery_date?: string | null
           description?: string | null
           draft?: number | null
           dry_weight?: number | null
@@ -523,6 +526,7 @@ export type Database = {
           name: string
           passengers_capacity?: number | null
           range_nautical_miles?: number | null
+          registration_number?: string | null
           technical_specifications?: Json | null
           updated_at?: string | null
           water_capacity?: number | null
@@ -535,6 +539,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           cruise_speed?: number | null
+          delivery_date?: string | null
           description?: string | null
           draft?: number | null
           dry_weight?: number | null
@@ -548,6 +553,7 @@ export type Database = {
           name?: string
           passengers_capacity?: number | null
           range_nautical_miles?: number | null
+          registration_number?: string | null
           technical_specifications?: Json | null
           updated_at?: string | null
           water_capacity?: number | null
