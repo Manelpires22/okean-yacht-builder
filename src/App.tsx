@@ -10,7 +10,6 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminYachtModels from "./pages/AdminYachtModels";
-import AdminOptions from "./pages/AdminOptions";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSeedData from "./pages/AdminSeedData";
 import AdminYachtModelEdit from "./pages/AdminYachtModelEdit";
@@ -45,7 +44,6 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/yacht-models/:modelId/edit" element={<ProtectedRoute requireAdmin><AdminYachtModelEdit /></ProtectedRoute>} />
-            <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/seed-data" element={<ProtectedRoute requireAdmin><AdminSeedData /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

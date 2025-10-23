@@ -198,42 +198,6 @@ export type Database = {
         }
         Relationships: []
       }
-      option_yacht_models: {
-        Row: {
-          created_at: string | null
-          id: string
-          option_id: string
-          yacht_model_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          option_id: string
-          yacht_model_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          option_id?: string
-          yacht_model_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "option_yacht_models_option_id_fkey"
-            columns: ["option_id"]
-            isOneToOne: false
-            referencedRelation: "options"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "option_yacht_models_yacht_model_id_fkey"
-            columns: ["yacht_model_id"]
-            isOneToOne: false
-            referencedRelation: "yacht_models"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       options: {
         Row: {
           base_price: number
@@ -250,6 +214,7 @@ export type Database = {
           name: string
           technical_specifications: Json | null
           updated_at: string | null
+          yacht_model_id: string | null
         }
         Insert: {
           base_price: number
@@ -266,6 +231,7 @@ export type Database = {
           name: string
           technical_specifications?: Json | null
           updated_at?: string | null
+          yacht_model_id?: string | null
         }
         Update: {
           base_price?: number
@@ -282,6 +248,7 @@ export type Database = {
           name?: string
           technical_specifications?: Json | null
           updated_at?: string | null
+          yacht_model_id?: string | null
         }
         Relationships: [
           {
@@ -296,6 +263,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "options_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
             referencedColumns: ["id"]
           },
         ]

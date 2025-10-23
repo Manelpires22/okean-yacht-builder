@@ -14,40 +14,14 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
         query = query.eq("category_id", categoryId);
       }
 
+      // Filter by yacht model if provided (direct relationship)
+      if (yachtModelId) {
+        query = query.eq("yacht_model_id", yachtModelId);
+      }
+
       const { data, error } = await query.order("name");
       
       if (error) throw error;
-
-      // If yachtModelId is provided, filter options by compatibility
-      if (yachtModelId && data) {
-        const { data: compatibleOptions, error: compatError } = await supabase
-          .from("option_yacht_models")
-          .select("option_id")
-          .eq("yacht_model_id", yachtModelId);
-        
-        if (compatError) throw compatError;
-        
-        const compatibleOptionIds = new Set(
-          compatibleOptions?.map((rel) => rel.option_id) || []
-        );
-
-        // Only return options that are compatible with the yacht model
-        // If an option has no yacht_models assigned, show it anyway (backward compatibility)
-        const filteredData = await Promise.all(
-          data.map(async (option) => {
-            const { count } = await supabase
-              .from("option_yacht_models")
-              .select("*", { count: "exact", head: true })
-              .eq("option_id", option.id);
-            
-            // Show if: no models assigned (count === 0) OR is compatible
-            return count === 0 || compatibleOptionIds.has(option.id) ? option : null;
-          })
-        );
-
-        return filteredData.filter((opt) => opt !== null);
-      }
-
       return data;
     },
   });
