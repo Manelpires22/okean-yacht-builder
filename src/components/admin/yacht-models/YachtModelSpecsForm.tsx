@@ -16,6 +16,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { YachtModelFullValues } from "@/lib/schemas/yacht-model-schema";
+import { 
+  MeterInput, 
+  KilogramInput, 
+  LiterInput, 
+  KnotInput, 
+  NumericInput 
+} from "@/components/ui/numeric-input";
 
 interface YachtModelSpecsFormProps {
   form: UseFormReturn<YachtModelFullValues>;
@@ -39,15 +46,10 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Comprimento Total (m)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="Ex: 17,42" 
-                        {...field} 
-                      />
+                      <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Comprimento total da embarcação
+                      Comprimento total da embarcação (converte automaticamente para pés)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -61,15 +63,10 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Comprimento do Casco (m)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="Ex: 16,70" 
-                        {...field} 
-                      />
+                      <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Comprimento apenas do casco
+                      Comprimento apenas do casco (converte automaticamente para pés)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -83,15 +80,10 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Boca Máxima / Largura (m)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="Ex: 4,82" 
-                        {...field} 
-                      />
+                      <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Largura máxima da embarcação
+                      Largura máxima da embarcação (converte automaticamente para pés)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -105,15 +97,10 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Calado (m)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="Ex: 1,30" 
-                        {...field} 
-                      />
+                      <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Profundidade submersa
+                      Profundidade submersa (converte automaticamente para pés)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -127,15 +114,10 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Altura da Linha d'Água (m)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        placeholder="Ex: 4,20" 
-                        {...field} 
-                      />
+                      <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Altura acima da linha d'água
+                      Altura acima da linha d'água (converte automaticamente para pés)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -159,12 +141,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Peso a Seco (kg)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 28500" 
-                        {...field} 
-                      />
+                      <KilogramInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Peso sem carga ou fluidos
@@ -181,12 +158,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Deslocamento Descarregado (kg)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 25000" 
-                        {...field} 
-                      />
+                      <KilogramInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Deslocamento sem carga
@@ -203,12 +175,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Deslocamento Carregado (kg)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 30000" 
-                        {...field} 
-                      />
+                      <KilogramInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Deslocamento com carga máxima
@@ -235,12 +202,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Combustível (L)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 2500" 
-                        {...field} 
-                      />
+                      <LiterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Capacidade do tanque de combustível
@@ -257,12 +219,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Água (L)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 680" 
-                        {...field} 
-                      />
+                      <LiterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Capacidade do tanque de água
@@ -279,10 +236,9 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Pessoas a Bordo</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 14" 
+                      <NumericInput 
+                        suffix="pessoas"
+                        decimals={0}
                         {...field} 
                       />
                     </FormControl>
@@ -301,10 +257,8 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Cabines</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 3" 
+                      <NumericInput 
+                        decimals={0}
                         {...field} 
                       />
                     </FormControl>
@@ -404,12 +358,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Velocidade Máxima (nós)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.1" 
-                        placeholder="Ex: 32,5" 
-                        {...field} 
-                      />
+                      <KnotInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Velocidade máxima em nós
@@ -426,12 +375,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Velocidade de Cruzeiro (nós)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.1" 
-                        placeholder="Ex: 28,0" 
-                        {...field} 
-                      />
+                      <KnotInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Velocidade ideal de cruzeiro
@@ -448,10 +392,9 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                   <FormItem>
                     <FormLabel>Autonomia (milhas náuticas)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        step="1" 
-                        placeholder="Ex: 360" 
+                      <NumericInput 
+                        suffix="mn"
+                        decimals={0}
                         {...field} 
                       />
                     </FormControl>

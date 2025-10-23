@@ -42,3 +42,28 @@ export function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('pt-BR');
 }
+
+/**
+ * Converte metros para pés
+ * Exemplo: 17.42 -> 57.15
+ */
+export function metersToFeet(meters: number): number {
+  return meters * 3.28084;
+}
+
+/**
+ * Converte pés para metros
+ * Exemplo: 57.15 -> 17.42
+ */
+export function feetToMeters(feet: number): number {
+  return feet / 3.28084;
+}
+
+/**
+ * Formata conversão de metros para pés com texto
+ * Exemplo: 17.42 -> "57,15 ft"
+ */
+export function formatFeetConversion(meters: number): string {
+  const feet = metersToFeet(meters);
+  return `${feet.toFixed(2).replace('.', ',')} ft`;
+}

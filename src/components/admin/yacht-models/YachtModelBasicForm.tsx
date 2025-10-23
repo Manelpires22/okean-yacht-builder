@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { YachtModelFullValues } from "@/lib/schemas/yacht-model-schema";
+import { CurrencyInput, NumericInput } from "@/components/ui/numeric-input";
 
 interface YachtModelBasicFormProps {
   form: UseFormReturn<YachtModelFullValues>;
@@ -147,13 +148,9 @@ export function YachtModelBasicForm({ form }: YachtModelBasicFormProps) {
             <FormItem>
               <FormLabel>Preço Base (R$)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number"
-                  placeholder="A definir"
-                  {...field}
-                />
+                <CurrencyInput {...field} />
               </FormControl>
-              <FormDescription>Opcional</FormDescription>
+              <FormDescription>Opcional - Digite da direita para esquerda</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -166,13 +163,13 @@ export function YachtModelBasicForm({ form }: YachtModelBasicFormProps) {
             <FormItem>
               <FormLabel>Prazo (dias)</FormLabel>
               <FormControl>
-                <Input 
-                  type="number"
-                  placeholder="A definir"
+                <NumericInput 
+                  suffix="dias"
+                  decimals={0}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>Opcional</FormDescription>
+              <FormDescription>Opcional - Digite da direita para esquerda</FormDescription>
               <FormMessage />
             </FormItem>
           )}
