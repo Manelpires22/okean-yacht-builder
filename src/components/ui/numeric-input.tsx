@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { metersToFeet } from "@/lib/formatters";
@@ -45,8 +45,18 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
     return '0';
   });
 
+  // Flag para distinguir mudanças internas (usuário digitando) vs externas (importação)
+  const isInternalChangeRef = useRef(false);
+
   // Sincronizar com mudanças externas (ex: importação de documentos)
   useEffect(() => {
+    // Se mudança veio do usuário digitando, ignorar
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
+
+    // Apenas sincronizar mudanças EXTERNAS (importação, reset)
     if (value && value !== '0') {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
@@ -98,6 +108,9 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
     // Extrair apenas dígitos do input do usuário
     const digitsOnly = inputValue.replace(/\D/g, '');
     
+    // Marcar como mudança interna (vinda do usuário)
+    isInternalChangeRef.current = true;
+    
     if (!digitsOnly) {
       setInternalValue('0');
       onChange?.('0');
@@ -118,6 +131,9 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
+      
+      // Marcar como mudança interna
+      isInternalChangeRef.current = true;
       
       // Remover último dígito
       const newDigits = internalValue.slice(0, -1) || '0';
