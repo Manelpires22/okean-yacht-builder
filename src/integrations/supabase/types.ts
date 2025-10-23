@@ -480,17 +480,24 @@ export type Database = {
         Row: {
           base_delivery_days: number
           base_price: number
+          bathrooms: string | null
           beam: number | null
+          cabins: number | null
           code: string
           created_at: string | null
           created_by: string | null
           cruise_speed: number | null
           delivery_date: string | null
           description: string | null
+          displacement_light: number | null
+          displacement_loaded: number | null
           draft: number | null
           dry_weight: number | null
+          engines: string | null
           fuel_capacity: number | null
           height_from_waterline: number | null
+          hull_color: string | null
+          hull_length: number | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -507,17 +514,24 @@ export type Database = {
         Insert: {
           base_delivery_days: number
           base_price: number
+          bathrooms?: string | null
           beam?: number | null
+          cabins?: number | null
           code: string
           created_at?: string | null
           created_by?: string | null
           cruise_speed?: number | null
           delivery_date?: string | null
           description?: string | null
+          displacement_light?: number | null
+          displacement_loaded?: number | null
           draft?: number | null
           dry_weight?: number | null
+          engines?: string | null
           fuel_capacity?: number | null
           height_from_waterline?: number | null
+          hull_color?: string | null
+          hull_length?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -534,17 +548,24 @@ export type Database = {
         Update: {
           base_delivery_days?: number
           base_price?: number
+          bathrooms?: string | null
           beam?: number | null
+          cabins?: number | null
           code?: string
           created_at?: string | null
           created_by?: string | null
           cruise_speed?: number | null
           delivery_date?: string | null
           description?: string | null
+          displacement_light?: number | null
+          displacement_loaded?: number | null
           draft?: number | null
           dry_weight?: number | null
+          engines?: string | null
           fuel_capacity?: number | null
           height_from_waterline?: number | null
+          hull_color?: string | null
+          hull_length?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null

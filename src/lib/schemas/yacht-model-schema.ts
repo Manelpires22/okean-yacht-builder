@@ -32,15 +32,26 @@ export const yachtModelBasicSchema = z.object({
 export const yachtModelSpecsSchema = z.object({
   // Dimensões
   length_overall: z.string().optional(),
+  hull_length: z.string().optional(),
   beam: z.string().optional(),
   draft: z.string().optional(),
   height_from_waterline: z.string().optional(),
   
-  // Pesos e Capacidades
+  // Pesos e Deslocamento
   dry_weight: z.string().optional(),
+  displacement_light: z.string().optional(),
+  displacement_loaded: z.string().optional(),
+  
+  // Capacidades
   fuel_capacity: z.string().optional(),
   water_capacity: z.string().optional(),
   passengers_capacity: z.string().optional(),
+  cabins: z.string().optional(),
+  bathrooms: z.string().optional(),
+  
+  // Motorização
+  engines: z.string().optional(),
+  hull_color: z.string().optional(),
   
   // Performance
   max_speed: z.string().optional(),
