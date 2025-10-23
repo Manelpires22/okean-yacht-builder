@@ -506,44 +506,77 @@ export type Database = {
         Row: {
           base_delivery_days: number
           base_price: number
+          beam: number | null
           code: string
           created_at: string | null
           created_by: string | null
+          cruise_speed: number | null
           description: string | null
+          draft: number | null
+          dry_weight: number | null
+          fuel_capacity: number | null
+          height_from_waterline: number | null
           id: string
           image_url: string | null
           is_active: boolean | null
+          length_overall: number | null
+          max_speed: number | null
           name: string
+          passengers_capacity: number | null
+          range_nautical_miles: number | null
           technical_specifications: Json | null
           updated_at: string | null
+          water_capacity: number | null
         }
         Insert: {
           base_delivery_days: number
           base_price: number
+          beam?: number | null
           code: string
           created_at?: string | null
           created_by?: string | null
+          cruise_speed?: number | null
           description?: string | null
+          draft?: number | null
+          dry_weight?: number | null
+          fuel_capacity?: number | null
+          height_from_waterline?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          length_overall?: number | null
+          max_speed?: number | null
           name: string
+          passengers_capacity?: number | null
+          range_nautical_miles?: number | null
           technical_specifications?: Json | null
           updated_at?: string | null
+          water_capacity?: number | null
         }
         Update: {
           base_delivery_days?: number
           base_price?: number
+          beam?: number | null
           code?: string
           created_at?: string | null
           created_by?: string | null
+          cruise_speed?: number | null
           description?: string | null
+          draft?: number | null
+          dry_weight?: number | null
+          fuel_capacity?: number | null
+          height_from_waterline?: number | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          length_overall?: number | null
+          max_speed?: number | null
           name?: string
+          passengers_capacity?: number | null
+          range_nautical_miles?: number | null
           technical_specifications?: Json | null
           updated_at?: string | null
+          water_capacity?: number | null
         }
         Relationships: [
           {

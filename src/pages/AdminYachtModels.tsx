@@ -13,14 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateYachtModelDialog } from "@/components/admin/yacht-models/CreateYachtModelDialog";
-import { EditYachtModelDialog } from "@/components/admin/yacht-models/EditYachtModelDialog";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Edit2 } from "lucide-react";
 
 const AdminYachtModels = () => {
   const navigate = useNavigate();
-  const [editingModel, setEditingModel] = useState<any>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: models, isLoading } = useQuery({
     queryKey: ['admin-yacht-models'],
@@ -35,10 +32,6 @@ const AdminYachtModels = () => {
     }
   });
 
-  const handleEdit = (model: any) => {
-    setEditingModel(model);
-    setEditDialogOpen(true);
-  };
 
   return (
     <AdminLayout>
@@ -110,22 +103,14 @@ const AdminYachtModels = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEdit(model)}
-                        >
-                          Editar
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate(`/admin/yacht-models/${model.id}/memorial`)}
-                        >
-                          Memorial
-                        </Button>
-                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate(`/admin/yacht-models/${model.id}/edit`)}
+                      >
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Editar Modelo
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
@@ -133,14 +118,6 @@ const AdminYachtModels = () => {
             </TableBody>
           </Table>
         </div>
-
-        {editingModel && (
-          <EditYachtModelDialog
-            model={editingModel}
-            open={editDialogOpen}
-            onOpenChange={setEditDialogOpen}
-          />
-        )}
       </div>
     </AdminLayout>
   );
