@@ -1,61 +1,27 @@
 import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Plus, GripVertical } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Edit2, Trash, FileText } from "lucide-react";
+import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
+import { useMemorialItems } from "@/hooks/useMemorialItems";
+import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit2, Trash, FileText, GripVertical } from "lucide-react";
-import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
 import { CategoryOrderDialog } from "@/components/admin/memorial/CategoryOrderDialog";
-import { useMemorialItems } from "@/hooks/useMemorialItems";
-
-const CATEGORIES = [
-  { value: 'Ar-condicionado', label: 'Ar-condicionado' },
-  { value: 'Área da Cozinha', label: 'Área da Cozinha' },
-  { value: 'Área de Armazenamento de Popa', label: 'Área de Armazenamento de Popa' },
-  { value: 'Área de Jantar', label: 'Área de Jantar' },
-  { value: 'Banheiro da Cabine Master', label: 'Banheiro da Cabine Master' },
-  { value: 'Banheiro da Cabine VIP', label: 'Banheiro da Cabine VIP' },
-  { value: 'Banheiro da Tripulação', label: 'Banheiro da Tripulação' },
-  { value: 'Banheiro do Capitão', label: 'Banheiro do Capitão' },
-  { value: 'Banheiro dos Hóspedes', label: 'Banheiro dos Hóspedes' },
-  { value: 'Cabine da Tripulação', label: 'Cabine da Tripulação' },
-  { value: 'Cabine de Hóspedes BB', label: 'Cabine de Hóspedes BB' },
-  { value: 'Cabine de Hóspedes BE', label: 'Cabine de Hóspedes BE' },
-  { value: 'Cabine do Capitão', label: 'Cabine do Capitão' },
-  { value: 'Cabine Master', label: 'Cabine Master' },
-  { value: 'Cabine VIP', label: 'Cabine VIP' },
-  { value: 'Cabine VIP de Proa', label: 'Cabine VIP de Proa' },
-  { value: 'Características Externas', label: 'Características Externas' },
-  { value: 'Casco e Convés', label: 'Casco e Convés' },
-  { value: 'Comando Principal', label: 'Comando Principal' },
-  { value: 'Convés Principal', label: 'Convés Principal' },
-  { value: 'Cozinha/Galley', label: 'Cozinha/Galley' },
-  { value: 'Deck Principal', label: 'Deck Principal' },
-  { value: 'Elétrica', label: 'Elétrica' },
-  { value: 'Entretenimento', label: 'Entretenimento' },
-  { value: 'Flybridge', label: 'Flybridge' },
-  { value: 'Garagem', label: 'Garagem' },
-  { value: 'Lavabo', label: 'Lavabo' },
-  { value: 'Lobby do Convés Inferior', label: 'Lobby do Convés Inferior' },
-  { value: 'Lobby/Passagem da Tripulação', label: 'Lobby/Passagem da Tripulação' },
-  { value: 'Outros', label: 'Outros' },
-  { value: 'Plataforma de Popa', label: 'Plataforma de Popa' },
-  { value: 'Propulsão e Controle', label: 'Propulsão e Controle' },
-  { value: 'Sala de Máquinas', label: 'Sala de Máquinas' },
-  { value: 'Salão', label: 'Salão' },
-  { value: 'Segurança', label: 'Segurança' },
-  { value: 'Sistemas', label: 'Sistemas' },
-  { value: 'WC da Cabine Master', label: 'WC da Cabine Master' },
-  { value: 'WC VIP', label: 'WC VIP' },
-] as const;
-
-type CategoryValue = typeof CATEGORIES[number]['value'];
 
 interface YachtModelMemorialTabProps {
   yachtModelId: string;
@@ -64,60 +30,63 @@ interface YachtModelMemorialTabProps {
 export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryValue>(CATEGORIES[0].value);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
+  const [defaultCategoryId, setDefaultCategoryId] = useState<string>();
+  
+  const { data: items, isLoading, deleteItem, isDeleting } = useMemorialItems(yachtModelId);
+  const { data: categories } = useMemorialCategories();
 
-  const { data: items, isLoading: loadingItems, deleteItem, refetch } = useMemorialItems(yachtModelId);
-
-  // Sort items by category_display_order first, then display_order
+  // Sort items by category display_order, then by item display_order
   const sortedItems = useMemo(() => {
     if (!items) return [];
     
     return [...items].sort((a, b) => {
-      // 1. Ordenar por category_display_order (cast to any para evitar erro de tipo temporário)
-      const catOrderDiff = ((a as any).category_display_order || 999) - ((b as any).category_display_order || 999);
+      // First by category display_order
+      const catOrderDiff = (a.category?.display_order || 999) - (b.category?.display_order || 999);
       if (catOrderDiff !== 0) return catOrderDiff;
       
-      // 2. Dentro da mesma categoria, ordenar por display_order
+      // Then by item display_order
       return (a.display_order || 0) - (b.display_order || 0);
     });
   }, [items]);
 
+  // Group items by category
   const itemsByCategory = useMemo(() => {
-    const grouped: Partial<Record<CategoryValue, any[]>> = {};
-
-    sortedItems?.forEach(item => {
-      const category = item.category as CategoryValue;
-      if (!grouped[category]) {
-        grouped[category] = [];
+    if (!sortedItems || !categories) return {};
+    
+    return sortedItems.reduce((acc, item) => {
+      const categoryLabel = item.category?.label || 'Outros';
+      
+      if (!acc[categoryLabel]) {
+        acc[categoryLabel] = [];
       }
-      grouped[category].push(item);
-    });
+      acc[categoryLabel].push(item);
+      return acc;
+    }, {} as Record<string, typeof sortedItems>);
+  }, [sortedItems, categories]);
 
-    return grouped;
-  }, [sortedItems]);
-
-  const handleCreate = (category?: CategoryValue) => {
+  const handleCreate = (categoryId?: string) => {
     setEditingItem(null);
-    setSelectedCategory(category || selectedCategory);
+    setDefaultCategoryId(categoryId);
     setDialogOpen(true);
   };
 
   const handleEdit = (item: any) => {
     setEditingItem(item);
+    setDefaultCategoryId(undefined);
     setDialogOpen(true);
   };
 
   const handleDelete = async (itemId: string) => {
-    if (confirm('Tem certeza que deseja deletar este item?')) {
-      await deleteItem(itemId);
+    if (confirm("Tem certeza que deseja deletar este item?")) {
+      deleteItem(itemId);
     }
   };
 
   // Find first category with items for default open
   const defaultOpenCategory = useMemo(() => {
-    const catWithItems = CATEGORIES.find(cat => itemsByCategory[cat.value]?.length > 0);
-    return catWithItems?.value || CATEGORIES[0].value;
+    const firstCategoryWithItems = Object.keys(itemsByCategory)[0];
+    return firstCategoryWithItems || "";
   }, [itemsByCategory]);
 
   return (
@@ -130,10 +99,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setOrderDialogOpen(true)}
-          >
+          <Button variant="outline" onClick={() => setOrderDialogOpen(true)}>
             <GripVertical className="mr-2 h-4 w-4" />
             Ordenar Categorias
           </Button>
@@ -144,126 +110,142 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         </div>
       </div>
 
-      <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">
-        {CATEGORIES.map(cat => {
-          const categoryItems = itemsByCategory[cat.value] || [];
-          const itemCount = categoryItems.length;
-
-          return (
-            <AccordionItem key={cat.value} value={cat.value}>
-              <AccordionTrigger className="text-lg font-semibold hover:no-underline">
-                <div className="flex items-center gap-3 w-full">
-                  <span>{cat.label}</span>
-                  <Badge variant="outline" className="ml-auto mr-2">
-                    {itemCount} {itemCount === 1 ? 'item' : 'itens'}
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                {loadingItems ? (
-                  <div className="border rounded-lg p-8">
-                    <Skeleton className="h-48 w-full" />
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      ) : Object.keys(itemsByCategory).length === 0 ? (
+        <div className="border rounded-lg p-12 text-center">
+          <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Nenhum item cadastrado</h3>
+          <p className="text-muted-foreground mb-4">
+            Adicione itens ao memorial descritivo deste modelo de iate
+          </p>
+          <Button onClick={() => handleCreate()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Primeiro Item
+          </Button>
+        </div>
+      ) : (
+        <Accordion 
+          type="single" 
+          collapsible 
+          className="w-full"
+          defaultValue={defaultOpenCategory}
+        >
+          {Object.entries(itemsByCategory).map(([categoryLabel, categoryItems]) => {
+            const firstItem = categoryItems[0];
+            const categoryId = firstItem?.category?.id;
+            
+            return (
+              <AccordionItem key={categoryLabel} value={categoryLabel}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center justify-between w-full pr-4">
+                    <span className="font-semibold">{categoryLabel}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
+                    </span>
                   </div>
-                ) : categoryItems.length > 0 ? (
-                  <div className="border rounded-lg">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Ordem</TableHead>
-                          <TableHead>Item</TableHead>
-                          <TableHead>Marca</TableHead>
-                          <TableHead>Modelo</TableHead>
-                          <TableHead>Quantidade</TableHead>
-                          <TableHead>Customizável?</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryItems.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-mono">{item.display_order}</TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{item.item_name}</p>
-                                {item.description && (
-                                  <p className="text-sm text-muted-foreground line-clamp-1">
-                                    {item.description}
-                                  </p>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>{item.brand || '-'}</TableCell>
-                            <TableCell>{item.model || '-'}</TableCell>
-                            <TableCell>
-                              {item.quantity} {item.unit}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={item.is_customizable ? 'default' : 'secondary'}>
-                                {item.is_customizable ? 'Sim' : 'Não'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={item.is_active ? 'default' : 'secondary'}>
-                                {item.is_active ? 'Ativo' : 'Inativo'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEdit(item)}
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(item.id)}
-                                >
-                                  <Trash className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="border rounded-lg p-12 text-center">
-                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">
-                      Nenhum item nesta categoria
-                    </h3>
-                    <p className="text-muted-foreground mb-4">
-                      Adicione itens ao memorial descritivo desta categoria
-                    </p>
-                    <Button onClick={() => handleCreate(cat.value)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar Primeiro Item
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex justify-end mb-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleCreate(categoryId)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Item em {categoryLabel}
                     </Button>
                   </div>
-                )}
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-      </Accordion>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">Ordem</TableHead>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Marca</TableHead>
+                        <TableHead>Modelo</TableHead>
+                        <TableHead>Qtd.</TableHead>
+                        <TableHead>Customizável</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="w-24">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {categoryItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-mono text-sm">
+                            {item.display_order}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{item.item_name}</p>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground line-clamp-1">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.brand || "-"}</TableCell>
+                          <TableCell>{item.model || "-"}</TableCell>
+                          <TableCell>
+                            {item.quantity} {item.unit}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={item.is_customizable ? "default" : "secondary"}>
+                              {item.is_customizable ? "Sim" : "Não"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={item.is_active ? "default" : "secondary"}>
+                              {item.is_active ? "Ativo" : "Inativo"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(item)}
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(item.id)}
+                                disabled={isDeleting}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+          </Accordion>
+      )}
 
       <MemorialItemDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         yachtModelId={yachtModelId}
         initialData={editingItem}
-        defaultCategory={selectedCategory}
+        defaultCategoryId={defaultCategoryId}
       />
 
       <CategoryOrderDialog
         open={orderDialogOpen}
         onOpenChange={setOrderDialogOpen}
-        yachtModelId={yachtModelId}
       />
     </div>
   );

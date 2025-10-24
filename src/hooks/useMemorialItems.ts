@@ -1,17 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { MemorialItem } from "@/types/memorial";
 
 export function useMemorialItems(yachtModelId?: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const query = useQuery({
+  const query = useQuery<MemorialItem[]>({
     queryKey: ['memorial-items', yachtModelId],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from('memorial_items')
-        .select('*')
+        .select(`
+          *,
+          category:memorial_categories(
+            id,
+            value,
+            label,
+            display_order
+          )
+        `)
         .order('category_display_order')
         .order('display_order');
 
@@ -21,7 +30,7 @@ export function useMemorialItems(yachtModelId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as MemorialItem[];
     },
     enabled: !!yachtModelId,
   });
