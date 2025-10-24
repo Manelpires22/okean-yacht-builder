@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, GripVertical } from "lucide-react";
+import { Loader2, GripVertical, Settings } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -41,6 +41,7 @@ import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, RefreshCw
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
+import { CategoryManagementDialog } from "@/components/admin/memorial/CategoryManagementDialog";
 import {
   useMemorialOkeanItems,
   useMemorialOkeanCategories,
@@ -88,6 +89,7 @@ interface SortableCategoryAccordionProps {
   onEditClick: (item: MemorialOkeanItem) => void;
   onDeleteClick: (id: number) => void;
   onChangeCategory: (itemId: number, newCategoria: string) => void;
+  onManageCategory: (categoria: string, itemCount: number) => void;
 }
 
 function SortableCategoryAccordion({
@@ -97,6 +99,7 @@ function SortableCategoryAccordion({
   onEditClick,
   onDeleteClick,
   onChangeCategory,
+  onManageCategory,
 }: SortableCategoryAccordionProps) {
   const {
     attributes,
@@ -123,21 +126,38 @@ function SortableCategoryAccordion({
         )}
       >
         <AccordionTrigger className="hover:no-underline">
-          <div className="flex items-center gap-3 w-full">
-            <button
-              type="button"
-              className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </button>
-            <Badge variant="outline" className="font-semibold">
-              {categoria}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
-            </span>
+          <div className="flex items-center justify-between w-full pr-4">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <Badge variant="outline" className="font-semibold">
+                {categoria}
+              </Badge>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
+              </span>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onManageCategory(categoria, categoryItems.length);
+                }}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </AccordionTrigger>
         <AccordionContent>
@@ -256,6 +276,11 @@ export default function AdminMemorialOkean() {
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [categoriesOrder, setCategoriesOrder] = useState<string[]>([]);
+  const [categoryManagementDialog, setCategoryManagementDialog] = useState<{
+    open: boolean;
+    categoria: string;
+    itemCount: number;
+  } | null>(null);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -366,6 +391,14 @@ export default function AdminMemorialOkean() {
     } catch (error) {
       console.error('Erro ao mudar categoria:', error);
     }
+  };
+
+  const handleManageCategory = (categoria: string, itemCount: number) => {
+    setCategoryManagementDialog({
+      open: true,
+      categoria,
+      itemCount,
+    });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -664,6 +697,7 @@ export default function AdminMemorialOkean() {
                       onEditClick={handleEditClick}
                       onDeleteClick={handleDeleteClick}
                       onChangeCategory={handleChangeCategoryItem}
+                      onManageCategory={handleManageCategory}
                     />
                   ))}
                 </Accordion>
@@ -700,6 +734,20 @@ export default function AdminMemorialOkean() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Category Management Dialog */}
+        {categoryManagementDialog && (
+          <CategoryManagementDialog
+            open={categoryManagementDialog.open}
+            onOpenChange={(open) => {
+              if (!open) setCategoryManagementDialog(null);
+            }}
+            categoria={categoryManagementDialog.categoria}
+            modelo={selectedModelo}
+            itemCount={categoryManagementDialog.itemCount}
+            allCategories={categories}
+          />
+        )}
       </div>
     </AdminLayout>
   );
