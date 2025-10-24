@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, GripVertical } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -46,9 +46,28 @@ import {
   useMemorialOkeanCategories,
   useMemorialOkeanModelos,
   useDeleteMemorialItem,
+  useUpdateMemorialItem,
   type MemorialOkeanItem,
 } from "@/hooks/useMemorialOkean";
+import { useUpdateCategoryOrder } from "@/hooks/useMemorialCategoryOrder";
 import { cn } from "@/lib/utils";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const MODEL_BADGE_COLORS: Record<string, string> = {
   'FY 550': "bg-blue-100 text-blue-800 border-blue-300",
@@ -62,6 +81,169 @@ const MODEL_BADGE_COLORS: Record<string, string> = {
   'OKEAN 80': "bg-pink-100 text-pink-800 border-pink-300",
 };
 
+interface SortableCategoryAccordionProps {
+  categoria: string;
+  categoryItems: MemorialOkeanItem[];
+  categories: string[];
+  onEditClick: (item: MemorialOkeanItem) => void;
+  onDeleteClick: (id: number) => void;
+  onChangeCategory: (itemId: number, newCategoria: string) => void;
+}
+
+function SortableCategoryAccordion({
+  categoria,
+  categoryItems,
+  categories,
+  onEditClick,
+  onDeleteClick,
+  onChangeCategory,
+}: SortableCategoryAccordionProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: categoria });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <AccordionItem 
+        value={categoria}
+        className={cn(
+          "border rounded-lg px-4",
+          isDragging && "shadow-lg ring-2 ring-primary"
+        )}
+      >
+        <AccordionTrigger className="hover:no-underline">
+          <div className="flex items-center gap-3 w-full">
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <Badge variant="outline" className="font-semibold">
+              {categoria}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
+            </span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px]">ID</TableHead>
+                <TableHead className="w-[120px]">Modelo</TableHead>
+                <TableHead>Descrição do Item</TableHead>
+                <TableHead className="w-[180px]">Categoria</TableHead>
+                <TableHead className="w-[80px] text-center">Qtd</TableHead>
+                <TableHead className="w-[150px]">Marca</TableHead>
+                <TableHead className="w-[100px]">Tipo</TableHead>
+                <TableHead className="w-[80px] text-center">Custom</TableHead>
+                <TableHead className="w-[120px] text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categoryItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {item.id}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "font-medium text-xs",
+                        MODEL_BADGE_COLORS[item.modelo]
+                      )}
+                    >
+                      {item.modelo}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[400px]">
+                    <div className="truncate text-sm" title={item.descricao_item}>
+                      {item.descricao_item}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={item.categoria}
+                      onValueChange={(newCategoria) => 
+                        onChangeCategory(item.id, newCategoria)
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="text-center font-medium">
+                    {item.quantidade || 1}
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">
+                      {item.marca || '-'}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {item.tipo_item}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {item.is_customizable !== false ? (
+                      <Check className="h-4 w-4 text-success inline-block" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-muted-foreground inline-block" />
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEditClick(item)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDeleteClick(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AccordionContent>
+      </AccordionItem>
+    </div>
+  );
+}
+
 export default function AdminMemorialOkean() {
   const queryClient = useQueryClient();
   const [selectedModelo, setSelectedModelo] = useState<string>("Todos");
@@ -73,6 +255,7 @@ export default function AdminMemorialOkean() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
+  const [categoriesOrder, setCategoriesOrder] = useState<string[]>([]);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -81,6 +264,16 @@ export default function AdminMemorialOkean() {
   const { data: categories = [] } = useMemorialOkeanCategories();
   const { data: modelos = [], refetch: refetchModelos } = useMemorialOkeanModelos();
   const deleteMutation = useDeleteMemorialItem();
+  const updateItemMutation = useUpdateMemorialItem();
+  const updateOrderMutation = useUpdateCategoryOrder();
+
+  // Drag & drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Force refetch models on mount to ensure fresh data
   useEffect(() => {
@@ -155,9 +348,56 @@ export default function AdminMemorialOkean() {
     }
   };
 
+  const handleChangeCategoryItem = async (itemId: number, newCategoria: string) => {
+    try {
+      const item = items.find((i) => i.id === itemId);
+      if (!item) return;
+
+      await updateItemMutation.mutateAsync({
+        id: itemId,
+        modelo: item.modelo,
+        categoria: newCategoria,
+        descricao_item: item.descricao_item,
+        tipo_item: item.tipo_item,
+        quantidade: item.quantidade,
+        is_customizable: item.is_customizable,
+        marca: item.marca,
+      });
+    } catch (error) {
+      console.error('Erro ao mudar categoria:', error);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setCategoriesOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        const newOrder = arrayMove(items, oldIndex, newIndex);
+
+        // Save to database
+        if (selectedModelo && selectedModelo !== "Todos") {
+          const categoriesOrder = newOrder.map((cat, idx) => ({
+            categoria: cat,
+            order: idx + 1,
+          }));
+
+          updateOrderMutation.mutate({
+            modelo: selectedModelo,
+            categoriesOrder,
+          });
+        }
+
+        return newOrder;
+      });
+    }
+  };
+
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
 
-  // Agrupar itens por categoria
+  // Agrupar itens por categoria e ordenar por category_display_order
   const itemsByCategory = useMemo(() => {
     const grouped = items.reduce((acc, item) => {
       if (!acc[item.categoria]) {
@@ -167,8 +407,20 @@ export default function AdminMemorialOkean() {
       return acc;
     }, {} as Record<string, MemorialOkeanItem[]>);
 
-    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+    // Sort by category_display_order from database
+    return Object.entries(grouped).sort(([catA, itemsA], [catB, itemsB]) => {
+      const orderA = (itemsA[0] as any)?.category_display_order ?? 999;
+      const orderB = (itemsB[0] as any)?.category_display_order ?? 999;
+      return orderA - orderB;
+    });
   }, [items]);
+
+  // Update categories order when items change
+  useEffect(() => {
+    if (itemsByCategory.length > 0) {
+      setCategoriesOrder(itemsByCategory.map(([cat]) => cat));
+    }
+  }, [itemsByCategory]);
 
   // Paginação
   const totalPages = Math.ceil(itemsByCategory.length / itemsPerPage);
@@ -390,106 +642,33 @@ export default function AdminMemorialOkean() {
               )}
             </div>
 
-            {/* Acordeon por Categoria */}
-            <Accordion type="multiple" className="space-y-2">
-              {paginatedCategories.map(([categoria, categoryItems]) => (
-                <AccordionItem 
-                  key={categoria} 
-                  value={categoria}
-                  className="border rounded-lg px-4"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="font-semibold">
-                        {categoria}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
-                      </span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[80px]">ID</TableHead>
-                          <TableHead className="w-[120px]">Modelo</TableHead>
-                          <TableHead>Descrição do Item</TableHead>
-                          <TableHead className="w-[80px] text-center">Qtd</TableHead>
-                          <TableHead className="w-[150px]">Marca</TableHead>
-                          <TableHead className="w-[100px]">Tipo</TableHead>
-                          <TableHead className="w-[80px] text-center">Custom</TableHead>
-                          <TableHead className="w-[120px] text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {categoryItems.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {item.id}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "font-medium text-xs",
-                                  MODEL_BADGE_COLORS[item.modelo]
-                                )}
-                              >
-                                {item.modelo}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="max-w-[400px]">
-                              <div className="truncate text-sm" title={item.descricao_item}>
-                                {item.descricao_item}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-center font-medium">
-                              {item.quantidade || 1}
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm text-muted-foreground">
-                                {item.marca || '-'}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="text-xs">
-                                {item.tipo_item}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {item.is_customizable !== false ? (
-                                <Check className="h-4 w-4 text-success inline-block" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-muted-foreground inline-block" />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditClick(item)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteClick(item.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            {/* Acordeon por Categoria com Drag & Drop */}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={categoriesOrder.filter(cat => 
+                  paginatedCategories.some(([c]) => c === cat)
+                )}
+                strategy={verticalListSortingStrategy}
+              >
+                <Accordion type="multiple" className="space-y-2">
+                  {paginatedCategories.map(([categoria, categoryItems]) => (
+                    <SortableCategoryAccordion
+                      key={categoria}
+                      categoria={categoria}
+                      categoryItems={categoryItems}
+                      categories={categories}
+                      onEditClick={handleEditClick}
+                      onDeleteClick={handleDeleteClick}
+                      onChangeCategory={handleChangeCategoryItem}
+                    />
+                  ))}
+                </Accordion>
+              </SortableContext>
+            </DndContext>
           </div>
         )}
 

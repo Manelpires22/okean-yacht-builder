@@ -120,10 +120,16 @@ export function MemorialDescritivo({
     return acc;
   }, {} as Record<string, typeof items>);
 
-  // Filter out empty categories
-  const nonEmptyCategories = Object.entries(groupedItems).filter(
-    ([_, categoryItems]) => categoryItems.length > 0
-  );
+  // Filter and sort categories by display_order from database
+  const nonEmptyCategories = Object.entries(groupedItems)
+    .filter(([_, categoryItems]) => categoryItems.length > 0)
+    .sort(([catA, itemsA], [catB, itemsB]) => {
+      // Use display_order from first item of each category
+      // Items are already ordered by category_display_order in the query
+      const orderA = (itemsA[0] as any)?.category_display_order ?? 999;
+      const orderB = (itemsB[0] as any)?.category_display_order ?? 999;
+      return orderA - orderB;
+    });
 
   const getCustomization = (itemId: string) => {
     return customizations.find((c) => c.memorial_item_id === itemId);

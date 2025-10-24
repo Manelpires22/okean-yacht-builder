@@ -174,6 +174,7 @@ export type Database = {
       memorial_okean: {
         Row: {
           categoria: string
+          category_display_order: number | null
           created_at: string | null
           descricao_item: string
           id: number
@@ -185,6 +186,7 @@ export type Database = {
         }
         Insert: {
           categoria: string
+          category_display_order?: number | null
           created_at?: string | null
           descricao_item: string
           id?: number
@@ -196,6 +198,7 @@ export type Database = {
         }
         Update: {
           categoria?: string
+          category_display_order?: number | null
           created_at?: string | null
           descricao_item?: string
           id?: number
@@ -690,6 +693,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      update_memorial_category_orders: {
+        Args: { p_modelo: string; p_orders: Json }
+        Returns: undefined
       }
     }
     Enums: {

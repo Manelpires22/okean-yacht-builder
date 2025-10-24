@@ -35,6 +35,7 @@ export function useMemorialOkeanItems(modelo?: string, categoria?: string) {
       let query = supabase
         .from('memorial_okean')
         .select('*')
+        .order('category_display_order', { ascending: true })
         .order('id', { ascending: true });
 
       if (modelo && modelo !== 'Todos') {
