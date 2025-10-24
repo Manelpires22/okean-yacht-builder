@@ -135,12 +135,20 @@ Deno.serve(async (req) => {
     let inserted = 0;
 
     for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize).map(item => ({
-        modelo: item.model,
-        categoria: item.category,
-        descricao_item: item.description,
-        tipo_item: 'Padrão'
-      }));
+      const batch = items.slice(i, i + batchSize).map(item => {
+        // Normalize model names: FY550 → FY 550
+        const normalizedModel = item.model.replace(/^(FY)(\d+)$/, '$1 $2');
+        
+        return {
+          modelo: normalizedModel,
+          categoria: item.category,
+          descricao_item: item.description,
+          tipo_item: 'Padrão',
+          quantidade: 1,
+          is_customizable: true,
+          marca: null
+        };
+      });
 
       const { error: insertError } = await supabase
         .from('memorial_okean')

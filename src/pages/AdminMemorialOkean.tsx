@@ -35,7 +35,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
 import {
   useMemorialOkeanItems,
@@ -61,6 +63,7 @@ export default function AdminMemorialOkean() {
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isImporting, setIsImporting] = useState(false);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -94,6 +97,36 @@ export default function AdminMemorialOkean() {
   const handleClearFilters = () => {
     setSelectedModelo("Todos");
     setSelectedCategoria("Todas");
+  };
+
+  const handleImportCSV = async () => {
+    setIsImporting(true);
+    try {
+      toast.info("Importando dados do CSV...");
+      
+      const { data, error } = await supabase.functions.invoke('import-memorial-okean', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(
+          `Importação concluída! ${data.statistics.total} itens importados`,
+          {
+            description: `Modelos: ${Object.keys(data.statistics.byModel).join(', ')}`
+          }
+        );
+        refetch();
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error("Erro ao importar dados", {
+        description: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
@@ -136,10 +169,29 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Item
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleImportCSV}
+              disabled={isImporting}
+            >
+              {isImporting ? (
+                <>
+                  <Database className="mr-2 h-4 w-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Importar CSV
+                </>
+              )}
+            </Button>
+            <Button onClick={handleCreateClick}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Item
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
