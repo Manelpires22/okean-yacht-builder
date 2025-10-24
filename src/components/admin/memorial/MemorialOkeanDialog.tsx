@@ -36,7 +36,7 @@ import {
 } from "@/hooks/useMemorialOkean";
 
 const memorialItemSchema = z.object({
-  modelo: z.enum(['FY550', 'FY670', 'FY720', 'FY850'], {
+  modelo: z.enum(['FY 550', 'FY 670', 'FY 720', 'FY 850'], {
     required_error: "Modelo é obrigatório",
   }),
   categoria: z.string().min(1, "Categoria é obrigatória").max(100),
