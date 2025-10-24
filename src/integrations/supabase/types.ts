@@ -621,6 +621,37 @@ export type Database = {
         | "seguranca"
         | "conforto"
         | "outros"
+        | "conves_principal"
+        | "salao"
+        | "area_jantar"
+        | "lavabo"
+        | "area_cozinha"
+        | "cozinha_galley"
+        | "comando_principal"
+        | "flybridge"
+        | "lobby_conves_inferior"
+        | "cabine_master"
+        | "banheiro_master"
+        | "cabine_vip"
+        | "banheiro_vip"
+        | "cabine_hospedes_bombordo"
+        | "banheiro_hospedes_bombordo"
+        | "cabine_hospedes_boreste"
+        | "banheiro_hospedes_boreste"
+        | "banheiro_capitao"
+        | "cabine_capitao"
+        | "banheiro_tripulacao"
+        | "cabine_tripulacao"
+        | "lobby_tripulacao"
+        | "sala_maquinas"
+        | "garagem"
+        | "propulsao_controle"
+        | "sistema_estabilizacao"
+        | "equipamentos_eletronicos"
+        | "sistema_extincao_incendio"
+        | "sistema_ar_condicionado"
+        | "sistema_bombas_porao"
+        | "sistema_agua_sanitario"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -767,6 +798,37 @@ export const Constants = {
         "seguranca",
         "conforto",
         "outros",
+        "conves_principal",
+        "salao",
+        "area_jantar",
+        "lavabo",
+        "area_cozinha",
+        "cozinha_galley",
+        "comando_principal",
+        "flybridge",
+        "lobby_conves_inferior",
+        "cabine_master",
+        "banheiro_master",
+        "cabine_vip",
+        "banheiro_vip",
+        "cabine_hospedes_bombordo",
+        "banheiro_hospedes_bombordo",
+        "cabine_hospedes_boreste",
+        "banheiro_hospedes_boreste",
+        "banheiro_capitao",
+        "cabine_capitao",
+        "banheiro_tripulacao",
+        "cabine_tripulacao",
+        "lobby_tripulacao",
+        "sala_maquinas",
+        "garagem",
+        "propulsao_controle",
+        "sistema_estabilizacao",
+        "equipamentos_eletronicos",
+        "sistema_extincao_incendio",
+        "sistema_ar_condicionado",
+        "sistema_bombas_porao",
+        "sistema_agua_sanitario",
       ],
     },
   },
