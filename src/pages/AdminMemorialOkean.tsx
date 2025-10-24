@@ -54,6 +54,7 @@ const MODEL_BADGE_COLORS: Record<string, string> = {
   'FY 720': "bg-yellow-100 text-yellow-800 border-yellow-300",
   'FY 850': "bg-purple-100 text-purple-800 border-purple-300",
   'FY850': "bg-purple-100 text-purple-800 border-purple-300",
+  'FY1000': "bg-orange-100 text-orange-800 border-orange-300",
   'OKEAN 52': "bg-red-100 text-red-800 border-red-300",
   'OKEAN 57': "bg-indigo-100 text-indigo-800 border-indigo-300",
   'OKEAN 80': "bg-pink-100 text-pink-800 border-pink-300",

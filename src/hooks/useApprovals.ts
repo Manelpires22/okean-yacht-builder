@@ -52,7 +52,7 @@ export const useApprovals = (params?: UseApprovalsParams) => {
         .from('approvals')
         .select(`
           *,
-          quotations:quotation_id (
+          quotation:quotations!quotation_id (
             quotation_number,
             client_name,
             client_email,
@@ -62,17 +62,17 @@ export const useApprovals = (params?: UseApprovalsParams) => {
             total_options_price,
             discount_percentage,
             discount_amount,
-            yacht_models (
+            yacht_model:yacht_models (
               name,
               code
             )
           ),
-          requester:requested_by (
+          requester:users!requested_by (
             full_name,
             email,
             department
           ),
-          reviewer:reviewed_by (
+          reviewer:users!reviewed_by (
             full_name,
             email
           )
@@ -99,7 +99,7 @@ export const useApproval = (id: string) => {
         .from('approvals')
         .select(`
           *,
-          quotations:quotation_id (
+          quotation:quotations!quotation_id (
             quotation_number,
             client_name,
             client_email,
@@ -109,17 +109,17 @@ export const useApproval = (id: string) => {
             total_options_price,
             discount_percentage,
             discount_amount,
-            yacht_models (
+            yacht_model:yacht_models (
               name,
               code
             )
           ),
-          requester:requested_by (
+          requester:users!requested_by (
             full_name,
             email,
             department
           ),
-          reviewer:reviewed_by (
+          reviewer:users!reviewed_by (
             full_name,
             email,
             department
