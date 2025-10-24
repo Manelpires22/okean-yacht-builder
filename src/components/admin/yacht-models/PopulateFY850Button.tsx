@@ -38,9 +38,11 @@ export function PopulateFY850Button({ yachtModelCode, onSuccess }: PopulateFY850
 
       if (error) throw error;
 
+      const itemsCreated = data?.itemsCreated || 0;
+      
       toast.success(
         `Memorial do FY850 populado com sucesso!`,
-        { description: `${data.count || 0} itens criados no memorial descritivo.` }
+        { description: `${itemsCreated} itens criados no memorial descritivo.` }
       );
 
       onSuccess?.();
