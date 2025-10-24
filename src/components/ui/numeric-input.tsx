@@ -84,7 +84,8 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
     
     if (decimals === 0) {
       // Sem casas decimais: usar todos os dígitos como parte inteira
-      integerPart = paddedDigits;
+      // Remover zeros à esquerda desnecessários
+      integerPart = paddedDigits.replace(/^0+/, '') || '0';
       decimalPart = '';
     } else {
       // Com casas decimais: separar parte inteira e decimal
