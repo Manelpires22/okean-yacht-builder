@@ -19,14 +19,13 @@ import { useMemorialSearch } from "@/hooks/useMemorialSearch";
 import type { MemorialOkeanItem } from "@/hooks/useMemorialOkean";
 
 interface MemorialSearchBarProps {
-  items: MemorialOkeanItem[];
   onItemSelect: (item: MemorialOkeanItem) => void;
 }
 
-export function MemorialSearchBar({ items, onItemSelect }: MemorialSearchBarProps) {
+export function MemorialSearchBar({ onItemSelect }: MemorialSearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [open, setOpen] = useState(false);
-  const { filteredItems, hasSearch } = useMemorialSearch(items, searchTerm);
+  const { filteredItems, hasSearch } = useMemorialSearch(searchTerm);
 
   return (
     <div className="relative">
@@ -35,26 +34,34 @@ export function MemorialSearchBar({ items, onItemSelect }: MemorialSearchBarProp
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar item por descrição, marca, categoria..."
+              placeholder="🔍 Buscar em toda a base (todos os modelos e categorias)..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setOpen(true);
               }}
-              className="pl-10 pr-10"
+              className="pl-10 pr-28"
             />
             {hasSearch && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => {
-                  setSearchTerm("");
-                  setOpen(false);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <>
+                <Badge 
+                  variant="secondary" 
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-xs pointer-events-none"
+                >
+                  🌐 Busca Global
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setOpen(false);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </PopoverTrigger>

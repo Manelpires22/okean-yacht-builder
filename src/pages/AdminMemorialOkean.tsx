@@ -183,6 +183,7 @@ function SortableCategoryAccordion({
               {categoryItems.map((item) => (
                 <TableRow 
                   key={item.id}
+                  id={`item-row-${item.id}`}
                   className={cn(
                     "hover:bg-accent",
                     highlightedItemId === item.id && "bg-yellow-100 dark:bg-yellow-900/20 animate-pulse"
@@ -413,11 +414,38 @@ export default function AdminMemorialOkean() {
   };
 
   const handleItemSelect = (item: MemorialOkeanItem) => {
-    setHighlightedItemId(item.id);
+    // 1. Aplicar filtros do item encontrado
     setSelectedModelo(item.modelo);
-    setSelectedCategoria(item.categoria);
+    setSelectedCategoria(''); // resetar para mostrar todas categorias do modelo
+
+    // 2. Calcular página onde está a categoria
+    const allCategories = categoriesOrder.filter(cat => 
+      cat !== '' && itemsByCategory.some(([c]) => c === cat)
+    );
+    const categoryIndex = allCategories.indexOf(item.categoria);
     
-    setTimeout(() => setHighlightedItemId(null), 3000);
+    if (categoryIndex !== -1) {
+      const pageNumber = Math.floor(categoryIndex / itemsPerPage) + 1;
+      setCurrentPage(pageNumber);
+    }
+
+    // 3. Highlight visual
+    setHighlightedItemId(item.id);
+
+    // 4. Scroll suave (aguardar DOM atualizar)
+    setTimeout(() => {
+      const element = document.getElementById(`item-row-${item.id}`);
+      if (element) {
+        element.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        });
+      }
+    }, 500);
+
+    // 5. Remover highlight após 3.5s
+    setTimeout(() => setHighlightedItemId(null), 3500);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -515,7 +543,6 @@ export default function AdminMemorialOkean() {
 
         {/* Search Bar */}
         <MemorialSearchBar
-          items={items || []}
           onItemSelect={handleItemSelect}
         />
 
