@@ -92,8 +92,11 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
       decimalPart = paddedDigits.slice(-decimals);
     }
 
-    // Adicionar separadores de milhares
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    // Adicionar separadores de milhares apenas para valores monetários (com prefix)
+    // Para unidades (dias, kg, L, etc) não usar separador
+    const formattedInteger = prefix 
+      ? integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+      : integerPart;
 
     // Montar valor formatado
     const formatted = decimals > 0 
