@@ -23,6 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   cabine_master: 'Cabine Master',
   banheiro_master: 'Banheiro Master',
   cabine_vip: 'Cabine VIP',
+  cabine_vip_proa: 'Cabine VIP Proa',
   banheiro_vip: 'Banheiro VIP',
   cabine_hospedes_bombordo: 'Cabine Hóspedes Bombordo',
   banheiro_hospedes_bombordo: 'Banheiro Hóspedes Bombordo',

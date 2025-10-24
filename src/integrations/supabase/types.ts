@@ -652,6 +652,7 @@ export type Database = {
         | "sistema_ar_condicionado"
         | "sistema_bombas_porao"
         | "sistema_agua_sanitario"
+        | "cabine_vip_proa"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -829,6 +830,7 @@ export const Constants = {
         "sistema_ar_condicionado",
         "sistema_bombas_porao",
         "sistema_agua_sanitario",
+        "cabine_vip_proa",
       ],
     },
   },

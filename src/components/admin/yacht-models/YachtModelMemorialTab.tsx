@@ -29,6 +29,7 @@ const CATEGORIES = [
   { value: 'cabine_master', label: 'Cabine Master' },
   { value: 'banheiro_master', label: 'Banheiro Master' },
   { value: 'cabine_vip', label: 'Cabine VIP' },
+  { value: 'cabine_vip_proa', label: 'Cabine VIP Proa' },
   { value: 'banheiro_vip', label: 'Banheiro VIP' },
   { value: 'cabine_hospedes_bombordo', label: 'Cabine Hóspedes Bombordo' },
   { value: 'banheiro_hospedes_bombordo', label: 'Banheiro Hóspedes Bombordo' },
