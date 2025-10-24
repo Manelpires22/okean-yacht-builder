@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit2, Trash, FileText } from "lucide-react";
 import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
 import { PopulateFY850Button } from "./PopulateFY850Button";
+import { PopulateFY550Button } from "./PopulateFY550Button";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
 const CATEGORIES = [
@@ -132,6 +133,10 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         </div>
         <div className="flex items-center gap-2">
           <PopulateFY850Button 
+            yachtModelCode={model?.code || ''} 
+            onSuccess={refetch}
+          />
+          <PopulateFY550Button 
             yachtModelCode={model?.code || ''} 
             onSuccess={refetch}
           />
