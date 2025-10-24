@@ -137,23 +137,6 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
             <div className="grid grid-cols-2 gap-4 pt-4">
               <FormField
                 control={form.control}
-                name="dry_weight"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Peso a Seco (kg)</FormLabel>
-                    <FormControl>
-                      <KilogramInput {...field} />
-                    </FormControl>
-                    <FormDescription className="text-xs">
-                      Peso sem carga ou fluidos
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="displacement_light"
                 render={({ field }) => (
                   <FormItem>
