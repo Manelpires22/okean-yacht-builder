@@ -77,21 +77,23 @@ export function PopulateFY850Button({ yachtModelCode, onSuccess }: PopulateFY850
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Popular Memorial Descritivo do FY850?</AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            <p>
-              Esta ação irá inserir <strong>~400 itens</strong> no memorial descritivo base do FY850, incluindo:
-            </p>
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              <li>Equipamentos de convés, salão, áreas internas</li>
-              <li>Sistemas elétricos, hidráulicos e de navegação</li>
-              <li>Acabamentos, conforto térmico e audiovisual</li>
-              <li>Segurança, propulsão e tender</li>
-              <li>Equipamentos adicionais padrão</li>
-            </ul>
-            <p className="text-sm text-muted-foreground mt-2">
-              <strong>Nota:</strong> Certifique-se de que o memorial está vazio antes de executar esta ação
-              para evitar duplicação de itens.
-            </p>
+          <AlertDialogDescription>
+            <div className="space-y-2">
+              <p>
+                Esta ação irá inserir <strong>~413 itens</strong> no memorial descritivo base do FY850, incluindo:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Equipamentos de convés, salão, áreas internas</li>
+                <li>Sistemas elétricos, hidráulicos e de navegação</li>
+                <li>Acabamentos, conforto térmico e audiovisual</li>
+                <li>Segurança, propulsão e tender</li>
+                <li>Equipamentos adicionais padrão</li>
+              </ul>
+              <p className="text-sm text-muted-foreground mt-2">
+                <strong>Nota:</strong> Certifique-se de que o memorial está vazio antes de executar esta ação
+                para evitar duplicação de itens.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
