@@ -36,7 +36,7 @@ import {
 } from "@/hooks/useMemorialOkean";
 
 const memorialItemSchema = z.object({
-  modelo: z.enum(['FY 550', 'FY 670', 'FY 720', 'FY 850'], {
+  modelo: z.enum(['FY550', 'FY670', 'FY720', 'FY850', 'OKEAN 52', 'OKEAN 57', 'OKEAN 80'], {
     required_error: "Modelo é obrigatório",
   }),
   categoria: z.string().min(1, "Categoria é obrigatória").max(100),
@@ -158,6 +158,9 @@ export function MemorialOkeanDialog({
                         <SelectItem value="FY670">FY670</SelectItem>
                         <SelectItem value="FY720">FY720</SelectItem>
                         <SelectItem value="FY850">FY850</SelectItem>
+                        <SelectItem value="OKEAN 52">OKEAN 52</SelectItem>
+                        <SelectItem value="OKEAN 57">OKEAN 57</SelectItem>
+                        <SelectItem value="OKEAN 80">OKEAN 80</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

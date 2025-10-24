@@ -49,10 +49,13 @@ import {
 import { cn } from "@/lib/utils";
 
 const MODEL_BADGE_COLORS: Record<string, string> = {
-  'FY 550': "bg-blue-100 text-blue-800 border-blue-300",
-  'FY 670': "bg-green-100 text-green-800 border-green-300",
-  'FY 720': "bg-yellow-100 text-yellow-800 border-yellow-300",
-  'FY 850': "bg-purple-100 text-purple-800 border-purple-300",
+  'FY550': "bg-blue-100 text-blue-800 border-blue-300",
+  'FY670': "bg-green-100 text-green-800 border-green-300",
+  'FY720': "bg-yellow-100 text-yellow-800 border-yellow-300",
+  'FY850': "bg-purple-100 text-purple-800 border-purple-300",
+  'OKEAN 52': "bg-red-100 text-red-800 border-red-300",
+  'OKEAN 57': "bg-indigo-100 text-indigo-800 border-indigo-300",
+  'OKEAN 80': "bg-pink-100 text-pink-800 border-pink-300",
 };
 
 export default function AdminMemorialOkean() {
