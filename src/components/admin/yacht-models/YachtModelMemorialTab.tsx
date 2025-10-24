@@ -17,14 +17,46 @@ import { PopulateFY850Button } from "./PopulateFY850Button";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
 const CATEGORIES = [
-  { value: 'motorizacao', label: 'Motorização' },
-  { value: 'sistema_eletrico', label: 'Sistema Elétrico' },
-  { value: 'sistema_hidraulico', label: 'Sistema Hidráulico' },
-  { value: 'acabamentos', label: 'Acabamentos' },
-  { value: 'equipamentos', label: 'Equipamentos' },
-  { value: 'seguranca', label: 'Segurança' },
-  { value: 'conforto', label: 'Conforto' },
-  { value: 'outros', label: 'Outros' },
+  { value: 'conves_principal', label: 'Convés Principal' },
+  { value: 'salao', label: 'Salão' },
+  { value: 'area_jantar', label: 'Área de Jantar' },
+  { value: 'lavabo', label: 'Lavabo' },
+  { value: 'area_cozinha', label: 'Área da Cozinha' },
+  { value: 'cozinha_galley', label: 'Cozinha/Galley' },
+  { value: 'comando_principal', label: 'Comando Principal' },
+  { value: 'flybridge', label: 'Flybridge' },
+  { value: 'lobby_conves_inferior', label: 'Lobby Convés Inferior' },
+  { value: 'cabine_master', label: 'Cabine Master' },
+  { value: 'banheiro_master', label: 'Banheiro Master' },
+  { value: 'cabine_vip', label: 'Cabine VIP' },
+  { value: 'banheiro_vip', label: 'Banheiro VIP' },
+  { value: 'cabine_hospedes_bombordo', label: 'Cabine Hóspedes Bombordo' },
+  { value: 'banheiro_hospedes_bombordo', label: 'Banheiro Hóspedes Bombordo' },
+  { value: 'cabine_hospedes_boreste', label: 'Cabine Hóspedes Boreste' },
+  { value: 'banheiro_hospedes_boreste', label: 'Banheiro Hóspedes Boreste' },
+  { value: 'banheiro_capitao', label: 'Banheiro Capitão' },
+  { value: 'cabine_capitao', label: 'Cabine Capitão' },
+  { value: 'banheiro_tripulacao', label: 'Banheiro Tripulação' },
+  { value: 'cabine_tripulacao', label: 'Cabine Tripulação' },
+  { value: 'lobby_tripulacao', label: 'Lobby Tripulação' },
+  { value: 'sala_maquinas', label: 'Sala de Máquinas' },
+  { value: 'garagem', label: 'Garagem' },
+  { value: 'propulsao_controle', label: 'Propulsão e Controle' },
+  { value: 'sistema_estabilizacao', label: 'Sistema de Estabilização' },
+  { value: 'equipamentos_eletronicos', label: 'Equipamentos Eletrônicos' },
+  { value: 'sistema_extincao_incendio', label: 'Sistema de Extinção de Incêndio' },
+  { value: 'sistema_ar_condicionado', label: 'Sistema Ar-Condicionado' },
+  { value: 'sistema_bombas_porao', label: 'Sistema de Bombas de Porão' },
+  { value: 'sistema_agua_sanitario', label: 'Sistema de Água e Sanitário' },
+  // Categorias antigas mantidas para compatibilidade
+  { value: 'motorizacao', label: 'Motorização (Legado)' },
+  { value: 'sistema_eletrico', label: 'Sistema Elétrico (Legado)' },
+  { value: 'sistema_hidraulico', label: 'Sistema Hidráulico (Legado)' },
+  { value: 'equipamentos', label: 'Equipamentos (Legado)' },
+  { value: 'conforto', label: 'Conforto (Legado)' },
+  { value: 'seguranca', label: 'Segurança (Legado)' },
+  { value: 'acabamentos', label: 'Acabamentos (Legado)' },
+  { value: 'outros', label: 'Outros (Legado)' },
 ] as const;
 
 type CategoryValue = typeof CATEGORIES[number]['value'];
@@ -57,16 +89,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
   });
 
   const itemsByCategory = useMemo(() => {
-    const grouped: Record<CategoryValue, any[]> = {
-      motorizacao: [],
-      sistema_eletrico: [],
-      sistema_hidraulico: [],
-      acabamentos: [],
-      equipamentos: [],
-      seguranca: [],
-      conforto: [],
-      outros: [],
-    };
+    const grouped: Partial<Record<CategoryValue, any[]>> = {};
 
     items?.forEach(item => {
       if (grouped[item.category as CategoryValue]) {
