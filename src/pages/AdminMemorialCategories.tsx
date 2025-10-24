@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit2, Trash2, Plus, GripVertical, ArrowUpDown } from "lucide-react";
+import { Edit2, Trash2, Plus, GripVertical, ArrowUpDown, Merge } from "lucide-react";
 import React, { useState } from "react";
 import {
   useMemorialCategories,
@@ -47,14 +47,19 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { MemorialCategory } from "@/types/memorial";
 import { toast } from "sonner";
+import { useMemorialCategoryStats } from "@/hooks/useMemorialCategoryStats";
+import { MergeCategoriesDialog } from "@/components/admin/memorial/MergeCategoriesDialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface SortableRowProps {
   category: MemorialCategory;
+  itemCount: number;
+  modelNames: string[];
   onEdit: (category: MemorialCategory) => void;
   onDelete: (id: string) => void;
 }
 
-function SortableRow({ category, onEdit, onDelete }: SortableRowProps) {
+function SortableRow({ category, itemCount, modelNames, onEdit, onDelete }: SortableRowProps) {
   const {
     attributes,
     listeners,
@@ -90,6 +95,36 @@ function SortableRow({ category, onEdit, onDelete }: SortableRowProps) {
       <TableCell className="font-medium">{category.label}</TableCell>
       <TableCell className="max-w-md truncate text-muted-foreground">
         {category.description || "—"}
+      </TableCell>
+      <TableCell>
+        <Badge variant={itemCount > 0 ? "default" : "secondary"}>
+          {itemCount} {itemCount === 1 ? "item" : "itens"}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        {modelNames.length > 0 ? (
+          <HoverCard>
+            <HoverCardTrigger asChild>
+              <Badge variant="outline" className="cursor-pointer">
+                {modelNames.length} {modelNames.length === 1 ? "modelo" : "modelos"}
+              </Badge>
+            </HoverCardTrigger>
+            <HoverCardContent className="w-80">
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Modelos usando esta categoria:</h4>
+                <div className="flex flex-wrap gap-1">
+                  {modelNames.map((name, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
       </TableCell>
       <TableCell>
         {category.icon ? (
@@ -129,8 +164,10 @@ export default function AdminMemorialCategories() {
   const [editingCategory, setEditingCategory] = useState<MemorialCategory | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
 
   const { data: categoriesData, isLoading } = useMemorialCategories();
+  const { data: stats = [] } = useMemorialCategoryStats();
   const deleteMutation = useDeleteCategory();
   const updateOrderMutation = useUpdateCategoryOrder();
 
@@ -186,6 +223,16 @@ export default function AdminMemorialCategories() {
   const handleDelete = async () => {
     if (!deletingId) return;
 
+    // Verificar se tem itens antes de deletar
+    const categoryStats = stats.find(s => s.category_id === deletingId);
+    if (categoryStats && categoryStats.item_count > 0) {
+      toast.error(
+        `Não é possível deletar. Esta categoria tem ${categoryStats.item_count} itens. Mova-os para outra categoria primeiro ou use a opção Mesclar.`
+      );
+      setDeletingId(null);
+      return;
+    }
+
     try {
       await deleteMutation.mutateAsync(deletingId);
       setDeletingId(null);
@@ -204,10 +251,16 @@ export default function AdminMemorialCategories() {
               Gerir categorias para organização do memorial descritivo
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Categoria
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowMergeDialog(true)}>
+              <Merge className="h-4 w-4 mr-2" />
+              Mesclar Categorias
+            </Button>
+            <Button onClick={handleCreateClick}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Categoria
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
@@ -227,6 +280,8 @@ export default function AdminMemorialCategories() {
                   <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead>Modelos</TableHead>
                   <TableHead>Ícone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -242,6 +297,8 @@ export default function AdminMemorialCategories() {
                       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-64" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -258,14 +315,16 @@ export default function AdminMemorialCategories() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-12"></TableHead>
-                    <TableHead>Ordem</TableHead>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Ícone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead>Modelos</TableHead>
+                  <TableHead>Ícone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -273,14 +332,19 @@ export default function AdminMemorialCategories() {
                     items={categories.map((c) => c.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    {categories.map((category) => (
-                      <SortableRow
-                        key={category.id}
-                        category={category}
-                        onEdit={handleEditClick}
-                        onDelete={setDeletingId}
-                      />
-                    ))}
+                    {categories.map((category) => {
+                      const categoryStats = stats.find(s => s.category_id === category.id);
+                      return (
+                        <SortableRow
+                          key={category.id}
+                          category={category}
+                          itemCount={categoryStats?.item_count || 0}
+                          modelNames={categoryStats?.model_names || []}
+                          onEdit={handleEditClick}
+                          onDelete={setDeletingId}
+                        />
+                      );
+                    })}
                   </SortableContext>
                 </TableBody>
               </Table>
@@ -295,13 +359,24 @@ export default function AdminMemorialCategories() {
         category={editingCategory}
       />
 
+      <MergeCategoriesDialog
+        open={showMergeDialog}
+        onOpenChange={setShowMergeDialog}
+        categories={categories}
+      />
+
       <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja deletar esta categoria? Todos os itens associados
-              precisarão ser reatribuídos a outra categoria.
+              {(() => {
+                const categoryStats = stats.find(s => s.category_id === deletingId);
+                if (categoryStats && categoryStats.item_count > 0) {
+                  return `Esta categoria tem ${categoryStats.item_count} itens associados. Mova-os para outra categoria ou use a opção Mesclar antes de deletar.`;
+                }
+                return "Tem certeza que deseja deletar esta categoria? Esta ação não pode ser desfeita.";
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
