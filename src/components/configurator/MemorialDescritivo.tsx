@@ -29,6 +29,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   banheiro_hospedes_bombordo: 'Banheiro Hóspedes Bombordo',
   cabine_hospedes_boreste: 'Cabine Hóspedes Boreste',
   banheiro_hospedes_boreste: 'Banheiro Hóspedes Boreste',
+  banheiro_hospedes_compartilhado: 'Banheiro Hóspedes Compartilhado',
   banheiro_capitao: 'Banheiro Capitão',
   cabine_capitao: 'Cabine Capitão',
   banheiro_tripulacao: 'Banheiro Tripulação',
@@ -43,15 +44,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   sistema_ar_condicionado: 'Sistema Ar-Condicionado',
   sistema_bombas_porao: 'Sistema de Bombas de Porão',
   sistema_agua_sanitario: 'Sistema de Água e Sanitário',
-  // Categorias antigas mantidas para compatibilidade
-  motorizacao: 'Motorização',
-  sistema_eletrico: 'Sistema Elétrico',
-  sistema_hidraulico: 'Sistema Hidráulico',
-  equipamentos: 'Equipamentos',
-  conforto: 'Conforto',
-  seguranca: 'Segurança',
-  acabamentos: 'Acabamentos',
-  outros: 'Outros',
 };
 
 export function MemorialDescritivo({ yachtModelId, modelName }: MemorialDescritivoProps) {

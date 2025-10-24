@@ -653,6 +653,7 @@ export type Database = {
         | "sistema_bombas_porao"
         | "sistema_agua_sanitario"
         | "cabine_vip_proa"
+        | "banheiro_hospedes_compartilhado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -831,6 +832,7 @@ export const Constants = {
         "sistema_bombas_porao",
         "sistema_agua_sanitario",
         "cabine_vip_proa",
+        "banheiro_hospedes_compartilhado",
       ],
     },
   },

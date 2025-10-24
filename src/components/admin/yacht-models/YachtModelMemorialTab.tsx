@@ -35,6 +35,7 @@ const CATEGORIES = [
   { value: 'banheiro_hospedes_bombordo', label: 'Banheiro Hóspedes Bombordo' },
   { value: 'cabine_hospedes_boreste', label: 'Cabine Hóspedes Boreste' },
   { value: 'banheiro_hospedes_boreste', label: 'Banheiro Hóspedes Boreste' },
+  { value: 'banheiro_hospedes_compartilhado', label: 'Banheiro Hóspedes Compartilhado' },
   { value: 'banheiro_capitao', label: 'Banheiro Capitão' },
   { value: 'cabine_capitao', label: 'Cabine Capitão' },
   { value: 'banheiro_tripulacao', label: 'Banheiro Tripulação' },
@@ -49,15 +50,6 @@ const CATEGORIES = [
   { value: 'sistema_ar_condicionado', label: 'Sistema Ar-Condicionado' },
   { value: 'sistema_bombas_porao', label: 'Sistema de Bombas de Porão' },
   { value: 'sistema_agua_sanitario', label: 'Sistema de Água e Sanitário' },
-  // Categorias antigas mantidas para compatibilidade
-  { value: 'motorizacao', label: 'Motorização (Legado)' },
-  { value: 'sistema_eletrico', label: 'Sistema Elétrico (Legado)' },
-  { value: 'sistema_hidraulico', label: 'Sistema Hidráulico (Legado)' },
-  { value: 'equipamentos', label: 'Equipamentos (Legado)' },
-  { value: 'conforto', label: 'Conforto (Legado)' },
-  { value: 'seguranca', label: 'Segurança (Legado)' },
-  { value: 'acabamentos', label: 'Acabamentos (Legado)' },
-  { value: 'outros', label: 'Outros (Legado)' },
 ] as const;
 
 type CategoryValue = typeof CATEGORIES[number]['value'];
