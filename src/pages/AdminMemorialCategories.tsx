@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit2, Trash2, Plus, GripVertical, ArrowUpDown, Merge } from "lucide-react";
+import { Edit2, Trash2, Plus, GripVertical, ArrowUpDown, Merge, Search, SortAsc } from "lucide-react";
 import React, { useState } from "react";
 import {
   useMemorialCategories,
@@ -50,6 +50,8 @@ import { toast } from "sonner";
 import { useMemorialCategoryStats } from "@/hooks/useMemorialCategoryStats";
 import { MergeCategoriesDialog } from "@/components/admin/memorial/MergeCategoriesDialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Input } from "@/components/ui/input";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface SortableRowProps {
   category: MemorialCategory;
@@ -165,6 +167,8 @@ export default function AdminMemorialCategories() {
   const [isCreating, setIsCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState<"order" | "alpha">("order");
 
   const { data: categoriesData, isLoading } = useMemorialCategories();
   const { data: stats = [] } = useMemorialCategoryStats();
@@ -176,9 +180,29 @@ export default function AdminMemorialCategories() {
   // Update local state when data changes
   React.useEffect(() => {
     if (categoriesData) {
-      setCategories(categoriesData);
+      let filtered = [...categoriesData];
+
+      // Aplicar busca
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(
+          (cat) =>
+            cat.label.toLowerCase().includes(query) ||
+            cat.value.toLowerCase().includes(query) ||
+            cat.description?.toLowerCase().includes(query)
+        );
+      }
+
+      // Aplicar ordenação
+      if (sortMode === "alpha") {
+        filtered.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+      } else {
+        filtered.sort((a, b) => a.display_order - b.display_order);
+      }
+
+      setCategories(filtered);
     }
-  }, [categoriesData]);
+  }, [categoriesData, searchQuery, sortMode]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -266,8 +290,39 @@ export default function AdminMemorialCategories() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
           <ArrowUpDown className="h-4 w-4" />
           <span>
-            Arraste as linhas para reorganizar a ordem de exibição das categorias
+            {sortMode === "order" 
+              ? "Arraste as linhas para reorganizar a ordem de exibição das categorias"
+              : "Ordem alfabética ativa. Mude para 'Ordem Personalizada' para reorganizar com drag-and-drop"}
           </span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar categorias..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <ToggleGroup
+            type="single"
+            value={sortMode}
+            onValueChange={(value) => {
+              if (value) setSortMode(value as "order" | "alpha");
+            }}
+          >
+            <ToggleGroupItem value="order" aria-label="Ordem personalizada">
+              <GripVertical className="h-4 w-4 mr-2" />
+              Ordem Personalizada
+            </ToggleGroupItem>
+            <ToggleGroupItem value="alpha" aria-label="Ordem alfabética">
+              <SortAsc className="h-4 w-4 mr-2" />
+              Alfabética
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         <div className="border rounded-lg">
@@ -304,6 +359,139 @@ export default function AdminMemorialCategories() {
                       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     </TableRow>
                   ))}
+              </TableBody>
+            </Table>
+          ) : categories.length === 0 && searchQuery ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead>Modelos</TableHead>
+                  <TableHead>Ícone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Search className="h-8 w-8 mb-2 opacity-50" />
+                      <p>Nenhuma categoria encontrada para "{searchQuery}"</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSearchQuery("")}
+                      >
+                        Limpar busca
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          ) : sortMode === "alpha" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12"></TableHead>
+                  <TableHead>Ordem</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead>Modelos</TableHead>
+                  <TableHead>Ícone</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((category) => {
+                  const categoryStats = stats.find(s => s.category_id === category.id);
+                  return (
+                    <TableRow key={category.id}>
+                      <TableCell>
+                        <GripVertical className="h-5 w-5 text-muted-foreground/30" />
+                      </TableCell>
+                      <TableCell className="font-medium">{category.display_order}</TableCell>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          {category.value}
+                        </code>
+                      </TableCell>
+                      <TableCell className="font-medium">{category.label}</TableCell>
+                      <TableCell className="max-w-md truncate text-muted-foreground">
+                        {category.description || "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={categoryStats && categoryStats.item_count > 0 ? "default" : "secondary"}>
+                          {categoryStats?.item_count || 0} {categoryStats?.item_count === 1 ? "item" : "itens"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {categoryStats && categoryStats.model_names.length > 0 ? (
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Badge variant="outline" className="cursor-pointer">
+                                {categoryStats.model_names.length} {categoryStats.model_names.length === 1 ? "modelo" : "modelos"}
+                              </Badge>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="space-y-2">
+                                <h4 className="text-sm font-semibold">Modelos usando esta categoria:</h4>
+                                <div className="flex flex-wrap gap-1">
+                                  {categoryStats.model_names.map((name, i) => (
+                                    <Badge key={i} variant="secondary" className="text-xs">
+                                      {name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {category.icon ? (
+                          <Badge variant="outline">{category.icon}</Badge>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={category.is_active ? "default" : "secondary"}>
+                          {category.is_active ? "Ativa" : "Inativa"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(category)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingId(category.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           ) : (
