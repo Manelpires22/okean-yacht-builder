@@ -12,9 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CreateYachtModelDialog } from "@/components/admin/yacht-models/CreateYachtModelDialog";
 import { useNavigate } from "react-router-dom";
-import { Edit2 } from "lucide-react";
+import { Edit2, Plus } from "lucide-react";
 
 const AdminYachtModels = () => {
   const navigate = useNavigate();
@@ -41,7 +40,10 @@ const AdminYachtModels = () => {
             <h1 className="text-3xl font-bold">Modelos de Iates</h1>
             <p className="text-muted-foreground">Gerir modelos de iates disponíveis</p>
           </div>
-          <CreateYachtModelDialog />
+          <Button onClick={() => navigate('/admin/yacht-models/new')}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Modelo
+          </Button>
         </div>
 
         <div className="border rounded-lg">

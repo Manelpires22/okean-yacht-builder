@@ -65,9 +65,9 @@ Analise o documento fornecido e extraia TODOS os dados possíveis, organizando-o
   },
   "memorial_items": [
     {
-      "category": "dimensoes|equipamentos|acabamento|eletrica|hidraulica|propulsao|outros",
-      "description": "descrição do item",
-      "specification": "especificação técnica"
+      "category": "equipamentos|acabamento|eletrica|hidraulica|propulsao|seguranca|navegacao|conforto|outros",
+      "description": "descrição completa e detalhada do item",
+      "specification": "especificação técnica (marca, modelo, quantidade, potência, etc)"
     }
   ],
   "options": [
@@ -89,7 +89,16 @@ REGRAS IMPORTANTES:
   * MPH para nós (dividir por 1.15078)
 - Para preços, extraia apenas números (remova R$, $, vírgulas como separadores de milhares)
 - Use vírgula como separador decimal nos números
-- Identifique automaticamente a categoria correta de cada memorial item
+- Para memorial items, identifique a categoria mais apropriada:
+  * equipamentos: ar-condicionado, gerador, molinete, guincho, plataforma, etc
+  * acabamento: madeira teca, estofados, piso, revestimentos, móveis
+  * eletrica: painel elétrico, baterias, inversor, carregador, tomadas
+  * hidraulica: bombas, tanques, sistemas de água, válvulas
+  * propulsao: motores principais, hélices, sistema de transmissão
+  * seguranca: coletes, extintores, balsas, sinalizadores, EPIs
+  * navegacao: GPS, radar, piloto automático, sonda, VHF
+  * conforto: TV, som, geladeira, ar-condicionado, iluminação
+  * outros: itens que não se encaixam nas categorias acima
 - Para bathrooms, preserve formato texto (ex: "3+1", "2", "1 completo + 1 lavabo")
 - Retorne APENAS o JSON, sem texto adicional antes ou depois`;
 

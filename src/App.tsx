@@ -13,6 +13,7 @@ import AdminYachtModels from "./pages/AdminYachtModels";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSeedData from "./pages/AdminSeedData";
 import AdminYachtModelEdit from "./pages/AdminYachtModelEdit";
+import AdminYachtModelCreate from "./pages/AdminYachtModelCreate";
 import AdminOptions from "./pages/AdminOptions";
 import Configurator from "./pages/Configurator";
 import Quotations from "@/pages/Quotations";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/aprovacoes" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
+            <Route path="/admin/yacht-models/new" element={<ProtectedRoute requireAdmin><AdminYachtModelCreate /></ProtectedRoute>} />
             <Route path="/admin/yacht-models/:modelId/edit" element={<ProtectedRoute requireAdmin><AdminYachtModelEdit /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
