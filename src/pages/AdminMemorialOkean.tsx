@@ -29,9 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Database, AlertCircle, X, Upload, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { Plus, Edit, Trash2, Database, AlertCircle, X } from "lucide-react";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
 import {
   useMemorialOkeanItems,
@@ -55,7 +53,6 @@ export default function AdminMemorialOkean() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemorialOkeanItem | undefined>();
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -91,28 +88,6 @@ export default function AdminMemorialOkean() {
     setSelectedCategoria("Todas");
   };
 
-  const handleImportCSV = async () => {
-    setIsImporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('import-memorial-okean');
-      
-      if (error) throw error;
-      
-      toast.success('Dados importados com sucesso!', {
-        description: `Total: ${data.statistics.total} itens | Modelos: ${Object.keys(data.statistics.byModel).length} | Categorias: ${data.statistics.uniqueCategories}`
-      });
-      
-      refetch();
-    } catch (error: any) {
-      console.error('Erro na importação:', error);
-      toast.error('Erro ao importar dados do CSV', {
-        description: error.message || 'Ocorreu um erro inesperado'
-      });
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
 
   return (
@@ -126,31 +101,10 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <div className="flex gap-2">
-            {items.length === 0 && !isLoading && (
-              <Button 
-                onClick={handleImportCSV} 
-                disabled={isImporting}
-                variant="outline"
-              >
-                {isImporting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Importando...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Importar Dados CSV
-                  </>
-                )}
-              </Button>
-            )}
-            <Button onClick={handleCreateClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Item
-            </Button>
-          </div>
+          <Button onClick={handleCreateClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Item
+          </Button>
         </div>
 
         {/* Filters */}
