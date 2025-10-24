@@ -163,7 +163,71 @@ export function useCreateCategory() {
 }
 
 // ============================================
-// 5. LISTAR CATEGORIAS COM CONTAGEM DE ITENS
+// 5. LISTAR CATEGORIAS GLOBAIS (ÚNICAS)
+// ============================================
+export function useGlobalMemorialCategories() {
+  return useQuery({
+    queryKey: ['memorial-categories-global'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('memorial_okean')
+        .select('categoria, modelo, category_display_order');
+
+      if (error) throw error;
+
+      // Agrupar por categoria (global)
+      const categoriesMap = new Map<
+        string,
+        {
+          categoria: string;
+          totalItems: number;
+          modelCount: number;
+          models: Array<{ modelo: string; itemCount: number }>;
+          minDisplayOrder: number;
+        }
+      >();
+
+      data.forEach((item) => {
+        const categoria = item.categoria;
+        
+        if (categoriesMap.has(categoria)) {
+          const existing = categoriesMap.get(categoria)!;
+          existing.totalItems += 1;
+          
+          // Atualizar contagem de itens por modelo
+          const modelEntry = existing.models.find(m => m.modelo === item.modelo);
+          if (modelEntry) {
+            modelEntry.itemCount += 1;
+          } else {
+            existing.models.push({ modelo: item.modelo, itemCount: 1 });
+            existing.modelCount += 1;
+          }
+          
+          // Manter o menor display_order encontrado
+          const displayOrder = item.category_display_order ?? 999;
+          if (displayOrder < existing.minDisplayOrder) {
+            existing.minDisplayOrder = displayOrder;
+          }
+        } else {
+          categoriesMap.set(categoria, {
+            categoria,
+            totalItems: 1,
+            modelCount: 1,
+            models: [{ modelo: item.modelo, itemCount: 1 }],
+            minDisplayOrder: item.category_display_order ?? 999,
+          });
+        }
+      });
+
+      return Array.from(categoriesMap.values()).sort(
+        (a, b) => a.minDisplayOrder - b.minDisplayOrder
+      );
+    },
+  });
+}
+
+// ============================================
+// 6. LISTAR CATEGORIAS POR MODELO (LEGACY)
 // ============================================
 export function useMemorialCategoriesWithCount(modelo?: string) {
   return useQuery({
