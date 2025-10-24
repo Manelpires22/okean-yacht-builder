@@ -110,6 +110,7 @@ export type Database = {
         Row: {
           brand: string | null
           category: Database["public"]["Enums"]["memorial_category"]
+          category_display_order: number | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -128,6 +129,7 @@ export type Database = {
         Insert: {
           brand?: string | null
           category: Database["public"]["Enums"]["memorial_category"]
+          category_display_order?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -146,6 +148,7 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: Database["public"]["Enums"]["memorial_category"]
+          category_display_order?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -691,6 +694,7 @@ export type Database = {
           modelo: string
         }[]
       }
+      get_yacht_model_id: { Args: { modelo_text: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -705,6 +709,10 @@ export type Database = {
           p_target_category: string
         }
         Returns: number
+      }
+      normalize_memorial_category: {
+        Args: { okean_categoria: string }
+        Returns: string
       }
       rename_memorial_category: {
         Args: { p_modelo: string; p_new_name: string; p_old_name: string }
