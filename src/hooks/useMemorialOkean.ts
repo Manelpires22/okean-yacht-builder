@@ -90,9 +90,14 @@ export function useMemorialOkeanModelos() {
         new Set(data.map((item) => item.modelo))
       ).sort();
 
+      // Debug logging to verify data
+      console.log('🔍 [Memorial Modelos] Total records:', data?.length);
+      console.log('🔍 [Memorial Modelos] Unique models:', uniqueModelos);
+      console.log('🔍 [Memorial Modelos] Count:', uniqueModelos.length);
+
       return uniqueModelos;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds - updates more frequently
   });
 }
 
@@ -163,6 +168,7 @@ export function useDeleteMemorialItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memorial-okean'] });
+      queryClient.invalidateQueries({ queryKey: ['memorial-okean-modelos'] });
       toast.success("Item removido com sucesso!");
     },
     onError: (error: Error) => {
