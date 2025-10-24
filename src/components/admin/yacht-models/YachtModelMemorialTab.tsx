@@ -9,7 +9,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit2, Trash, FileText } from "lucide-react";
+import { Plus, Edit2, Trash, FileText, GripVertical } from "lucide-react";
 import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
@@ -65,10 +65,24 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
 
   const { data: items, isLoading: loadingItems, deleteItem, refetch } = useMemorialItems(yachtModelId);
 
+  // Sort items by category_display_order first, then display_order
+  const sortedItems = useMemo(() => {
+    if (!items) return [];
+    
+    return [...items].sort((a, b) => {
+      // 1. Ordenar por category_display_order (cast to any para evitar erro de tipo temporário)
+      const catOrderDiff = ((a as any).category_display_order || 999) - ((b as any).category_display_order || 999);
+      if (catOrderDiff !== 0) return catOrderDiff;
+      
+      // 2. Dentro da mesma categoria, ordenar por display_order
+      return (a.display_order || 0) - (b.display_order || 0);
+    });
+  }, [items]);
+
   const itemsByCategory = useMemo(() => {
     const grouped: Partial<Record<CategoryValue, any[]>> = {};
 
-    items?.forEach(item => {
+    sortedItems?.forEach(item => {
       const category = item.category as CategoryValue;
       if (!grouped[category]) {
         grouped[category] = [];
@@ -77,7 +91,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
     });
 
     return grouped;
-  }, [items]);
+  }, [sortedItems]);
 
   const handleCreate = (category?: CategoryValue) => {
     setEditingItem(null);
@@ -111,10 +125,21 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
             Gerir itens técnicos e equipamentos do modelo
           </p>
         </div>
-        <Button onClick={() => handleCreate()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Item
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              alert("Funcionalidade de reordenação de categorias será adicionada na próxima fase. Por enquanto, use o campo 'Ordem da Categoria' ao criar/editar itens.");
+            }}
+          >
+            <GripVertical className="mr-2 h-4 w-4" />
+            Ordenar Categorias
+          </Button>
+          <Button onClick={() => handleCreate()}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Item
+          </Button>
+        </div>
       </div>
 
       <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">

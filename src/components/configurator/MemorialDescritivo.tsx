@@ -78,6 +78,7 @@ export function MemorialDescritivo({
         .select('*')
         .eq('yacht_model_id', yachtModelId)
         .eq('is_active', true)
+        .order('category_display_order')
         .order('display_order');
       
       if (error) throw error;
@@ -120,16 +121,9 @@ export function MemorialDescritivo({
     return acc;
   }, {} as Record<string, typeof items>);
 
-  // Filter and sort categories by display_order from database
+  // Items already ordered by category_display_order from database query
   const nonEmptyCategories = Object.entries(groupedItems)
-    .filter(([_, categoryItems]) => categoryItems.length > 0)
-    .sort(([catA, itemsA], [catB, itemsB]) => {
-      // Use display_order from first item of each category
-      // Items are already ordered by category_display_order in the query
-      const orderA = (itemsA[0] as any)?.category_display_order ?? 999;
-      const orderB = (itemsB[0] as any)?.category_display_order ?? 999;
-      return orderA - orderB;
-    });
+    .filter(([_, categoryItems]) => categoryItems.length > 0);
 
   const getCustomization = (itemId: string) => {
     return customizations.find((c) => c.memorial_item_id === itemId);

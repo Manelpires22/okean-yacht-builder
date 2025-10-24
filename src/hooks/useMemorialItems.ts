@@ -12,7 +12,7 @@ export function useMemorialItems(yachtModelId?: string) {
       let query = supabase
         .from('memorial_items')
         .select('*')
-        .order('category')
+        .order('category_display_order')
         .order('display_order');
 
       if (yachtModelId) {

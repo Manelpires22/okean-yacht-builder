@@ -64,6 +64,7 @@ const memorialItemSchema = z.object({
   quantity: z.number().int().min(1, "Quantidade deve ser no mínimo 1"),
   unit: z.string().min(1, "Unidade é obrigatória"),
   display_order: z.number().int().min(0),
+  category_display_order: z.number().int().min(0).default(999),
   is_customizable: z.boolean(),
   is_active: z.boolean(),
 });
@@ -99,6 +100,7 @@ export function MemorialItemDialog({
       quantity: 1,
       unit: "unidade",
       display_order: 0,
+      category_display_order: 999,
       is_customizable: true,
       is_active: true,
     },
@@ -116,6 +118,7 @@ export function MemorialItemDialog({
           quantity: initialData.quantity || 1,
           unit: initialData.unit || "unidade",
           display_order: initialData.display_order || 0,
+          category_display_order: initialData.category_display_order || 999,
           is_customizable: initialData.is_customizable ?? true,
           is_active: initialData.is_active ?? true,
         });
@@ -129,6 +132,7 @@ export function MemorialItemDialog({
           quantity: 1,
           unit: "unidade",
           display_order: 0,
+          category_display_order: 999,
           is_customizable: true,
           is_active: true,
         });
@@ -141,6 +145,7 @@ export function MemorialItemDialog({
       const payload = {
         yacht_model_id: yachtModelId,
         category: data.category,
+        category_display_order: data.category_display_order,
         item_name: data.item_name,
         description: data.description || null,
         brand: data.brand || null,
@@ -353,6 +358,29 @@ export function MemorialItemDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="category_display_order"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ordem da Categoria</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="999 (final da lista)"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 999)}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Define a ordem de exibição da categoria. Menor = aparece primeiro. Padrão: 999 (final).
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="space-y-4">
               <FormField

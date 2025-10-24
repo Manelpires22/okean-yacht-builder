@@ -277,6 +277,9 @@ function SortableCategoryAccordion({
 
 export default function AdminMemorialOkean() {
   const queryClient = useQueryClient();
+  
+  // Banner de deprecação
+  const showDeprecationBanner = true;
   const [selectedModelo, setSelectedModelo] = useState<string>("Todos");
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Todas");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -519,6 +522,24 @@ export default function AdminMemorialOkean() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        {showDeprecationBanner && (
+          <Alert variant="default" className="border-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-800 dark:text-yellow-200">
+              ⚠️ Módulo Legado
+            </AlertTitle>
+            <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+              Esta página está sendo descontinuada. Use o{" "}
+              <Link 
+                to="/admin/yacht-models" 
+                className="underline font-semibold hover:text-yellow-900 dark:hover:text-yellow-100"
+              >
+                Módulo de Modelos de Iates → Aba Memorial
+              </Link>{" "}
+              para gerir itens do memorial descritivo com melhor organização e performance.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
