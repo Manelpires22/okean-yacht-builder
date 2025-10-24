@@ -1,5 +1,5 @@
 import { AdminLayout } from "@/components/AdminLayout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit2, Trash2, Plus } from "lucide-react";
+import { Edit2, Trash2, Plus, Check } from "lucide-react";
 import { useState } from "react";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useOptionCategories } from "@/hooks/useOptions";
@@ -34,14 +34,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const AdminOptions = () => {
+  const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedModel, setSelectedModel] = useState<string>("all");
   const [editingOption, setEditingOption] = useState<any>(null);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
+  const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
+  const [bulkAssignModels, setBulkAssignModels] = useState<Set<string>>(new Set());
 
   const { data: models } = useYachtModels();
   const { data: categories } = useOptionCategories();
@@ -101,6 +115,103 @@ const AdminOptions = () => {
     setIsCreating(true);
   };
 
+  const toggleSelectOption = (optionId: string) => {
+    const newSelected = new Set(selectedOptions);
+    if (newSelected.has(optionId)) {
+      newSelected.delete(optionId);
+    } else {
+      newSelected.add(optionId);
+    }
+    setSelectedOptions(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedOptions.size === options?.length) {
+      setSelectedOptions(new Set());
+    } else {
+      setSelectedOptions(new Set(options?.map(o => o.id) || []));
+    }
+  };
+
+  const handleBulkAssignClick = () => {
+    if (selectedOptions.size === 0) {
+      toast.error("Selecione pelo menos um opcional");
+      return;
+    }
+    setShowBulkAssignDialog(true);
+  };
+
+  const toggleBulkAssignModel = (modelId: string) => {
+    const newModels = new Set(bulkAssignModels);
+    if (newModels.has(modelId)) {
+      newModels.delete(modelId);
+    } else {
+      newModels.add(modelId);
+    }
+    setBulkAssignModels(newModels);
+  };
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async () => {
+      const updates = Array.from(selectedOptions).map(async (optionId) => {
+        // Se nenhum modelo foi selecionado, tornar o opcional global (yacht_model_id = null)
+        const yacht_model_id = bulkAssignModels.size === 0 ? null : 
+          bulkAssignModels.size === 1 ? Array.from(bulkAssignModels)[0] : null;
+
+        // Se múltiplos modelos foram selecionados, precisamos criar cópias do opcional
+        if (bulkAssignModels.size > 1) {
+          // Buscar opcional original
+          const { data: originalOption } = await supabase
+            .from('options')
+            .select('*')
+            .eq('id', optionId)
+            .single();
+
+          if (!originalOption) return;
+
+          // Criar uma cópia para cada modelo selecionado
+          const copies = Array.from(bulkAssignModels).map(modelId => ({
+            code: originalOption.code,
+            name: originalOption.name,
+            description: originalOption.description,
+            category_id: originalOption.category_id,
+            yacht_model_id: modelId,
+            base_price: originalOption.base_price,
+            delivery_days_impact: originalOption.delivery_days_impact,
+            is_active: originalOption.is_active,
+            technical_specifications: originalOption.technical_specifications,
+          }));
+
+          await supabase.from('options').insert(copies);
+        } else {
+          // Atualizar o opcional existente
+          await supabase
+            .from('options')
+            .update({ yacht_model_id })
+            .eq('id', optionId);
+        }
+      });
+
+      await Promise.all(updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-options'] });
+      queryClient.invalidateQueries({ queryKey: ['options'] });
+      toast.success(`${selectedOptions.size} opcionais atualizados com sucesso`);
+      setShowBulkAssignDialog(false);
+      setSelectedOptions(new Set());
+      setBulkAssignModels(new Set());
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar opcionais: " + error.message);
+    },
+  });
+
+  const handleBulkAssignSubmit = () => {
+    bulkAssignMutation.mutate();
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -150,10 +261,36 @@ const AdminOptions = () => {
           </div>
         </div>
 
+        {selectedOptions.size > 0 && (
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+            <div className="flex items-center gap-4">
+              <Badge variant="secondary" className="text-base">
+                {selectedOptions.size} opcionais selecionados
+              </Badge>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedOptions(new Set())}
+              >
+                Limpar seleção
+              </Button>
+            </div>
+            <Button onClick={handleBulkAssignClick}>
+              <Check className="h-4 w-4 mr-2" />
+              Atribuir a Modelos
+            </Button>
+          </div>
+        )}
+
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={options?.length > 0 && selectedOptions.size === options?.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Código</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Categoria</TableHead>
@@ -168,6 +305,7 @@ const AdminOptions = () => {
               {isLoading ? (
                 Array(5).fill(0).map((_, i) => (
                   <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -180,13 +318,22 @@ const AdminOptions = () => {
                 ))
               ) : options?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     Nenhum opcional encontrado
                   </TableCell>
                 </TableRow>
               ) : (
                 options?.map((option) => (
-                  <TableRow key={option.id}>
+                  <TableRow 
+                    key={option.id}
+                    className={selectedOptions.has(option.id) ? "bg-muted/50" : ""}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedOptions.has(option.id)}
+                        onCheckedChange={() => toggleSelectOption(option.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-mono text-xs">{option.code}</TableCell>
                     <TableCell className="font-medium">{option.name}</TableCell>
                     <TableCell>
@@ -265,6 +412,68 @@ const AdminOptions = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showBulkAssignDialog} onOpenChange={setShowBulkAssignDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Atribuir Opcionais a Modelos</DialogTitle>
+            <DialogDescription>
+              Selecione os modelos de iate para os {selectedOptions.size} opcionais selecionados.
+              {bulkAssignModels.size > 1 && (
+                <span className="block mt-2 text-warning">
+                  ⚠️ Múltiplos modelos: será criada uma cópia do opcional para cada modelo selecionado.
+                </span>
+              )}
+              {bulkAssignModels.size === 0 && (
+                <span className="block mt-2 text-info">
+                  💡 Nenhum modelo selecionado = Opcionais serão globais (disponíveis para todos os modelos)
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Modelos de Iate</Label>
+              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
+                {models?.filter(m => m.is_active).map((model) => (
+                  <div key={model.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`model-${model.id}`}
+                      checked={bulkAssignModels.has(model.id)}
+                      onCheckedChange={() => toggleBulkAssignModel(model.id)}
+                    />
+                    <Label
+                      htmlFor={`model-${model.id}`}
+                      className="text-sm font-normal cursor-pointer flex-1"
+                    >
+                      {model.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBulkAssignDialog(false);
+                setBulkAssignModels(new Set());
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleBulkAssignSubmit}
+              disabled={bulkAssignMutation.isPending}
+            >
+              {bulkAssignMutation.isPending ? "Atualizando..." : "Atribuir Opcionais"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
