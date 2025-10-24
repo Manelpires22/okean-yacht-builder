@@ -44,6 +44,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   sistema_ar_condicionado: 'Sistema Ar-Condicionado',
   sistema_bombas_porao: 'Sistema de Bombas de Porão',
   sistema_agua_sanitario: 'Sistema de Água e Sanitário',
+  eletrica: 'Sistema Elétrico',
+  seguranca: 'Segurança e Salvatagem',
+  audiovisual_entretenimento: 'Audiovisual e Entretenimento',
 };
 
 export function MemorialDescritivo({ yachtModelId, modelName }: MemorialDescritivoProps) {

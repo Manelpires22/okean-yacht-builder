@@ -50,6 +50,9 @@ const CATEGORIES = [
   { value: 'sistema_ar_condicionado', label: 'Sistema Ar-Condicionado' },
   { value: 'sistema_bombas_porao', label: 'Sistema de Bombas de Porão' },
   { value: 'sistema_agua_sanitario', label: 'Sistema de Água e Sanitário' },
+  { value: 'eletrica', label: 'Sistema Elétrico' },
+  { value: 'seguranca', label: 'Segurança e Salvatagem' },
+  { value: 'audiovisual_entretenimento', label: 'Audiovisual e Entretenimento' },
 ] as const;
 
 type CategoryValue = typeof CATEGORIES[number]['value'];
