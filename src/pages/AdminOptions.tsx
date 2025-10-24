@@ -294,7 +294,7 @@ const AdminOptions = () => {
                 <TableHead>Código</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Modelo</TableHead>
+                <TableHead>Disponível em</TableHead>
                 <TableHead>Preço Base</TableHead>
                 <TableHead>Prazo (dias)</TableHead>
                 <TableHead>Status</TableHead>
@@ -347,7 +347,7 @@ const AdminOptions = () => {
                           {option.yacht_model?.name}
                         </Badge>
                       ) : (
-                        <Badge variant="default">Global</Badge>
+                        <Badge variant="outline">Todos os Modelos</Badge>
                       )}
                     </TableCell>
                     <TableCell>

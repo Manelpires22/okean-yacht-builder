@@ -18,8 +18,14 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Pencil, Package } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +80,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<any | null>(null);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
+  const [selectedGlobalOptions, setSelectedGlobalOptions] = useState<Set<string>>(new Set());
 
   const { data: categories } = useOptionCategories();
 
@@ -207,6 +214,61 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
     },
   });
 
+  // Create specific versions mutation
+  const createSpecificVersionsMutation = useMutation({
+    mutationFn: async (optionIds: string[]) => {
+      const copies = await Promise.all(
+        optionIds.map(async (optionId) => {
+          // Fetch original option
+          const { data: original, error: fetchError } = await supabase
+            .from('options')
+            .select('*')
+            .eq('id', optionId)
+            .single();
+          
+          if (fetchError) throw fetchError;
+          if (!original) throw new Error('Opcional não encontrado');
+
+          // Get yacht model code for unique code generation
+          const { data: yachtModel } = await supabase
+            .from('yacht_models')
+            .select('code')
+            .eq('id', yachtModelId)
+            .single();
+
+          // Create specific copy
+          return {
+            code: `${original.code}-${yachtModel?.code || 'SPEC'}`,
+            name: original.name,
+            description: original.description,
+            category_id: original.category_id,
+            yacht_model_id: yachtModelId,
+            base_price: original.base_price,
+            delivery_days_impact: original.delivery_days_impact,
+            is_active: original.is_active,
+            technical_specifications: original.technical_specifications,
+            cost: original.cost,
+            image_url: original.image_url,
+          };
+        })
+      );
+
+      const { error } = await supabase.from('options').insert(copies);
+      if (error) throw error;
+      
+      return copies.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['yacht-model-options'] });
+      queryClient.invalidateQueries({ queryKey: ['options'] });
+      toast.success(`${count} ${count === 1 ? 'opcional copiado' : 'opcionais copiados'} como específico${count === 1 ? '' : 's'} deste modelo`);
+      setSelectedGlobalOptions(new Set());
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao criar versões específicas: ' + error.message);
+    },
+  });
+
   const handleCreateClick = () => {
     reset({
       code: "",
@@ -241,6 +303,30 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
     }
   };
 
+  const toggleSelectGlobalOption = (optionId: string) => {
+    const newSelected = new Set(selectedGlobalOptions);
+    if (newSelected.has(optionId)) {
+      newSelected.delete(optionId);
+    } else {
+      newSelected.add(optionId);
+    }
+    setSelectedGlobalOptions(newSelected);
+  };
+
+  const toggleSelectAllGlobalOptions = () => {
+    const globalOptions = options?.filter(o => !o.yacht_model_id) || [];
+    if (selectedGlobalOptions.size === globalOptions.length && globalOptions.length > 0) {
+      setSelectedGlobalOptions(new Set());
+    } else {
+      setSelectedGlobalOptions(new Set(globalOptions.map(o => o.id)));
+    }
+  };
+
+  const handleCreateSpecificVersions = () => {
+    if (selectedGlobalOptions.size === 0) return;
+    createSpecificVersionsMutation.mutate(Array.from(selectedGlobalOptions));
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -269,7 +355,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           <div>
             <h2 className="text-xl font-semibold">Opcionais do Modelo</h2>
             <p className="text-sm text-muted-foreground">
-              Opcionais genéricos e específicos deste modelo. Opcionais globais são gerenciados centralmente.
+              Opcionais genéricos e específicos deste modelo. Selecione opcionais reutilizáveis para criar versões personalizadas.
             </p>
           </div>
           <Button onClick={handleCreateClick}>
@@ -277,6 +363,30 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
             Criar Novo Opcional
           </Button>
         </div>
+
+        {selectedGlobalOptions.size > 0 && (
+          <div className="flex items-center justify-between p-4 bg-muted rounded-lg border">
+            <div className="flex items-center gap-4">
+              <Badge variant="secondary" className="text-base">
+                {selectedGlobalOptions.size} {selectedGlobalOptions.size === 1 ? 'opcional selecionado' : 'opcionais selecionados'}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedGlobalOptions(new Set())}
+              >
+                Limpar seleção
+              </Button>
+            </div>
+            <Button 
+              onClick={handleCreateSpecificVersions}
+              disabled={createSpecificVersionsMutation.isPending}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {createSpecificVersionsMutation.isPending ? 'Criando...' : 'Criar Versões Específicas'}
+            </Button>
+          </div>
+        )}
 
         {!options || options.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
@@ -308,6 +418,15 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead className="w-12">
+                                <Checkbox
+                                  checked={
+                                    categoryOptions.filter(o => !o.yacht_model_id).length > 0 &&
+                                    categoryOptions.filter(o => !o.yacht_model_id).every(o => selectedGlobalOptions.has(o.id))
+                                  }
+                                  onCheckedChange={toggleSelectAllGlobalOptions}
+                                />
+                              </TableHead>
                               <TableHead>Código</TableHead>
                               <TableHead>Nome</TableHead>
                               <TableHead className="text-right">Preço</TableHead>
@@ -317,57 +436,88 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {categoryOptions.map((option) => (
-                              <TableRow key={option.id}>
-                                <TableCell className="font-mono text-sm">{option.code}</TableCell>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">{option.name}</p>
-                                    {option.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-1">
-                                        {option.description}
-                                      </p>
+                            {categoryOptions.map((option) => {
+                              const isGlobal = !option.yacht_model_id;
+                              
+                              return (
+                                <TableRow 
+                                  key={option.id}
+                                  className={selectedGlobalOptions.has(option.id) ? "bg-muted/50" : ""}
+                                >
+                                  <TableCell>
+                                    {isGlobal ? (
+                                      <Checkbox
+                                        checked={selectedGlobalOptions.has(option.id)}
+                                        onCheckedChange={() => toggleSelectGlobalOption(option.id)}
+                                      />
+                                    ) : (
+                                      <div className="w-4" />
                                     )}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="text-right">{formatCurrency(option.base_price)}</TableCell>
-                                <TableCell className="text-right">
-                                  {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex gap-2">
-                                    {!option.yacht_model_id && (
-                                      <Badge variant="outline">Global</Badge>
-                                    )}
-                                    <Badge variant={option.is_active ? "default" : "secondary"}>
-                                      {option.is_active ? "Ativo" : "Inativo"}
-                                    </Badge>
-                                  </div>
-                                 </TableCell>
-                                 <TableCell className="text-right">
-                                   {option.yacht_model_id ? (
-                                     <div className="flex justify-end gap-2">
-                                       <Button
-                                         variant="ghost"
-                                         size="icon"
-                                         onClick={() => handleEditClick(option)}
-                                       >
-                                         <Pencil className="h-4 w-4" />
-                                       </Button>
-                                       <Button
-                                         variant="ghost"
-                                         size="icon"
-                                         onClick={() => setDeletingOptionId(option.id)}
-                                       >
-                                         <Trash2 className="h-4 w-4 text-destructive" />
-                                       </Button>
-                                     </div>
-                                   ) : (
-                                     <Badge variant="secondary">Gerenciado Globalmente</Badge>
-                                   )}
-                                 </TableCell>
-                              </TableRow>
-                            ))}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-sm">{option.code}</TableCell>
+                                  <TableCell>
+                                    <div>
+                                      <p className="font-medium">{option.name}</p>
+                                      {option.description && (
+                                        <p className="text-sm text-muted-foreground line-clamp-1">
+                                          {option.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">{formatCurrency(option.base_price)}</TableCell>
+                                  <TableCell className="text-right">
+                                    {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-2">
+                                      {isGlobal && (
+                                        <HoverCard>
+                                          <HoverCardTrigger>
+                                            <Badge variant="outline">Reutilizável</Badge>
+                                          </HoverCardTrigger>
+                                          <HoverCardContent className="w-80">
+                                            <div className="space-y-2">
+                                              <p className="font-semibold">Opcional Reutilizável</p>
+                                              <p className="text-sm">
+                                                Este opcional está disponível para todos os modelos.
+                                              </p>
+                                              <p className="text-sm text-muted-foreground">
+                                                Para personalizar apenas para este modelo, selecione-o 
+                                                e clique em "Criar Versões Específicas".
+                                              </p>
+                                            </div>
+                                          </HoverCardContent>
+                                        </HoverCard>
+                                      )}
+                                      <Badge variant={option.is_active ? "default" : "secondary"}>
+                                        {option.is_active ? "Ativo" : "Inativo"}
+                                      </Badge>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleEditClick(option)}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      {option.yacht_model_id && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => setDeletingOptionId(option.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </div>
