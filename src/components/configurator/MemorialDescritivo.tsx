@@ -120,6 +120,11 @@ export function MemorialDescritivo({
     return acc;
   }, {} as Record<string, typeof items>);
 
+  // Filter out empty categories
+  const nonEmptyCategories = Object.entries(groupedItems).filter(
+    ([_, categoryItems]) => categoryItems.length > 0
+  );
+
   const getCustomization = (itemId: string) => {
     return customizations.find((c) => c.memorial_item_id === itemId);
   };
@@ -154,10 +159,15 @@ export function MemorialDescritivo({
       </CardHeader>
       <CardContent>
         <Accordion type="single" collapsible className="w-full">
-          {Object.entries(groupedItems).map(([category, categoryItems], index) => (
+          {nonEmptyCategories.map(([category, categoryItems], index) => (
             <AccordionItem key={index} value={`category-${index}`}>
               <AccordionTrigger className="text-left">
-                {CATEGORY_LABELS[category] || category}
+                <div className="flex items-center justify-between w-full pr-4">
+                  <span>{CATEGORY_LABELS[category] || category}</span>
+                  <span className="text-sm text-muted-foreground font-normal">
+                    ({categoryItems.length})
+                  </span>
+                </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3">
