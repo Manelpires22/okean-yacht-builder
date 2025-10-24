@@ -89,7 +89,7 @@ const AdminYachtModels = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {model.base_price ? `€${model.base_price.toLocaleString()}` : "A definir"}
+                      {model.base_price ? `R$${model.base_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "A definir"}
                     </TableCell>
                     <TableCell>
                       {model.base_delivery_days ? `${model.base_delivery_days}d` : "A definir"}

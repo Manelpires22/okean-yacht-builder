@@ -270,7 +270,7 @@ export function OptionDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="base_price">Preço Base (€) *</Label>
+              <Label htmlFor="base_price">Preço Base (R$) *</Label>
               <Input
                 id="base_price"
                 type="number"

@@ -377,7 +377,7 @@ const AdminOptions = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      €{option.base_price?.toLocaleString() || "0"}
+                      R${option.base_price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0,00"}
                     </TableCell>
                     <TableCell>
                       {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}

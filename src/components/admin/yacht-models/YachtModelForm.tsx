@@ -170,7 +170,7 @@ export function YachtModelForm({ form }: YachtModelFormProps) {
           name="base_price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preço Base (€)</FormLabel>
+              <FormLabel>Preço Base (R$)</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
