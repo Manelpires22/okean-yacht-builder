@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -71,6 +72,7 @@ export default function AdminMemorialOkean() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -118,6 +120,41 @@ export default function AdminMemorialOkean() {
     setIsRefreshingModels(false);
   };
 
+  const handleMigrateToYachtModels = async () => {
+    setIsMigrating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'migrate-memorial-okean-to-items'
+      );
+
+      if (error) throw error;
+
+      toast.success("Migração concluída!", {
+        description: `${data.items_migrated} itens migrados para ${data.models_processed} modelos`,
+      });
+
+      // Mostrar categorias não mapeadas se houver
+      if (data.unmapped_categories?.length > 0) {
+        toast.warning("Categorias não mapeadas encontradas", {
+          description: `${data.unmapped_categories.length} categorias precisam de ajuste manual. Verifique os logs.`,
+        });
+        console.warn('Categorias não mapeadas:', data.unmapped_categories);
+      }
+
+      // Invalidar cache
+      queryClient.invalidateQueries({ queryKey: ['memorial-items'] });
+      
+      console.log('📊 Relatório detalhado:', data);
+    } catch (error: any) {
+      toast.error("Erro na migração", {
+        description: error.message,
+      });
+      console.error('Erro na migração:', error);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
 
   // Agrupar itens por categoria
@@ -161,6 +198,35 @@ export default function AdminMemorialOkean() {
           <Button onClick={handleCreateClick}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Item
+          </Button>
+        </div>
+
+        {/* Migration Button */}
+        <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex-1">
+            <h3 className="font-semibold text-lg mb-1">Migração para Modelos de Iates</h3>
+            <p className="text-sm text-muted-foreground">
+              Migre os itens do Memorial OKEAN para os modelos específicos de iates. 
+              Isso permitirá que os memoriais apareçam automaticamente na edição e configuração de cada modelo.
+            </p>
+          </div>
+          <Button
+            onClick={handleMigrateToYachtModels}
+            disabled={isMigrating}
+            size="lg"
+            className="ml-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          >
+            {isMigrating ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Migrando...
+              </>
+            ) : (
+              <>
+                <Database className="mr-2 h-5 w-5" />
+                Migrar Memorial
+              </>
+            )}
           </Button>
         </div>
 

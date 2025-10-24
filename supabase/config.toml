@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.import-memorial-okean]
 verify_jwt = false
+
+[functions.migrate-memorial-okean-to-items]
+verify_jwt = true
