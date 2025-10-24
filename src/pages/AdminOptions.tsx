@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const AdminOptions = () => {
@@ -56,12 +57,13 @@ const AdminOptions = () => {
   const [selectedOptions, setSelectedOptions] = useState<Set<string>>(new Set());
   const [showBulkAssignDialog, setShowBulkAssignDialog] = useState(false);
   const [bulkAssignModels, setBulkAssignModels] = useState<Set<string>>(new Set());
+  const [showInactive, setShowInactive] = useState(false);
 
   const { data: models } = useYachtModels();
   const { data: categories } = useOptionCategories();
 
   const { data: options, isLoading, refetch } = useQuery({
-    queryKey: ['admin-options', selectedCategory, selectedModel],
+    queryKey: ['admin-options', selectedCategory, selectedModel, showInactive],
     queryFn: async () => {
       let query = supabase
         .from('options')
@@ -76,6 +78,11 @@ const AdminOptions = () => {
         query = query.is('yacht_model_id', null);
       } else if (selectedModel !== 'all') {
         query = query.eq('yacht_model_id', selectedModel);
+      }
+
+      // Filtrar por status ativo/inativo
+      if (!showInactive) {
+        query = query.eq('is_active', true);
       }
 
       const { data, error } = await query;
@@ -226,7 +233,7 @@ const AdminOptions = () => {
           </Button>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 items-center">
           <div className="w-64">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger>
@@ -258,6 +265,20 @@ const AdminOptions = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            <Switch
+              id="show-inactive"
+              checked={showInactive}
+              onCheckedChange={setShowInactive}
+            />
+            <Label 
+              htmlFor="show-inactive" 
+              className="text-sm cursor-pointer"
+            >
+              Mostrar opcionais inativos
+            </Label>
           </div>
         </div>
 
@@ -348,6 +369,11 @@ const AdminOptions = () => {
                         </Badge>
                       ) : (
                         <Badge variant="outline">Todos os Modelos</Badge>
+                      )}
+                      {!option.is_active && (
+                        <Badge variant="destructive" className="ml-2">
+                          Inativo
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>

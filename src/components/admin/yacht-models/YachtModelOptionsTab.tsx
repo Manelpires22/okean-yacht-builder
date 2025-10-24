@@ -91,6 +91,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       const { data, error } = await supabase
         .from('options')
         .select('*, category:option_categories(id, name)')
+        .eq('is_active', true)
         .or(`yacht_model_id.is.null,yacht_model_id.eq.${yachtModelId}`)
         .order('name');
       
