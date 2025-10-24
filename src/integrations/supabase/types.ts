@@ -310,6 +310,54 @@ export type Database = {
           },
         ]
       }
+      quotation_customizations: {
+        Row: {
+          created_at: string | null
+          file_paths: string[] | null
+          id: string
+          item_name: string
+          memorial_item_id: string | null
+          notes: string | null
+          quantity: number | null
+          quotation_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_paths?: string[] | null
+          id?: string
+          item_name: string
+          memorial_item_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          quotation_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_paths?: string[] | null
+          id?: string
+          item_name?: string
+          memorial_item_id?: string | null
+          notes?: string | null
+          quantity?: number | null
+          quotation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_customizations_memorial_item_id_fkey"
+            columns: ["memorial_item_id"]
+            isOneToOne: false
+            referencedRelation: "memorial_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_customizations_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotation_options: {
         Row: {
           created_at: string | null

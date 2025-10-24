@@ -24,6 +24,8 @@ export default function Configurator() {
     removeOption,
     setBaseDiscount,
     setOptionsDiscount,
+    addCustomization,
+    removeCustomization,
     totals,
     clearConfiguration,
   } = useConfigurationState();
@@ -76,6 +78,7 @@ export default function Configurator() {
       base_price: state.base_price,
       base_delivery_days: state.base_delivery_days,
       selected_options: state.selected_options,
+      customizations: state.customizations,
       client_name: formData.client_name,
       client_email: formData.client_email,
       client_phone: formData.client_phone,
@@ -149,6 +152,9 @@ export default function Configurator() {
                   <MemorialDescritivo
                     yachtModelId={selectedModel.id}
                     modelName={selectedModel.name}
+                    customizations={state.customizations}
+                    onAddCustomization={addCustomization}
+                    onRemoveCustomization={removeCustomization}
                   />
                 )}
               </TabsContent>
@@ -184,6 +190,7 @@ export default function Configurator() {
               finalOptionsPrice={totals.finalOptionsPrice}
               selectedOptions={state.selected_options}
               optionsData={allOptions}
+              customizations={state.customizations}
               onBaseDiscountChange={setBaseDiscount}
               onOptionsDiscountChange={setOptionsDiscount}
               onSave={() => setSaveDialogOpen(true)}

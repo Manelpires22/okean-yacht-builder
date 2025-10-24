@@ -4,13 +4,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { generateQuotationNumber } from "@/lib/quotation-utils";
 import { needsApproval } from "@/lib/approval-utils";
-import { SelectedOption } from "./useConfigurationState";
+import { SelectedOption, Customization } from "./useConfigurationState";
 
 interface SaveQuotationData {
   yacht_model_id: string;
   base_price: number;
   base_delivery_days: number;
   selected_options: SelectedOption[];
+  customizations: Customization[];
   client_id?: string;
   client_name: string;
   client_email?: string;
@@ -105,6 +106,24 @@ export function useSaveQuotation() {
           .insert(quotationOptions);
 
         if (optionsError) throw optionsError;
+      }
+
+      // Create customizations if any
+      if (data.customizations.length > 0) {
+        const customizationsData = data.customizations.map((customization) => ({
+          quotation_id: quotation.id,
+          memorial_item_id: customization.memorial_item_id,
+          item_name: customization.item_name,
+          notes: customization.notes,
+          quantity: customization.quantity || null,
+          file_paths: [], // Files will be added in future iteration
+        }));
+
+        const { error: customizationsError } = await supabase
+          .from("quotation_customizations")
+          .insert(customizationsData);
+
+        if (customizationsError) throw customizationsError;
       }
 
       // Create approval request if needed

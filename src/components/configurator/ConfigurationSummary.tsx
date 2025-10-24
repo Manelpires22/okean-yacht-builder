@@ -5,9 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { BASE_DISCOUNT_LIMITS, OPTIONS_DISCOUNT_LIMITS, getDiscountApprovalMessage } from "@/lib/approval-utils";
-import { Save, Ship, Percent, AlertCircle } from "lucide-react";
+import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown } from "lucide-react";
+import { Customization } from "@/hooks/useConfigurationState";
 
 interface ConfigurationSummaryProps {
   modelName: string;
@@ -30,6 +32,7 @@ interface ConfigurationSummaryProps {
     id: string;
     name: string;
   }>;
+  customizations: Customization[];
   onBaseDiscountChange: (percentage: number) => void;
   onOptionsDiscountChange: (percentage: number) => void;
   onSave: () => void;
@@ -48,6 +51,7 @@ export function ConfigurationSummary({
   finalOptionsPrice,
   selectedOptions,
   optionsData,
+  customizations,
   onBaseDiscountChange,
   onOptionsDiscountChange,
   onSave,
@@ -109,6 +113,42 @@ export function ConfigurationSummary({
         </div>
 
         <Separator />
+
+        {customizations.length > 0 && (
+          <>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-muted-foreground">Customizações</p>
+                <Badge variant="secondary">{customizations.length}</Badge>
+              </div>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-between">
+                    <span className="text-xs">Ver solicitações</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-2 mt-2">
+                  {customizations.map((customization) => (
+                    <div
+                      key={customization.memorial_item_id}
+                      className="p-2 bg-accent/50 rounded-md"
+                    >
+                      <p className="text-xs font-medium mb-1">
+                        <Edit className="h-3 w-3 inline mr-1" />
+                        {customization.item_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {customization.notes}
+                      </p>
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+            <Separator />
+          </>
+        )}
 
         <div className="space-y-3">
           <div className="space-y-2">
