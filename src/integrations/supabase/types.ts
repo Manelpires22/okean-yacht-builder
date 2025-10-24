@@ -630,6 +630,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_distinct_memorial_modelos: {
+        Args: never
+        Returns: {
+          modelo: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

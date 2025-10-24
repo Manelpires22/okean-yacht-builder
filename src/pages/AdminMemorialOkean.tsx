@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, Upload, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
@@ -61,6 +62,7 @@ const MODEL_BADGE_COLORS: Record<string, string> = {
 };
 
 export default function AdminMemorialOkean() {
+  const queryClient = useQueryClient();
   const [selectedModelo, setSelectedModelo] = useState<string>("Todos");
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Todas");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,7 +70,7 @@ export default function AdminMemorialOkean() {
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
   const [itemsPerPage, setItemsPerPage] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isImporting, setIsImporting] = useState(false);
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -77,6 +79,11 @@ export default function AdminMemorialOkean() {
   const { data: categories = [] } = useMemorialOkeanCategories();
   const { data: modelos = [], refetch: refetchModelos } = useMemorialOkeanModelos();
   const deleteMutation = useDeleteMemorialItem();
+
+  // Force refetch models on mount to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['memorial-okean-modelos'] });
+  }, [queryClient]);
 
   const handleCreateClick = () => {
     setEditingItem(undefined);
@@ -104,46 +111,11 @@ export default function AdminMemorialOkean() {
     setSelectedCategoria("Todas");
   };
 
-  const handleImportComplete = async () => {
-    if (!confirm('⚠️ ATENÇÃO: Isso irá LIMPAR todos os dados atuais e importar ~1571 registros do Excel.\n\nDeseja continuar?')) {
-      return;
-    }
-    
-    setIsImporting(true);
-    const toastId = toast.loading("Importando TODOS os dados do Excel (~1571 itens)...", {
-      description: "Isso pode levar alguns minutos..."
-    });
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('import-memorial-okean', {
-        body: {}
-      });
-
-      if (error) throw error;
-
-      if (data?.success) {
-        toast.success(
-          `✅ Importação completa! ${data.statistics.total} itens inseridos`,
-          {
-            id: toastId,
-            description: `${Object.entries(data.statistics.byModel)
-              .map(([model, count]) => `${model}: ${count}`)
-              .join(' | ')}`
-          }
-        );
-        refetch();
-      } else {
-        throw new Error(data?.message || 'Falha na importação');
-      }
-    } catch (error) {
-      console.error('Import error:', error);
-      toast.error("❌ Erro ao importar dados completos", {
-        id: toastId,
-        description: error instanceof Error ? error.message : "Erro desconhecido"
-      });
-    } finally {
-      setIsImporting(false);
-    }
+  const handleRefreshModels = async () => {
+    setIsRefreshingModels(true);
+    await refetchModelos();
+    toast.success("Lista de modelos atualizada!");
+    setIsRefreshingModels(false);
   };
 
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
@@ -186,16 +158,10 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleImportComplete} variant="outline" disabled={isImporting}>
-              <Upload className="mr-2 h-4 w-4" />
-              {isImporting ? 'Importando...' : 'Importar Dados Completos'}
-            </Button>
-            <Button onClick={handleCreateClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Item
-            </Button>
-          </div>
+          <Button onClick={handleCreateClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Item
+          </Button>
         </div>
 
         {/* Filters */}
@@ -219,10 +185,11 @@ export default function AdminMemorialOkean() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => refetchModelos()}
+                onClick={handleRefreshModels}
+                disabled={isRefreshingModels}
                 title="Atualizar lista de modelos"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className={cn("h-4 w-4", isRefreshingModels && "animate-spin")} />
               </Button>
             </div>
           </div>

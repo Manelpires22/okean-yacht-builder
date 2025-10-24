@@ -78,26 +78,27 @@ export function useMemorialOkeanModelos() {
   return useQuery({
     queryKey: ['memorial-okean-modelos'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('memorial_okean')
-        .select('modelo')
-        .order('modelo');
+      // Use RPC to get DISTINCT models from database
+      // This bypasses the 1000 record limit
+      const { data, error } = await supabase.rpc('get_distinct_memorial_modelos');
 
-      if (error) throw error;
+      if (error) {
+        console.error('RPC failed:', error);
+        throw error;
+      }
 
-      // Get unique models
-      const uniqueModelos = Array.from(
-        new Set(data.map((item) => item.modelo))
-      ).sort();
+      // RPC returns array of objects { modelo: string }, extract the string values
+      const modelos = (data || []).map(item => item.modelo).sort();
+      
+      console.log('🔍 [Memorial Modelos] Using RPC');
+      console.log('🔍 [Memorial Modelos] Unique models:', modelos);
+      console.log('🔍 [Memorial Modelos] Count:', modelos.length);
 
-      // Debug logging to verify data
-      console.log('🔍 [Memorial Modelos] Total records:', data?.length);
-      console.log('🔍 [Memorial Modelos] Unique models:', uniqueModelos);
-      console.log('🔍 [Memorial Modelos] Count:', uniqueModelos.length);
-
-      return uniqueModelos;
+      return modelos;
     },
-    staleTime: 30 * 1000, // 30 seconds - updates more frequently
+    staleTime: 10 * 1000, // 10 seconds
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
