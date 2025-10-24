@@ -4,6 +4,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -162,7 +163,7 @@ export default function Profile() {
                 />
 
                 <div className="space-y-2">
-                  <FormLabel>Funções</FormLabel>
+                  <Label>Funções</Label>
                   <div className="flex flex-wrap gap-2">
                     {profile.roles.map((role) => (
                       <Badge key={role} variant={getRoleBadgeVariant(role)}>
@@ -173,7 +174,7 @@ export default function Profile() {
                 </div>
 
                 <div className="space-y-2">
-                  <FormLabel>Cadastrado em</FormLabel>
+                  <Label>Cadastrado em</Label>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(profile.created_at), "dd/MM/yyyy 'às' HH:mm")}
                   </p>
@@ -250,7 +251,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <FormLabel>Status da Conta</FormLabel>
+              <Label>Status da Conta</Label>
               <div>
                 <Badge variant={profile.is_active ? "default" : "destructive"}>
                   {profile.is_active ? "Ativa" : "Inativa"}
@@ -261,7 +262,7 @@ export default function Profile() {
             <Separator />
 
             <div className="space-y-2">
-              <FormLabel>ID do Usuário</FormLabel>
+              <Label>ID do Usuário</Label>
               <p className="text-sm text-muted-foreground font-mono break-all">
                 {profile.id}
               </p>
