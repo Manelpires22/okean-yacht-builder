@@ -14,9 +14,9 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
         query = query.eq("category_id", categoryId);
       }
 
-      // Filter by yacht model if provided (direct relationship)
+      // Filter by yacht model if provided (includes generic options with NULL yacht_model_id)
       if (yachtModelId) {
-        query = query.eq("yacht_model_id", yachtModelId);
+        query = query.or(`yacht_model_id.is.null,yacht_model_id.eq.${yachtModelId}`);
       }
 
       const { data, error } = await query.order("name");
