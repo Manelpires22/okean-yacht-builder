@@ -83,9 +83,17 @@ export default function AdminYachtModelCreate() {
 
       // 2. Criar itens de memorial se houver
       if (extractedMemorialItems.length > 0) {
+        // Primeiro, buscar o ID da categoria 'outros' como fallback
+        const { data: outrosCategory } = await supabase
+          .from('memorial_categories')
+          .select('id')
+          .eq('value', 'outros')
+          .single();
+
         const memorialInserts = extractedMemorialItems.map((item, index) => ({
           yacht_model_id: model.id,
-          category: item.category || 'outros',
+          category: 'outros' as any, // Enum antigo (será removido)
+          category_id: outrosCategory?.id || null,
           item_name: item.description?.substring(0, 100) || `Item ${index + 1}`,
           description: item.description || '',
           technical_specs: item.specification ? { spec: item.specification } : null,

@@ -106,11 +106,48 @@ export type Database = {
         }
         Relationships: []
       }
+      memorial_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          label: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          label: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          label?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       memorial_items: {
         Row: {
           brand: string | null
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order: number | null
+          category_id: string
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -130,6 +167,7 @@ export type Database = {
           brand?: string | null
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
+          category_id: string
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -149,6 +187,7 @@ export type Database = {
           brand?: string | null
           category?: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
+          category_id?: string
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -165,6 +204,13 @@ export type Database = {
           yacht_model_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "memorial_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "memorial_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "memorial_items_yacht_model_id_fkey"
             columns: ["yacht_model_id"]
