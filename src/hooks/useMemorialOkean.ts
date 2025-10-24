@@ -88,10 +88,14 @@ export function useMemorialOkeanModelos() {
       }
 
       // RPC returns array of objects { modelo: string }, extract the string values
-      const modelos = (data || []).map(item => item.modelo).sort();
+      // Type assertion needed because Supabase doesn't auto-generate RPC types
+      const modelos = ((data || []) as Array<{ modelo: string }>)
+        .map((item) => item.modelo)
+        .sort();
       
       console.log('🔍 [Memorial Modelos] Using RPC');
-      console.log('🔍 [Memorial Modelos] Unique models:', modelos);
+      console.log('🔍 [Memorial Modelos] Raw data:', data);
+      console.log('🔍 [Memorial Modelos] Extracted models:', modelos);
       console.log('🔍 [Memorial Modelos] Count:', modelos.length);
 
       return modelos;
