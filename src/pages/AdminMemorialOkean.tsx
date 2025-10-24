@@ -102,9 +102,15 @@ export default function AdminMemorialOkean() {
     setSelectedCategoria("Todas");
   };
 
-  const handleImportCSV = async () => {
+  const handleImportComplete = async () => {
+    if (!confirm('⚠️ ATENÇÃO: Isso irá LIMPAR todos os dados atuais e importar ~1571 registros do Excel.\n\nDeseja continuar?')) {
+      return;
+    }
+    
     setIsImporting(true);
-    const toastId = toast.loading("Processando CSV completo (~1264 itens)...");
+    const toastId = toast.loading("Importando TODOS os dados do Excel (~1571 itens)...", {
+      description: "Isso pode levar alguns minutos..."
+    });
     
     try {
       const { data, error } = await supabase.functions.invoke('import-memorial-okean', {
@@ -129,7 +135,7 @@ export default function AdminMemorialOkean() {
       }
     } catch (error) {
       console.error('Import error:', error);
-      toast.error("❌ Erro ao importar dados", {
+      toast.error("❌ Erro ao importar dados completos", {
         id: toastId,
         description: error instanceof Error ? error.message : "Erro desconhecido"
       });
@@ -178,10 +184,16 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Item
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleImportComplete} variant="outline" disabled={isImporting}>
+              <Upload className="mr-2 h-4 w-4" />
+              {isImporting ? 'Importando...' : 'Importar Dados Completos'}
+            </Button>
+            <Button onClick={handleCreateClick}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Item
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
