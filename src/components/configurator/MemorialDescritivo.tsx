@@ -170,11 +170,6 @@ export function MemorialDescritivo({
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <p className="font-medium">{item.item_name}</p>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {item.description}
-                              </p>
-                            )}
                             
                             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                               {item.brand && <span>Marca: {item.brand}</span>}
@@ -215,12 +210,13 @@ export function MemorialDescritivo({
                                 </>
                               ) : (
                                 <Button
-                                  variant="outline"
-                                  size="sm"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
                                   onClick={() => handleOpenCustomization(item.id, item.item_name, item.quantity)}
+                                  title="Customizar"
                                 >
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  Customizar
+                                  <Edit className="h-4 w-4" />
                                 </Button>
                               )}
                             </div>
