@@ -11,7 +11,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminYachtModels from "./pages/AdminYachtModels";
 import AdminUsers from "./pages/AdminUsers";
-import AdminSeedData from "./pages/AdminSeedData";
+
 import AdminYachtModelEdit from "./pages/AdminYachtModelEdit";
 import AdminYachtModelCreate from "./pages/AdminYachtModelCreate";
 import AdminOptions from "./pages/AdminOptions";
@@ -49,7 +49,7 @@ const App = () => (
             <Route path="/admin/yacht-models/:modelId/edit" element={<ProtectedRoute requireAdmin><AdminYachtModelEdit /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
-            <Route path="/admin/seed-data" element={<ProtectedRoute requireAdmin><AdminSeedData /></ProtectedRoute>} />
+            
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

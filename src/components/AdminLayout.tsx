@@ -19,7 +19,7 @@ const navItems = [
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
-  { path: "/admin/seed-data", icon: Database, label: "Dados de Teste" },
+  
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
