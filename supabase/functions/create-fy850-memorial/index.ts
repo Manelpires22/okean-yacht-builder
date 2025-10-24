@@ -33,6 +33,19 @@ Deno.serve(async (req) => {
     const yachtModelId = yachtModel.id;
     console.log('Found FY850 yacht model ID:', yachtModelId);
 
+    // Deletar itens existentes antes de popular novamente
+    const { error: deleteError } = await supabase
+      .from('memorial_items')
+      .delete()
+      .eq('yacht_model_id', yachtModelId);
+
+    if (deleteError) {
+      console.error('Error deleting existing items:', deleteError);
+      // Continuar mesmo se houver erro ao deletar (pode não haver itens)
+    } else {
+      console.log('Deleted existing memorial items for FY850');
+    }
+
     // Memorial completo do FY850 com ~413 itens (363 padrão + 50 opcionais distribuídos)
     const memorialItems = [
       // ===== CONVÉS PRINCIPAL (47 itens: 45 padrão + 2 opcionais) =====
