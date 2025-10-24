@@ -171,6 +171,33 @@ export type Database = {
           },
         ]
       }
+      memorial_okean: {
+        Row: {
+          categoria: string
+          created_at: string | null
+          descricao_item: string
+          id: number
+          modelo: string
+          tipo_item: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string | null
+          descricao_item: string
+          id?: number
+          modelo: string
+          tipo_item?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string | null
+          descricao_item?: string
+          id?: number
+          modelo?: string
+          tipo_item?: string
+        }
+        Relationships: []
+      }
       option_categories: {
         Row: {
           created_at: string | null

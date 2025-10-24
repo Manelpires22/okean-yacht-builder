@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.extract-yacht-specs]
 verify_jwt = true
+
+[functions.import-memorial-okean]
+verify_jwt = true
