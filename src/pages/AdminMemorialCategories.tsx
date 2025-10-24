@@ -85,19 +85,29 @@ export default function AdminMemorialCategories() {
 
         {/* Filtros */}
         <div className="flex gap-4">
-          <Select value={selectedModelo} onValueChange={setSelectedModelo}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Todos os modelos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
-              {modelos?.map((modelo) => (
-                <SelectItem key={modelo} value={modelo}>
-                  {modelo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={selectedModelo || undefined} onValueChange={(value) => setSelectedModelo(value || "")}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Todos os modelos" />
+              </SelectTrigger>
+              <SelectContent>
+                {modelos?.map((modelo) => (
+                  <SelectItem key={modelo} value={modelo}>
+                    {modelo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedModelo && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedModelo("")}
+              >
+                Limpar
+              </Button>
+            )}
+          </div>
 
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
