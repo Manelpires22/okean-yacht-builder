@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -53,6 +59,8 @@ export default function AdminMemorialOkean() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MemorialOkeanItem | undefined>();
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(25);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -89,6 +97,33 @@ export default function AdminMemorialOkean() {
   };
 
   const hasActiveFilters = selectedModelo !== "Todos" || selectedCategoria !== "Todas";
+
+  // Agrupar itens por categoria
+  const itemsByCategory = useMemo(() => {
+    const grouped = items.reduce((acc, item) => {
+      if (!acc[item.categoria]) {
+        acc[item.categoria] = [];
+      }
+      acc[item.categoria].push(item);
+      return acc;
+    }, {} as Record<string, MemorialOkeanItem[]>);
+
+    return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
+  }, [items]);
+
+  // Paginação
+  const totalPages = Math.ceil(itemsByCategory.length / itemsPerPage);
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return itemsByCategory.slice(start, end);
+  }, [itemsByCategory, currentPage, itemsPerPage]);
+
+  // Reset página ao mudar filtros ou items per page
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value));
+    setCurrentPage(1);
+  };
 
   return (
     <AdminLayout>
@@ -207,88 +242,155 @@ export default function AdminMemorialOkean() {
           </div>
         )}
 
-        {/* Table */}
+        {/* Acordeon por Categoria + Paginação */}
         {!isLoading && !error && items.length > 0 && (
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead className="w-[120px]">Modelo</TableHead>
-                  <TableHead className="w-[200px]">Categoria</TableHead>
-                  <TableHead>Descrição do Item</TableHead>
-                  <TableHead className="w-[80px] text-center">Qtd</TableHead>
-                  <TableHead className="w-[150px]">Marca</TableHead>
-                  <TableHead className="w-[100px]">Tipo Item</TableHead>
-                  <TableHead className="w-[100px] text-center">Custom</TableHead>
-                  <TableHead className="w-[120px] text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="text-muted-foreground">
-                      {item.id}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "font-medium",
-                          MODEL_BADGE_COLORS[item.modelo]
-                        )}
-                      >
-                        {item.modelo}
+          <div className="space-y-4">
+            {/* Controles de Paginação */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Itens por página:</label>
+                  <Select value={String(itemsPerPage)} onValueChange={handleItemsPerPageChange}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Badge variant="outline">
+                  Mostrando {paginatedCategories.length} de {itemsByCategory.length} categorias
+                </Badge>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-sm">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Acordeon por Categoria */}
+            <Accordion type="multiple" className="space-y-2">
+              {paginatedCategories.map(([categoria, categoryItems]) => (
+                <AccordionItem 
+                  key={categoria} 
+                  value={categoria}
+                  className="border rounded-lg px-4"
+                >
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="font-semibold">
+                        {categoria}
                       </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.categoria}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <div className="truncate" title={item.descricao_item}>
-                        {item.descricao_item}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center font-medium">
-                      {item.quantidade || 1}
-                    </TableCell>
-                    <TableCell>
                       <span className="text-sm text-muted-foreground">
-                        {item.marca || '-'}
+                        {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'itens'}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{item.tipo_item}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.is_customizable !== false ? (
-                        <Check className="h-4 w-4 text-success inline-block" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-muted-foreground inline-block" />
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteClick(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px]">ID</TableHead>
+                          <TableHead className="w-[120px]">Modelo</TableHead>
+                          <TableHead>Descrição do Item</TableHead>
+                          <TableHead className="w-[80px] text-center">Qtd</TableHead>
+                          <TableHead className="w-[150px]">Marca</TableHead>
+                          <TableHead className="w-[100px]">Tipo</TableHead>
+                          <TableHead className="w-[80px] text-center">Custom</TableHead>
+                          <TableHead className="w-[120px] text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categoryItems.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {item.id}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "font-medium text-xs",
+                                  MODEL_BADGE_COLORS[item.modelo]
+                                )}
+                              >
+                                {item.modelo}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[400px]">
+                              <div className="truncate text-sm" title={item.descricao_item}>
+                                {item.descricao_item}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center font-medium">
+                              {item.quantidade || 1}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {item.marca || '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">
+                                {item.tipo_item}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {item.is_customizable !== false ? (
+                                <Check className="h-4 w-4 text-success inline-block" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-muted-foreground inline-block" />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditClick(item)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteClick(item.id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         )}
 
