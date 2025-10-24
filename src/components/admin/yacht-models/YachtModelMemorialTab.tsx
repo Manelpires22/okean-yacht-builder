@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -13,8 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit2, Trash, FileText } from "lucide-react";
 import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
-import { PopulateFY850Button } from "./PopulateFY850Button";
-import { PopulateFY550Button } from "./PopulateFY550Button";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
 const CATEGORIES = [
@@ -69,22 +65,6 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
 
   const { data: items, isLoading: loadingItems, deleteItem, refetch } = useMemorialItems(yachtModelId);
 
-  // Buscar código do modelo para o botão de população FY850
-  const { data: model } = useQuery({
-    queryKey: ['yacht-model-code', yachtModelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('yacht_models')
-        .select('code')
-        .eq('id', yachtModelId)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!yachtModelId,
-  });
-
   const itemsByCategory = useMemo(() => {
     const grouped: Partial<Record<CategoryValue, any[]>> = {};
 
@@ -131,20 +111,10 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
             Gerir itens técnicos e equipamentos do modelo
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <PopulateFY850Button 
-            yachtModelCode={model?.code || ''} 
-            onSuccess={refetch}
-          />
-          <PopulateFY550Button 
-            yachtModelCode={model?.code || ''} 
-            onSuccess={refetch}
-          />
-          <Button onClick={() => handleCreate()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Item
-          </Button>
-        </div>
+        <Button onClick={() => handleCreate()}>
+          <Plus className="mr-2 h-4 w-4" />
+          Adicionar Item
+        </Button>
       </div>
 
       <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">
