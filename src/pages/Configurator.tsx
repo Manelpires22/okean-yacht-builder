@@ -64,6 +64,7 @@ export default function Configurator() {
   };
 
   const handleSaveQuotation = async (formData: {
+    client_id?: string;
     client_name: string;
     client_email?: string;
     client_phone?: string;
@@ -79,6 +80,7 @@ export default function Configurator() {
       base_delivery_days: state.base_delivery_days,
       selected_options: state.selected_options,
       customizations: state.customizations,
+      client_id: formData.client_id,
       client_name: formData.client_name,
       client_email: formData.client_email,
       client_phone: formData.client_phone,
@@ -206,6 +208,7 @@ export default function Configurator() {
         isLoading={saveQuotation.isPending}
         baseDiscountPercentage={state.base_discount_percentage}
         optionsDiscountPercentage={state.options_discount_percentage}
+        customizationsCount={state.customizations.length}
       />
     </div>
   );

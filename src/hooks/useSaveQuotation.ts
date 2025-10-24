@@ -29,6 +29,26 @@ export function useSaveQuotation() {
     mutationFn: async (data: SaveQuotationData) => {
       if (!user) throw new Error("Usuário não autenticado");
 
+      // 1. Create or get client
+      let clientId = data.client_id;
+
+      if (!clientId) {
+        // Create new client
+        const { data: newClient, error: clientError } = await supabase
+          .from('clients')
+          .insert({
+            name: data.client_name,
+            email: data.client_email || null,
+            phone: data.client_phone || null,
+            created_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (clientError) throw clientError;
+        clientId = newClient.id;
+      }
+
       const quotationNumber = generateQuotationNumber();
       
       // Calculate totals
@@ -59,13 +79,13 @@ export function useSaveQuotation() {
       const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
       const initialStatus = requiresApproval ? "pending_approval" : "draft";
 
-      // Create quotation (TypeScript error will be fixed after types regenerate)
+      // 2. Create quotation
       const { data: quotation, error: quotationError } = await supabase
         .from("quotations")
         .insert({
           quotation_number: quotationNumber,
           yacht_model_id: data.yacht_model_id,
-          client_id: data.client_id || null,
+          client_id: clientId,
           client_name: data.client_name,
           client_email: data.client_email || null,
           client_phone: data.client_phone || null,
@@ -83,14 +103,14 @@ export function useSaveQuotation() {
           discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,
-          valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        } as any) // Temporary as any until types regenerate
+          valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        } as any)
         .select()
         .single();
 
       if (quotationError) throw quotationError;
 
-      // Create quotation options
+      // 3. Create quotation options
       if (data.selected_options.length > 0) {
         const quotationOptions = data.selected_options.map((opt) => ({
           quotation_id: quotation.id,
@@ -108,7 +128,7 @@ export function useSaveQuotation() {
         if (optionsError) throw optionsError;
       }
 
-      // Create customizations if any
+      // 4. Create customizations if any
       if (data.customizations.length > 0) {
         const customizationsData = data.customizations.map((customization) => ({
           quotation_id: quotation.id,
@@ -126,7 +146,7 @@ export function useSaveQuotation() {
         if (customizationsError) throw customizationsError;
       }
 
-      // Create approval request if needed
+      // 5. Create approval request if needed
       if (requiresApproval) {
         const { error: approvalError } = await supabase
           .from("approvals")
