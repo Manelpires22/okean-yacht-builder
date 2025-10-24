@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function useOptions(categoryId?: string, yachtModelId?: string) {
   return useQuery({
-    queryKey: ["options", categoryId, yachtModelId],
+    queryKey: ["options-v2", categoryId, yachtModelId],
     queryFn: async () => {
       let query = supabase
         .from("options")
