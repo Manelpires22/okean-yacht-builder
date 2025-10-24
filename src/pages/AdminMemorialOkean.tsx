@@ -175,29 +175,10 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleImportCSV}
-              disabled={isImporting}
-            >
-              {isImporting ? (
-                <>
-                  <Database className="mr-2 h-4 w-4 animate-spin" />
-                  Importando...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar CSV
-                </>
-              )}
-            </Button>
-            <Button onClick={handleCreateClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Item
-            </Button>
-          </div>
+          <Button onClick={handleCreateClick}>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Item
+          </Button>
         </div>
 
         {/* Filters */}
