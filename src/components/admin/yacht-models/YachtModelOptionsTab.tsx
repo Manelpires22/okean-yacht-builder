@@ -77,14 +77,14 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
 
   const { data: categories } = useOptionCategories();
 
-  // Fetch options for this yacht model (direct relationship)
+  // Fetch options for this yacht model (both model-specific and generic)
   const { data: options, isLoading } = useQuery({
-    queryKey: ['yacht-model-options', yachtModelId],
+    queryKey: ['yacht-model-options-v2', yachtModelId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('options')
         .select('*, category:option_categories(id, name)')
-        .eq('yacht_model_id', yachtModelId)
+        .or(`yacht_model_id.is.null,yacht_model_id.eq.${yachtModelId}`)
         .order('name');
       
       if (error) throw error;
@@ -269,7 +269,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           <div>
             <h2 className="text-xl font-semibold">Opcionais do Modelo</h2>
             <p className="text-sm text-muted-foreground">
-              Gerencie os opcionais exclusivos deste modelo de iate
+              Opcionais genéricos e específicos deste modelo. Opcionais globais são gerenciados centralmente.
             </p>
           </div>
           <Button onClick={handleCreateClick}>
@@ -335,28 +335,37 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                                   {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={option.is_active ? "default" : "secondary"}>
-                                    {option.is_active ? "Ativo" : "Inativo"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleEditClick(option)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setDeletingOptionId(option.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                  <div className="flex gap-2">
+                                    {!option.yacht_model_id && (
+                                      <Badge variant="outline">Global</Badge>
+                                    )}
+                                    <Badge variant={option.is_active ? "default" : "secondary"}>
+                                      {option.is_active ? "Ativo" : "Inativo"}
+                                    </Badge>
                                   </div>
-                                </TableCell>
+                                 </TableCell>
+                                 <TableCell className="text-right">
+                                   {option.yacht_model_id ? (
+                                     <div className="flex justify-end gap-2">
+                                       <Button
+                                         variant="ghost"
+                                         size="icon"
+                                         onClick={() => handleEditClick(option)}
+                                       >
+                                         <Pencil className="h-4 w-4" />
+                                       </Button>
+                                       <Button
+                                         variant="ghost"
+                                         size="icon"
+                                         onClick={() => setDeletingOptionId(option.id)}
+                                       >
+                                         <Trash2 className="h-4 w-4 text-destructive" />
+                                       </Button>
+                                     </div>
+                                   ) : (
+                                     <Badge variant="secondary">Gerenciado Globalmente</Badge>
+                                   )}
+                                 </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
