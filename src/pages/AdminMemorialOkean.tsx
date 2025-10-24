@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle, Upload, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
@@ -75,7 +75,7 @@ export default function AdminMemorialOkean() {
     selectedCategoria
   );
   const { data: categories = [] } = useMemorialOkeanCategories();
-  const { data: modelos = [] } = useMemorialOkeanModelos();
+  const { data: modelos = [], refetch: refetchModelos } = useMemorialOkeanModelos();
   const deleteMutation = useDeleteMemorialItem();
 
   const handleCreateClick = () => {
@@ -202,19 +202,29 @@ export default function AdminMemorialOkean() {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Modelo:</label>
-            <Select value={selectedModelo} onValueChange={setSelectedModelo}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todos">Todos</SelectItem>
-                {modelos.map((modelo) => (
-                  <SelectItem key={modelo} value={modelo}>
-                    {modelo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 items-center">
+              <Select value={selectedModelo} onValueChange={setSelectedModelo}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Todos">Todos</SelectItem>
+                  {modelos.map((modelo) => (
+                    <SelectItem key={modelo} value={modelo}>
+                      {modelo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => refetchModelos()}
+                title="Atualizar lista de modelos"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
