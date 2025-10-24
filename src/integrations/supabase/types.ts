@@ -777,6 +777,13 @@ export type Database = {
         | "banheiro_hospedes_compartilhado"
         | "eletrica"
         | "audiovisual_entretenimento"
+        | "deck_principal"
+        | "plataforma_popa"
+        | "casco_estrutura"
+        | "area_tecnica"
+        | "navegacao"
+        | "cockpit"
+        | "caracteristicas_externas"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -958,6 +965,13 @@ export const Constants = {
         "banheiro_hospedes_compartilhado",
         "eletrica",
         "audiovisual_entretenimento",
+        "deck_principal",
+        "plataforma_popa",
+        "casco_estrutura",
+        "area_tecnica",
+        "navegacao",
+        "cockpit",
+        "caracteristicas_externas",
       ],
     },
   },
