@@ -8,6 +8,9 @@ export interface MemorialOkeanItem {
   categoria: string;
   descricao_item: string;
   tipo_item: string;
+  quantidade?: number;
+  is_customizable?: boolean;
+  marca?: string;
   created_at?: string;
 }
 
@@ -16,6 +19,9 @@ export interface CreateMemorialItemInput {
   categoria: string;
   descricao_item: string;
   tipo_item: string;
+  quantidade?: number;
+  is_customizable?: boolean;
+  marca?: string;
 }
 
 export interface UpdateMemorialItemInput extends CreateMemorialItemInput {

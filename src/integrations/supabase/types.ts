@@ -177,7 +177,10 @@ export type Database = {
           created_at: string | null
           descricao_item: string
           id: number
+          is_customizable: boolean | null
+          marca: string | null
           modelo: string
+          quantidade: number | null
           tipo_item: string
         }
         Insert: {
@@ -185,7 +188,10 @@ export type Database = {
           created_at?: string | null
           descricao_item: string
           id?: number
+          is_customizable?: boolean | null
+          marca?: string | null
           modelo: string
+          quantidade?: number | null
           tipo_item?: string
         }
         Update: {
@@ -193,7 +199,10 @@ export type Database = {
           created_at?: string | null
           descricao_item?: string
           id?: number
+          is_customizable?: boolean | null
+          marca?: string | null
           modelo?: string
+          quantidade?: number | null
           tipo_item?: string
         }
         Relationships: []

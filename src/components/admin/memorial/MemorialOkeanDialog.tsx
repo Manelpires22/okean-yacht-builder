@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import {
   useCreateMemorialItem,
@@ -40,6 +42,9 @@ const memorialItemSchema = z.object({
   categoria: z.string().min(1, "Categoria é obrigatória").max(100),
   descricao_item: z.string().min(1, "Descrição é obrigatória").max(2000),
   tipo_item: z.string().default('Padrão'),
+  quantidade: z.number().int().positive().default(1),
+  is_customizable: z.boolean().default(true),
+  marca: z.string().max(200).optional(),
 });
 
 type MemorialItemFormData = z.infer<typeof memorialItemSchema>;
@@ -66,8 +71,26 @@ export function MemorialOkeanDialog({
       categoria: item?.categoria || '',
       descricao_item: item?.descricao_item || '',
       tipo_item: item?.tipo_item || 'Padrão',
+      quantidade: item?.quantidade || 1,
+      is_customizable: item?.is_customizable ?? true,
+      marca: item?.marca || '',
     },
   });
+
+  // Atualizar formulário quando item mudar (para edição)
+  useEffect(() => {
+    if (item && open) {
+      form.reset({
+        modelo: item.modelo as any,
+        categoria: item.categoria,
+        descricao_item: item.descricao_item,
+        tipo_item: item.tipo_item,
+        quantidade: item.quantidade || 1,
+        is_customizable: item.is_customizable ?? true,
+        marca: item.marca || '',
+      });
+    }
+  }, [item, open, form]);
 
   const onSubmit = async (data: MemorialItemFormData) => {
     if (item) {
@@ -77,6 +100,9 @@ export function MemorialOkeanDialog({
         categoria: data.categoria,
         descricao_item: data.descricao_item,
         tipo_item: data.tipo_item,
+        quantidade: data.quantidade,
+        is_customizable: data.is_customizable,
+        marca: data.marca,
       });
     } else {
       await createMutation.mutateAsync({
@@ -84,6 +110,9 @@ export function MemorialOkeanDialog({
         categoria: data.categoria,
         descricao_item: data.descricao_item,
         tipo_item: data.tipo_item,
+        quantidade: data.quantidade,
+        is_customizable: data.is_customizable,
+        marca: data.marca,
       });
     }
     onOpenChange(false);
@@ -117,7 +146,7 @@ export function MemorialOkeanDialog({
                     <FormLabel>Modelo *</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -151,16 +180,67 @@ export function MemorialOkeanDialog({
               />
             </div>
 
+            <div className="grid grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="quantidade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantidade *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="marca"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Marca</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Ex: Garmin" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="is_customizable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 space-y-0">
+                    <FormLabel>Customizável</FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <FormField
               control={form.control}
               name="categoria"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoria *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <FormItem>
+                    <FormLabel>Categoria *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a categoria" />

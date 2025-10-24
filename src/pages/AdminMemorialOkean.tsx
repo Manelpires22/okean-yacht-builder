@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Edit, Trash2, Database, AlertCircle, X } from "lucide-react";
+import { Plus, Edit, Trash2, Database, AlertCircle, X, Check, XCircle } from "lucide-react";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
 import {
   useMemorialOkeanItems,
@@ -217,7 +217,10 @@ export default function AdminMemorialOkean() {
                   <TableHead className="w-[120px]">Modelo</TableHead>
                   <TableHead className="w-[200px]">Categoria</TableHead>
                   <TableHead>Descrição do Item</TableHead>
-                  <TableHead className="w-[120px]">Tipo Item</TableHead>
+                  <TableHead className="w-[80px] text-center">Qtd</TableHead>
+                  <TableHead className="w-[150px]">Marca</TableHead>
+                  <TableHead className="w-[100px]">Tipo Item</TableHead>
+                  <TableHead className="w-[100px] text-center">Custom</TableHead>
                   <TableHead className="w-[120px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -241,13 +244,28 @@ export default function AdminMemorialOkean() {
                     <TableCell>
                       <Badge variant="outline">{item.categoria}</Badge>
                     </TableCell>
-                    <TableCell className="max-w-[400px]">
+                    <TableCell className="max-w-[300px]">
                       <div className="truncate" title={item.descricao_item}>
                         {item.descricao_item}
                       </div>
                     </TableCell>
+                    <TableCell className="text-center font-medium">
+                      {item.quantidade || 1}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {item.marca || '-'}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{item.tipo_item}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.is_customizable !== false ? (
+                        <Check className="h-4 w-4 text-success inline-block" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground inline-block" />
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
