@@ -133,6 +133,7 @@ Deno.serve(async (req) => {
     // Insert items in batches
     const batchSize = 100;
     let inserted = 0;
+    const insertErrors: string[] = [];
 
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize).map(item => {
@@ -155,8 +156,9 @@ Deno.serve(async (req) => {
         .insert(batch);
 
       if (insertError) {
-        console.error('Error inserting batch:', insertError);
-        throw insertError;
+        console.error(`Batch ${Math.floor(i / batchSize) + 1} error:`, insertError);
+        insertErrors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`);
+        continue; // Tenta próximo batch
       }
 
       inserted += batch.length;

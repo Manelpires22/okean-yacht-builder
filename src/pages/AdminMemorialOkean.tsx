@@ -101,9 +101,9 @@ export default function AdminMemorialOkean() {
 
   const handleImportCSV = async () => {
     setIsImporting(true);
+    const toastId = toast.loading("Processando CSV completo (~1264 itens)...");
+    
     try {
-      toast.info("Importando dados do CSV...");
-      
       const { data, error } = await supabase.functions.invoke('import-memorial-okean', {
         body: {}
       });
@@ -112,16 +112,22 @@ export default function AdminMemorialOkean() {
 
       if (data?.success) {
         toast.success(
-          `Importação concluída! ${data.statistics.total} itens importados`,
+          `✅ Importação completa! ${data.statistics.total} itens inseridos`,
           {
-            description: `Modelos: ${Object.keys(data.statistics.byModel).join(', ')}`
+            id: toastId,
+            description: `${Object.entries(data.statistics.byModel)
+              .map(([model, count]) => `${model}: ${count}`)
+              .join(' | ')}`
           }
         );
         refetch();
+      } else {
+        throw new Error(data?.message || 'Falha na importação');
       }
     } catch (error) {
       console.error('Import error:', error);
-      toast.error("Erro ao importar dados", {
+      toast.error("❌ Erro ao importar dados", {
+        id: toastId,
         description: error instanceof Error ? error.message : "Erro desconhecido"
       });
     } finally {
