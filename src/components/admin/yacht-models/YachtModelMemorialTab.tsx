@@ -88,9 +88,11 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
     const grouped: Partial<Record<CategoryValue, any[]>> = {};
 
     items?.forEach(item => {
-      if (grouped[item.category as CategoryValue]) {
-        grouped[item.category as CategoryValue].push(item);
+      const category = item.category as CategoryValue;
+      if (!grouped[category]) {
+        grouped[category] = [];
       }
+      grouped[category].push(item);
     });
 
     return grouped;
