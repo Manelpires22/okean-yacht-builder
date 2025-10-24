@@ -79,8 +79,18 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
     const paddedDigits = digits.padStart(decimals + 1, '0');
     
     // Separar parte inteira e decimal
-    const integerPart = paddedDigits.slice(0, -decimals) || '0';
-    const decimalPart = decimals > 0 ? paddedDigits.slice(-decimals) : '';
+    let integerPart: string;
+    let decimalPart: string;
+    
+    if (decimals === 0) {
+      // Sem casas decimais: usar todos os dígitos como parte inteira
+      integerPart = paddedDigits;
+      decimalPart = '';
+    } else {
+      // Com casas decimais: separar parte inteira e decimal
+      integerPart = paddedDigits.slice(0, -decimals) || '0';
+      decimalPart = paddedDigits.slice(-decimals);
+    }
 
     // Adicionar separadores de milhares
     const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
