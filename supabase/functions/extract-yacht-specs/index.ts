@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -21,9 +20,9 @@ serve(async (req) => {
       );
     }
 
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY não configurada');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      console.error('LOVABLE_API_KEY não configurada');
       return new Response(
         JSON.stringify({ error: 'Configuração de IA não disponível' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -230,40 +229,39 @@ REGRAS FINAIS:
 - Para opcionais, extraia nome curto e descrição completa separadamente
 - Identifique categorias com base no contexto e tipo de item`;
 
-    console.log('Enviando texto para OpenAI GPT-5...');
+    console.log('Enviando texto para Lovable AI (Gemini 2.5 Flash)...');
     console.log('Tamanho do texto:', documentText.length, 'caracteres');
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Documento a analisar:\n\n${documentText}` }
         ],
-        max_completion_tokens: 4000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro na API OpenAI:', response.status, errorText);
+      console.error('Erro na Lovable AI:', response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Limite de requisições excedido. Aguarde alguns instantes.' }),
+          JSON.stringify({ error: 'Limite de requisições excedido. Aguarde alguns instantes e tente novamente.' }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      if (response.status === 401) {
+      if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'API Key do OpenAI inválida. Verifique a configuração.' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Créditos de IA esgotados. Adicione fundos ao workspace Lovable.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
