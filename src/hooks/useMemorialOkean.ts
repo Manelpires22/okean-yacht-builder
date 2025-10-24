@@ -83,15 +83,25 @@ export function useMemorialOkeanModelos() {
         .select('modelo')
         .order('modelo');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching modelos:', error);
+        throw error;
+      }
+
+      console.log('📊 Raw data from memorial_okean:', data);
+      console.log('📊 Total records:', data?.length);
 
       // Get unique models
       const uniqueModelos = Array.from(
         new Set(data.map((item) => item.modelo))
       ).sort();
 
+      console.log('✅ Unique modelos found:', uniqueModelos);
+
       return uniqueModelos;
     },
+    staleTime: 0, // Force refetch every time
+    gcTime: 0, // Don't cache
   });
 }
 
