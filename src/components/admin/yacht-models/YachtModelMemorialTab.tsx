@@ -11,45 +11,48 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit2, Trash, FileText, GripVertical } from "lucide-react";
 import { MemorialItemDialog } from "@/components/admin/memorial/MemorialItemDialog";
+import { CategoryOrderDialog } from "@/components/admin/memorial/CategoryOrderDialog";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 
 const CATEGORIES = [
-  { value: 'conves_principal', label: 'Convés Principal' },
-  { value: 'salao', label: 'Salão' },
-  { value: 'area_jantar', label: 'Área de Jantar' },
-  { value: 'lavabo', label: 'Lavabo' },
-  { value: 'area_cozinha', label: 'Área da Cozinha' },
-  { value: 'cozinha_galley', label: 'Cozinha/Galley' },
-  { value: 'comando_principal', label: 'Comando Principal' },
-  { value: 'flybridge', label: 'Flybridge' },
-  { value: 'lobby_conves_inferior', label: 'Lobby Convés Inferior' },
-  { value: 'cabine_master', label: 'Cabine Master' },
-  { value: 'banheiro_master', label: 'Banheiro Master' },
-  { value: 'cabine_vip', label: 'Cabine VIP' },
-  { value: 'cabine_vip_proa', label: 'Cabine VIP Proa' },
-  { value: 'banheiro_vip', label: 'Banheiro VIP' },
-  { value: 'cabine_hospedes_bombordo', label: 'Cabine Hóspedes Bombordo' },
-  { value: 'banheiro_hospedes_bombordo', label: 'Banheiro Hóspedes Bombordo' },
-  { value: 'cabine_hospedes_boreste', label: 'Cabine Hóspedes Boreste' },
-  { value: 'banheiro_hospedes_boreste', label: 'Banheiro Hóspedes Boreste' },
-  { value: 'banheiro_hospedes_compartilhado', label: 'Banheiro Hóspedes Compartilhado' },
-  { value: 'banheiro_capitao', label: 'Banheiro Capitão' },
-  { value: 'cabine_capitao', label: 'Cabine Capitão' },
-  { value: 'banheiro_tripulacao', label: 'Banheiro Tripulação' },
-  { value: 'cabine_tripulacao', label: 'Cabine Tripulação' },
-  { value: 'lobby_tripulacao', label: 'Lobby Tripulação' },
-  { value: 'sala_maquinas', label: 'Sala de Máquinas' },
-  { value: 'garagem', label: 'Garagem' },
-  { value: 'propulsao_controle', label: 'Propulsão e Controle' },
-  { value: 'sistema_estabilizacao', label: 'Sistema de Estabilização' },
-  { value: 'equipamentos_eletronicos', label: 'Equipamentos Eletrônicos' },
-  { value: 'sistema_extincao_incendio', label: 'Sistema de Extinção de Incêndio' },
-  { value: 'sistema_ar_condicionado', label: 'Sistema Ar-Condicionado' },
-  { value: 'sistema_bombas_porao', label: 'Sistema de Bombas de Porão' },
-  { value: 'sistema_agua_sanitario', label: 'Sistema de Água e Sanitário' },
-  { value: 'eletrica', label: 'Sistema Elétrico' },
-  { value: 'seguranca', label: 'Segurança e Salvatagem' },
-  { value: 'audiovisual_entretenimento', label: 'Audiovisual e Entretenimento' },
+  { value: 'Ar-condicionado', label: 'Ar-condicionado' },
+  { value: 'Área da Cozinha', label: 'Área da Cozinha' },
+  { value: 'Área de Armazenamento de Popa', label: 'Área de Armazenamento de Popa' },
+  { value: 'Área de Jantar', label: 'Área de Jantar' },
+  { value: 'Banheiro da Cabine Master', label: 'Banheiro da Cabine Master' },
+  { value: 'Banheiro da Cabine VIP', label: 'Banheiro da Cabine VIP' },
+  { value: 'Banheiro da Tripulação', label: 'Banheiro da Tripulação' },
+  { value: 'Banheiro do Capitão', label: 'Banheiro do Capitão' },
+  { value: 'Banheiro dos Hóspedes', label: 'Banheiro dos Hóspedes' },
+  { value: 'Cabine da Tripulação', label: 'Cabine da Tripulação' },
+  { value: 'Cabine de Hóspedes BB', label: 'Cabine de Hóspedes BB' },
+  { value: 'Cabine de Hóspedes BE', label: 'Cabine de Hóspedes BE' },
+  { value: 'Cabine do Capitão', label: 'Cabine do Capitão' },
+  { value: 'Cabine Master', label: 'Cabine Master' },
+  { value: 'Cabine VIP', label: 'Cabine VIP' },
+  { value: 'Cabine VIP de Proa', label: 'Cabine VIP de Proa' },
+  { value: 'Características Externas', label: 'Características Externas' },
+  { value: 'Casco e Convés', label: 'Casco e Convés' },
+  { value: 'Comando Principal', label: 'Comando Principal' },
+  { value: 'Convés Principal', label: 'Convés Principal' },
+  { value: 'Cozinha/Galley', label: 'Cozinha/Galley' },
+  { value: 'Deck Principal', label: 'Deck Principal' },
+  { value: 'Elétrica', label: 'Elétrica' },
+  { value: 'Entretenimento', label: 'Entretenimento' },
+  { value: 'Flybridge', label: 'Flybridge' },
+  { value: 'Garagem', label: 'Garagem' },
+  { value: 'Lavabo', label: 'Lavabo' },
+  { value: 'Lobby do Convés Inferior', label: 'Lobby do Convés Inferior' },
+  { value: 'Lobby/Passagem da Tripulação', label: 'Lobby/Passagem da Tripulação' },
+  { value: 'Outros', label: 'Outros' },
+  { value: 'Plataforma de Popa', label: 'Plataforma de Popa' },
+  { value: 'Propulsão e Controle', label: 'Propulsão e Controle' },
+  { value: 'Sala de Máquinas', label: 'Sala de Máquinas' },
+  { value: 'Salão', label: 'Salão' },
+  { value: 'Segurança', label: 'Segurança' },
+  { value: 'Sistemas', label: 'Sistemas' },
+  { value: 'WC da Cabine Master', label: 'WC da Cabine Master' },
+  { value: 'WC VIP', label: 'WC VIP' },
 ] as const;
 
 type CategoryValue = typeof CATEGORIES[number]['value'];
@@ -62,6 +65,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [selectedCategory, setSelectedCategory] = useState<CategoryValue>(CATEGORIES[0].value);
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   const { data: items, isLoading: loadingItems, deleteItem, refetch } = useMemorialItems(yachtModelId);
 
@@ -128,9 +132,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => {
-              alert("Funcionalidade de reordenação de categorias será adicionada na próxima fase. Por enquanto, use o campo 'Ordem da Categoria' ao criar/editar itens.");
-            }}
+            onClick={() => setOrderDialogOpen(true)}
           >
             <GripVertical className="mr-2 h-4 w-4" />
             Ordenar Categorias
@@ -256,6 +258,12 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         yachtModelId={yachtModelId}
         initialData={editingItem}
         defaultCategory={selectedCategory}
+      />
+
+      <CategoryOrderDialog
+        open={orderDialogOpen}
+        onOpenChange={setOrderDialogOpen}
+        yachtModelId={yachtModelId}
       />
     </div>
   );

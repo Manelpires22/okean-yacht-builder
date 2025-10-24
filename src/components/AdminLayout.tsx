@@ -17,8 +17,6 @@ const navItems = [
   { path: "/aprovacoes", icon: CheckSquare, label: "Aprovações", showBadge: true },
   { path: "/admin", icon: Settings, label: "Dashboard" },
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
-  { path: "/admin/memorial-okean", icon: Database, label: "Memorial OKEAN" },
-  { path: "/admin/memorial-categorias", icon: Folder, label: "Categorias Memorial" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
   

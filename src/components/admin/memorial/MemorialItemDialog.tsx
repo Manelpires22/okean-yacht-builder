@@ -35,16 +35,45 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 
 const CATEGORIES = [
-  { value: 'dimensoes', label: 'Dimensões' },
-  { value: 'motorizacao', label: 'Motorização' },
-  { value: 'sistema_eletrico', label: 'Sistema Elétrico' },
-  { value: 'sistema_hidraulico', label: 'Sistema Hidráulico' },
-  { value: 'acabamentos', label: 'Acabamentos' },
-  { value: 'equipamentos', label: 'Equipamentos' },
-  { value: 'seguranca', label: 'Segurança' },
-  { value: 'conforto', label: 'Conforto' },
-  { value: 'outros', label: 'Outros' },
-];
+  { value: 'Ar-condicionado', label: 'Ar-condicionado' },
+  { value: 'Área da Cozinha', label: 'Área da Cozinha' },
+  { value: 'Área de Armazenamento de Popa', label: 'Área de Armazenamento de Popa' },
+  { value: 'Área de Jantar', label: 'Área de Jantar' },
+  { value: 'Banheiro da Cabine Master', label: 'Banheiro da Cabine Master' },
+  { value: 'Banheiro da Cabine VIP', label: 'Banheiro da Cabine VIP' },
+  { value: 'Banheiro da Tripulação', label: 'Banheiro da Tripulação' },
+  { value: 'Banheiro do Capitão', label: 'Banheiro do Capitão' },
+  { value: 'Banheiro dos Hóspedes', label: 'Banheiro dos Hóspedes' },
+  { value: 'Cabine da Tripulação', label: 'Cabine da Tripulação' },
+  { value: 'Cabine de Hóspedes BB', label: 'Cabine de Hóspedes BB' },
+  { value: 'Cabine de Hóspedes BE', label: 'Cabine de Hóspedes BE' },
+  { value: 'Cabine do Capitão', label: 'Cabine do Capitão' },
+  { value: 'Cabine Master', label: 'Cabine Master' },
+  { value: 'Cabine VIP', label: 'Cabine VIP' },
+  { value: 'Cabine VIP de Proa', label: 'Cabine VIP de Proa' },
+  { value: 'Características Externas', label: 'Características Externas' },
+  { value: 'Casco e Convés', label: 'Casco e Convés' },
+  { value: 'Comando Principal', label: 'Comando Principal' },
+  { value: 'Convés Principal', label: 'Convés Principal' },
+  { value: 'Cozinha/Galley', label: 'Cozinha/Galley' },
+  { value: 'Deck Principal', label: 'Deck Principal' },
+  { value: 'Elétrica', label: 'Elétrica' },
+  { value: 'Entretenimento', label: 'Entretenimento' },
+  { value: 'Flybridge', label: 'Flybridge' },
+  { value: 'Garagem', label: 'Garagem' },
+  { value: 'Lavabo', label: 'Lavabo' },
+  { value: 'Lobby do Convés Inferior', label: 'Lobby do Convés Inferior' },
+  { value: 'Lobby/Passagem da Tripulação', label: 'Lobby/Passagem da Tripulação' },
+  { value: 'Outros', label: 'Outros' },
+  { value: 'Plataforma de Popa', label: 'Plataforma de Popa' },
+  { value: 'Propulsão e Controle', label: 'Propulsão e Controle' },
+  { value: 'Sala de Máquinas', label: 'Sala de Máquinas' },
+  { value: 'Salão', label: 'Salão' },
+  { value: 'Segurança', label: 'Segurança' },
+  { value: 'Sistemas', label: 'Sistemas' },
+  { value: 'WC da Cabine Master', label: 'WC da Cabine Master' },
+  { value: 'WC VIP', label: 'WC VIP' },
+] as const;
 
 const UNITS = [
   { value: 'unidade', label: 'Unidade(s)' },
@@ -56,7 +85,46 @@ const UNITS = [
 ];
 
 const memorialItemSchema = z.object({
-  category: z.enum(['dimensoes', 'motorizacao', 'sistema_eletrico', 'sistema_hidraulico', 'acabamentos', 'equipamentos', 'seguranca', 'conforto', 'outros']),
+  category: z.enum([
+    'Ar-condicionado',
+    'Área da Cozinha',
+    'Área de Armazenamento de Popa',
+    'Área de Jantar',
+    'Banheiro da Cabine Master',
+    'Banheiro da Cabine VIP',
+    'Banheiro da Tripulação',
+    'Banheiro do Capitão',
+    'Banheiro dos Hóspedes',
+    'Cabine da Tripulação',
+    'Cabine de Hóspedes BB',
+    'Cabine de Hóspedes BE',
+    'Cabine do Capitão',
+    'Cabine Master',
+    'Cabine VIP',
+    'Cabine VIP de Proa',
+    'Características Externas',
+    'Casco e Convés',
+    'Comando Principal',
+    'Convés Principal',
+    'Cozinha/Galley',
+    'Deck Principal',
+    'Elétrica',
+    'Entretenimento',
+    'Flybridge',
+    'Garagem',
+    'Lavabo',
+    'Lobby do Convés Inferior',
+    'Lobby/Passagem da Tripulação',
+    'Outros',
+    'Plataforma de Popa',
+    'Propulsão e Controle',
+    'Sala de Máquinas',
+    'Salão',
+    'Segurança',
+    'Sistemas',
+    'WC da Cabine Master',
+    'WC VIP',
+  ]),
   item_name: z.string().min(1, "Nome do item é obrigatório").max(200),
   description: z.string().max(500).optional(),
   brand: z.string().max(100).optional(),
@@ -92,7 +160,7 @@ export function MemorialItemDialog({
   const form = useForm<MemorialItemFormData>({
     resolver: zodResolver(memorialItemSchema),
     defaultValues: {
-      category: (defaultCategory || 'dimensoes') as MemorialItemFormData['category'],
+      category: (defaultCategory || 'Outros') as MemorialItemFormData['category'],
       item_name: "",
       description: "",
       brand: "",
@@ -124,7 +192,7 @@ export function MemorialItemDialog({
         });
       } else {
         form.reset({
-          category: (defaultCategory || 'dimensoes') as MemorialItemFormData['category'],
+          category: (defaultCategory || 'Outros') as MemorialItemFormData['category'],
           item_name: "",
           description: "",
           brand: "",
@@ -160,14 +228,14 @@ export function MemorialItemDialog({
       if (initialData?.id) {
         const { error } = await supabase
           .from('memorial_items')
-          .update(payload)
+          .update(payload as any)
           .eq('id', initialData.id);
         
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('memorial_items')
-          .insert([payload]);
+          .insert([payload as any]);
         
         if (error) throw error;
       }
