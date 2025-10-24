@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MemorialOkeanDialog } from "@/components/admin/memorial/MemorialOkeanDialog";
 import { CategoryManagementDialog } from "@/components/admin/memorial/CategoryManagementDialog";
+import { MemorialSearchBar } from "@/components/admin/memorial/MemorialSearchBar";
 import {
   useMemorialOkeanItems,
   useMemorialOkeanCategories,
@@ -90,6 +92,7 @@ interface SortableCategoryAccordionProps {
   onDeleteClick: (id: number) => void;
   onChangeCategory: (itemId: number, newCategoria: string) => void;
   onManageCategory: (categoria: string, itemCount: number) => void;
+  highlightedItemId: number | null;
 }
 
 function SortableCategoryAccordion({
@@ -100,6 +103,7 @@ function SortableCategoryAccordion({
   onDeleteClick,
   onChangeCategory,
   onManageCategory,
+  highlightedItemId,
 }: SortableCategoryAccordionProps) {
   const {
     attributes,
@@ -177,7 +181,13 @@ function SortableCategoryAccordion({
             </TableHeader>
             <TableBody>
               {categoryItems.map((item) => (
-                <TableRow key={item.id}>
+                <TableRow 
+                  key={item.id}
+                  className={cn(
+                    "hover:bg-accent",
+                    highlightedItemId === item.id && "bg-yellow-100 dark:bg-yellow-900/20 animate-pulse"
+                  )}
+                >
                   <TableCell className="text-muted-foreground text-sm">
                     {item.id}
                   </TableCell>
@@ -281,6 +291,7 @@ export default function AdminMemorialOkean() {
     categoria: string;
     itemCount: number;
   } | null>(null);
+  const [highlightedItemId, setHighlightedItemId] = useState<number | null>(null);
 
   const { data: items = [], isLoading, error, refetch } = useMemorialOkeanItems(
     selectedModelo,
@@ -401,6 +412,14 @@ export default function AdminMemorialOkean() {
     });
   };
 
+  const handleItemSelect = (item: MemorialOkeanItem) => {
+    setHighlightedItemId(item.id);
+    setSelectedModelo(item.modelo);
+    setSelectedCategoria(item.categoria);
+    
+    setTimeout(() => setHighlightedItemId(null), 3000);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -480,11 +499,25 @@ export default function AdminMemorialOkean() {
               Gerencie os itens do memorial descritivo
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Item
-          </Button>
+          <div className="flex gap-2">
+            <Link to="/admin/memorial-categorias">
+              <Button variant="outline">
+                <Settings className="h-4 w-4 mr-2" />
+                Gerenciar Categorias
+              </Button>
+            </Link>
+            <Button onClick={handleCreateClick}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Item
+            </Button>
+          </div>
         </div>
+
+        {/* Search Bar */}
+        <MemorialSearchBar
+          items={items || []}
+          onItemSelect={handleItemSelect}
+        />
 
         {/* Migration Button */}
         <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -698,6 +731,7 @@ export default function AdminMemorialOkean() {
                       onDeleteClick={handleDeleteClick}
                       onChangeCategory={handleChangeCategoryItem}
                       onManageCategory={handleManageCategory}
+                      highlightedItemId={highlightedItemId}
                     />
                   ))}
                 </Accordion>

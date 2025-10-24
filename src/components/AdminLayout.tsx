@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ const navItems = [
   { path: "/admin", icon: Settings, label: "Dashboard" },
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
   { path: "/admin/memorial-okean", icon: Database, label: "Memorial OKEAN" },
+  { path: "/admin/memorial-categorias", icon: Folder, label: "Categorias Memorial" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
   

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -115,8 +115,99 @@ export function useDeleteEmptyCategory() {
       if (error.message.includes('possui')) {
         toast.error('Esta categoria possui itens. Use "Mesclar" para movê-los antes de deletar.');
       } else {
-        toast.error(`Erro ao deletar: ${error.message}`);
+      toast.error(`Erro ao deletar: ${error.message}`);
+    }
+  },
+});
+}
+
+// ============================================
+// 4. CRIAR CATEGORIA VAZIA (PLACEHOLDER)
+// ============================================
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      modelo,
+      categoria,
+    }: {
+      modelo: string;
+      categoria: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('memorial_okean')
+        .insert({
+          modelo,
+          categoria,
+          descricao_item: '[Categoria vazia - adicione itens]',
+          tipo_item: 'Placeholder',
+          quantidade: 0,
+          is_customizable: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['memorial-okean'] });
+      queryClient.invalidateQueries({ queryKey: ['memorial-categories'] });
+      toast.success(`Categoria "${variables.categoria}" criada com sucesso!`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao criar categoria: ${error.message}`);
+    },
+  });
+}
+
+// ============================================
+// 5. LISTAR CATEGORIAS COM CONTAGEM DE ITENS
+// ============================================
+export function useMemorialCategoriesWithCount(modelo?: string) {
+  return useQuery({
+    queryKey: ['memorial-categories-count', modelo],
+    queryFn: async () => {
+      let query = supabase
+        .from('memorial_okean')
+        .select('categoria, modelo, category_display_order');
+
+      if (modelo) {
+        query = query.eq('modelo', modelo);
       }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const categoriesMap = new Map<
+        string,
+        {
+          categoria: string;
+          modelo: string;
+          itemCount: number;
+          displayOrder: number;
+        }
+      >();
+
+      data.forEach((item) => {
+        const key = `${item.modelo}-${item.categoria}`;
+        if (categoriesMap.has(key)) {
+          const existing = categoriesMap.get(key)!;
+          existing.itemCount += 1;
+        } else {
+          categoriesMap.set(key, {
+            categoria: item.categoria,
+            modelo: item.modelo,
+            itemCount: 1,
+            displayOrder: item.category_display_order ?? 999,
+          });
+        }
+      });
+
+      return Array.from(categoriesMap.values()).sort(
+        (a, b) => a.displayOrder - b.displayOrder
+      );
     },
   });
 }
