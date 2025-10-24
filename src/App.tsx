@@ -11,12 +11,9 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import AdminYachtModels from "./pages/AdminYachtModels";
 import AdminUsers from "./pages/AdminUsers";
-import AdminMigration from "./pages/AdminMigration";
 import AdminYachtModelEdit from "./pages/AdminYachtModelEdit";
 import AdminYachtModelCreate from "./pages/AdminYachtModelCreate";
 import AdminOptions from "./pages/AdminOptions";
-import AdminMemorialOkean from "./pages/AdminMemorialOkean";
-import AdminMemorialCategories from "./pages/AdminMemorialCategories";
 import Configurator from "./pages/Configurator";
 import Quotations from "@/pages/Quotations";
 import QuotationDetail from "@/pages/QuotationDetail";
@@ -49,11 +46,8 @@ const App = () => (
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/yacht-models/new" element={<ProtectedRoute requireAdmin><AdminYachtModelCreate /></ProtectedRoute>} />
             <Route path="/admin/yacht-models/:modelId/edit" element={<ProtectedRoute requireAdmin><AdminYachtModelEdit /></ProtectedRoute>} />
-            <Route path="/admin/memorial-okean" element={<ProtectedRoute requireAdmin><AdminMemorialOkean /></ProtectedRoute>} />
-            <Route path="/admin/memorial-categorias" element={<ProtectedRoute requireAdmin><AdminMemorialCategories /></ProtectedRoute>} />
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
-            <Route path="/admin/migration" element={<ProtectedRoute requireAdmin><AdminMigration /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

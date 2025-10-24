@@ -174,45 +174,6 @@ export type Database = {
           },
         ]
       }
-      memorial_okean: {
-        Row: {
-          categoria: string
-          category_display_order: number | null
-          created_at: string | null
-          descricao_item: string
-          id: number
-          is_customizable: boolean | null
-          marca: string | null
-          modelo: string
-          quantidade: number | null
-          tipo_item: string
-        }
-        Insert: {
-          categoria: string
-          category_display_order?: number | null
-          created_at?: string | null
-          descricao_item: string
-          id?: number
-          is_customizable?: boolean | null
-          marca?: string | null
-          modelo: string
-          quantidade?: number | null
-          tipo_item?: string
-        }
-        Update: {
-          categoria?: string
-          category_display_order?: number | null
-          created_at?: string | null
-          descricao_item?: string
-          id?: number
-          is_customizable?: boolean | null
-          marca?: string | null
-          modelo?: string
-          quantidade?: number | null
-          tipo_item?: string
-        }
-        Relationships: []
-      }
       option_categories: {
         Row: {
           created_at: string | null
@@ -684,16 +645,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      delete_empty_memorial_category: {
-        Args: { p_categoria: string; p_modelo: string }
-        Returns: boolean
-      }
-      get_distinct_memorial_modelos: {
-        Args: never
-        Returns: {
-          modelo: string
-        }[]
-      }
       get_yacht_model_id: { Args: { modelo_text: string }; Returns: string }
       has_role: {
         Args: {
@@ -702,25 +653,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      merge_memorial_categories: {
-        Args: {
-          p_modelo: string
-          p_source_category: string
-          p_target_category: string
-        }
-        Returns: number
-      }
       normalize_memorial_category: {
         Args: { okean_categoria: string }
         Returns: string
-      }
-      rename_memorial_category: {
-        Args: { p_modelo: string; p_new_name: string; p_old_name: string }
-        Returns: number
-      }
-      update_memorial_category_orders: {
-        Args: { p_modelo: string; p_orders: Json }
-        Returns: undefined
       }
     }
     Enums: {
