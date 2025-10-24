@@ -20,6 +20,7 @@ import Quotations from "@/pages/Quotations";
 import QuotationDetail from "@/pages/QuotationDetail";
 import Clients from "@/pages/Clients";
 import Approvals from "@/pages/Approvals";
+import Profile from "@/pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/clientes" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
             <Route path="/approvals" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
             <Route path="/aprovacoes" element={<ProtectedRoute><Approvals /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
             <Route path="/admin/yacht-models/new" element={<ProtectedRoute requireAdmin><AdminYachtModelCreate /></ProtectedRoute>} />

@@ -62,6 +62,10 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer">
+          <User className="mr-2 h-4 w-4" />
+          <span>Minha Conta</span>
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Terminar Sessão</span>
