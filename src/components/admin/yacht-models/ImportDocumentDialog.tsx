@@ -91,47 +91,49 @@ export function ImportDocumentDialog({
         console.log('📝 Arquivo de texto detectado');
         documentText = await file.text();
       } else {
-        // Arquivo binário (PDF, DOCX, XLSX) - usar FileReader para extrair bytes
+        // Arquivo binário (PDF, DOCX, XLSX)
         console.log('📄 Arquivo binário detectado:', file.type);
-        toast.info('Lendo arquivo binário...');
         
-        // Ler arquivo como ArrayBuffer
-        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as ArrayBuffer);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsArrayBuffer(file);
-        });
+        setError(`⚠️ Limitação: Extração de texto de ${file.type.includes('pdf') ? 'PDF' : 'DOCX/XLSX'} é limitada.
+
+📋 **Solução Recomendada:**
+1. Abra o arquivo ${file.name}
+2. Selecione todo o texto (Ctrl+A)
+3. Copie o conteúdo (Ctrl+C)
+4. Cole em um editor de texto (Bloco de Notas, Notepad++)
+5. Salve como arquivo .TXT
+6. Faça upload do arquivo .TXT aqui
+
+💡 **Alternativa**: Se tiver Adobe Acrobat, use "Exportar para → Texto".
+
+🔧 **Por que isso é necessário?**
+Arquivos PDF e DOCX têm estrutura binária complexa que requer bibliotecas especializadas para extrair texto corretamente.`);
         
-        console.log('📊 Arquivo lido:', arrayBuffer.byteLength, 'bytes');
-        
-        // Tentar extrair texto usando TextDecoder
-        // Isso funciona para PDFs e DOCXs que têm texto embarcado
-        const uint8Array = new Uint8Array(arrayBuffer);
-        
-        // Tentar UTF-8 primeiro
-        try {
-          const decoder = new TextDecoder('utf-8');
-          documentText = decoder.decode(uint8Array);
-        } catch {
-          // Fallback para latin1 se UTF-8 falhar
-          const decoder = new TextDecoder('latin1');
-          documentText = decoder.decode(uint8Array);
-        }
-        
-        // Limpar caracteres de controle, mas manter quebras de linha e espaços
-        documentText = documentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ');
-        
-        // Remover sequências muito longas de espaços
-        documentText = documentText.replace(/\s{10,}/g, '\n');
-        
-        console.log('📝 Texto extraído (primeiros 1000 chars):');
-        console.log(documentText.substring(0, 1000));
-        
-        if (!documentText || documentText.trim().length < 100) {
-          setError('⚠️ Não foi possível extrair texto suficiente do arquivo. \n\nPossíveis soluções:\n• Converta o PDF para texto selecionável\n• Use um arquivo TXT\n• Verifique se o PDF não está protegido');
-          return;
-        }
+        setIsProcessing(false);
+        return;
+      }
+
+      // Validar se o texto é legível (não é binário)
+      const binaryCharCount = (documentText.match(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g) || []).length;
+      const binaryRatio = binaryCharCount / documentText.length;
+      
+      if (binaryRatio > 0.3) {
+        setError(`⚠️ O arquivo parece conter dados binários (${(binaryRatio * 100).toFixed(1)}% caracteres não imprimíveis).
+
+Por favor, converta o arquivo para formato TXT puro seguindo as instruções acima.`);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Limpar texto
+      documentText = documentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ');
+      documentText = documentText.replace(/\s{10,}/g, '\n');
+      documentText = documentText.trim();
+      
+      if (!documentText || documentText.length < 100) {
+        setError('⚠️ Texto extraído muito curto (menos de 100 caracteres). Verifique se o arquivo contém texto.');
+        setIsProcessing(false);
+        return;
       }
 
       // Preview do documento (primeiros 500 caracteres) - Fase 3
@@ -166,6 +168,10 @@ export function ImportDocumentDialog({
           errorMessage = '⏱️ Limite de requisições excedido.\n\nAguarde alguns instantes e tente novamente.';
         } else if (errorMessage.includes('token count exceeds')) {
           errorMessage = '📄 Documento muito grande.\n\nO arquivo excede o limite de tokens. Tente um documento menor.';
+        } else if (errorMessage.includes('FunctionsHttpError: 400')) {
+          errorMessage = `⚠️ Erro ao processar o documento.\n\nO texto extraído pode estar malformado. Por favor:\n\n1. Converta o arquivo para TXT puro\n2. Ou copie o texto manualmente e cole em um arquivo .TXT\n\nDetalhes técnicos: ${errorMessage}`;
+        } else if (errorMessage.includes('Edge Function returned a non-2xx status code')) {
+          errorMessage = `⚠️ Erro no processamento pela IA.\n\nPossíveis causas:\n• Texto com caracteres inválidos\n• Documento muito complexo\n• Formato não suportado corretamente\n\n📋 Solução: Converta para arquivo TXT puro antes de processar.`;
         }
         
         throw new Error(errorMessage);
@@ -270,7 +276,7 @@ export function ImportDocumentDialog({
               <Input
                 id="file-upload"
                 type="file"
-                accept=".pdf,.docx,.xlsx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
+                accept=".txt,text/plain"
                 onChange={handleFileChange}
                 disabled={isProcessing}
               />
@@ -281,13 +287,20 @@ export function ImportDocumentDialog({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              ✅ Formatos aceitos: PDF, Word (.docx), Excel (.xlsx), TXT | Máximo: 20MB
+              ✅ Formato recomendado: <strong>TXT (texto puro)</strong> | Máximo: 20MB
             </p>
-            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-xs">
-                <strong>Dica:</strong> Para melhor extração de texto, prefira arquivos TXT ou PDF com texto selecionável.
-                Documentos escaneados (apenas imagens) podem ter resultados limitados.
+            <Alert className="bg-amber-50 dark:bg-amber-950 border-amber-200">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-xs space-y-2">
+                <p><strong>⚠️ Apenas arquivos TXT são suportados no momento</strong></p>
+                <p className="mt-2">Para converter PDF/DOCX para TXT:</p>
+                <ol className="list-decimal ml-4 mt-1 space-y-1">
+                  <li>Abra o arquivo PDF/DOCX</li>
+                  <li>Selecione todo o texto (Ctrl+A)</li>
+                  <li>Copie (Ctrl+C)</li>
+                  <li>Cole no Bloco de Notas</li>
+                  <li>Salve como .TXT</li>
+                </ol>
               </AlertDescription>
             </Alert>
           </div>
