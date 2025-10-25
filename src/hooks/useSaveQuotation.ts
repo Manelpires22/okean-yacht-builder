@@ -147,11 +147,13 @@ export function useSaveQuotation() {
       if (data.customizations.length > 0) {
         const customizationsData = data.customizations.map((customization) => ({
           quotation_id: quotation.id,
-          memorial_item_id: customization.memorial_item_id,
+          memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
+            ? null 
+            : customization.memorial_item_id,
           item_name: customization.item_name,
           notes: customization.notes,
           quantity: customization.quantity || null,
-          file_paths: [], // Files will be added in future iteration
+          file_paths: customization.image_url ? [customization.image_url] : [],
         }));
 
         const { error: customizationsError } = await supabase

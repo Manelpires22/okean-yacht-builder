@@ -141,7 +141,7 @@ export function SaveQuotationDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 max-h-[55vh] overflow-y-auto pr-2">
             {requiresApproval && (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
