@@ -121,18 +121,32 @@ export function MemorialDescritivo({
     );
   }
 
-  // Group items by category
-  const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, typeof items>);
 
-  // Items already ordered by category_display_order from database query
-  const nonEmptyCategories = Object.entries(groupedItems)
-    .filter(([_, categoryItems]) => categoryItems.length > 0);
+  // Group items by category while preserving category order
+  const categoryMap = new Map<string, {
+    items: typeof items;
+    order: number;
+    label: string;
+  }>();
+
+  items.forEach(item => {
+    const categoryData = (item as any).memorial_categories;
+    const categoryKey = item.category;
+    
+    if (!categoryMap.has(categoryKey)) {
+      categoryMap.set(categoryKey, {
+        items: [],
+        order: categoryData?.display_order ?? 999,
+        label: categoryData?.label ?? CATEGORY_LABELS[categoryKey] ?? categoryKey,
+      });
+    }
+    categoryMap.get(categoryKey)!.items.push(item);
+  });
+
+  // Sort categories by display_order and convert to array
+  const sortedCategories = Array.from(categoryMap.entries())
+    .sort(([, a], [, b]) => a.order - b.order)
+    .filter(([_, categoryData]) => categoryData.items.length > 0);
 
   const getCustomization = (itemId: string) => {
     return customizations.find((c) => c.memorial_item_id === itemId);
@@ -168,19 +182,19 @@ export function MemorialDescritivo({
       </CardHeader>
       <CardContent>
         <Accordion type="single" collapsible className="w-full">
-          {nonEmptyCategories.map(([category, categoryItems], index) => (
+          {sortedCategories.map(([categoryKey, categoryData], index) => (
             <AccordionItem key={index} value={`category-${index}`}>
               <AccordionTrigger className="text-left">
                 <div className="flex items-center justify-between w-full pr-4">
-                  <span>{CATEGORY_LABELS[category] || category}</span>
+                  <span>{categoryData.label}</span>
                   <span className="text-sm text-muted-foreground font-normal">
-                    ({categoryItems.length})
+                    ({categoryData.items.length})
                   </span>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-3">
-                  {categoryItems.map((item) => {
+                  {categoryData.items.map((item) => {
                     const customization = getCustomization(item.id);
                     const hasCustomization = !!customization;
 
