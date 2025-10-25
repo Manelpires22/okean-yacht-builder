@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
       nextStatus = 'approved';
       updateData = {
         workflow_status: nextStatus,
-        status: 'approved',
+        status: 'approved', // ✅ SEMPRE marcar como aprovado após PM Final
         pm_final_price: data.pm_final_price,
         pm_final_delivery_impact_days: data.pm_final_delivery_impact_days,
         pm_final_notes: data.pm_final_notes,
@@ -206,6 +206,12 @@ Deno.serve(async (req) => {
         reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
       };
+
+      // ✅ ATUALIZAR A CUSTOMIZAÇÃO IMEDIATAMENTE ANTES DE VERIFICAR APROVAÇÃO COMERCIAL
+      await supabase
+        .from('quotation_customizations')
+        .update(updateData)
+        .eq('id', customizationId);
 
       // Update quotation totals
       const { data: allCustomizations } = await supabase
@@ -273,6 +279,17 @@ Deno.serve(async (req) => {
           .update({ status: 'pending_commercial_approval' })
           .eq('id', customization.quotations.id);
 
+        // ✅ Marcar step como concluído e retornar
+        await supabase
+          .from('customization_workflow_steps')
+          .update({
+            status: 'completed',
+            response_data: data,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('customization_id', customizationId)
+          .eq('step_type', currentStep);
+
         return new Response(
           JSON.stringify({
             success: true,
@@ -288,6 +305,26 @@ Deno.serve(async (req) => {
           .from('quotations')
           .update({ status: 'ready_to_send' })
           .eq('id', customization.quotations.id);
+
+        // ✅ Marcar step como concluído
+        await supabase
+          .from('customization_workflow_steps')
+          .update({
+            status: 'completed',
+            response_data: data,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('customization_id', customizationId)
+          .eq('step_type', currentStep);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            status: 'approved',
+            message: 'Customização aprovada com sucesso!',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
