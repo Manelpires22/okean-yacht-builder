@@ -1154,6 +1154,621 @@ graph TD
 
 ---
 
+## 7.5 Workflow de Customizações (4 Etapas)
+
+### 7.5.1 Visão Geral
+
+O sistema implementa um **workflow de 4 etapas** para aprovar customizações técnicas solicitadas pelos clientes:
+
+1. **PM Initial Review** - PM Engenharia analisa escopo e estima horas de engenharia
+2. **Supply Quote** - Comprador cota materiais e fornecedores
+3. **Planning Validation** - Planejador valida janela de entrega
+4. **PM Final** - PM finaliza com custo total e impacto no prazo
+
+**Características:**
+- ✅ Cada etapa é independente e sequencial
+- ✅ Notificações por email automáticas via edge function
+- ✅ Aprovação comercial automática se desconto > limite configurado
+- ✅ Sincronização com `quotations` ao final
+
+### 7.5.2 Estrutura de Dados
+
+#### Tabela: `quotation_customizations`
+
+```sql
+CREATE TABLE quotation_customizations (
+  id uuid PRIMARY KEY,
+  quotation_id uuid REFERENCES quotations(id),
+  memorial_item_id uuid REFERENCES memorial_items(id),
+  
+  -- Dados da customização
+  item_name text NOT NULL,
+  notes text,
+  quantity integer,
+  status text DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+  
+  -- Workflow
+  workflow_status text DEFAULT 'pending_pm_review',
+  workflow_audit jsonb DEFAULT '[]',
+  
+  -- PM Initial
+  pm_scope text,
+  engineering_hours numeric DEFAULT 0,
+  
+  -- Supply Quote
+  supply_items jsonb DEFAULT '[]',
+  supply_cost numeric DEFAULT 0,
+  supply_lead_time_days integer DEFAULT 0,
+  
+  -- Planning Validation
+  planning_window_start date,
+  planning_delivery_impact_days integer DEFAULT 0,
+  
+  -- PM Final
+  pm_final_price numeric DEFAULT 0,
+  pm_final_delivery_impact_days integer DEFAULT 0,
+  
+  -- Metadados
+  reviewed_by uuid,
+  reviewed_at timestamptz,
+  reject_reason text,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+#### Tabela: `customization_workflow_steps`
+
+```sql
+CREATE TABLE customization_workflow_steps (
+  id uuid PRIMARY KEY,
+  customization_id uuid REFERENCES quotation_customizations(id),
+  
+  step_type text NOT NULL, -- 'pm_initial', 'supply_quote', 'planning', 'pm_final'
+  status text DEFAULT 'pending', -- 'pending', 'completed', 'rejected'
+  
+  assigned_to uuid REFERENCES users(id),
+  response_data jsonb,
+  notes text,
+  
+  completed_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+```
+
+#### Workflow Config (Tabela: `workflow_config`)
+
+```sql
+INSERT INTO workflow_config (config_key, config_value) VALUES
+  ('engineering_rate', '{"value": 150}'::jsonb),           -- R$/h
+  ('contingency_percent', '{"value": 20}'::jsonb),         -- %
+  ('sla_days_pm_initial', '{"value": 2}'::jsonb),          -- dias
+  ('sla_days_supply_quote', '{"value": 5}'::jsonb),        -- dias
+  ('sla_days_planning_check', '{"value": 3}'::jsonb),      -- dias
+  ('sla_days_pm_final', '{"value": 1}'::jsonb);            -- dias
+```
+
+### 7.5.3 Fluxo das Etapas
+
+#### **Etapa 1: PM Initial Review**
+
+**Responsável:** PM Engenharia (role: `pm_engenharia`)
+
+**Dados Capturados:**
+- `pm_scope` (text): Descrição detalhada do escopo técnico
+- `engineering_hours` (numeric): Horas estimadas de engenharia
+
+**Validações:**
+- ✅ Escopo não pode estar vazio
+- ✅ Horas > 0
+
+**Ações:**
+- ✅ Criar step `supply_quote` e atribuir ao Comprador
+- ✅ Enviar email de notificação via `send-workflow-notification`
+
+**Componente:** `src/components/configurator/workflow/PMInitialForm.tsx`
+
+---
+
+#### **Etapa 2: Supply Quote**
+
+**Responsável:** Comprador (role: `comprador`)
+
+**Dados Capturados:**
+- `supply_items` (jsonb array): Lista de itens cotados
+  ```typescript
+  [
+    {
+      description: string,
+      quantity: number,
+      unitPrice: number,
+      supplier: string,
+      leadTimeDays: number
+    }
+  ]
+  ```
+- `supply_cost` (numeric): Custo total dos materiais (calculado automaticamente)
+- `supply_lead_time_days` (integer): Maior lead time entre os itens
+
+**Validações:**
+- ✅ Pelo menos 1 item cotado
+- ✅ Todos os campos obrigatórios preenchidos
+
+**Cálculos Automáticos:**
+```typescript
+supply_cost = sum(item.quantity * item.unitPrice)
+supply_lead_time_days = max(item.leadTimeDays)
+```
+
+**Ações:**
+- ✅ Criar step `planning_validation` e atribuir ao Planejador
+- ✅ Enviar email de notificação
+
+**Componente:** `src/components/configurator/workflow/SupplyQuoteForm.tsx`
+
+---
+
+#### **Etapa 3: Planning Validation**
+
+**Responsável:** Planejador (role: `planejador`)
+
+**Dados Capturados:**
+- `planning_window_start` (date): Data de início da janela de produção
+- `planning_delivery_impact_days` (integer): Impacto no prazo total
+
+**Validações:**
+- ✅ Data não pode estar no passado
+- ✅ Impacto >= 0 dias
+
+**Ações:**
+- ✅ Criar step `planning_validation` e atribuir ao Planejador
+- ✅ Enviar email de notificação
+
+**Componente:** `src/components/configurator/workflow/PlanningValidationForm.tsx`
+
+---
+
+#### **Etapa 4: PM Final**
+
+**Responsável:** PM Engenharia (role: `pm_engenharia`)
+
+**Dados Capturados:**
+- `pm_final_price` (numeric): Preço final da customização
+- `pm_final_delivery_impact_days` (integer): Impacto final no prazo
+- `pm_final_notes` (text): Observações finais
+
+**Cálculos Automáticos:**
+```typescript
+const engineeringRate = 150; // R$/h (configurável)
+const contingency = 20; // % (configurável)
+
+const engineeringCost = engineering_hours * engineeringRate;
+const totalCost = engineeringCost + supply_cost;
+const costWithContingency = totalCost * (1 + contingency / 100);
+
+// Valores sugeridos (PM pode ajustar)
+pm_final_price = costWithContingency;
+pm_final_delivery_impact_days = max(supply_lead_time_days, planning_delivery_impact_days);
+```
+
+**Validações:**
+- ✅ Preço final > 0
+- ✅ Impacto >= 0 dias
+
+**Ações Finais:**
+1. ✅ Atualizar `quotation_customizations.status = 'approved'`
+2. ✅ Atualizar `quotation_customizations.workflow_status = 'approved'`
+3. ✅ Recalcular totais da cotação:
+   ```typescript
+   quotation.total_customizations_price += pm_final_price
+   quotation.total_delivery_days += pm_final_delivery_impact_days
+   quotation.final_price = base_price + options_price + customizations_price - discounts
+   ```
+4. ✅ **Verificar necessidade de aprovação comercial:**
+   - Se desconto total > limite configurado → criar approval comercial
+   - Caso contrário → marcar cotação como `ready_to_send`
+
+**Componente:** `src/components/configurator/workflow/PMFinalForm.tsx`
+
+**Edge Function:** `supabase/functions/advance-customization-workflow/index.ts`
+
+### 7.5.4 Edge Function: advance-customization-workflow
+
+**Responsabilidades:**
+1. Validar dados do step atual
+2. Atualizar `quotation_customizations` com os dados do step
+3. Marcar step atual como `completed`
+4. Criar próximo step (se houver) e atribuir ao role correto
+5. Enviar notificação por email via `send-workflow-notification`
+6. **No PM Final:** Sincronizar com `quotations` e verificar aprovação comercial
+
+**Assignação Automática de Steps:**
+
+```typescript
+const STEP_ROLE_MAPPING = {
+  pm_initial: 'pm_engenharia',
+  supply_quote: 'comprador',
+  planning_validation: 'planejador',
+  pm_final: 'pm_engenharia'
+};
+
+// Buscar primeiro usuário com o role necessário
+const { data: users } = await supabase
+  .from('user_roles')
+  .select('user_id')
+  .eq('role', STEP_ROLE_MAPPING[nextStepType])
+  .limit(1);
+```
+
+**Fluxo de Aprovação Comercial:**
+
+```typescript
+// Após PM Final, verificar se precisa aprovação comercial
+const { data: discountLimits } = await supabase
+  .from('discount_limits_config')
+  .select('*');
+
+const totalDiscount = (base_discount + options_discount + customizations_discount);
+
+if (totalDiscount > discountLimits.no_approval_max) {
+  // Criar approval comercial
+  await supabase.from('approvals').insert({
+    quotation_id: quotationId,
+    approval_type: 'commercial',
+    status: 'pending',
+    requested_by: pm_user_id
+  });
+  
+  quotation.status = 'pending_approval';
+} else {
+  // Aprovação automática
+  quotation.status = 'ready_to_send';
+}
+```
+
+**Notificações:**
+
+```typescript
+await supabase.functions.invoke('send-workflow-notification', {
+  body: {
+    userId: assignedUserId,
+    customizationId: customizationId,
+    stepType: nextStepType,
+    quotationNumber: quotation.quotation_number,
+    message: `Nova tarefa: ${STEP_LABELS[nextStepType]}`
+  }
+});
+```
+
+**Localização:** `supabase/functions/advance-customization-workflow/index.ts`
+
+### 7.5.5 Componentes UI
+
+#### **CustomizationWorkflowModal**
+
+Modal principal que exibe o workflow em 3 tabs:
+
+1. **Context Tab:** Exibe dados da customização (nome, notas, quantidade)
+2. **Analysis Tab:** Formulário específico por role e step
+3. **Decision Tab:** Botões de aprovar/rejeitar
+
+**Localização:** `src/components/configurator/CustomizationWorkflowModal.tsx`
+
+**Uso:**
+```typescript
+<CustomizationWorkflowModal
+  customizationId={customization.id}
+  open={isOpen}
+  onOpenChange={setIsOpen}
+/>
+```
+
+---
+
+#### **WorkflowTasks Page**
+
+Página `/workflow-tasks` que lista todas as tarefas pendentes do usuário logado.
+
+**Filtros:**
+- ✅ Por role (PM, Comprador, Planejador)
+- ✅ Por status (Pendente, Completo)
+
+**Localização:** `src/pages/WorkflowTasks.tsx`
+
+---
+
+#### **Workflow Status Badge**
+
+Badge visual que mostra o status atual do workflow:
+
+```typescript
+const WORKFLOW_STATUS_LABELS = {
+  pending_pm_review: { label: 'Análise PM', variant: 'secondary' },
+  pending_supply_quote: { label: 'Cotação', variant: 'secondary' },
+  pending_planning: { label: 'Planejamento', variant: 'secondary' },
+  pending_pm_final: { label: 'Finalização PM', variant: 'secondary' },
+  approved: { label: 'Aprovado', variant: 'success' },
+  rejected: { label: 'Rejeitado', variant: 'destructive' }
+};
+```
+
+**Localização:** `src/components/quotations/CustomizationStatusCard.tsx`
+
+### 7.5.6 Hooks Customizados
+
+#### **useCustomizationWorkflow**
+
+Hook principal para gerenciar o workflow.
+
+```typescript
+export function useCustomizationWorkflow(customizationId: string) {
+  const { data: customization } = useQuery({
+    queryKey: ['customization-workflow', customizationId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('quotation_customizations')
+        .select(`
+          *,
+          quotation:quotations(quotation_number),
+          memorial_item:memorial_items(item_name, category)
+        `)
+        .eq('id', customizationId)
+        .single();
+      return data;
+    }
+  });
+
+  return { customization };
+}
+```
+
+**Localização:** `src/hooks/useCustomizationWorkflow.ts`
+
+---
+
+#### **useAdvanceCustomizationWorkflow**
+
+Mutation para avançar o workflow para próxima etapa.
+
+```typescript
+export function useAdvanceCustomizationWorkflow() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: AdvanceWorkflowInput) => {
+      const { data: result, error } = await supabase.functions.invoke(
+        'advance-customization-workflow',
+        { body: data }
+      );
+      
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customization-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-customizations-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      toast.success('Etapa avançada com sucesso!');
+    }
+  });
+}
+```
+
+**Localização:** `src/hooks/useCustomizationWorkflow.ts`
+
+### 7.5.7 Configuração de Roles
+
+O workflow requer os seguintes roles no sistema:
+
+```typescript
+export type AppRole = 
+  | 'administrador'
+  | 'gerente_comercial'
+  | 'vendedor'
+  | 'engenheiro'
+  | 'diretor_comercial'
+  | 'pm_engenharia'        // ✅ Novo
+  | 'comprador'            // ✅ Novo
+  | 'planejador'           // ✅ Novo
+  | 'broker'
+  | 'backoffice_comercial';
+```
+
+**Permissões:**
+
+| Role | Permissões no Workflow |
+|------|------------------------|
+| `pm_engenharia` | Aprovar PM Initial e PM Final |
+| `comprador` | Aprovar Supply Quote |
+| `planejador` | Aprovar Planning Validation |
+| `administrador` | Ver e aprovar qualquer etapa |
+
+**RLS Policies:**
+
+```sql
+-- Workflow steps: Apenas usuários atribuídos podem ver/editar
+CREATE POLICY "Assigned users can view and update their steps"
+  ON customization_workflow_steps FOR ALL
+  USING (
+    assigned_to = auth.uid() OR
+    has_role(auth.uid(), 'administrador')
+  );
+
+-- Customizations: Todos envolvidos no workflow podem ver
+CREATE POLICY "Workflow participants can view customizations"
+  ON quotation_customizations FOR SELECT
+  USING (
+    has_role(auth.uid(), 'pm_engenharia') OR
+    has_role(auth.uid(), 'comprador') OR
+    has_role(auth.uid(), 'planejador') OR
+    has_role(auth.uid(), 'administrador')
+  );
+```
+
+**Localização:** `src/hooks/useUserRole.ts`
+
+### 7.5.8 Diagrama do Fluxo Completo
+
+```mermaid
+graph TD
+    A[Cliente Solicita Customização] --> B[Criar quotation_customizations]
+    B --> C[PM Initial Review]
+    
+    C --> D{Aprovar?}
+    D -->|Sim| E[Supply Quote]
+    D -->|Não| Z[Rejeitar - Fim]
+    
+    E --> F{Aprovar?}
+    F -->|Sim| G[Planning Validation]
+    F -->|Não| Z
+    
+    G --> H{Aprovar?}
+    H -->|Sim| I[PM Final]
+    H -->|Não| Z
+    
+    I --> J{Aprovar?}
+    J -->|Sim| K[Sincronizar com Quotation]
+    J -->|Não| Z
+    
+    K --> L{Desconto > Limite?}
+    L -->|Sim| M[Criar Aprovação Comercial]
+    L -->|Não| N[Status: Ready to Send]
+    
+    M --> O[Gerente Aprova]
+    O --> N
+    
+    N --> P[Enviar ao Cliente]
+    
+    style C fill:#e3f2fd
+    style E fill:#e3f2fd
+    style G fill:#e3f2fd
+    style I fill:#e3f2fd
+    style M fill:#fff3e0
+    style N fill:#c8e6c9
+    style Z fill:#ffcdd2
+```
+
+### 7.5.9 Troubleshooting Workflow
+
+#### **"Workflow não avança após aprovação"**
+
+**Causa Comum:** Cache não foi invalidado corretamente.
+
+**Solução:**
+```typescript
+// Em useCustomizationWorkflow.ts
+onSuccess: () => {
+  queryClient.invalidateQueries({ queryKey: ['customization-workflow'] });
+  queryClient.invalidateQueries({ queryKey: ['quotation-customizations-workflow'] }); // ✅ Adicionar
+  queryClient.invalidateQueries({ queryKey: ['quotations'] });
+}
+```
+
+---
+
+#### **"Notificação não foi enviada"**
+
+**Debug:**
+1. Verificar logs da edge function:
+   ```bash
+   # Supabase Dashboard → Functions → send-workflow-notification → Logs
+   ```
+
+2. Verificar se usuário tem email cadastrado:
+   ```sql
+   SELECT email FROM users WHERE id = 'user-id';
+   ```
+
+3. Testar edge function manualmente:
+   ```typescript
+   await supabase.functions.invoke('send-workflow-notification', {
+     body: {
+       userId: 'test-user-id',
+       customizationId: 'test-customization-id',
+       stepType: 'pm_initial',
+       quotationNumber: 'Q-2025-001',
+       message: 'Teste'
+     }
+   });
+   ```
+
+---
+
+#### **"Customização ficou presa em status 'pending'"**
+
+**Causa:** Algum step não foi concluído corretamente.
+
+**Debug:**
+```sql
+-- Ver todos os steps da customização
+SELECT * FROM customization_workflow_steps
+WHERE customization_id = 'customization-id'
+ORDER BY created_at;
+
+-- Ver status da customização
+SELECT workflow_status, status, pm_scope, supply_items, pm_final_price
+FROM quotation_customizations
+WHERE id = 'customization-id';
+```
+
+**Solução:**
+- Se step está `pending` mas deveria estar `completed`, atualizar manualmente:
+  ```sql
+  UPDATE customization_workflow_steps
+  SET status = 'completed', completed_at = now()
+  WHERE id = 'step-id';
+  ```
+
+- Recriar próximo step se necessário:
+  ```sql
+  INSERT INTO customization_workflow_steps (customization_id, step_type, assigned_to)
+  SELECT 'customization-id', 'supply_quote', id
+  FROM user_roles WHERE role = 'comprador' LIMIT 1;
+  ```
+
+---
+
+#### **"Aprovação comercial não foi criada automaticamente"**
+
+**Causa:** Desconto não ultrapassa o limite configurado.
+
+**Verificar limites:**
+```sql
+SELECT * FROM discount_limits_config WHERE limit_type = 'base';
+```
+
+**Debug:**
+```sql
+-- Ver desconto total da cotação
+SELECT 
+  base_discount_percentage,
+  options_discount_percentage,
+  (base_discount_percentage + options_discount_percentage) as total_discount,
+  status
+FROM quotations
+WHERE id = 'quotation-id';
+```
+
+---
+
+#### **"Step atribuído ao usuário errado"**
+
+**Causa:** Múltiplos usuários com mesmo role.
+
+**Solução:** A edge function atribui ao **primeiro usuário** encontrado com o role. Para controlar isso:
+
+```sql
+-- Ver todos os usuários com role específico
+SELECT u.email, ur.role
+FROM user_roles ur
+JOIN users u ON u.id = ur.user_id
+WHERE ur.role = 'pm_engenharia';
+
+-- Garantir que apenas 1 usuário tem o role (ou criar lógica de round-robin)
+```
+
+---
+
 ## 8. Controle de Acesso (RBAC)
 
 ### 8.1 Roles & Permissões
@@ -2384,6 +2999,20 @@ Este documento é vivo e deve ser atualizado conforme o projeto evolui.
 
 ## Changelog
 
+### v1.2.0 (2025-01-25)
+**Adicionado:**
+- Seção 7.5: Workflow de Customizações (4 Etapas)
+  - Documentação completa do fluxo PM Initial → Supply → Planning → PM Final
+  - Estrutura de dados (`quotation_customizations`, `customization_workflow_steps`, `workflow_config`)
+  - Detalhamento de cada etapa com validações e cálculos
+  - Edge function `advance-customization-workflow`
+  - Componentes UI e hooks customizados
+  - Configuração de roles (pm_engenharia, comprador, planejador)
+  - Diagrama Mermaid do fluxo completo
+  - Troubleshooting específico do workflow
+
+**Contexto:** Implementado após conclusão do Sprint 1 do workflow de customizações técnicas.
+
 ### v1.1.0 (2025-10-23)
 **Adicionado:**
 - Seção 9.7: Navegação Global (AppHeader)
@@ -2400,5 +3029,5 @@ Este documento é vivo e deve ser atualizado conforme o projeto evolui.
 
 ---
 
-**Última atualização:** 2025-10-23
-**Versão:** 1.1.0
+**Última atualização:** 2025-01-25
+**Versão:** 1.2.0
