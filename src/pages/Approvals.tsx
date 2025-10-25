@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useApprovals } from "@/hooks/useApprovals";
 import { ApprovalStats } from "@/components/approvals/ApprovalStats";
 import { ApprovalDialog } from "@/components/approvals/ApprovalDialog";
+import { CustomizationWorkflowModal } from "@/components/configurator/CustomizationWorkflowModal";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye } from "lucide-react";
+import { Eye, Workflow } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -23,7 +24,9 @@ type TabValue = 'all' | 'pending' | 'approved' | 'rejected';
 export default function Approvals() {
   const [activeTab, setActiveTab] = useState<TabValue>('pending');
   const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
+  const [selectedCustomizationId, setSelectedCustomizationId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
 
   const { data: allApprovals = [] } = useApprovals();
   const { data: pendingApprovals = [] } = useApprovals({ status: 'pending' });
@@ -46,6 +49,11 @@ export default function Approvals() {
   const handleViewDetails = (id: string) => {
     setSelectedApprovalId(id);
     setDialogOpen(true);
+  };
+
+  const handleViewWorkflow = (customizationId: string) => {
+    setSelectedCustomizationId(customizationId);
+    setWorkflowDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -186,7 +194,7 @@ export default function Approvals() {
                       <TableHead>Vendedor</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Aprovador</TableHead>
-                      <TableHead>Valor</TableHead>
+                      <TableHead>Status Workflow</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
@@ -226,17 +234,41 @@ export default function Approvals() {
                             </div>
                           </TableCell>
                           <TableCell>
+                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
+                             approval.request_details?.customization_id && (
+                              <Badge variant="secondary" className="text-xs">
+                                Workflow Ativo
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(approval.requested_at), 'dd/MM/yyyy', { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
                             <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleViewDetails(approval.id)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver Detalhes
-                            </Button>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewDetails(approval.id)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Detalhes
+                              </Button>
+                              {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
+                               approval.request_details?.customization_id && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
+                                >
+                                  <Workflow className="h-4 w-4 mr-2" />
+                                  Workflow
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -252,6 +284,12 @@ export default function Approvals() {
           approvalId={selectedApprovalId}
           open={dialogOpen}
           onOpenChange={setDialogOpen}
+        />
+
+        <CustomizationWorkflowModal
+          customizationId={selectedCustomizationId}
+          open={workflowDialogOpen}
+          onOpenChange={setWorkflowDialogOpen}
         />
       </div>
     </AdminLayout>

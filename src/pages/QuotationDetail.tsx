@@ -19,6 +19,7 @@ import { QuotationTrackingCard } from "@/components/quotations/QuotationTracking
 import { NextStepsCard } from "@/components/quotations/NextStepsCard";
 import { QuotationHeroSection } from "@/components/quotations/QuotationHeroSection";
 import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDetailsAccordion";
+import { CustomizationWorkflowCard } from "@/components/quotations/CustomizationWorkflowCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
@@ -273,6 +274,11 @@ export default function QuotationDetail() {
             onDownloadPDF={handleDownloadPDF}
             needsApproval={quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval}
           />
+        )}
+
+        {/* Workflow de Customizações */}
+        {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
+          <CustomizationWorkflowCard quotationId={quotation.id} />
         )}
 
         {/* Detalhes em Accordion */}
