@@ -73,22 +73,11 @@ export default function Approvals() {
 
   // Determinar aprovador baseado no tipo e dados da aprovação
   const getApproverInfo = (approval: any) => {
-    // Debug: ver estrutura completa
-    if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
-      console.log('DEBUG Approval:', {
-        approval_type: approval.approval_type,
-        quotations: approval.quotations,
-        yacht_models: approval.quotations?.yacht_models,
-        pm_assignments: approval.quotations?.yacht_models?.pm_assignments
-      });
-    }
-
     if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
       // Para customizações técnicas, buscar PM do modelo
       const yachtModel = approval.quotations?.yacht_models;
       
       if (!yachtModel) {
-        console.warn('Modelo do iate não encontrado na aprovação');
         return {
           name: 'PM não atribuído',
           role: 'PM Engenharia'
@@ -101,8 +90,6 @@ export default function Approvals() {
         : yachtModel.pm_assignments 
           ? [yachtModel.pm_assignments]
           : [];
-
-      console.log('PM Assignments processados:', pmAssignments);
 
       if (pmAssignments.length > 0) {
         const pmUser = pmAssignments[0].pm_user;
@@ -234,31 +221,17 @@ export default function Approvals() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {(() => {
-                              const isTechnical = approval.approval_type === 'technical' || approval.approval_type === 'customization';
-                              const customizationId = approval.request_details?.customization_id;
-                              
-                              console.log('Workflow Button Check:', {
-                                approval_type: approval.approval_type,
-                                isTechnical,
-                                request_details: approval.request_details,
-                                customizationId
-                              });
-                              
-                              if (isTechnical && customizationId) {
-                                return (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleViewWorkflow(customizationId)}
-                                  >
-                                    <Workflow className="h-4 w-4 mr-2" />
-                                    Ver Workflow
-                                  </Button>
-                                );
-                              }
-                              return null;
-                            })()}
+                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
+                             approval.request_details?.customization_id && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
+                              >
+                                <Workflow className="h-4 w-4 mr-2" />
+                                Ver Workflow
+                              </Button>
+                            )}
                           </TableCell>
                           <TableCell>
                             {format(new Date(approval.requested_at), 'dd/MM/yyyy', { locale: ptBR })}

@@ -143,7 +143,8 @@ export function useSaveQuotation() {
         if (optionsError) throw optionsError;
       }
 
-      // 4. Create customizations if any
+      // 4. Create customizations if any and store their IDs
+      let createdCustomizations: any[] = [];
       if (data.customizations.length > 0) {
         const customizationsData = data.customizations.map((customization) => ({
           quotation_id: quotation.id,
@@ -156,11 +157,13 @@ export function useSaveQuotation() {
           file_paths: customization.image_url ? [customization.image_url] : [],
         }));
 
-        const { error: customizationsError } = await supabase
+        const { data: insertedCustomizations, error: customizationsError } = await supabase
           .from("quotation_customizations")
-          .insert(customizationsData);
+          .insert(customizationsData)
+          .select('id, item_name, memorial_item_id, quantity, notes');
 
         if (customizationsError) throw customizationsError;
+        createdCustomizations = insertedCustomizations || [];
       }
 
       // 5. Create individual commercial approval requests
@@ -208,25 +211,23 @@ export function useSaveQuotation() {
         if (optionsApprovalError) throw optionsApprovalError;
       }
 
-      // 6. Create individual technical approval for EACH customization
-      if (hasCustomizations && data.customizations) {
-        const technicalApprovals = data.customizations.map((customization) => ({
+      // 6. Create individual technical approval for EACH customization with customization_id
+      if (hasCustomizations && createdCustomizations.length > 0) {
+        const technicalApprovals = createdCustomizations.map((customization) => ({
           quotation_id: quotation.id,
           approval_type: 'technical' as const,
           requested_by: user.id,
           status: 'pending' as const,
           request_details: {
+            customization_id: customization.id, // ✅ Adicionar ID da customização
             customization_item_name: customization.item_name,
-            memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
-              ? null 
-              : customization.memorial_item_id,
+            memorial_item_id: customization.memorial_item_id,
             quantity: customization.quantity || 1,
             notes: customization.notes || '',
-            image_url: customization.image_url || null,
-            is_optional: false, // Customizações não são opcionais, são do memorial ou livres
-            is_free_customization: !customization.memorial_item_id || customization.memorial_item_id.startsWith('free-')
+            is_optional: false,
+            is_free_customization: !customization.memorial_item_id
           },
-          notes: customization.memorial_item_id?.startsWith('free-')
+          notes: !customization.memorial_item_id
             ? `Customização livre: ${customization.item_name}`
             : `Customização solicitada: ${customization.item_name}`
         }));
