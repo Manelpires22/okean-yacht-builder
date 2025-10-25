@@ -76,11 +76,27 @@ export function ImportDocumentDialog({
 
       if (functionError) {
         console.error('Erro ao chamar função:', functionError);
-        throw new Error(functionError.message || 'Erro ao processar documento');
+        
+        // Mensagens específicas para erros comuns
+        let errorMessage = functionError.message || 'Erro ao processar documento';
+        
+        if (errorMessage.includes('FunctionsHttpError: 402')) {
+          errorMessage = '❌ Créditos de IA esgotados.\n\nAdicione fundos ao workspace Lovable:\nSettings > Workspace > Usage';
+        } else if (errorMessage.includes('FunctionsHttpError: 429')) {
+          errorMessage = '⏱️ Limite de requisições excedido.\n\nAguarde alguns instantes e tente novamente.';
+        } else if (errorMessage.includes('token count exceeds')) {
+          errorMessage = '📄 Documento muito grande.\n\nO arquivo excede o limite de tokens. Tente um documento menor.';
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
+      }
+
+      if (!data?.success) {
+        throw new Error('Resposta inválida da função de extração');
       }
 
       console.log('Dados extraídos com sucesso:', data.data);
