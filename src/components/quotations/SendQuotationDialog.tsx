@@ -14,6 +14,8 @@ interface SendQuotationDialogProps {
   clientName: string;
   clientEmail?: string;
   onSend: (data: SendQuotationData) => Promise<void>;
+  mode?: 'client' | 'seller' | 'download';
+  sellerEmail?: string;
 }
 
 export interface SendQuotationData {
@@ -30,18 +32,26 @@ export function SendQuotationDialog({
   quotationNumber,
   clientName,
   clientEmail,
-  onSend
+  onSend,
+  mode = 'client',
+  sellerEmail = ''
 }: SendQuotationDialogProps) {
   const [isSending, setIsSending] = useState(false);
-  const [sendEmail, setSendEmail] = useState(!!clientEmail);
+  const [sendEmail, setSendEmail] = useState(mode !== 'download');
   const [generatePDF, setGeneratePDF] = useState(true);
-  const [recipientEmail, setRecipientEmail] = useState(clientEmail || "");
-  const [emailSubject, setEmailSubject] = useState(
-    `Proposta OKEAN Yachts - ${quotationNumber}`
-  );
-  const [emailMessage, setEmailMessage] = useState(
-    `Prezado(a) ${clientName},\n\nSegue em anexo nossa proposta para aquisição de iate OKEAN.\n\nA proposta tem validade de 30 dias e pode ser visualizada e aceita através do link enviado.\n\nFicamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,\nEquipe OKEAN Yachts`
-  );
+  
+  const defaultEmail = mode === 'seller' ? sellerEmail : (clientEmail || "");
+  const [recipientEmail, setRecipientEmail] = useState(defaultEmail);
+  
+  const defaultSubject = mode === 'seller'
+    ? `[Revisão] Proposta ${quotationNumber}`
+    : `Proposta OKEAN Yachts - ${quotationNumber}`;
+  const [emailSubject, setEmailSubject] = useState(defaultSubject);
+  
+  const defaultMessage = mode === 'seller'
+    ? `Segue proposta ${quotationNumber} para sua revisão antes do envio ao cliente.`
+    : `Prezado(a) ${clientName},\n\nSegue em anexo nossa proposta para aquisição de iate OKEAN.\n\nA proposta tem validade de 30 dias e pode ser visualizada e aceita através do link enviado.\n\nFicamos à disposição para quaisquer esclarecimentos.\n\nAtenciosamente,\nEquipe OKEAN Yachts`;
+  const [emailMessage, setEmailMessage] = useState(defaultMessage);
 
   const handleSend = async () => {
     if (sendEmail && !recipientEmail) {
@@ -69,9 +79,15 @@ export function SendQuotationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Enviar Proposta ao Cliente</DialogTitle>
+          <DialogTitle>
+            {mode === 'seller' ? 'Enviar Proposta para Revisão' : 
+             mode === 'download' ? 'Baixar Proposta' : 
+             'Enviar Proposta ao Cliente'}
+          </DialogTitle>
           <DialogDescription>
-            Configure como deseja enviar a proposta {quotationNumber}
+            {mode === 'seller' ? 'Envie a proposta para seu email para revisão' :
+             mode === 'download' ? 'Gerar PDF da proposta para download' :
+             `Configure como deseja enviar a proposta ${quotationNumber}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -92,19 +108,21 @@ export function SendQuotationDialog({
           </div>
 
           {/* Opção: Enviar Email */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="sendEmail"
-              checked={sendEmail}
-              onCheckedChange={(checked) => setSendEmail(checked as boolean)}
-            />
-            <Label htmlFor="sendEmail" className="cursor-pointer">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Enviar por email
-              </div>
-            </Label>
-          </div>
+          {mode !== 'download' && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="sendEmail"
+                checked={sendEmail}
+                onCheckedChange={(checked) => setSendEmail(checked as boolean)}
+              />
+              <Label htmlFor="sendEmail" className="cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Enviar por email
+                </div>
+              </Label>
+            </div>
+          )}
 
           {/* Campos de Email */}
           {sendEmail && (

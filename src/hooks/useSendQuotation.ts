@@ -38,6 +38,8 @@ export function useSendQuotation() {
       if (fetchError) throw fetchError;
       if (!quotation) throw new Error('Cotação não encontrada');
 
+      const currentStatus = quotation.status;
+
       // 2. Criar snapshot da cotação (congelar estado atual)
       const snapshot = {
         quotation_number: quotation.quotation_number,
@@ -59,11 +61,15 @@ export function useSendQuotation() {
         snapshot_created_at: new Date().toISOString()
       };
 
-      // 3. Atualizar cotação: status = sent, salvar snapshot
+      // 3. Atualizar status para 'sent' se draft ou ready_to_send
+      const newStatus = ['draft', 'ready_to_send', 'pending_commercial_approval', 'pending_technical_approval'].includes(currentStatus) 
+        ? 'sent' 
+        : currentStatus;
+
       const { error: updateError } = await supabase
         .from('quotations')
         .update({
-          status: 'sent',
+          status: newStatus,
           snapshot_json: snapshot
         })
         .eq('id', quotationId);

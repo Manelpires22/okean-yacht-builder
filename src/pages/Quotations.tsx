@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuotations, useUpdateQuotationStatus, useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
+import { useQuotations, useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
-import { QuotationsDashboard } from "@/components/quotations/QuotationsDashboard";
+import { QuotationStatusBadge } from "@/components/quotations/QuotationStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,26 +40,10 @@ import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const statusColors: Record<string, string> = {
-  draft: "bg-slate-500",
-  sent: "bg-blue-500",
-  approved: "bg-green-500",
-  rejected: "bg-red-500",
-  expired: "bg-gray-500",
-};
-
-const statusLabels: Record<string, string> = {
-  draft: "Rascunho",
-  sent: "Enviada",
-  approved: "Aprovada",
-  rejected: "Rejeitada",
-  expired: "Expirada",
-};
 
 export default function Quotations() {
   const navigate = useNavigate();
   const { data: quotations, isLoading } = useQuotations();
-  const updateStatus = useUpdateQuotationStatus();
   const duplicateQuotation = useDuplicateQuotation();
   const deleteQuotation = useDeleteQuotation();
   const { data: userRoles } = useUserRole();
@@ -67,6 +51,18 @@ export default function Quotations() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const statusOptions = [
+    { value: "all", label: "Todos os Status" },
+    { value: "draft", label: "Rascunho" },
+    { value: "pending_commercial_approval", label: "Aguardando Aprovação Comercial" },
+    { value: "pending_technical_approval", label: "Aguardando Validação Técnica" },
+    { value: "ready_to_send", label: "Pronta para Envio" },
+    { value: "sent", label: "Enviada" },
+    { value: "accepted", label: "Aceita" },
+    { value: "rejected", label: "Rejeitada" },
+    { value: "expired", label: "Expirada" },
+  ];
 
   const isAdmin = userRoles?.roles?.includes('administrador');
 
@@ -80,20 +76,19 @@ export default function Quotations() {
     return quotation.sales_representative_id === user?.id && quotation.status === 'draft';
   };
 
-  const filteredQuotations = quotations?.filter((q) => {
-    const matchesSearch =
-      q.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (q.clients?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredQuotations = useMemo(() => {
+    if (!quotations) return [];
+    return quotations.filter((q) => {
+      const matchesSearch =
+        q.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (q.clients?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || q.status === statusFilter;
+      const matchesStatus = statusFilter === "all" || q.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleStatusChange = (id: string, status: string) => {
-    updateStatus.mutate({ id, status });
-  };
+      return matchesSearch && matchesStatus;
+    });
+  }, [quotations, searchTerm, statusFilter]);
 
   const handleDuplicate = (id: string) => {
     duplicateQuotation.mutate(id);
@@ -137,16 +132,15 @@ export default function Quotations() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[280px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="draft">Rascunho</SelectItem>
-                <SelectItem value="sent">Enviada</SelectItem>
-                <SelectItem value="approved">Aprovada</SelectItem>
-                <SelectItem value="rejected">Rejeitada</SelectItem>
-                <SelectItem value="expired">Expirada</SelectItem>
+                {statusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -198,24 +192,7 @@ export default function Quotations() {
                     </TableCell>
                     <TableCell>{formatCurrency(quotation.final_price)}</TableCell>
                     <TableCell>
-                      <Select
-                        value={quotation.status}
-                        onValueChange={(value) =>
-                          handleStatusChange(quotation.id, value)
-                        }
-                      >
-                        <SelectTrigger className="w-[140px]">
-                          <Badge className={statusColors[quotation.status]}>
-                            {statusLabels[quotation.status]}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">Rascunho</SelectItem>
-                          <SelectItem value="sent">Enviada</SelectItem>
-                          <SelectItem value="approved">Aprovada</SelectItem>
-                          <SelectItem value="rejected">Rejeitada</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <QuotationStatusBadge status={quotation.status as any} />
                     </TableCell>
                     <TableCell>
                       {format(new Date(quotation.valid_until), "dd/MM/yyyy", {

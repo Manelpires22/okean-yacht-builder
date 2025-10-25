@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuotation } from "@/hooks/useQuotations";
+import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { RevalidationAlert } from "@/components/quotations/RevalidationAlert";
 import { SendQuotationDialog, type SendQuotationData } from "@/components/quotations/SendQuotationDialog";
 import { QuotationTrackingCard } from "@/components/quotations/QuotationTrackingCard";
 import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
+import { NextStepsCard } from "@/components/quotations/NextStepsCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
@@ -25,9 +27,11 @@ import { toast } from "sonner";
 export default function QuotationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: quotation, isLoading } = useQuotation(id!);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sendMode, setSendMode] = useState<'client' | 'seller' | 'download'>('client');
 
   // Hooks para status e revalidação
   const quotationStatus = useQuotationStatus(quotation || null);
@@ -45,8 +49,20 @@ export default function QuotationDetail() {
     navigate(`/configurator?quotation=${id}`);
   };
 
-  const handleOpenSendDialog = () => {
+  const handleSendToClient = () => {
+    setSendMode('client');
     setSendDialogOpen(true);
+  };
+
+  const handleSendToSelf = () => {
+    setSendMode('seller');
+    setSendDialogOpen(true);
+  };
+
+  const handleDownloadPDF = async () => {
+    toast.info("Em desenvolvimento", {
+      description: "A funcionalidade de download de PDF será implementada em breve.",
+    });
   };
 
   const handleCreateRevision = async () => {
@@ -132,6 +148,17 @@ export default function QuotationDetail() {
           quotationId={quotation.id} 
           currentVersion={quotation.version || 1}
         />
+
+        {/* Next Steps Card - Only show for draft status */}
+        {quotation.status === 'draft' && (
+          <NextStepsCard
+            quotation={quotation}
+            onSendToClient={handleSendToClient}
+            onSendToSelf={handleSendToSelf}
+            onDownloadPDF={handleDownloadPDF}
+            needsApproval={quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval}
+          />
+        )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -340,19 +367,11 @@ export default function QuotationDetail() {
           </Button>
         )}
 
-        {/* Botões de Envio - só se ready_to_send */}
-        {quotationStatus.canSend && (
-          <Button onClick={handleOpenSendDialog}>
+        {/* Botões de Envio - ready_to_send ou sent */}
+        {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
+          <Button onClick={handleSendToClient}>
             <Send className="mr-2 h-4 w-4" />
-            Enviar Proposta
-          </Button>
-        )}
-
-        {/* Botão Reenviar - se já foi enviada */}
-        {quotation.status === 'sent' && (
-          <Button variant="outline" onClick={handleOpenSendDialog}>
-            <Mail className="mr-2 h-4 w-4" />
-            Reenviar Proposta
+            {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
           </Button>
         )}
 
@@ -386,6 +405,8 @@ export default function QuotationDetail() {
           clientName={quotation.clients?.name || quotation.client_name}
           clientEmail={quotation.clients?.email || quotation.client_email}
           onSend={handleSend}
+          mode={sendMode}
+          sellerEmail={user?.email || ''}
         />
       )}
       </div>
