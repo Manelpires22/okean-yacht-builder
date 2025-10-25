@@ -59,18 +59,15 @@ export function QuotationVersionHistory({
   const hasHistory = parentQuotation || (revisions && revisions.length > 0);
 
   if (!hasHistory) {
-    return null;
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p className="text-sm">Nenhum histórico de versões disponível</p>
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center gap-2">
-          <GitBranch className="h-5 w-5" />
-          Histórico de Versões
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
         {/* Cotação Pai */}
         {parentQuotation && (
           <div className="p-4 border rounded-lg bg-muted/50">
@@ -176,7 +173,6 @@ export function QuotationVersionHistory({
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

@@ -13,12 +13,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { QuotationStatusBadge } from "@/components/quotations/QuotationStatusBadge";
 import { QuotationStatusChecklist } from "@/components/quotations/QuotationStatusChecklist";
-import { CustomizationStatusCard } from "@/components/quotations/CustomizationStatusCard";
 import { RevalidationAlert } from "@/components/quotations/RevalidationAlert";
 import { SendQuotationDialog, type SendQuotationData } from "@/components/quotations/SendQuotationDialog";
 import { QuotationTrackingCard } from "@/components/quotations/QuotationTrackingCard";
-import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
 import { NextStepsCard } from "@/components/quotations/NextStepsCard";
+import { QuotationHeroSection } from "@/components/quotations/QuotationHeroSection";
+import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDetailsAccordion";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
@@ -152,19 +152,46 @@ export default function QuotationDetail() {
     );
   }
 
+  // Calcular economia total
+  const totalDiscount = 
+    (quotation.base_price * (quotation.base_discount_percentage / 100)) +
+    ((quotation.total_options_price || 0) * (quotation.options_discount_percentage / 100));
+
+  // Determinar seções expandidas por padrão
+  const defaultExpandedSections = [
+    'general-info', // Sempre expandido
+    ...(quotation.quotation_customizations?.some((c: any) => c.status === 'pending') ? ['customizations'] : []),
+    ...(revalidation?.needsRevalidation ? ['financial'] : [])
+  ];
+
   return (
     <>
       <AppHeader title={`Cotação ${quotation.quotation_number}`} />
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="container mx-auto p-6 space-y-6 pb-24">
         {/* Header com navegação e status */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate("/quotations")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar para Cotações
+            Voltar
           </Button>
           <div className="flex-1" />
           <QuotationStatusBadge status={quotation.status as any} />
         </div>
+
+        {/* Hero Section - Modelo + Resumo Financeiro */}
+        <QuotationHeroSection
+          yachtModel={{
+            name: quotation.yacht_models?.name || 'N/A',
+            code: quotation.yacht_models?.code || 'N/A',
+            description: quotation.yacht_models?.description,
+            image_url: quotation.yacht_models?.image_url,
+          }}
+          basePrice={quotation.base_price}
+          finalPrice={quotation.final_price}
+          baseDeliveryDays={quotation.base_delivery_days}
+          totalDeliveryDays={quotation.total_delivery_days}
+          discountAmount={totalDiscount}
+        />
 
         {/* Alerta de Revalidação (se necessário) */}
         {revalidation?.needsRevalidation && quotation.status === 'draft' && (
@@ -176,26 +203,23 @@ export default function QuotationDetail() {
         )}
 
         {/* Checklist de Status */}
-        <QuotationStatusChecklist
-          status={quotation.status}
-          baseDiscountPercentage={quotation.base_discount_percentage || 0}
-          optionsDiscountPercentage={quotation.options_discount_percentage || 0}
-          hasCustomizations={!!quotation.quotation_customizations?.length}
-          customizationsApproved={quotation.quotation_customizations?.every((c: any) => c.status === 'approved') || false}
-          validUntil={quotation.valid_until}
-          commercialApprovalStatus={commercialApprovalStatus}
-          technicalApprovalStatus={technicalApprovalStatus}
-        />
+        {quotation.status === 'draft' && (
+          <QuotationStatusChecklist
+            status={quotation.status}
+            baseDiscountPercentage={quotation.base_discount_percentage || 0}
+            optionsDiscountPercentage={quotation.options_discount_percentage || 0}
+            hasCustomizations={!!quotation.quotation_customizations?.length}
+            customizationsApproved={quotation.quotation_customizations?.every((c: any) => c.status === 'approved') || false}
+            validUntil={quotation.valid_until}
+            commercialApprovalStatus={commercialApprovalStatus}
+            technicalApprovalStatus={technicalApprovalStatus}
+          />
+        )}
 
         {/* Tracking e Versões (se enviada) */}
         {(quotation.status === 'sent' || quotation.status === 'accepted') && (
           <QuotationTrackingCard quotationId={quotation.id} />
         )}
-
-        <QuotationVersionHistory 
-          quotationId={quotation.id} 
-          currentVersion={quotation.version || 1}
-        />
 
         {/* Next Steps Card - Only show for draft status */}
         {quotation.status === 'draft' && (
@@ -208,257 +232,53 @@ export default function QuotationDetail() {
           />
         )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações do Cliente</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Nome</p>
-              <p className="font-medium">
-                {quotation.clients?.name || quotation.client_name}
-              </p>
-            </div>
-            {quotation.clients?.company && (
-              <div>
-                <p className="text-sm text-muted-foreground">Empresa</p>
-                <p className="font-medium">{quotation.clients.company}</p>
-              </div>
-            )}
-            {(quotation.clients?.email || quotation.client_email) && (
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">
-                  {quotation.clients?.email || quotation.client_email}
-                </p>
-              </div>
-            )}
-            {(quotation.clients?.phone || quotation.client_phone) && (
-              <div>
-                <p className="text-sm text-muted-foreground">Telefone</p>
-                <p className="font-medium">
-                  {quotation.clients?.phone || quotation.client_phone}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações da Cotação</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Vendedor</p>
-              <p className="font-medium">{quotation.users?.full_name}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Criada em</p>
-              <p className="font-medium">
-                {format(new Date(quotation.created_at), "dd/MM/yyyy 'às' HH:mm", {
-                  locale: ptBR,
-                })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Válida até</p>
-              <p className="font-medium">
-                {format(new Date(quotation.valid_until), "dd/MM/yyyy", {
-                  locale: ptBR,
-                })}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Detalhes em Accordion */}
+        <QuotationDetailsAccordion 
+          quotation={quotation}
+          defaultExpanded={defaultExpandedSections}
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Modelo do Iate</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-4">
-            {quotation.yacht_models?.image_url && (
-              <img
-                src={quotation.yacht_models.image_url}
-                alt={quotation.yacht_models.name}
-                className="w-32 h-32 object-cover rounded-lg"
-              />
-            )}
-            <div className="flex-1">
-              <h3 className="text-xl font-bold">{quotation.yacht_models?.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                Código: {quotation.yacht_models?.code}
-              </p>
-              <p className="mt-2">{quotation.yacht_models?.description}</p>
-              <div className="mt-4 flex gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Preço Base</p>
-                  <p className="text-lg font-bold">
-                    {formatCurrency(quotation.base_price)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Prazo Base</p>
-                  <p className="text-lg font-bold">
-                    {formatDays(quotation.base_delivery_days)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Customizações (se houver) */}
-      {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
-        <CustomizationStatusCard
-          quotationId={quotation.id}
-          customizations={quotation.quotation_customizations.map((c: any) => ({
-            id: c.id,
-            item_name: c.item_name,
-            notes: c.notes,
-            quantity: c.quantity,
-            status: c.status || 'pending',
-            additional_cost: c.additional_cost,
-            delivery_impact_days: c.delivery_impact_days,
-            engineering_notes: c.engineering_notes,
-            file_paths: c.file_paths
-          }))}
-        />
-      )}
-
-      {quotation.quotation_options && quotation.quotation_options.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Opcionais Selecionados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {quotation.quotation_options.map((opt: any) => (
-                <div
-                  key={opt.id}
-                  className="flex justify-between items-start border-b pb-4 last:border-0"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{opt.options?.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Código: {opt.options?.code}
-                    </p>
-                    <p className="text-sm mt-1">{opt.options?.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">
-                      Quantidade: {opt.quantity}
-                    </p>
-                    <p className="font-medium">
-                      {formatCurrency(opt.total_price)}
-                    </p>
-                    {opt.delivery_days_impact > 0 && (
-                      <p className="text-sm text-muted-foreground">
-                        +{opt.delivery_days_impact} dias
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumo Financeiro</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex justify-between">
-            <span>Preço Base do Modelo</span>
-            <span className="font-medium">
-              {formatCurrency(quotation.base_price)}
-            </span>
-          </div>
-          {quotation.base_discount_percentage > 0 && (
-            <div className="flex justify-between text-destructive">
-              <span>Desconto sobre Base ({quotation.base_discount_percentage}%)</span>
-              <span className="font-medium">
-                -{formatCurrency(quotation.base_price * (quotation.base_discount_percentage / 100))}
-              </span>
-            </div>
+      {/* Botões de Ação - Sticky Footer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
+        <div className="container mx-auto flex gap-3 justify-end">
+          {/* Botão Editar - só se draft */}
+          {quotationStatus.canEdit && (
+            <Button variant="outline" onClick={handleEdit} size="lg">
+              <Edit className="mr-2 h-4 w-4" />
+              Editar Proposta
+            </Button>
           )}
-          <div className="flex justify-between">
-            <span>Total de Opcionais</span>
-            <span className="font-medium">
-              {formatCurrency(quotation.total_options_price || 0)}
-            </span>
-          </div>
-          {quotation.options_discount_percentage > 0 && (
-            <div className="flex justify-between text-destructive">
-              <span>Desconto sobre Opcionais ({quotation.options_discount_percentage}%)</span>
-              <span className="font-medium">
-                -{formatCurrency((quotation.total_options_price || 0) * (quotation.options_discount_percentage / 100))}
-              </span>
-            </div>
+
+          {/* Botões de Envio - ready_to_send ou sent */}
+          {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
+            <Button onClick={handleSendToClient} size="lg">
+              <Send className="mr-2 h-4 w-4" />
+              {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
+            </Button>
           )}
-          {quotation.total_customizations_price > 0 && (
-            <div className="flex justify-between text-primary">
-              <span>Customizações</span>
-              <span className="font-medium">
-                +{formatCurrency(quotation.total_customizations_price)}
-              </span>
-            </div>
+
+          {/* Botão Criar Revisão - se enviada ou expirada */}
+          {(quotation.status === 'sent' || quotation.status === 'expired') && (
+            <Button 
+              variant="outline" 
+              onClick={handleCreateRevision}
+              disabled={createRevision.isPending}
+              size="lg"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              {createRevision.isPending ? 'Criando...' : 'Criar Revisão'}
+            </Button>
           )}
-          <Separator />
-          <div className="flex justify-between text-lg font-bold">
-            <span>Valor Total</span>
-            <span>{formatCurrency(quotation.final_price)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold">
-            <span>Prazo Total de Entrega</span>
-            <span>{formatDays(quotation.total_delivery_days)}</span>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Botões de Ação Contextuais */}
-      <div className="flex gap-4 justify-end">
-        {/* Botão Editar - só se draft */}
-        {quotationStatus.canEdit && (
-          <Button variant="outline" onClick={handleEdit}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Proposta
-          </Button>
-        )}
-
-        {/* Botões de Envio - ready_to_send ou sent */}
-        {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
-          <Button onClick={handleSendToClient}>
-            <Send className="mr-2 h-4 w-4" />
-            {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
-          </Button>
-        )}
-
-        {/* Botão Criar Revisão - se enviada ou expirada */}
-        {(quotation.status === 'sent' || quotation.status === 'expired') && (
-          <Button 
-            variant="outline" 
-            onClick={handleCreateRevision}
-            disabled={createRevision.isPending}
-          >
-            <Copy className="mr-2 h-4 w-4" />
-            {createRevision.isPending ? 'Criando...' : 'Criar Revisão'}
-          </Button>
-        )}
-
-        {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
-        {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
-          <Button onClick={() => console.log("Solicitar aprovação")}>
-            <Send className="mr-2 h-4 w-4" />
-            Solicitar Aprovação
-          </Button>
-        )}
+          {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
+          {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
+            <Button onClick={() => console.log("Solicitar aprovação")} size="lg">
+              <Mail className="mr-2 h-4 w-4" />
+              Solicitar Aprovação
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Dialog de Envio */}
@@ -474,7 +294,6 @@ export default function QuotationDetail() {
           sellerEmail={user?.email || ''}
         />
       )}
-      </div>
     </>
   );
 }

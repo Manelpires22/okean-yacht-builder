@@ -57,42 +57,41 @@ export function CustomizationStatusCard({ customizations, quotationId }: Customi
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Customizações Solicitadas</CardTitle>
-          <div className="flex gap-2 items-center">
-            {pendingCount > 0 && (
-              <>
-                <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                  {pendingCount} Pendente{pendingCount > 1 ? 's' : ''}
-                </Badge>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => syncMutation.mutate(quotationId)}
-                  disabled={syncMutation.isPending}
-                  className="ml-2"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-                  Sincronizar
-                </Button>
-              </>
-            )}
-            {approvedCount > 0 && (
-              <Badge variant="outline" className="text-green-600 border-green-600">
-                {approvedCount} Validada{approvedCount > 1 ? 's' : ''}
-              </Badge>
-            )}
-            {rejectedCount > 0 && (
-              <Badge variant="outline" className="text-destructive border-destructive">
-                {rejectedCount} Rejeitada{rejectedCount > 1 ? 's' : ''}
-              </Badge>
-            )}
-          </div>
+    <div className="space-y-4">
+      {/* Header com badges e sincronização */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2 items-center flex-wrap">
+          {pendingCount > 0 && (
+            <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+              {pendingCount} Pendente{pendingCount > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {approvedCount > 0 && (
+            <Badge variant="outline" className="text-green-600 border-green-600">
+              {approvedCount} Validada{approvedCount > 1 ? 's' : ''}
+            </Badge>
+          )}
+          {rejectedCount > 0 && (
+            <Badge variant="outline" className="text-destructive border-destructive">
+              {rejectedCount} Rejeitada{rejectedCount > 1 ? 's' : ''}
+            </Badge>
+          )}
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        {pendingCount > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => syncMutation.mutate(quotationId)}
+            disabled={syncMutation.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+            Sincronizar
+          </Button>
+        )}
+      </div>
+
+      {/* Lista de customizações */}
+      <div className="space-y-4">
         {customizations.map((custom) => (
           <div 
             key={custom.id} 
@@ -165,7 +164,7 @@ export function CustomizationStatusCard({ customizations, quotationId }: Customi
             )}
           </div>
         ))}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,122 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency, formatDays } from "@/lib/quotation-utils";
+import { Ship, Calendar, TrendingUp } from "lucide-react";
+
+interface QuotationHeroSectionProps {
+  yachtModel: {
+    name: string;
+    code: string;
+    description?: string;
+    image_url?: string;
+  };
+  basePrice: number;
+  finalPrice: number;
+  baseDeliveryDays: number;
+  totalDeliveryDays: number;
+  discountAmount?: number;
+}
+
+export function QuotationHeroSection({
+  yachtModel,
+  basePrice,
+  finalPrice,
+  baseDeliveryDays,
+  totalDeliveryDays,
+  discountAmount = 0
+}: QuotationHeroSectionProps) {
+  const savings = discountAmount || (basePrice - finalPrice);
+  const savingsPercentage = basePrice > 0 ? ((savings / basePrice) * 100).toFixed(1) : '0';
+  
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Modelo do Iate */}
+      <Card className="overflow-hidden">
+        <div className="relative">
+          {yachtModel.image_url ? (
+            <div className="relative h-64 bg-gradient-to-br from-primary/10 to-primary/5">
+              <img
+                src={yachtModel.image_url}
+                alt={yachtModel.name}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
+            </div>
+          ) : (
+            <div className="h-64 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+              <Ship className="h-24 w-24 text-primary/30" />
+            </div>
+          )}
+        </div>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold">{yachtModel.name}</h2>
+              <p className="text-sm text-muted-foreground">Código: {yachtModel.code}</p>
+              {yachtModel.description && (
+                <p className="text-sm mt-2 line-clamp-2">{yachtModel.description}</p>
+              )}
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Base: {formatCurrency(basePrice)}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Resumo Financeiro Destacado */}
+      <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
+        <CardContent className="p-6 space-y-6">
+          {/* Valor Total */}
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Valor Total da Proposta</p>
+            <p className="text-4xl font-bold tracking-tight">
+              {formatCurrency(finalPrice)}
+            </p>
+            {savings > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <Badge variant="secondary" className="bg-green-600/10 text-green-600 border-green-600/20">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {savingsPercentage}% de economia
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Economia de {formatCurrency(savings)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Prazo de Entrega */}
+          <div>
+            <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Prazo de Entrega
+            </p>
+            <p className="text-2xl font-bold">
+              {formatDays(totalDeliveryDays)}
+            </p>
+            {totalDeliveryDays > baseDeliveryDays && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Base: {formatDays(baseDeliveryDays)} (+{totalDeliveryDays - baseDeliveryDays} dias de opcionais/customizações)
+              </p>
+            )}
+          </div>
+
+          {/* Breakdown Rápido */}
+          <div className="pt-4 border-t space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Preço base</span>
+              <span className="font-medium">{formatCurrency(basePrice)}</span>
+            </div>
+            {savings > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Descontos aplicados</span>
+                <span className="font-medium">-{formatCurrency(savings)}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
