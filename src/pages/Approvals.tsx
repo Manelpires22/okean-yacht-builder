@@ -65,15 +65,47 @@ export default function Approvals() {
 
   // Determinar aprovador baseado no tipo e dados da aprovação
   const getApproverInfo = (approval: any) => {
+    // Debug: ver estrutura completa
+    if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
+      console.log('DEBUG Approval:', {
+        approval_type: approval.approval_type,
+        quotations: approval.quotations,
+        yacht_models: approval.quotations?.yacht_models,
+        pm_assignments: approval.quotations?.yacht_models?.pm_assignments
+      });
+    }
+
     if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
       // Para customizações técnicas, buscar PM do modelo
-      const pmAssignments = approval.quotations?.yacht_models?.pm_assignments || [];
-      if (pmAssignments.length > 0 && pmAssignments[0].pm_user) {
+      const yachtModel = approval.quotations?.yacht_models;
+      
+      if (!yachtModel) {
+        console.warn('Modelo do iate não encontrado na aprovação');
         return {
-          name: pmAssignments[0].pm_user.full_name,
+          name: 'PM não atribuído',
           role: 'PM Engenharia'
         };
       }
+
+      // pm_assignments pode ser um array ou objeto único dependendo da query
+      const pmAssignments = Array.isArray(yachtModel.pm_assignments) 
+        ? yachtModel.pm_assignments 
+        : yachtModel.pm_assignments 
+          ? [yachtModel.pm_assignments]
+          : [];
+
+      console.log('PM Assignments processados:', pmAssignments);
+
+      if (pmAssignments.length > 0) {
+        const pmUser = pmAssignments[0].pm_user;
+        if (pmUser && pmUser.full_name) {
+          return {
+            name: pmUser.full_name,
+            role: 'PM Engenharia'
+          };
+        }
+      }
+
       return {
         name: 'PM não atribuído',
         role: 'PM Engenharia'
