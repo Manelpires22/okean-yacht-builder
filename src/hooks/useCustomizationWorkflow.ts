@@ -113,6 +113,7 @@ export function useAdvanceCustomizationWorkflow() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['customization-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-customizations-workflow'] }); // ✅ Adicionar esta invalidação
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['customizations'] });
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
