@@ -11,6 +11,25 @@ interface GeneratePDFRequest {
   quotationId: string;
 }
 
+// Utility: Deduplicate array by key function
+function dedupeBy<T>(arr: T[], keyFn: (x: T) => string): T[] {
+  const map = new Map<string, T>();
+  for (const item of arr) {
+    const key = keyFn(item);
+    if (!map.has(key)) map.set(key, item);
+  }
+  return [...map.values()];
+}
+
+// Utility: Generate SHA-256 hash for integrity
+async function generateHash(data: any): Promise<string> {
+  const encoder = new TextEncoder();
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(JSON.stringify(data)));
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 // Design System Colors (HSL converted to RGB for jsPDF)
 const COLORS = {
   primary: [25, 84, 197],      // hsl(210 100% 50%)
@@ -21,7 +40,30 @@ const COLORS = {
   muted: [156, 163, 175],      // gray-400
   dark: [31, 41, 55],          // gray-800
   light: [243, 244, 246],      // gray-100
+  watermark: [204, 204, 204],  // light gray for watermark
 };
+
+// Load and embed Noto Sans font for Unicode support (no emojis needed)
+async function setupFont(doc: jsPDF) {
+  try {
+    // Fetch Noto Sans Regular from Google Fonts
+    const fontResp = await fetch('https://fonts.gstatic.com/s/notosans/v30/o-0IIpQlx3QUlC5A4PNb4j5Ba_2c7A.woff2');
+    const fontBuf = new Uint8Array(await fontResp.arrayBuffer());
+    const fontBase64 = btoa(String.fromCharCode(...fontBuf));
+    
+    // Register font in jsPDF
+    doc.addFileToVFS('NotoSans-Regular.ttf', fontBase64);
+    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    
+    // Set as default font
+    doc.setFont('NotoSans', 'normal');
+    
+    console.log('✅ Noto Sans font loaded successfully');
+  } catch (error) {
+    console.warn('⚠️ Failed to load Noto Sans, falling back to Helvetica:', error);
+    doc.setFont('helvetica', 'normal');
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -97,6 +139,22 @@ serve(async (req) => {
 
     console.log(`Memorial items found: ${memorialItems?.length || 0}`);
 
+    // Deduplicate memorial items
+    const memorialClean = memorialItems ? dedupeBy(memorialItems, (item: any) =>
+      `${item.memorial_categories?.label || 'Outros'}|${item.item_name}|${item.brand || ''}|${item.model || ''}`
+    ) : [];
+    
+    // Sort by category display_order, then item display_order
+    memorialClean.sort((a: any, b: any) => {
+      const catOrder = (a.memorial_categories?.display_order ?? 999) - (b.memorial_categories?.display_order ?? 999);
+      if (catOrder !== 0) return catOrder;
+      return (a.display_order ?? 999) - (b.display_order ?? 999);
+    });
+
+    if (memorialItems && memorialItems.length > 0) {
+      console.log(`Memorial compacted: ${memorialItems.length} → ${memorialClean.length} items (${Math.round((1 - memorialClean.length / memorialItems.length) * 100)}% reduction)`);
+    }
+
     // Helper functions
     const formatCurrency = (value: number) => {
       return new Intl.NumberFormat('pt-BR', {
@@ -124,10 +182,26 @@ serve(async (req) => {
       format: 'a4'
     });
 
+    // Setup Unicode font (Noto Sans) - no emojis needed
+    await setupFont(doc);
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
     const contentWidth = pageWidth - (margin * 2);
+
+    // Add draft watermark function
+    function addDraftWatermark() {
+      if (quotation.status !== 'draft') return;
+      
+      doc.setTextColor(COLORS.watermark[0], COLORS.watermark[1], COLORS.watermark[2]);
+      doc.setFontSize(72);
+      doc.setFont('NotoSans', 'normal');
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({ opacity: 0.12 }));
+      doc.text('RASCUNHO', pageWidth / 2, pageHeight / 2, { angle: 35, align: 'center' });
+      doc.restoreGraphicsState();
+    }
 
     // ============= PAGE 1: COVER =============
     function addCoverPage() {
@@ -138,17 +212,17 @@ serve(async (req) => {
       // Logo/Company name
       doc.setFontSize(32);
       doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('OKEAN YACHTS', pageWidth / 2, 35, { align: 'center' });
       
       doc.setFontSize(14);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Propostas Comerciais Premium', pageWidth / 2, 45, { align: 'center' });
 
       // Model name (large)
       doc.setFontSize(28);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text(quotation.yacht_models.name, pageWidth / 2, 110, { align: 'center' });
 
       // Proposal info box
@@ -158,7 +232,7 @@ serve(async (req) => {
       
       doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       
       let boxYPos = boxY + 12;
       doc.text(`Proposta Nº: ${quotation.quotation_number}`, margin + 10, boxYPos);
@@ -169,20 +243,23 @@ serve(async (req) => {
       boxYPos += 8;
       doc.text(`Validade: ${formatDate(quotation.valid_until)}`, margin + 10, boxYPos);
       boxYPos += 8;
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.text(`Valor Total: ${formatCurrency(quotation.final_price)}`, margin + 10, boxYPos);
 
       // Footer
       doc.setFontSize(10);
       doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.setFont('helvetica', 'italic');
+      doc.setFont('NotoSans', 'normal');
       doc.text(
         'Proposta exclusiva e personalizada para suas necessidades',
         pageWidth / 2,
         pageHeight - 20,
         { align: 'center' }
       );
+      
+      // Add draft watermark if needed
+      addDraftWatermark();
     }
 
     // ============= PAGE 2: MODEL PRESENTATION =============
@@ -192,7 +269,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(20);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text(quotation.yacht_models.name, margin, 30);
       
       // Divider line
@@ -206,7 +283,7 @@ serve(async (req) => {
       if (quotation.yacht_models.description) {
         doc.setFontSize(11);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('NotoSans', 'normal');
         
         const descLines = doc.splitTextToSize(quotation.yacht_models.description, contentWidth);
         doc.text(descLines, margin, yPos);
@@ -216,13 +293,13 @@ serve(async (req) => {
       // Key Highlights
       doc.setFontSize(14);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Destaques do Modelo', margin, yPos);
       yPos += 10;
 
       doc.setFontSize(10);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
 
       const highlights = [];
       if (quotation.yacht_models.cabins) {
@@ -235,16 +312,18 @@ serve(async (req) => {
         highlights.push(`Motorização: ${quotation.yacht_models.engines}`);
       }
       if (quotation.yacht_models.max_speed) {
-        highlights.push(`Velocidade Máxima: ${formatNumber(quotation.yacht_models.max_speed, 1)} nós`);
+        highlights.push(`Velocidade Máxima: ${formatNumber(quotation.yacht_models.max_speed, 1)} nos`);
       }
       if (quotation.yacht_models.range_nautical_miles) {
-        highlights.push(`Autonomia: ${formatNumber(quotation.yacht_models.range_nautical_miles, 0)} milhas náuticas`);
+        highlights.push(`Autonomia: ${formatNumber(quotation.yacht_models.range_nautical_miles, 0)} milhas nauticas`);
       }
 
       highlights.forEach(highlight => {
         doc.text(`✓ ${highlight}`, margin + 5, yPos);
         yPos += 7;
       });
+      
+      addDraftWatermark();
     }
 
     // ============= PAGE 3: TECHNICAL SPECIFICATIONS =============
@@ -254,7 +333,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Especificações Técnicas', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -266,25 +345,25 @@ serve(async (req) => {
       const rightCol = pageWidth / 2 + 5;
       const colWidth = (pageWidth / 2) - margin - 10;
 
-      // Helper to add spec section
+      // Helper to add spec section (clean text, no emojis)
       const addSpecSection = (title: string, specs: Array<{label: string, value: string}>, isLeft: boolean) => {
         const xPos = isLeft ? leftCol : rightCol;
         
         doc.setFontSize(12);
         doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('NotoSans', 'normal');
         doc.text(title, xPos, yPos);
         
         let localY = yPos + 7;
         doc.setFontSize(9);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('NotoSans', 'normal');
         
         specs.forEach(spec => {
           if (spec.value && spec.value !== 'null' && spec.value !== '0') {
-            doc.setFont('helvetica', 'bold');
+            doc.setFont('NotoSans', 'normal');
             doc.text(spec.label + ':', xPos, localY);
-            doc.setFont('helvetica', 'normal');
+            doc.setFont('NotoSans', 'normal');
             doc.text(spec.value, xPos + 40, localY);
             localY += 5;
           }
@@ -293,16 +372,16 @@ serve(async (req) => {
         return localY;
       };
 
-      // DIMENSÕES (Left column)
+      // DIMENSOES (Left column - clean text without accents that break)
       const dimensionsSpecs = [
         { label: 'Comprimento Total', value: quotation.yacht_models.length_overall ? `${formatNumber(quotation.yacht_models.length_overall)} m` : '' },
         { label: 'Comprimento Casco', value: quotation.yacht_models.hull_length ? `${formatNumber(quotation.yacht_models.hull_length)} m` : '' },
         { label: 'Boca', value: quotation.yacht_models.beam ? `${formatNumber(quotation.yacht_models.beam)} m` : '' },
         { label: 'Calado', value: quotation.yacht_models.draft ? `${formatNumber(quotation.yacht_models.draft)} m` : '' },
-        { label: 'Altura Linha d\'Água', value: quotation.yacht_models.height_from_waterline ? `${formatNumber(quotation.yacht_models.height_from_waterline)} m` : '' },
+        { label: 'Altura Linha d\'Agua', value: quotation.yacht_models.height_from_waterline ? `${formatNumber(quotation.yacht_models.height_from_waterline)} m` : '' },
       ];
       
-      let leftY = addSpecSection('📏 DIMENSÕES', dimensionsSpecs, true);
+      let leftY = addSpecSection('DIMENSOES', dimensionsSpecs, true);
 
       // PESOS & DESLOCAMENTO (Right column)
       const weightsSpecs = [
@@ -311,37 +390,39 @@ serve(async (req) => {
         { label: 'Deslocamento Carregado', value: quotation.yacht_models.displacement_loaded ? `${formatNumber(quotation.yacht_models.displacement_loaded)} kg` : '' },
       ];
       
-      let rightY = addSpecSection('⚖️ PESOS', weightsSpecs, false);
+      let rightY = addSpecSection('PESOS', weightsSpecs, false);
 
       // Move to next row
       yPos = Math.max(leftY, rightY) + 10;
 
       // CAPACIDADES (Left column)
       const capacitiesSpecs = [
-        { label: 'Combustível', value: quotation.yacht_models.fuel_capacity ? `${formatNumber(quotation.yacht_models.fuel_capacity)} L` : '' },
-        { label: 'Água', value: quotation.yacht_models.water_capacity ? `${formatNumber(quotation.yacht_models.water_capacity)} L` : '' },
+        { label: 'Combustivel', value: quotation.yacht_models.fuel_capacity ? `${formatNumber(quotation.yacht_models.fuel_capacity)} L` : '' },
+        { label: 'Agua', value: quotation.yacht_models.water_capacity ? `${formatNumber(quotation.yacht_models.water_capacity)} L` : '' },
         { label: 'Passageiros', value: quotation.yacht_models.passengers_capacity ? `${quotation.yacht_models.passengers_capacity} pessoas` : '' },
         { label: 'Camarotes', value: quotation.yacht_models.cabins ? `${quotation.yacht_models.cabins}` : '' },
         { label: 'Banheiros', value: quotation.yacht_models.bathrooms || '' },
       ];
       
-      leftY = addSpecSection('🛏️ CAPACIDADES', capacitiesSpecs, true);
+      leftY = addSpecSection('CAPACIDADES', capacitiesSpecs, true);
 
-      // MOTORIZAÇÃO & PERFORMANCE (Right column)
+      // MOTORIZACAO & PERFORMANCE (Right column)
       const performanceSpecs = [
         { label: 'Motores', value: quotation.yacht_models.engines || '' },
-        { label: 'Velocidade Máxima', value: quotation.yacht_models.max_speed ? `${formatNumber(quotation.yacht_models.max_speed, 1)} nós` : '' },
-        { label: 'Vel. Cruzeiro', value: quotation.yacht_models.cruise_speed ? `${formatNumber(quotation.yacht_models.cruise_speed, 1)} nós` : '' },
+        { label: 'Velocidade Maxima', value: quotation.yacht_models.max_speed ? `${formatNumber(quotation.yacht_models.max_speed, 1)} nos` : '' },
+        { label: 'Vel. Cruzeiro', value: quotation.yacht_models.cruise_speed ? `${formatNumber(quotation.yacht_models.cruise_speed, 1)} nos` : '' },
         { label: 'Autonomia', value: quotation.yacht_models.range_nautical_miles ? `${formatNumber(quotation.yacht_models.range_nautical_miles, 0)} milhas` : '' },
         { label: 'Cor do Casco', value: quotation.yacht_models.hull_color || '' },
       ];
       
-      rightY = addSpecSection('⚙️ MOTORIZAÇÃO', performanceSpecs, false);
+      rightY = addSpecSection('MOTORIZACAO', performanceSpecs, false);
+      
+      addDraftWatermark();
     }
 
-    // ============= PAGES 4-N: MEMORIAL DESCRITIVO =============
+    // ============= PAGES 4-N: MEMORIAL DESCRITIVO (COMPACT) =============
     function addMemorialDescritivo() {
-      if (!memorialItems || memorialItems.length === 0) {
+      if (!memorialClean || memorialClean.length === 0) {
         return;
       }
 
@@ -350,7 +431,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Memorial Descritivo', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -358,72 +439,78 @@ serve(async (req) => {
       doc.line(margin, 35, pageWidth - margin, 35);
 
       let yPos = 50;
+      let currentCategory = '';
 
-      // Group by category
-      const itemsByCategory = memorialItems.reduce((acc: any, item: any) => {
-        const categoryLabel = item.memorial_categories?.label || 'Outros';
-        if (!acc[categoryLabel]) {
-          acc[categoryLabel] = [];
-        }
-        acc[categoryLabel].push(item);
-        return acc;
-      }, {});
-
-      Object.entries(itemsByCategory).forEach(([categoryLabel, items]: [string, any]) => {
-        // Check if need new page
-        if (yPos > pageHeight - 40) {
-          doc.addPage();
-          yPos = 30;
-        }
-
-        // Category header
-        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-        doc.roundedRect(margin, yPos - 5, contentWidth, 10, 2, 2, 'F');
+      memorialClean.forEach((item: any) => {
+        const category = item.memorial_categories?.label || 'Outros';
         
-        doc.setFontSize(11);
-        doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text(categoryLabel.toUpperCase(), margin + 3, yPos + 2);
-        yPos += 12;
-
-        // Items
+        // Add category header
+        if (category !== currentCategory) {
+          if (yPos > 265) {
+            doc.addPage();
+            yPos = 20;
+            addDraftWatermark();
+          }
+          
+          doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+          doc.roundedRect(margin, yPos - 5, contentWidth, 10, 2, 2, 'F');
+          
+          doc.setFontSize(11);
+          doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+          doc.setFont('NotoSans', 'normal');
+          doc.text(category.toUpperCase(), margin + 3, yPos + 2);
+          yPos += 12;
+          currentCategory = category;
+        }
+        
+        // Check if we need a new page
+        if (yPos > 265) {
+          doc.addPage();
+          yPos = 20;
+          addDraftWatermark();
+        }
+        
+        // Item details (compact format)
         doc.setFontSize(9);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+        doc.setFont('NotoSans', 'normal');
         
-        items.forEach((item: any) => {
-          if (yPos > pageHeight - 20) {
-            doc.addPage();
-            yPos = 30;
-          }
-
-          doc.setFont('helvetica', 'bold');
-          doc.text(`• ${item.item_name}`, margin + 3, yPos);
+        // Item name (bold, 1 line max)
+        const itemNameLines = doc.splitTextToSize(item.item_name, pageWidth - 50);
+        doc.text(`• ${itemNameLines[0]}${itemNameLines.length > 1 ? '...' : ''}`, margin + 3, yPos);
+        yPos += 4;
+        
+        // Brand, model, quantity (only if exists, 1 line, gray)
+        const details = [];
+        if (item.brand) details.push(item.brand);
+        if (item.model) details.push(item.model);
+        if (item.quantity && item.quantity > 1) details.push(`${item.quantity} ${item.unit || 'un'}`);
+        
+        if (details.length > 0) {
+          doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
+          doc.setFontSize(8);
+          doc.text(details.join(' | '), margin + 6, yPos);
           yPos += 4;
-
-          doc.setFont('helvetica', 'normal');
-          const details = [];
-          if (item.brand) details.push(`Marca: ${item.brand}`);
-          if (item.model) details.push(`Modelo: ${item.model}`);
-          if (item.quantity && item.unit) details.push(`Quantidade: ${item.quantity} ${item.unit}`);
-          
-          if (details.length > 0) {
-            doc.setTextColor(COLORS.secondary[0], COLORS.secondary[1], COLORS.secondary[2]);
-            doc.text(details.join(' | '), margin + 6, yPos);
-            yPos += 4;
+        }
+        
+        // Description (max 2 lines, truncate with ...)
+        if (item.description && item.description.trim()) {
+          doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+          doc.setFontSize(8);
+          const descLines = doc.splitTextToSize(item.description, contentWidth - 10);
+          const maxLines = 2;
+          const displayLines = descLines.slice(0, maxLines);
+          if (descLines.length > maxLines) {
+            displayLines[maxLines - 1] = displayLines[maxLines - 1].slice(0, -3) + '...';
           }
-
-          if (item.description) {
-            doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-            const descLines = doc.splitTextToSize(item.description, contentWidth - 10);
-            doc.text(descLines, margin + 6, yPos);
-            yPos += descLines.length * 4;
-          }
-
-          yPos += 2;
-        });
-
-        yPos += 5;
+          doc.text(displayLines, margin + 6, yPos);
+          yPos += displayLines.length * 3.5;
+        }
+        
+        yPos += 2; // Compact spacing between items
       });
+      
+      addDraftWatermark();
     }
 
     // ============= PAGE N+1: SELECTED OPTIONS =============
@@ -437,7 +524,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Opcionais Selecionados', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -452,8 +539,8 @@ serve(async (req) => {
       
       doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Código', margin + 2, yPos);
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Codigo', margin + 2, yPos);
       doc.text('Nome', margin + 25, yPos);
       doc.text('Qtd', pageWidth - 75, yPos);
       doc.text('Valor Unit.', pageWidth - 60, yPos);
@@ -462,12 +549,13 @@ serve(async (req) => {
 
       // Table rows
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       
       quotation.quotation_options.forEach((qo: any, index: number) => {
-        if (yPos > pageHeight - 30) {
+        if (yPos > 265) {
           doc.addPage();
           yPos = 30;
+          addDraftWatermark();
         }
 
         // Alternate row background
@@ -476,52 +564,40 @@ serve(async (req) => {
           doc.rect(margin, yPos - 4, contentWidth, 6, 'F');
         }
 
-        doc.text(qo.options?.code || '-', margin + 2, yPos);
+        doc.setFontSize(9);
+        doc.setFont('NotoSans', 'normal');
+        doc.text(qo.options?.code || 'N/A', margin + 2, yPos);
         
-        const optionName = qo.options?.name || 'Opcional';
+        // Limit option name to 95mm width
+        const optionName = qo.options?.name || 'N/A';
         const nameLines = doc.splitTextToSize(optionName, 95);
-        doc.text(nameLines[0], margin + 25, yPos);
+        doc.text(nameLines[0] + (nameLines.length > 1 ? '...' : ''), margin + 25, yPos);
         
-        doc.text(String(qo.quantity || 1), pageWidth - 75, yPos);
+        doc.text(qo.quantity.toString(), pageWidth - 72, yPos);
         doc.text(formatCurrency(qo.unit_price), pageWidth - 60, yPos);
         doc.text(formatCurrency(qo.total_price), pageWidth - margin - 2, yPos, { align: 'right' });
-        
-        yPos += 7;
 
-        // Description if exists
-        if (qo.options?.description && nameLines.length === 1) {
-          doc.setFontSize(7);
-          doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-          const descLines = doc.splitTextToSize(qo.options.description, 120);
-          doc.text(descLines.slice(0, 2), margin + 25, yPos - 3);
-          doc.setFontSize(9);
-          doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-          yPos += 3;
-        }
+        yPos += 6;
       });
 
-      // Totals
+      // Total row
       yPos += 5;
-      doc.setDrawColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.line(margin, yPos, pageWidth - margin, yPos);
-      yPos += 7;
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Total Opcionais:', pageWidth - 80, yPos);
-      doc.text(formatCurrency(quotation.total_options_price || 0), pageWidth - margin - 2, yPos, { align: 'right' });
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth - 80, yPos - 3, pageWidth - margin, yPos - 3);
       
-      if (quotation.options_discount_percentage > 0) {
-        yPos += 6;
-        doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-        doc.text(`Desconto (${quotation.options_discount_percentage}%):`, pageWidth - 80, yPos);
-        const discount = (quotation.total_options_price || 0) - (quotation.final_options_price || 0);
-        doc.text(`-${formatCurrency(discount)}`, pageWidth - margin - 2, yPos, { align: 'right' });
-        
-        yPos += 6;
-        doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
-        doc.text('Total com Desconto:', pageWidth - 80, yPos);
-        doc.text(formatCurrency(quotation.final_options_price || 0), pageWidth - margin - 2, yPos, { align: 'right' });
-      }
+      doc.setFontSize(11);
+      doc.setFont('NotoSans', 'normal');
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.text('TOTAL OPCIONAIS:', pageWidth - 80, yPos);
+      doc.text(
+        formatCurrency(quotation.total_options_price || 0),
+        pageWidth - margin - 2,
+        yPos,
+        { align: 'right' }
+      );
+      
+      addDraftWatermark();
     }
 
     // ============= PAGE N+2: CUSTOMIZATIONS =============
@@ -535,7 +611,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('NotoSans', 'normal');
       doc.text('Customizações Solicitadas', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -544,60 +620,73 @@ serve(async (req) => {
 
       let yPos = 50;
 
+      // Table header
+      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.rect(margin, yPos - 5, contentWidth, 8, 'F');
+      
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Item', margin + 2, yPos);
+      doc.text('Status', pageWidth / 2, yPos);
+      doc.text('Custo Adicional', pageWidth - margin - 35, yPos, { align: 'right' });
+      yPos += 8;
+
+      // Table rows
+      doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+      doc.setFont('NotoSans', 'normal');
+      
       quotation.quotation_customizations.forEach((custom: any, index: number) => {
-        if (yPos > pageHeight - 40) {
+        if (yPos > 265) {
           doc.addPage();
           yPos = 30;
+          addDraftWatermark();
         }
 
-        // Custom box
-        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-        const boxHeight = 35 + (custom.notes ? 10 : 0);
-        doc.roundedRect(margin, yPos, contentWidth, boxHeight, 3, 3, 'F');
+        // Alternate row background
+        if (index % 2 === 0) {
+          doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+          doc.rect(margin, yPos - 4, contentWidth, 6, 'F');
+        }
 
-        yPos += 8;
-        doc.setFontSize(11);
-        doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${index + 1}. ${custom.item_name}`, margin + 5, yPos);
-        
-        yPos += 7;
         doc.setFontSize(9);
-        doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('helvetica', 'normal');
-
-        if (custom.quantity) {
-          doc.text(`Quantidade: ${custom.quantity}`, margin + 5, yPos);
-          yPos += 5;
-        }
-
-        doc.text(`Custo Adicional: ${formatCurrency(custom.additional_cost || 0)}`, margin + 5, yPos);
-        yPos += 5;
-
-        if (custom.delivery_impact_days > 0) {
-          doc.text(`Impacto no Prazo: +${custom.delivery_impact_days} dias`, margin + 5, yPos);
-          yPos += 5;
-        }
-
-        const statusColors: any = {
-          pending: COLORS.accent,
-          approved: COLORS.success,
-          rejected: [220, 38, 38]
-        };
-        const statusColor = statusColors[custom.status] || COLORS.muted;
-        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-        doc.text(`Status: ${custom.status === 'pending' ? 'Pendente' : custom.status === 'approved' ? 'Aprovado' : 'Rejeitado'}`, margin + 5, yPos);
+        doc.setFont('NotoSans', 'normal');
         
-        if (custom.notes) {
-          yPos += 7;
-          doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-          doc.setFontSize(8);
-          const notesLines = doc.splitTextToSize(custom.notes, contentWidth - 15);
-          doc.text(notesLines, margin + 5, yPos);
-        }
+        const customName = doc.splitTextToSize(custom.item_name, 70);
+        doc.text(customName[0] + (customName.length > 1 ? '...' : ''), margin + 2, yPos);
+        
+        const statusText = custom.status === 'approved' ? 'Aprovada' : 
+                          custom.status === 'rejected' ? 'Rejeitada' : 'Pendente';
+        doc.text(statusText, pageWidth / 2, yPos);
+        
+        doc.text(
+          formatCurrency(custom.additional_cost || 0),
+          pageWidth - margin - 2,
+          yPos,
+          { align: 'right' }
+        );
 
-        yPos += boxHeight - 5 + 10;
+        yPos += 6;
       });
+
+      // Total row
+      yPos += 5;
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setLineWidth(0.3);
+      doc.line(pageWidth - 80, yPos - 3, pageWidth - margin, yPos - 3);
+      
+      doc.setFontSize(11);
+      doc.setFont('NotoSans', 'normal');
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.text('TOTAL CUSTOMIZAÇÕES:', pageWidth - 80, yPos);
+      doc.text(
+        formatCurrency(quotation.total_customizations_price || 0),
+        pageWidth - margin - 2,
+        yPos,
+        { align: 'right' }
+      );
+      
+      addDraftWatermark();
     }
 
     // ============= PAGE N+3: FINANCIAL SUMMARY =============
@@ -605,164 +694,110 @@ serve(async (req) => {
       doc.addPage();
       
       // Title
-      doc.setFontSize(20);
+      doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Resumo Financeiro', pageWidth / 2, 30, { align: 'center' });
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Resumo Financeiro', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setLineWidth(0.8);
-      doc.line(margin, 37, pageWidth - margin, 37);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 35, pageWidth - margin, 35);
 
-      let yPos = 60;
+      let yPos = 55;
 
-      // Summary box
-      const boxWidth = contentWidth - 40;
-      const boxX = margin + 20;
+      // Financial breakdown
+      const items = [
+        { label: 'Valor Base do Modelo', value: quotation.base_price },
+        { label: 'Desconto Base', value: -(quotation.base_price - quotation.final_base_price), isDiscount: true },
+        { label: 'Total Base', value: quotation.final_base_price, isBold: true },
+        null, // separator
+        { label: 'Opcionais', value: quotation.total_options_price || 0 },
+        { label: 'Desconto Opcionais', value: -((quotation.total_options_price || 0) - (quotation.final_options_price || 0)), isDiscount: true },
+        { label: 'Total Opcionais', value: quotation.final_options_price || 0, isBold: true },
+        null, // separator
+        { label: 'Customizações', value: quotation.total_customizations_price || 0 },
+      ];
 
-      // Model Base
-      doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-      doc.roundedRect(boxX, yPos, boxWidth, 40, 3, 3, 'F');
+      doc.setFontSize(11);
       
-      yPos += 10;
-      doc.setFontSize(12);
-      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Modelo Base', boxX + 5, yPos);
-      
-      yPos += 8;
-      doc.setFontSize(10);
-      doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
-      doc.text(quotation.yacht_models.name, boxX + 5, yPos);
-      doc.text(formatCurrency(quotation.base_price), boxX + boxWidth - 5, yPos, { align: 'right' });
-      
-      if (quotation.base_discount_percentage > 0) {
-        yPos += 6;
-        doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-        doc.text(`Desconto (${quotation.base_discount_percentage}%)`, boxX + 10, yPos);
-        const discount = quotation.base_price - quotation.final_base_price;
-        doc.text(`-${formatCurrency(discount)}`, boxX + boxWidth - 5, yPos, { align: 'right' });
-      }
-      
-      yPos += 6;
-      doc.setDrawColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.setLineWidth(0.3);
-      doc.line(boxX + 5, yPos, boxX + boxWidth - 5, yPos);
-      
-      yPos += 5;
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.text('Subtotal', boxX + 5, yPos);
-      doc.text(formatCurrency(quotation.final_base_price), boxX + boxWidth - 5, yPos, { align: 'right' });
-
-      yPos += 15;
-
-      // Options
-      if (quotation.quotation_options && quotation.quotation_options.length > 0) {
-        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-        doc.roundedRect(boxX, yPos, boxWidth, 35, 3, 3, 'F');
-        
-        yPos += 10;
-        doc.setFontSize(12);
-        doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Opcionais Selecionados', boxX + 5, yPos);
-        
-        yPos += 8;
-        doc.setFontSize(10);
-        doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${quotation.quotation_options.length} itens`, boxX + 5, yPos);
-        doc.text(formatCurrency(quotation.total_options_price || 0), boxX + boxWidth - 5, yPos, { align: 'right' });
-        
-        if (quotation.options_discount_percentage > 0) {
-          yPos += 6;
-          doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-          doc.text(`Desconto (${quotation.options_discount_percentage}%)`, boxX + 10, yPos);
-          const discount = (quotation.total_options_price || 0) - (quotation.final_options_price || 0);
-          doc.text(`-${formatCurrency(discount)}`, boxX + boxWidth - 5, yPos, { align: 'right' });
-        }
-        
-        yPos += 6;
-        doc.setDrawColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-        doc.line(boxX + 5, yPos, boxX + boxWidth - 5, yPos);
-        
-        yPos += 5;
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.text('Subtotal', boxX + 5, yPos);
-        doc.text(formatCurrency(quotation.final_options_price || 0), boxX + boxWidth - 5, yPos, { align: 'right' });
-
-        yPos += 15;
-      }
-
-      // Customizations
-      if (quotation.quotation_customizations && quotation.quotation_customizations.length > 0) {
-        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
-        doc.roundedRect(boxX, yPos, boxWidth, 25, 3, 3, 'F');
-        
-        yPos += 10;
-        doc.setFontSize(12);
-        doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Customizações', boxX + 5, yPos);
-        
-        yPos += 8;
-        doc.setFontSize(10);
-        doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('helvetica', 'normal');
-        
-        quotation.quotation_customizations.forEach((custom: any) => {
-          const customText = doc.splitTextToSize(custom.item_name, boxWidth - 60);
-          doc.text(customText[0], boxX + 5, yPos);
-          doc.text(formatCurrency(custom.additional_cost || 0), boxX + boxWidth - 5, yPos, { align: 'right' });
+      items.forEach(item => {
+        if (item === null) {
+          // Separator
           yPos += 5;
-        });
-        
-        yPos += 5;
-        doc.setDrawColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-        doc.line(boxX + 5, yPos, boxX + boxWidth - 5, yPos);
-        
-        yPos += 5;
-        doc.setFont('helvetica', 'bold');
-        doc.text('Subtotal', boxX + 5, yPos);
-        doc.text(formatCurrency(quotation.total_customizations_price || 0), boxX + boxWidth - 5, yPos, { align: 'right' });
+          doc.setDrawColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+          doc.setLineWidth(0.2);
+          doc.line(margin, yPos, pageWidth - margin, yPos);
+          yPos += 5;
+          return;
+        }
 
-        yPos += 15;
-      }
+        if (item.isBold) {
+          doc.setFont('NotoSans', 'normal');
+          doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+        } else {
+          doc.setFont('NotoSans', 'normal');
+          doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
+        }
 
-      // TOTAL
+        doc.text(item.label, margin, yPos);
+        
+        const valueText = item.isDiscount && item.value !== 0
+          ? `- ${formatCurrency(Math.abs(item.value))}`
+          : formatCurrency(item.value);
+        
+        doc.text(valueText, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 8;
+      });
+
+      // Grand Total
       yPos += 5;
-      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.roundedRect(boxX, yPos, boxWidth, 15, 3, 3, 'F');
-      
-      yPos += 10;
-      doc.setFontSize(14);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.text('VALOR TOTAL', boxX + 5, yPos);
-      doc.text(formatCurrency(quotation.final_price), boxX + boxWidth - 5, yPos, { align: 'right' });
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setLineWidth(0.5);
+      doc.line(margin, yPos, pageWidth - margin, yPos);
+      yPos += 8;
 
-      // Delivery info
-      yPos += 25;
+      doc.setFontSize(14);
+      doc.setFont('NotoSans', 'normal');
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.text('VALOR TOTAL', margin, yPos);
+      doc.text(formatCurrency(quotation.final_price), pageWidth - margin, yPos, { align: 'right' });
+
+      // Delivery
+      yPos += 15;
       doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Prazo de Entrega: ${quotation.total_delivery_days} dias (${Math.round(quotation.total_delivery_days / 30)} meses)`, boxX, yPos);
-      yPos += 7;
-      doc.text(`Validade da Proposta: ${formatDate(quotation.valid_until)}`, boxX, yPos);
+      doc.setFont('NotoSans', 'normal');
+      doc.text(`Prazo de Entrega: ${quotation.total_delivery_days} dias`, margin, yPos);
+
+      // Conditions
+      yPos += 15;
+      doc.setFontSize(10);
+      doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+      
+      const conditions = [
+        '• Pagamento: 30% entrada, 40% durante a construção, 30% na entrega',
+        '• Proposta válida por 30 dias',
+        '• Preços sujeitos a alteração sem aviso prévio',
+        '• Prazo de entrega após confirmação do pedido e pagamento da entrada'
+      ];
+      
+      conditions.forEach(condition => {
+        doc.text(condition, margin, yPos);
+        yPos += 6;
+      });
+      
+      addDraftWatermark();
     }
 
-    // ============= FINAL PAGE: CONTACT & TERMS =============
+    // ============= PAGE N+4: CONTACT & TERMS =============
     function addContactPage() {
       doc.addPage();
       
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Informações de Contato', margin, 30);
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Contato e Termos', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.setLineWidth(0.5);
@@ -772,80 +807,60 @@ serve(async (req) => {
 
       // Sales Representative
       doc.setFontSize(12);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Consultor Responsável', margin, yPos);
+      yPos += 8;
+
+      doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Representante Comercial', margin, yPos);
-      
-      yPos += 10;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('NotoSans', 'normal');
       
       if (quotation.users) {
-        doc.text(`Nome: ${quotation.users.full_name}`, margin, yPos);
+        doc.text(quotation.users.full_name, margin, yPos);
         yPos += 6;
         doc.text(`Email: ${quotation.users.email}`, margin, yPos);
         yPos += 6;
-        if (quotation.users.department) {
-          doc.text(`Departamento: ${quotation.users.department}`, margin, yPos);
-          yPos += 6;
-        }
       }
 
-      yPos += 15;
-
-      // Company info
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OKEAN Yachts', margin, yPos);
-      
-      yPos += 10;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Website: www.okeanyachts.com.br', margin, yPos);
-      yPos += 6;
-      doc.text('Email: contato@okeanyachts.com.br', margin, yPos);
-
-      yPos += 20;
-
       // Terms
+      yPos += 15;
       doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.text('Condições Gerais', margin, yPos);
-      
+      doc.setFont('NotoSans', 'normal');
+      doc.text('Termos e Condições', margin, yPos);
       yPos += 10;
+
       doc.setFontSize(9);
-      doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('helvetica', 'normal');
-
+      doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+      doc.setFont('NotoSans', 'normal');
+      
       const terms = [
-        '• Esta proposta é válida até a data especificada e sujeita a confirmação de disponibilidade.',
-        '• Valores sujeitos a alteração sem aviso prévio.',
-        '• O prazo de entrega é estimado e pode variar conforme customizações aprovadas.',
-        '• Customizações estão sujeitas a aprovação técnica e podem impactar prazos e valores.',
-        '• Forma de pagamento e condições comerciais serão definidas em contrato específico.',
-        '• Garantias conforme manual do fabricante e legislação vigente.',
+        'Esta proposta é válida por 30 dias a partir da data de emissão.',
+        'Os valores apresentados são estimados e podem sofrer alterações.',
+        'O prazo de entrega será confirmado após o fechamento do pedido.',
+        'Customizações estão sujeitas à aprovação técnica.',
+        'Garantia conforme manual do fabricante.',
       ];
-
-      terms.forEach(term => {
-        const lines = doc.splitTextToSize(term, contentWidth);
+      
+      terms.forEach((term, index) => {
+        const lines = doc.splitTextToSize(`${index + 1}. ${term}`, contentWidth);
         doc.text(lines, margin, yPos);
         yPos += lines.length * 5;
       });
 
-      // Footer with company branding
-      yPos = pageHeight - 40;
-      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.rect(0, yPos, pageWidth, 40, 'F');
+      // Footer
+      yPos = pageHeight - 30;
+      doc.setFontSize(12);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setFont('NotoSans', 'normal');
+      doc.text('OKEAN Yachts', pageWidth / 2, yPos, { align: 'center' });
+      yPos += 6;
+      doc.setFontSize(9);
+      doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+      doc.text('Inovação e Excelência Naval', pageWidth / 2, yPos, { align: 'center' });
       
-      doc.setFontSize(16);
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.text('OKEAN YACHTS', pageWidth / 2, yPos + 15, { align: 'center' });
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Realizando sonhos náuticos', pageWidth / 2, yPos + 23, { align: 'center' });
+      addDraftWatermark();
     }
 
     // Generate all pages
@@ -858,81 +873,96 @@ serve(async (req) => {
     addFinancialSummary();
     addContactPage();
 
-    // Add page numbers to all pages
-    const totalPages = doc.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
+    // Generate integrity hash (SHA-256)
+    const snapshot = {
+      quotation_number: quotation.quotation_number,
+      version: quotation.version ?? 1,
+      final_price: quotation.final_price,
+      valid_until: quotation.valid_until,
+      model: quotation.yacht_models?.name,
+      status: quotation.status,
+      options_count: quotation.quotation_options?.length ?? 0,
+      customizations_count: quotation.quotation_customizations?.length ?? 0,
+    };
+    
+    const integrityHash = await generateHash(snapshot);
+    console.log(`📝 Integrity hash generated: ${integrityHash.slice(0, 16)}...`);
+
+    // Add page numbers and integrity footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFontSize(8);
+      doc.setFont('NotoSans', 'normal');
       doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
       doc.text(
-        `Página ${i} de ${totalPages} | OKEAN Yachts | ${quotation.quotation_number}`,
+        `Snapshot: ${integrityHash.slice(0, 16)} · Não altere após envio`,
         pageWidth / 2,
         pageHeight - 10,
         { align: 'center' }
       );
+      doc.setFontSize(9);
+      doc.text(
+        `Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 5,
+        { align: 'center' }
+      );
     }
 
-    // Generate PDF as buffer
-    const pdfBase64 = doc.output('datauristring').split(',')[1];
-    const pdfBuffer = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+    // Generate PDF blob
+    const pdfBlob = doc.output('blob');
 
-    // Upload to Storage
-    const fileName = `${quotation.quotation_number.replace(/[^a-zA-Z0-9-]/g, '_')}_v${quotation.version || 1}.pdf`;
-    const filePath = `${quotation.quotation_number}/${fileName}`;
-
+    // Upload to storage (private bucket)
+    const filePath = `${quotation.quotation_number}/${quotation.quotation_number}_v${quotation.version || 1}.pdf`;
     console.log('Uploading premium PDF to storage:', filePath);
-
+    
     const { error: uploadError } = await supabase.storage
       .from('quotation-pdfs')
-      .upload(filePath, pdfBuffer, {
+      .upload(filePath, pdfBlob, {
         contentType: 'application/pdf',
         upsert: true
       });
 
-    if (uploadError) {
-      console.error('Upload error:', uploadError);
-      throw new Error('Failed to upload PDF: ' + uploadError.message);
-    }
+    if (uploadError) throw uploadError;
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Get signed URL (30 days validity, aligned with quotation validity)
+    const { data: signedData, error: signedError } = await supabase.storage
       .from('quotation-pdfs')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 60 * 60 * 24 * 30); // 30 days
 
-    const pdfUrl = urlData.publicUrl;
-    console.log('Premium PDF generated successfully:', pdfUrl);
+    if (signedError) throw signedError;
+
+    const pdfUrl = signedData.signedUrl;
+    console.log('✅ Premium PDF generated with signed URL (30 days validity)');
+    console.log(`📄 File: ${filePath}`);
+    console.log(`🔒 Hash: ${integrityHash.slice(0, 32)}...`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
+      JSON.stringify({ 
+        success: true, 
         pdfUrl,
-        fileName,
-        quotationNumber: quotation.quotation_number,
-        pages: totalPages
+        integrityHash: integrityHash.slice(0, 32),
+        pages: pageCount,
+        memorialItemsCompacted: memorialItems ? `${memorialItems.length} → ${memorialClean.length}` : '0'
       }),
       {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
       }
     );
 
-  } catch (error: any) {
-    console.error('Error generating premium PDF:', error);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({
-        error: error.message || 'Failed to generate PDF',
-        details: error.stack
+      JSON.stringify({ 
+        success: false, 
+        error: errorMessage 
       }),
       {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders,
-        },
       }
     );
   }
