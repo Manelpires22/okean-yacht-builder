@@ -139,6 +139,36 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_users: {
+        Row: {
+          created_at: string | null
+          department: Database["public"]["Enums"]["department_type"]
+          id: string
+          is_active: boolean | null
+          role_specialty: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          department: Database["public"]["Enums"]["department_type"]
+          id?: string
+          is_active?: boolean | null
+          role_specialty: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
+          id?: string
+          is_active?: boolean | null
+          role_specialty?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       memorial_categories: {
         Row: {
           created_at: string | null
@@ -351,6 +381,38 @@ export type Database = {
             foreignKeyName: "options_yacht_model_id_fkey"
             columns: ["yacht_model_id"]
             isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pm_yacht_model_assignments: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          pm_user_id: string
+          yacht_model_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          pm_user_id: string
+          yacht_model_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          pm_user_id?: string
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pm_yacht_model_assignments_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: true
             referencedRelation: "yacht_models"
             referencedColumns: ["id"]
           },
@@ -802,6 +864,12 @@ export type Database = {
         | "financeiro"
       approval_status: "pending" | "approved" | "rejected"
       approval_type: "discount" | "customization" | "commercial" | "technical"
+      department_type:
+        | "commercial"
+        | "engineering"
+        | "supply"
+        | "planning"
+        | "backoffice"
       memorial_category:
         | "dimensoes"
         | "motorizacao"
@@ -990,6 +1058,13 @@ export const Constants = {
       ],
       approval_status: ["pending", "approved", "rejected"],
       approval_type: ["discount", "customization", "commercial", "technical"],
+      department_type: [
+        "commercial",
+        "engineering",
+        "supply",
+        "planning",
+        "backoffice",
+      ],
       memorial_category: [
         "dimensoes",
         "motorizacao",
