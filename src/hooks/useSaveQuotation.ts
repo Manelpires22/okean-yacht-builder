@@ -222,9 +222,13 @@ export function useSaveQuotation() {
               : customization.memorial_item_id,
             quantity: customization.quantity || 1,
             notes: customization.notes || '',
-            image_url: customization.image_url || null
+            image_url: customization.image_url || null,
+            is_optional: false, // Customizações não são opcionais, são do memorial ou livres
+            is_free_customization: !customization.memorial_item_id || customization.memorial_item_id.startsWith('free-')
           },
-          notes: `Customização solicitada: ${customization.item_name}`
+          notes: customization.memorial_item_id?.startsWith('free-')
+            ? `Customização livre: ${customization.item_name}`
+            : `Customização solicitada: ${customization.item_name}`
         }));
 
         const { error: technicalApprovalError } = await supabase

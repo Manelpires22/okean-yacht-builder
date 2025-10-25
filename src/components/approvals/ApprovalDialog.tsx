@@ -174,6 +174,27 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
                   <span className="text-muted-foreground">Item:</span>
                   <p className="font-medium">{approval.request_details.customization_item_name}</p>
                 </div>
+                
+                {/* Tipo de item - Base, Opcional ou Customização Livre */}
+                <div>
+                  <span className="text-muted-foreground">Tipo:</span>
+                  <div className="mt-1">
+                    {approval.request_details.memorial_item_id ? (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                        Item de Base (Memorial Descritivo)
+                      </Badge>
+                    ) : approval.request_details.is_optional ? (
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-300">
+                        Opcional com Custo Extra
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                        Customização Livre (Item Novo)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
                 {approval.request_details.quantity > 1 && (
                   <div>
                     <span className="text-muted-foreground">Quantidade:</span>
