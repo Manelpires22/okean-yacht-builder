@@ -205,6 +205,8 @@ interface ReviewApprovalParams {
   id: string;
   status: 'approved' | 'rejected';
   review_notes?: string;
+  additional_cost?: number;
+  delivery_impact_days?: number;
 }
 
 export const useReviewApproval = () => {
@@ -218,24 +220,68 @@ export const useReviewApproval = () => {
       // Get the approval to update quotation
       const { data: approval, error: approvalError } = await supabase
         .from('approvals')
-        .select('quotation_id')
+        .select('quotation_id, approval_type')
         .eq('id', params.id)
         .single();
 
       if (approvalError) throw approvalError;
 
+      // Prepare update data
+      const updateData: any = {
+        status: params.status,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        review_notes: params.review_notes
+      };
+
+      // For technical approvals, store cost and delivery impact in request_details
+      if (approval.approval_type === 'technical' && params.status === 'approved') {
+        const { data: currentApproval } = await supabase
+          .from('approvals')
+          .select('request_details')
+          .eq('id', params.id)
+          .single();
+
+        const existingDetails = (currentApproval?.request_details as Record<string, any>) || {};
+        
+        updateData.request_details = {
+          ...existingDetails,
+          additional_cost: params.additional_cost || 0,
+          delivery_impact_days: params.delivery_impact_days || 0
+        };
+      }
+
       // Update approval
       const { error } = await supabase
         .from('approvals')
-        .update({
-          status: params.status,
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-          review_notes: params.review_notes
-        })
+        .update(updateData)
         .eq('id', params.id);
 
       if (error) throw error;
+
+      // If technical approval was approved, update quotation totals
+      if (approval.approval_type === 'technical' && params.status === 'approved' && (params.additional_cost || params.delivery_impact_days)) {
+        const { data: quotation } = await supabase
+          .from('quotations')
+          .select('total_customizations_price, total_delivery_days, final_price')
+          .eq('id', approval.quotation_id)
+          .single();
+
+        if (quotation) {
+          const newCustomizationsPrice = (quotation.total_customizations_price || 0) + (params.additional_cost || 0);
+          const newTotalDeliveryDays = (quotation.total_delivery_days || 0) + (params.delivery_impact_days || 0);
+          const newFinalPrice = (quotation.final_price || 0) + (params.additional_cost || 0);
+
+          await supabase
+            .from('quotations')
+            .update({
+              total_customizations_price: newCustomizationsPrice,
+              total_delivery_days: newTotalDeliveryDays,
+              final_price: newFinalPrice
+            })
+            .eq('id', approval.quotation_id);
+        }
+      }
 
       // Check if there are any remaining pending approvals for this quotation
       const { data: pendingApprovals, error: pendingError } = await supabase

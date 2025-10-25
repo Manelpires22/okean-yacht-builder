@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import { CheckCircle, XCircle, Calendar, User, Package, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,19 +26,35 @@ interface ApprovalDialogProps {
 
 export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialogProps) {
   const [reviewNotes, setReviewNotes] = useState("");
+  const [additionalCost, setAdditionalCost] = useState("");
+  const [deliveryImpactDays, setDeliveryImpactDays] = useState("");
   const { data: approval, isLoading } = useApproval(approvalId || "");
   const reviewMutation = useReviewApproval();
 
   const handleReview = async (status: 'approved' | 'rejected') => {
     if (!approvalId) return;
 
-    await reviewMutation.mutateAsync({
+    const reviewData: any = {
       id: approvalId,
       status,
       review_notes: reviewNotes
-    });
+    };
+
+    // Para aprovações técnicas aprovadas, incluir custos e impactos
+    if (approval?.approval_type === 'technical' && status === 'approved') {
+      if (additionalCost) {
+        reviewData.additional_cost = parseFloat(additionalCost);
+      }
+      if (deliveryImpactDays) {
+        reviewData.delivery_impact_days = parseInt(deliveryImpactDays);
+      }
+    }
+
+    await reviewMutation.mutateAsync(reviewData);
 
     setReviewNotes("");
+    setAdditionalCost("");
+    setDeliveryImpactDays("");
     onOpenChange(false);
   };
 
@@ -231,6 +248,47 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
           {isPending && (
             <>
               <Separator />
+              
+              {/* Campos específicos para aprovação técnica */}
+              {approval.approval_type === 'technical' && (
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Análise Técnica</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="additional-cost">Custo Adicional (R$)</Label>
+                      <Input
+                        id="additional-cost"
+                        type="number"
+                        placeholder="0,00"
+                        value={additionalCost}
+                        onChange={(e) => setAdditionalCost(e.target.value)}
+                        step="0.01"
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe em branco se não houver custo adicional
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="delivery-impact">Impacto na Entrega (dias)</Label>
+                      <Input
+                        id="delivery-impact"
+                        type="number"
+                        placeholder="0"
+                        value={deliveryImpactDays}
+                        onChange={(e) => setDeliveryImpactDays(e.target.value)}
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dias adicionais necessários para entrega
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="review-notes">Observações da Revisão</Label>
                 <Textarea
