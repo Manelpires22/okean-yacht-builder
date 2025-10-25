@@ -12,8 +12,10 @@ import { QuotationStatusBadge } from "@/components/quotations/QuotationStatusBad
 import { QuotationStatusChecklist } from "@/components/quotations/QuotationStatusChecklist";
 import { CustomizationStatusCard } from "@/components/quotations/CustomizationStatusCard";
 import { RevalidationAlert } from "@/components/quotations/RevalidationAlert";
+import { SendQuotationDialog, type SendQuotationData } from "@/components/quotations/SendQuotationDialog";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
+import { useSendQuotation } from "@/hooks/useSendQuotation";
 import { useState } from "react";
 
 export default function QuotationDetail() {
@@ -21,10 +23,12 @@ export default function QuotationDetail() {
   const navigate = useNavigate();
   const { data: quotation, isLoading } = useQuotation(id!);
   const [isRevalidating, setIsRevalidating] = useState(false);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
 
   // Hooks para status e revalidação
   const quotationStatus = useQuotationStatus(quotation || null);
   const { data: revalidation } = useQuotationRevalidation(id);
+  const sendQuotation = useSendQuotation();
 
   const handleRevalidate = async () => {
     setIsRevalidating(true);
@@ -36,14 +40,21 @@ export default function QuotationDetail() {
     navigate(`/configurator?quotation=${id}`);
   };
 
-  const handleSendEmail = () => {
-    // TODO: Implementar envio de email (Fase 2)
-    console.log("Enviar email");
+  const handleOpenSendDialog = () => {
+    setSendDialogOpen(true);
   };
 
-  const handleGeneratePDF = () => {
-    // TODO: Implementar geração de PDF (Fase 2)
-    console.log("Gerar PDF");
+  const handleSend = async (data: SendQuotationData) => {
+    if (!quotation) return;
+    
+    await sendQuotation.mutateAsync({
+      quotationId: quotation.id,
+      sendEmail: data.sendEmail,
+      generatePDF: data.generatePDF,
+      recipientEmail: data.recipientEmail,
+      emailSubject: data.emailSubject,
+      emailMessage: data.emailMessage
+    });
   };
 
   if (isLoading) {
@@ -304,23 +315,17 @@ export default function QuotationDetail() {
 
         {/* Botões de Envio - só se ready_to_send */}
         {quotationStatus.canSend && (
-          <>
-            <Button variant="outline" onClick={handleSendEmail}>
-              <Mail className="mr-2 h-4 w-4" />
-              Enviar por Email
-            </Button>
-            <Button onClick={handleGeneratePDF}>
-              <Download className="mr-2 h-4 w-4" />
-              Gerar PDF
-            </Button>
-          </>
+          <Button onClick={handleOpenSendDialog}>
+            <Send className="mr-2 h-4 w-4" />
+            Enviar Proposta
+          </Button>
         )}
 
-        {/* Botão Download PDF - se já foi enviada */}
+        {/* Botão Reenviar - se já foi enviada */}
         {quotation.status === 'sent' && (
-          <Button variant="outline" onClick={handleGeneratePDF}>
-            <Download className="mr-2 h-4 w-4" />
-            Baixar PDF
+          <Button variant="outline" onClick={handleOpenSendDialog}>
+            <Mail className="mr-2 h-4 w-4" />
+            Reenviar Proposta
           </Button>
         )}
 
@@ -332,6 +337,18 @@ export default function QuotationDetail() {
           </Button>
         )}
       </div>
+
+      {/* Dialog de Envio */}
+      {quotation && (
+        <SendQuotationDialog
+          open={sendDialogOpen}
+          onOpenChange={setSendDialogOpen}
+          quotationNumber={quotation.quotation_number}
+          clientName={quotation.clients?.name || quotation.client_name}
+          clientEmail={quotation.clients?.email || quotation.client_email}
+          onSend={handleSend}
+        />
+      )}
       </div>
     </>
   );

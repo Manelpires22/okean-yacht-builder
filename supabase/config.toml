@@ -12,3 +12,6 @@ verify_jwt = true
 [functions.create-fy850-options]
 verify_jwt = true
 
+[functions.send-quotation-email]
+verify_jwt = true
+
