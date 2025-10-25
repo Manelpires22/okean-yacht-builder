@@ -44,17 +44,24 @@ type FormValues = z.infer<typeof formSchema>;
 const ROLES = [
   { value: "administrador", label: "Administrador" },
   { value: "gerente_comercial", label: "Gerente Comercial" },
-  { value: "comercial", label: "Comercial" },
-  { value: "producao", label: "Produção" },
-  { value: "financeiro", label: "Financeiro" },
+  { value: "vendedor", label: "Comercial" },
+  { value: "engenheiro", label: "Produção" },
+  { value: "pm_engenharia", label: "PM Engenharia" },
+  { value: "comprador", label: "Comprador (Supply)" },
+  { value: "planejador", label: "Planejador (Planning)" },
+  { value: "diretor_comercial", label: "Diretor Comercial" },
+  { value: "broker", label: "Broker" },
+  { value: "backoffice_comercial", label: "Backoffice Comercial" },
 ];
 
 const DEPARTMENTS = [
   "Comercial",
-  "Produção",
+  "Engenharia",
+  "Supply",
+  "Planning",
   "Financeiro",
-  "TI",
-  "Direção",
+  "Backoffice",
+  "Produção",
 ];
 
 interface CreateUserDialogProps {

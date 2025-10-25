@@ -20,7 +20,6 @@ const navItems = [
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
   { path: "/admin/discount-settings", icon: Percent, label: "Gestão de Descontos" },
-  { path: "/admin/internal-users", icon: Briefcase, label: "Usuários Internos" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
 ];
 

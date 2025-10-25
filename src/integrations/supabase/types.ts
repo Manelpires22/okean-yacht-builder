@@ -139,36 +139,6 @@ export type Database = {
         }
         Relationships: []
       }
-      internal_users: {
-        Row: {
-          created_at: string | null
-          department: Database["public"]["Enums"]["department_type"]
-          id: string
-          is_active: boolean | null
-          role_specialty: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          department: Database["public"]["Enums"]["department_type"]
-          id?: string
-          is_active?: boolean | null
-          role_specialty: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          department?: Database["public"]["Enums"]["department_type"]
-          id?: string
-          is_active?: boolean | null
-          role_specialty?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       memorial_categories: {
         Row: {
           created_at: string | null
@@ -409,6 +379,13 @@ export type Database = {
           yacht_model_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pm_yacht_model_assignments_pm_user_id_fkey"
+            columns: ["pm_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pm_yacht_model_assignments_yacht_model_id_fkey"
             columns: ["yacht_model_id"]
