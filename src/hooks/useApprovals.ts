@@ -66,15 +66,6 @@ export const useApprovals = (params?: UseApprovalsParams) => {
               name,
               code
             )
-          ),
-          requester:users!requested_by (
-            full_name,
-            email,
-            department
-          ),
-          reviewer:users!reviewed_by (
-            full_name,
-            email
           )
         `)
         .order('requested_at', { ascending: false });
@@ -113,16 +104,6 @@ export const useApproval = (id: string) => {
               name,
               code
             )
-          ),
-          requester:users!requested_by (
-            full_name,
-            email,
-            department
-          ),
-          reviewer:users!reviewed_by (
-            full_name,
-            email,
-            department
           )
         `)
         .eq('id', id)
