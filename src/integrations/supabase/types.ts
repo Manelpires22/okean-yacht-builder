@@ -109,6 +109,60 @@ export type Database = {
         }
         Relationships: []
       }
+      customization_workflow_steps: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string | null
+          customization_id: string
+          id: string
+          notes: string | null
+          response_data: Json | null
+          status: string | null
+          step_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customization_id: string
+          id?: string
+          notes?: string | null
+          response_data?: Json | null
+          status?: string | null
+          step_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customization_id?: string
+          id?: string
+          notes?: string | null
+          response_data?: Json | null
+          status?: string | null
+          step_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customization_workflow_steps_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customization_workflow_steps_customization_id_fkey"
+            columns: ["customization_id"]
+            isOneToOne: false
+            referencedRelation: "quotation_customizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_limits_config: {
         Row: {
           admin_approval_required_above: number
@@ -398,51 +452,102 @@ export type Database = {
       quotation_customizations: {
         Row: {
           additional_cost: number | null
+          attachments: Json | null
           created_at: string | null
           delivery_impact_days: number | null
+          engineering_hours: number | null
           engineering_notes: string | null
           file_paths: string[] | null
           id: string
           item_name: string
           memorial_item_id: string | null
           notes: string | null
+          planning_delivery_impact_days: number | null
+          planning_notes: string | null
+          planning_window_start: string | null
+          pm_final_delivery_impact_days: number | null
+          pm_final_notes: string | null
+          pm_final_price: number | null
+          pm_scope: string | null
           quantity: number | null
           quotation_id: string
+          reject_reason: string | null
+          required_parts: Json | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string | null
+          supply_cost: number | null
+          supply_items: Json | null
+          supply_lead_time_days: number | null
+          supply_notes: string | null
+          workflow_audit: Json | null
+          workflow_status: string | null
         }
         Insert: {
           additional_cost?: number | null
+          attachments?: Json | null
           created_at?: string | null
           delivery_impact_days?: number | null
+          engineering_hours?: number | null
           engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
           item_name: string
           memorial_item_id?: string | null
           notes?: string | null
+          planning_delivery_impact_days?: number | null
+          planning_notes?: string | null
+          planning_window_start?: string | null
+          pm_final_delivery_impact_days?: number | null
+          pm_final_notes?: string | null
+          pm_final_price?: number | null
+          pm_scope?: string | null
           quantity?: number | null
           quotation_id: string
+          reject_reason?: string | null
+          required_parts?: Json | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
+          supply_cost?: number | null
+          supply_items?: Json | null
+          supply_lead_time_days?: number | null
+          supply_notes?: string | null
+          workflow_audit?: Json | null
+          workflow_status?: string | null
         }
         Update: {
           additional_cost?: number | null
+          attachments?: Json | null
           created_at?: string | null
           delivery_impact_days?: number | null
+          engineering_hours?: number | null
           engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
           item_name?: string
           memorial_item_id?: string | null
           notes?: string | null
+          planning_delivery_impact_days?: number | null
+          planning_notes?: string | null
+          planning_window_start?: string | null
+          pm_final_delivery_impact_days?: number | null
+          pm_final_notes?: string | null
+          pm_final_price?: number | null
+          pm_scope?: string | null
           quantity?: number | null
           quotation_id?: string
+          reject_reason?: string | null
+          required_parts?: Json | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string | null
+          supply_cost?: number | null
+          supply_items?: Json | null
+          supply_lead_time_days?: number | null
+          supply_notes?: string | null
+          workflow_audit?: Json | null
+          workflow_status?: string | null
         }
         Relationships: [
           {
@@ -697,6 +802,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      workflow_config: {
+        Row: {
+          config_key: string
+          config_value: Json
+          id: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value: Json
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       yacht_models: {
         Row: {
