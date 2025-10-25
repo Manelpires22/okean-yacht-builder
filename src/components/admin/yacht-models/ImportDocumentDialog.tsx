@@ -81,70 +81,57 @@ export function ImportDocumentDialog({
     setDebugInfo(null);
 
     try {
-      // FASE 1: Detectar tipo de arquivo e extrair texto corretamente
+      // FASE 1: Extrair texto do arquivo (sem fazer upload)
       let documentText = '';
       
-      const isBinaryFile = file.type.includes('wordprocessingml') || 
-                           file.type.includes('spreadsheetml') ||
-                           file.type.includes('pdf');
+      const isTextFile = file.type === 'text/plain' || file.name.endsWith('.txt');
       
-      if (isBinaryFile) {
-        console.log('📄 Arquivo binário detectado:', file.type);
-        toast.info('Extraindo texto do documento binário...');
-        
-        // Fazer upload temporário para o storage
-        const tempPath = `temp/${Date.now()}_${file.name}`;
-        
-        console.log('📤 Fazendo upload temporário...');
-        const { error: uploadError } = await supabase.storage
-          .from('yacht-images')
-          .upload(tempPath, file, {
-            cacheControl: '3600',
-            upsert: false
-          });
-        
-        if (uploadError) {
-          console.error('Erro ao fazer upload:', uploadError);
-          throw new Error('Erro ao fazer upload do arquivo: ' + uploadError.message);
-        }
-
-        // Obter URL pública temporária
-        const { data: { publicUrl } } = supabase.storage
-          .from('yacht-images')
-          .getPublicUrl(tempPath);
-
-        console.log('🔗 URL pública:', publicUrl);
-        
-        // Baixar arquivo como blob para ler localmente
-        const response = await fetch(publicUrl);
-        const blob = await response.blob();
-        
-        // Converter blob para ArrayBuffer
-        const arrayBuffer = await blob.arrayBuffer();
-        
-        // Extrair texto básico (limitado)
-        // Para DOCX e PDF, precisamos de parsing especializado
-        // Por enquanto, vamos usar uma abordagem simples
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const decoder = new TextDecoder('utf-8', { fatal: false });
-        documentText = decoder.decode(uint8Array);
-        
-        // Limpar caracteres de controle e não imprimíveis
-        documentText = documentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ');
-        
-        console.log('📝 Texto extraído (primeiros 500 chars):', documentText.substring(0, 500));
-        
-        // Deletar arquivo temporário
-        console.log('🗑️ Removendo arquivo temporário...');
-        await supabase.storage.from('yacht-images').remove([tempPath]);
-        
-        if (!documentText || documentText.trim().length < 50) {
-          throw new Error('Não foi possível extrair texto suficiente do documento. Tente converter para PDF ou TXT primeiro.');
-        }
-      } else {
-        // Arquivo texto simples
+      if (isTextFile) {
+        // Arquivo texto simples - ler diretamente
         console.log('📝 Arquivo de texto detectado');
         documentText = await file.text();
+      } else {
+        // Arquivo binário (PDF, DOCX, XLSX) - usar FileReader para extrair bytes
+        console.log('📄 Arquivo binário detectado:', file.type);
+        toast.info('Lendo arquivo binário...');
+        
+        // Ler arquivo como ArrayBuffer
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as ArrayBuffer);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(file);
+        });
+        
+        console.log('📊 Arquivo lido:', arrayBuffer.byteLength, 'bytes');
+        
+        // Tentar extrair texto usando TextDecoder
+        // Isso funciona para PDFs e DOCXs que têm texto embarcado
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        // Tentar UTF-8 primeiro
+        try {
+          const decoder = new TextDecoder('utf-8');
+          documentText = decoder.decode(uint8Array);
+        } catch {
+          // Fallback para latin1 se UTF-8 falhar
+          const decoder = new TextDecoder('latin1');
+          documentText = decoder.decode(uint8Array);
+        }
+        
+        // Limpar caracteres de controle, mas manter quebras de linha e espaços
+        documentText = documentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ');
+        
+        // Remover sequências muito longas de espaços
+        documentText = documentText.replace(/\s{10,}/g, '\n');
+        
+        console.log('📝 Texto extraído (primeiros 1000 chars):');
+        console.log(documentText.substring(0, 1000));
+        
+        if (!documentText || documentText.trim().length < 100) {
+          setError('⚠️ Não foi possível extrair texto suficiente do arquivo. \n\nPossíveis soluções:\n• Converta o PDF para texto selecionável\n• Use um arquivo TXT\n• Verifique se o PDF não está protegido');
+          return;
+        }
       }
 
       // Preview do documento (primeiros 500 caracteres) - Fase 3
@@ -154,7 +141,6 @@ export function ImportDocumentDialog({
       console.log('📤 Enviando documento para processamento...');
       console.log('📁 Arquivo:', file.name);
       console.log('📊 Tamanho do texto extraído:', documentText.length, 'caracteres');
-      console.log('🔤 Preview:', preview.substring(0, 200) + '...');
 
       // FASE 2 & 5: Enviar com ID único e flag forceCleanContext
       const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
