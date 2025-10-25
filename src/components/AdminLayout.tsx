@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -19,8 +19,9 @@ const navItems = [
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
+  { path: "/admin/discount-settings", icon: Percent, label: "Gestão de Descontos" },
+  { path: "/admin/internal-users", icon: Briefcase, label: "Usuários Internos" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
-  
 ];
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
