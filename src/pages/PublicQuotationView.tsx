@@ -291,6 +291,107 @@ export default function PublicQuotationView() {
             </AccordionItem>
           )}
 
+          {/* Customizações */}
+          {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
+            <AccordionItem value="customizations" className="border rounded-lg px-6 bg-card">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Settings className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-semibold">Customizações Solicitadas</span>
+                  <Badge variant="secondary" className="ml-auto mr-4">
+                    {quotation.quotation_customizations.length} itens
+                  </Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-4 space-y-3">
+                {quotation.quotation_customizations.map((custom: any) => (
+                  <div
+                    key={custom.id}
+                    className="p-4 border rounded-lg bg-muted/30"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="font-medium">{custom.item_name}</p>
+                        {custom.quantity && (
+                          <p className="text-sm text-muted-foreground">
+                            Quantidade: {custom.quantity}
+                          </p>
+                        )}
+                      </div>
+                      <Badge 
+                        variant={
+                          custom.status === 'approved' ? 'default' : 
+                          custom.status === 'rejected' ? 'destructive' : 
+                          'secondary'
+                        }
+                      >
+                        {custom.status === 'approved' ? 'Aprovada' : 
+                         custom.status === 'rejected' ? 'Rejeitada' : 
+                         'Pendente'}
+                      </Badge>
+                    </div>
+                    
+                    {custom.notes && (
+                      <div className="mt-2 p-3 bg-background/50 rounded">
+                        <p className="text-sm font-medium text-muted-foreground">Solicitação:</p>
+                        <p className="text-sm mt-1">{custom.notes}</p>
+                      </div>
+                    )}
+
+                    {custom.status === 'approved' && (
+                      <div className="mt-3 space-y-2">
+                        {custom.engineering_notes && (
+                          <div className="p-3 bg-primary/5 rounded border border-primary/20">
+                            <p className="text-sm font-medium text-primary">Análise Técnica:</p>
+                            <p className="text-sm mt-1">{custom.engineering_notes}</p>
+                          </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center pt-2">
+                          {custom.additional_cost > 0 && (
+                            <div>
+                              <p className="text-sm text-muted-foreground">Custo adicional</p>
+                              <p className="font-semibold text-lg text-primary">
+                                +{formatCurrency(custom.additional_cost)}
+                              </p>
+                            </div>
+                          )}
+                          {custom.delivery_impact_days > 0 && (
+                            <div className="text-right">
+                              <p className="text-sm text-muted-foreground">Impacto no prazo</p>
+                              <p className="font-semibold">
+                                +{custom.delivery_impact_days} dias
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {custom.status === 'rejected' && custom.engineering_notes && (
+                      <div className="mt-3 p-3 bg-destructive/5 rounded border border-destructive/20">
+                        <p className="text-sm font-medium text-destructive">Motivo:</p>
+                        <p className="text-sm mt-1">{custom.engineering_notes}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {quotation.total_customizations_price > 0 && (
+                  <>
+                    <Separator />
+                    <div className="flex justify-between items-center font-semibold text-lg pt-2">
+                      <span>Total de Customizações</span>
+                      <span className="text-primary">{formatCurrency(quotation.total_customizations_price)}</span>
+                    </div>
+                  </>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
           {/* Resumo Financeiro */}
           <AccordionItem value="financial" className="border rounded-lg px-6 bg-card">
             <AccordionTrigger className="hover:no-underline">
