@@ -30,207 +30,131 @@ serve(async (req) => {
     }
 
     const systemPrompt = `Você é um especialista em especificações técnicas de iates. 
-Seu objetivo é extrair TODOS os dados possíveis de documentos, mesmo que:
-- Informações estejam em formato livre (não tabeladas)
-- Campos não estejam explicitamente rotulados
-- Documento use títulos e listas numeradas
+Extraia TODOS os dados possíveis do documento fornecido.
 
 # ESTRATÉGIA DE EXTRAÇÃO
 
 ## 1. IDENTIFICAR MODELO E CÓDIGO
-- Procure pelo título principal no início do documento (ex: "FERRETTI YACHTS 850")
-- Extraia o código do modelo (ex: "FY850" ou "OK-52")
-- Se não houver código explícito, crie um baseado no nome (ex: "FERRETTI YACHTS 850" → code: "FY850")
+- Procure pelo título principal (ex: "FERRETTI YACHTS 850")
+- Extraia o código (ex: "FY850" ou "OK-52")
+- Se não houver código explícito, crie um baseado no nome
 
 ## 2. LOCALIZAR SEÇÕES POR TÍTULOS
-O documento pode ter seções identificadas por títulos (não rótulos):
-- "ESPECIFICAÇÕES TÉCNICAS" ou "DIMENSÕES" ou "PRINCIPAIS DIMENSÕES" → extrair specs técnicas
+- "ESPECIFICAÇÕES TÉCNICAS" ou "DIMENSÕES" → extrair specs técnicas
 - "MEMORIAL DESCRITIVO" ou "MEMORIAL PADRÃO" → extrair memorial_items
 - "OPCIONAIS" ou "OPCIONAIS SUGERIDOS" → extrair options
-- "INFORMAÇÕES TÉCNICAS" → extrair capacidades e deslocamento
 
 ## 3. PARSE DE LISTAS NUMERADAS
-Memorial e opcionais geralmente vêm em listas numeradas:
 - "1. Item description" → extrair como memorial_item ou option
-- Identifique a categoria pela área/seção mencionada (ex: "CONVÉS PRINCIPAL" → categoria: equipamentos)
-- Para itens de memorial: extrair descrição completa mantendo detalhes técnicos
+- Identifique a categoria pela área mencionada
 
 ## 4. CONVERSÃO DE UNIDADES
 - Metros (m) → manter em metros (formato decimal com ponto)
-- Quilogramas (Kg) → converter para kg (remover pontos/vírgulas de milhares)
+- Quilogramas (Kg) → converter para kg (remover pontos/vírgulas)
 - Litros (l) → manter em litros
-- HP (cavalos) → extrair para campo "engines"
+- HP → extrair para campo "engines"
 - Nós → manter em nós
 
-## 5. CAMPOS OPCIONAIS
-Se um campo não for encontrado, retorne null (não invente dados):
-- base_price: se não houver valor de preço explícito, retornar null
-- base_delivery_days: se não houver prazo, retornar null
-- registration_number: matrícula (raramente presente)
-- delivery_date: data de entrega (raramente presente)
+## 5. MAPEAMENTO DE CATEGORIAS
 
-# MAPEAMENTO DE CATEGORIAS PARA MEMORIAL ITEMS
-
-Use o contexto da seção ou do item para identificar a categoria:
-
-**equipamentos**: Molinete, guincho, bow thruster, stern thruster, geradores, bombas, sistemas hidráulicos, âncoras, correntes, defensas, plataforma de banho
-
-**acabamento**: Teca, madeira, carpete, piso, estofados, sofás, colchões, almofadas, portas, janelas, vigias, móveis, armários, revestimentos
-
-**eletrica**: Painéis elétricos, baterias, inversores, iluminação, luzes, spots, tomadas, carregadores, sistemas de som, TVs
-
-**hidraulica**: Tanques (combustível, água), bombas, válvulas, sistemas de água, chuveiros, torneiras, pias, sistemas de drenagem
-
-**propulsao**: Motores principais, hélices, eixos, transmissão, bow thruster, stern thruster, sistemas de direção
-
-**seguranca**: Coletes, balsas, sinalizadores, extintores, sistemas de incêndio, EPIs, kits de primeiros socorros, alarmes
-
-**navegacao**: GPS, radar, sonar, piloto automático, VHF, rádio, comunicação, mapas, cartas náuticas
-
-**conforto**: TVs, som, entretenimento, geladeiras, freezers, wine coolers, ar-condicionado, aquecedores, iluminação de cortesia
-
+**equipamentos**: Molinete, guincho, bow/stern thruster, geradores, bombas, âncoras, plataforma de banho
+**acabamento**: Teca, madeira, carpete, piso, estofados, sofás, portas, janelas, móveis
+**eletrica**: Painéis, baterias, inversores, iluminação, luzes, tomadas, som, TVs
+**hidraulica**: Tanques, bombas, válvulas, sistemas de água, chuveiros, torneiras
+**propulsao**: Motores, hélices, eixos, transmissão, sistemas de direção
+**seguranca**: Coletes, balsas, sinalizadores, extintores, EPIs, alarmes
+**navegacao**: GPS, radar, sonar, piloto automático, VHF, comunicação
+**conforto**: TVs, som, entretenimento, geladeiras, ar-condicionado, aquecedores
 **outros**: Itens que não se encaixam nas categorias acima
 
-# ESTRUTURA JSON DE SAÍDA
-
-{
-  "basic_data": {
-    "code": "código do modelo (ex: FY850, OK-52)",
-    "name": "nome completo do modelo",
-    "description": "descrição geral extraída ou criada com base no modelo",
-    "base_price": número em reais (apenas números, sem símbolos) ou null,
-    "base_delivery_days": número de dias inteiro ou null,
-    "registration_number": "matrícula se houver" ou null,
-    "delivery_date": "YYYY-MM-DD se houver" ou null
-  },
-  "specifications": {
-    "length_overall": número em metros com 2 decimais ou null,
-    "hull_length": número em metros com 2 decimais ou null,
-    "beam": número em metros com 2 decimais ou null,
-    "draft": número em metros com 2 decimais ou null,
-    "height_from_waterline": número em metros com 2 decimais ou null,
-    "dry_weight": número em kg inteiro ou null,
-    "displacement_light": número em kg inteiro ou null,
-    "displacement_loaded": número em kg inteiro ou null,
-    "fuel_capacity": número em litros inteiro ou null,
-    "water_capacity": número em litros inteiro ou null,
-    "passengers_capacity": número de pessoas inteiro ou null,
-    "cabins": número inteiro ou null,
-    "bathrooms": "texto (ex: 3+1)" ou null,
-    "engines": "descrição completa dos motores" ou null,
-    "hull_color": "cor do casco" ou null,
-    "max_speed": número em nós com 1 decimal ou null,
-    "cruise_speed": número em nós com 1 decimal ou null,
-    "range_nautical_miles": número em milhas náuticas inteiro ou null
-  },
-  "memorial_items": [
-    {
-      "category": "equipamentos|acabamento|eletrica|hidraulica|propulsao|seguranca|navegacao|conforto|outros",
-      "description": "descrição completa e detalhada do item preservando especificações técnicas",
-      "specification": "marca, modelo, quantidade, potência, material, dimensões (se mencionados)"
-    }
-  ],
-  "options": [
-    {
-      "name": "nome curto do opcional",
-      "description": "descrição completa do opcional",
-      "price": número em reais ou null,
-      "category": "categoria identificada (equipamentos|acabamento|conforto|outros)"
-    }
-  ]
-}
-
-# EXEMPLOS DE EXTRAÇÃO
-
-## Exemplo 1: Extrair Modelo do Título
-Input: "FERRETTI YACHTS 850"
-Output:
-{
-  "basic_data": {
-    "code": "FY850",
-    "name": "Ferretti Yachts 850",
-    "description": "Iate de luxo modelo 850 da linha Ferretti Yachts"
-  }
-}
-
-## Exemplo 2: Extrair Especificações de Lista
-Input:
-"Comprimento Total – 26,14 m
-Boca Máxima – 6,28 m
-Deslocamento Leve - 67.000 Kg"
-
-Output:
-{
-  "specifications": {
-    "length_overall": 26.14,
-    "beam": 6.28,
-    "displacement_light": 67000
-  }
-}
-
-## Exemplo 3: Extrair Memorial de Lista Numerada
-Input:
-"CONVÉS PRINCIPAL
-1. Acesso ao flybridge por escada de aço inox e degraus de teca com corrimão em aço inox
-2. Porta de correr de vidro com armação de aço inox"
-
-Output:
-{
-  "memorial_items": [
-    {
-      "category": "equipamentos",
-      "description": "Acesso ao flybridge por escada de aço inox e degraus de teca com corrimão em aço inox",
-      "specification": "Material: aço inox, Degraus: teca"
-    },
-    {
-      "category": "acabamento",
-      "description": "Porta de correr de vidro com armação de aço inox",
-      "specification": "Tipo: porta de correr, Material: vidro, Armação: aço inox"
-    }
-  ]
-}
-
-## Exemplo 4: Extrair Opcionais de Lista Numerada
-Input:
-"OPCIONAIS SUGERIDOS
-1. HT: teto de vidro fixo
-2. Stern thruster
-3. Ar-condicionado tropical (salão + cabines + 2 cabines de tripulação)"
-
-Output:
-{
-  "options": [
-    {
-      "name": "Teto de vidro fixo (HT)",
-      "description": "HT: teto de vidro fixo",
-      "price": null,
-      "category": "acabamento"
-    },
-    {
-      "name": "Stern thruster",
-      "description": "Stern thruster",
-      "price": null,
-      "category": "equipamentos"
-    },
-    {
-      "name": "Ar-condicionado tropical",
-      "description": "Ar-condicionado tropical (salão + cabines + 2 cabines de tripulação)",
-      "price": null,
-      "category": "conforto"
-    }
-  ]
-}
-
-REGRAS FINAIS:
-- Retorne APENAS o JSON, sem texto adicional antes ou depois
+REGRAS:
 - Use null para campos não encontrados
-- Preserve formatação de números com ponto como decimal (ex: 26.14, não 26,14)
-- Para memorial items, mantenha descrições completas e detalhadas
-- Para opcionais, extraia nome curto e descrição completa separadamente
-- Identifique categorias com base no contexto e tipo de item`;
+- Preserve formatação de números com ponto (ex: 26.14)
+- Para memorial items, mantenha descrições completas
+- Para opcionais, extraia nome curto e descrição completa`;
 
-    console.log('Enviando texto para Lovable AI (Gemini 2.5 Flash)...');
-    console.log('Tamanho do texto:', documentText.length, 'caracteres');
+    console.log('📄 Enviando texto para Lovable AI (Gemini 2.5 Pro - Large Context)...');
+    console.log('📊 Tamanho do texto:', documentText.length, 'caracteres');
+    console.log('🔧 Usando tool calling para JSON estruturado...');
+
+    // Define schema for structured output via tool calling
+    const toolDefinition = {
+      type: "function",
+      function: {
+        name: "extract_yacht_specifications",
+        description: "Extract yacht specifications, memorial items, and options from document",
+        parameters: {
+          type: "object",
+          properties: {
+            basic_data: {
+              type: "object",
+              properties: {
+                code: { type: "string", description: "Model code (e.g., FY850, OK-52)" },
+                name: { type: "string", description: "Full model name" },
+                description: { type: "string", description: "General description" },
+                base_price: { type: ["number", "null"], description: "Base price in BRL" },
+                base_delivery_days: { type: ["integer", "null"], description: "Delivery days" },
+                registration_number: { type: ["string", "null"], description: "Registration number" },
+                delivery_date: { type: ["string", "null"], description: "Delivery date (YYYY-MM-DD)" }
+              },
+              required: ["code", "name"]
+            },
+            specifications: {
+              type: "object",
+              properties: {
+                length_overall: { type: ["number", "null"] },
+                hull_length: { type: ["number", "null"] },
+                beam: { type: ["number", "null"] },
+                draft: { type: ["number", "null"] },
+                height_from_waterline: { type: ["number", "null"] },
+                dry_weight: { type: ["number", "null"] },
+                displacement_light: { type: ["number", "null"] },
+                displacement_loaded: { type: ["number", "null"] },
+                fuel_capacity: { type: ["number", "null"] },
+                water_capacity: { type: ["number", "null"] },
+                passengers_capacity: { type: ["integer", "null"] },
+                cabins: { type: ["integer", "null"] },
+                bathrooms: { type: ["string", "null"] },
+                engines: { type: ["string", "null"] },
+                hull_color: { type: ["string", "null"] },
+                max_speed: { type: ["number", "null"] },
+                cruise_speed: { type: ["number", "null"] },
+                range_nautical_miles: { type: ["number", "null"] }
+              }
+            },
+            memorial_items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  category: { 
+                    type: "string",
+                    enum: ["equipamentos", "acabamento", "eletrica", "hidraulica", "propulsao", "seguranca", "navegacao", "conforto", "outros"]
+                  },
+                  description: { type: "string" },
+                  specification: { type: ["string", "null"] }
+                },
+                required: ["category", "description"]
+              }
+            },
+            options: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  description: { type: "string" },
+                  price: { type: ["number", "null"] },
+                  category: { type: "string" }
+                },
+                required: ["name", "description"]
+              }
+            }
+          },
+          required: ["basic_data", "specifications", "memorial_items", "options"]
+        }
+      }
+    };
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -239,17 +163,35 @@ REGRAS FINAIS:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.5-pro', // Using Pro for larger context window
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Documento a analisar:\n\n${documentText}` }
         ],
+        tools: [toolDefinition],
+        tool_choice: { type: "function", function: { name: "extract_yacht_specifications" } }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Erro na Lovable AI:', response.status, errorText);
+      console.error('❌ Erro na Lovable AI:', response.status, errorText);
+      
+      // Parse error details
+      let errorMessage = 'Erro ao processar com IA';
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.metadata?.raw) {
+          const rawError = JSON.parse(errorData.error.metadata.raw);
+          if (rawError.error?.message) {
+            errorMessage = rawError.error.message;
+          }
+        } else if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch {
+        // Keep default error message
+      }
       
       if (response.status === 429) {
         return new Response(
@@ -264,37 +206,55 @@ REGRAS FINAIS:
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
+      if (response.status === 400 && errorMessage.includes('token count exceeds')) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Documento muito grande para processar',
+            details: 'O documento excede o limite de tokens. Tente um documento menor ou divida em partes.'
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
       return new Response(
-        JSON.stringify({ error: 'Erro ao processar com IA' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
-
-    console.log('Resposta da IA recebida:', aiResponse.substring(0, 200) + '...');
-
-    // Parse JSON da resposta da IA
-    let extractedData;
+    
+    // Extract data from tool call response
+    let extractedData: any;
     try {
-      // Tentar extrair JSON caso venha com markdown
-      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
-                        aiResponse.match(/```\s*([\s\S]*?)\s*```/);
+      if (data.choices[0].message.tool_calls && data.choices[0].message.tool_calls.length > 0) {
+        // Structured output via tool calling
+        const toolCall = data.choices[0].message.tool_calls[0];
+        extractedData = JSON.parse(toolCall.function.arguments);
+        console.log('✅ Dados extraídos via tool calling (JSON estruturado)');
+      } else {
+        // Fallback: try to parse from message content
+        const aiResponse = data.choices[0].message.content;
+        console.log('⚠️ Tentando extrair JSON do conteúdo da mensagem...');
+        
+        const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
+                          aiResponse.match(/```\s*([\s\S]*?)\s*```/);
+        
+        const jsonText = jsonMatch ? jsonMatch[1] : aiResponse;
+        extractedData = JSON.parse(jsonText);
+        console.log('✅ JSON extraído do conteúdo');
+      }
       
-      const jsonText = jsonMatch ? jsonMatch[1] : aiResponse;
-      extractedData = JSON.parse(jsonText);
-      
-      console.log('Dados extraídos com sucesso');
-      console.log('Campos básicos encontrados:', Object.keys(extractedData.basic_data || {}).length);
-      console.log('Especificações encontradas:', Object.keys(extractedData.specifications || {}).length);
-      console.log('Itens de memorial:', (extractedData.memorial_items || []).length);
-      console.log('Opcionais:', (extractedData.options || []).length);
+      console.log('📋 Dados extraídos com sucesso:');
+      console.log('  - Campos básicos:', Object.keys(extractedData.basic_data || {}).length);
+      console.log('  - Especificações:', Object.keys(extractedData.specifications || {}).filter(k => extractedData.specifications[k] != null).length);
+      console.log('  - Itens de memorial:', (extractedData.memorial_items || []).length);
+      console.log('  - Opcionais:', (extractedData.options || []).length);
       
     } catch (parseError: any) {
-      console.error('Erro ao fazer parse do JSON:', parseError);
-      console.error('Resposta da IA:', aiResponse);
+      console.error('❌ Erro ao fazer parse dos dados:', parseError);
+      console.error('Resposta completa:', JSON.stringify(data, null, 2));
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao processar resposta da IA',
@@ -313,7 +273,7 @@ REGRAS FINAIS:
     );
 
   } catch (error: any) {
-    console.error('Erro na função extract-yacht-specs:', error);
+    console.error('❌ Erro na função extract-yacht-specs:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Erro ao processar documento',
