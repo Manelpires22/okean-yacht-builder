@@ -45,8 +45,17 @@ export default function QuotationDetail() {
     setTimeout(() => setIsRevalidating(false), 2000);
   };
 
-  const handleEdit = () => {
-    navigate(`/configurator?quotation=${id}`);
+  const handleEdit = async () => {
+    if (!quotation) return;
+    
+    try {
+      const newQuotation = await createRevision.mutateAsync(quotation.id);
+      toast.success(`Editando cotação ${newQuotation.quotation_number}`);
+      // Navegar para a nova revisão após um breve delay
+      setTimeout(() => navigate(`/quotations/${newQuotation.id}`), 1500);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
   const handleSendToClient = () => {
