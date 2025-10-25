@@ -34,10 +34,20 @@ Extraia TODOS os dados possíveis do documento fornecido.
 
 # ESTRATÉGIA DE EXTRAÇÃO
 
-## 1. IDENTIFICAR MODELO E CÓDIGO
-- Procure pelo título principal (ex: "FERRETTI YACHTS 850")
-- Extraia o código (ex: "FY850" ou "OK-52")
-- Se não houver código explícito, crie um baseado no nome
+## 1. IDENTIFICAR MODELO E CÓDIGO (⚠️ PRIORIDADE ABSOLUTA)
+O código do modelo está SEMPRE no nome do arquivo ou no início do documento.
+
+Passos para identificar corretamente:
+1. Procure no INÍCIO do documento por padrões como "FY###", "OK-##", "AZIMUT-##"
+2. Verifique se há título com código (ex: "FY670 - Memorial Descritivo", "Ferretti Yachts 670")
+3. O código é geralmente uma SIGLA/ABREVIAÇÃO (2-6 caracteres + número)
+4. ❌ NUNCA use códigos de outros modelos mencionados no documento
+5. ❌ NUNCA invente um código - se não encontrar claramente, retorne null
+
+Exemplos CORRETOS:
+- "FY670" → código: "FY670", nome: "Ferretti Yachts 670"
+- "OK-52" → código: "OK-52", nome: "OKEAN 52"
+- "AZIMUT-60" → código: "AZIMUT-60"
 
 ## 2. LOCALIZAR SEÇÕES POR TÍTULOS
 - "ESPECIFICAÇÕES TÉCNICAS" ou "DIMENSÕES" → extrair specs técnicas
@@ -71,7 +81,8 @@ REGRAS:
 - Use null para campos não encontrados
 - Preserve formatação de números com ponto (ex: 26.14)
 - Para memorial items, mantenha descrições completas
-- Para opcionais, extraia nome curto e descrição completa`;
+- Para opcionais, extraia nome curto e descrição completa
+- ⚠️ O código do modelo é CRÍTICO - procure no TÍTULO/INÍCIO do documento`;
 
     console.log('📄 Enviando texto para Lovable AI (Gemini 2.5 Pro - Large Context)...');
     console.log('📊 Tamanho do texto:', documentText.length, 'caracteres');
