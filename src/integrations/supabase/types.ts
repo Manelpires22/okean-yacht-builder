@@ -109,6 +109,36 @@ export type Database = {
         }
         Relationships: []
       }
+      discount_limits_config: {
+        Row: {
+          admin_approval_required_above: number
+          director_approval_max: number
+          id: string
+          limit_type: string
+          no_approval_max: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          admin_approval_required_above: number
+          director_approval_max: number
+          id?: string
+          limit_type: string
+          no_approval_max: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          admin_approval_required_above?: number
+          director_approval_max?: number
+          id?: string
+          limit_type?: string
+          no_approval_max?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       memorial_categories: {
         Row: {
           created_at: string | null
