@@ -85,7 +85,7 @@ export default function AdminYachtModelEdit() {
 
   const updateMutation = useMutation({
     mutationFn: async (values: YachtModelFullValues) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('yacht_models')
         .update({
           code: values.code,
@@ -126,12 +126,9 @@ export default function AdminYachtModelEdit() {
           cruise_speed: values.cruise_speed ? parseFloat(values.cruise_speed) : null,
           range_nautical_miles: values.range_nautical_miles ? parseFloat(values.range_nautical_miles) : null,
         })
-        .eq('id', modelId)
-        .select()
-        .single();
+        .eq('id', modelId);
 
       if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['yacht-model', modelId] });
