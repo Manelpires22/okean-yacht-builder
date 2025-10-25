@@ -341,17 +341,33 @@ export default function QuotationDetail() {
               {formatCurrency(quotation.base_price)}
             </span>
           </div>
+          {quotation.base_discount_percentage > 0 && (
+            <div className="flex justify-between text-destructive">
+              <span>Desconto sobre Base ({quotation.base_discount_percentage}%)</span>
+              <span className="font-medium">
+                -{formatCurrency(quotation.base_price * (quotation.base_discount_percentage / 100))}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>Total de Opcionais</span>
             <span className="font-medium">
-              {formatCurrency(quotation.total_options_price)}
+              {formatCurrency(quotation.total_options_price || 0)}
             </span>
           </div>
-          {quotation.discount_amount > 0 && (
-            <div className="flex justify-between text-red-600">
-              <span>Desconto</span>
+          {quotation.options_discount_percentage > 0 && (
+            <div className="flex justify-between text-destructive">
+              <span>Desconto sobre Opcionais ({quotation.options_discount_percentage}%)</span>
               <span className="font-medium">
-                -{formatCurrency(quotation.discount_amount)}
+                -{formatCurrency((quotation.total_options_price || 0) * (quotation.options_discount_percentage / 100))}
+              </span>
+            </div>
+          )}
+          {quotation.total_customizations_price > 0 && (
+            <div className="flex justify-between text-primary">
+              <span>Customizações</span>
+              <span className="font-medium">
+                +{formatCurrency(quotation.total_customizations_price)}
               </span>
             </div>
           )}
