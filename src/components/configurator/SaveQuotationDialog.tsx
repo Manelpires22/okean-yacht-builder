@@ -46,6 +46,7 @@ const saveQuotationSchema = z.object({
   client_name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   client_email: z.string().email("Email inválido").optional().or(z.literal("")),
   client_phone: z.string().optional(),
+  client_cpf: z.string().optional(),
   notes: z.string().optional(),
   base_discount_percentage: z.number().min(0).max(100).optional(),
   options_discount_percentage: z.number().min(0).max(100).optional(),
@@ -87,6 +88,7 @@ export function SaveQuotationDialog({
       client_name: "",
       client_email: "",
       client_phone: "",
+      client_cpf: "",
       notes: "",
       base_discount_percentage: baseDiscountPercentage,
       options_discount_percentage: optionsDiscountPercentage,
@@ -101,6 +103,7 @@ export function SaveQuotationDialog({
         client_name: "",
         client_email: "",
         client_phone: "",
+        client_cpf: "",
         notes: "",
         base_discount_percentage: baseDiscountPercentage,
         options_discount_percentage: optionsDiscountPercentage,
@@ -117,6 +120,7 @@ export function SaveQuotationDialog({
       form.setValue('client_name', client.name);
       form.setValue('client_email', client.email || '');
       form.setValue('client_phone', client.phone || '');
+      form.setValue('client_cpf', (client as any).cpf || '');
       setUseExistingClient(true);
     }
   };
@@ -171,6 +175,7 @@ export function SaveQuotationDialog({
                       form.setValue('client_name', '');
                       form.setValue('client_email', '');
                       form.setValue('client_phone', '');
+                      form.setValue('client_cpf', '');
                     }
                   }}
                 >
@@ -277,6 +282,26 @@ export function SaveQuotationDialog({
                       placeholder="+55 11 99999-9999" 
                       {...field}
                       disabled={useExistingClient}
+                    />
+                  </FormControl>
+                  <FormDescription>Opcional</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="client_cpf"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CPF</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="000.000.000-00" 
+                      {...field}
+                      disabled={useExistingClient}
+                      maxLength={14}
                     />
                   </FormControl>
                   <FormDescription>Opcional</FormDescription>

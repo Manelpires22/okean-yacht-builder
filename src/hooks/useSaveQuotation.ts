@@ -16,6 +16,7 @@ interface SaveQuotationData {
   client_name: string;
   client_email?: string;
   client_phone?: string;
+  client_cpf?: string;
   base_discount_percentage?: number;
   options_discount_percentage?: number;
   notes?: string;
@@ -40,6 +41,7 @@ export function useSaveQuotation() {
             name: data.client_name,
             email: data.client_email || null,
             phone: data.client_phone || null,
+            cpf: data.client_cpf || null,
             created_by: user.id,
           })
           .select()
