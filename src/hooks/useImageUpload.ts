@@ -6,7 +6,7 @@ export function useImageUpload() {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  const uploadImage = async (file: File, folder: 'models' | 'options'): Promise<string | null> => {
+  const uploadImage = async (file: File, folder: 'models' | 'options' | 'customizations'): Promise<string | null> => {
     try {
       setUploading(true);
 
@@ -34,9 +34,12 @@ export function useImageUpload() {
       const fileExt = file.name.split('.').pop();
       const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
+      // Determine bucket based on folder
+      const bucket = folder === 'customizations' ? 'customization-files' : 'yacht-images';
+
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('yacht-images')
+        .from(bucket)
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -54,7 +57,7 @@ export function useImageUpload() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('yacht-images')
+        .from(bucket)
         .getPublicUrl(data.path);
 
       return publicUrl;

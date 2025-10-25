@@ -12,6 +12,8 @@ export interface Customization {
   item_name: string;
   notes: string;
   quantity?: number;
+  image_url?: string;
+  is_free_customization?: boolean; // true for user-created customizations
 }
 
 export interface ConfigurationState {
