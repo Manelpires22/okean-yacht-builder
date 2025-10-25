@@ -9,7 +9,7 @@ export function useYachtModels() {
         .from("yacht_models")
         .select("*")
         .eq("is_active", true)
-        .order("name");
+        .order("code");
       
       if (error) throw error;
       return data;

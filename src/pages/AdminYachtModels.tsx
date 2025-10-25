@@ -24,7 +24,7 @@ const AdminYachtModels = () => {
       const { data, error } = await supabase
         .from('yacht_models')
         .select('*')
-        .order('name');
+        .order('code');
       
       if (error) throw error;
       return data;
