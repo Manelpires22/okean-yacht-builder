@@ -10,6 +10,7 @@ import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { BASE_DISCOUNT_LIMITS, OPTIONS_DISCOUNT_LIMITS, getDiscountApprovalMessage } from "@/lib/approval-utils";
 import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown } from "lucide-react";
 import { Customization } from "@/hooks/useConfigurationState";
+import { MessageSquare } from "lucide-react";
 
 interface ConfigurationSummaryProps {
   modelName: string;
@@ -27,6 +28,7 @@ interface ConfigurationSummaryProps {
     quantity: number;
     unit_price: number;
     delivery_days_impact: number;
+    customization_notes?: string;
   }>;
   optionsData?: Array<{
     id: string;
@@ -59,6 +61,10 @@ export function ConfigurationSummary({
   const requiresApproval = 
     baseDiscountPercentage > BASE_DISCOUNT_LIMITS.noApprovalRequired ||
     optionsDiscountPercentage > OPTIONS_DISCOUNT_LIMITS.noApprovalRequired;
+
+  // Count total customizations (base/free + option customizations)
+  const optionCustomizationsCount = selectedOptions.filter(opt => opt.customization_notes).length;
+  const totalCustomizations = customizations.length + optionCustomizationsCount;
 
   return (
     <Card className="sticky top-4">
@@ -94,13 +100,21 @@ export function ConfigurationSummary({
                   (o) => o.id === selected.option_id
                 )?.name || "Opcional";
                 return (
-                  <div key={selected.option_id} className="text-sm">
+                  <div key={selected.option_id} className="text-sm space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">{optionName}</span>
                       <span className="font-medium">
                         {formatCurrency(selected.unit_price * selected.quantity)}
                       </span>
                     </div>
+                    {selected.customization_notes && (
+                      <div className="flex items-start gap-1 pl-2 py-1 bg-accent/30 rounded-sm">
+                        <MessageSquare className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+                        <p className="text-xs text-muted-foreground italic line-clamp-2">
+                          {selected.customization_notes}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -114,12 +128,12 @@ export function ConfigurationSummary({
 
         <Separator />
 
-        {customizations.length > 0 && (
+        {totalCustomizations > 0 && (
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-muted-foreground">Customizações</p>
-                <Badge variant="secondary">{customizations.length}</Badge>
+                <Badge variant="secondary">{totalCustomizations}</Badge>
               </div>
               <Collapsible>
                 <CollapsibleTrigger asChild>
@@ -143,6 +157,27 @@ export function ConfigurationSummary({
                       </p>
                     </div>
                   ))}
+                  {selectedOptions
+                    .filter(opt => opt.customization_notes)
+                    .map((selected) => {
+                      const optionName = optionsData?.find(
+                        (o) => o.id === selected.option_id
+                      )?.name || "Opcional";
+                      return (
+                        <div
+                          key={`customization-${selected.option_id}`}
+                          className="p-2 bg-accent/50 rounded-md"
+                        >
+                          <p className="text-xs font-medium mb-1">
+                            <MessageSquare className="h-3 w-3 inline mr-1" />
+                            {optionName}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {selected.customization_notes}
+                          </p>
+                        </div>
+                      );
+                    })}
                 </CollapsibleContent>
               </Collapsible>
             </div>
