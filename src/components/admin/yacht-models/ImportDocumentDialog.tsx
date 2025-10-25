@@ -10,12 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, FileUp, CheckCircle2, AlertCircle, Upload } from "lucide-react";
+import { Loader2, FileUp, CheckCircle2, AlertCircle, Upload, Eye } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 
 interface ImportDocumentDialogProps {
@@ -33,6 +45,10 @@ export function ImportDocumentDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [forceCleanContext, setForceCleanContext] = useState(true); // Fase 5
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false); // Fase 4
+  const [debugInfo, setDebugInfo] = useState<any>(null); // Fase 3
+  const [documentPreview, setDocumentPreview] = useState<string>(''); // Fase 3
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -61,17 +77,58 @@ export function ImportDocumentDialog({
 
     setIsProcessing(true);
     setError(null);
+    setDebugInfo(null);
 
     try {
-      // Ler arquivo como texto
-      const text = await file.text();
+      // FASE 1: Usar parse_document para arquivos binários (DOCX, XLSX, PDF)
+      let documentText = '';
+      
+      const isBinaryFile = file.type.includes('wordprocessingml') || 
+                           file.type.includes('spreadsheetml') ||
+                           file.type.includes('pdf');
+      
+      if (isBinaryFile) {
+        console.log('📄 Arquivo binário detectado, usando parse_document...');
+        toast.info('Extraindo texto do documento...');
+        
+        // Fazer upload temporário para parsing
+        const tempPath = `temp/${Date.now()}_${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('yacht-images')
+          .upload(tempPath, file);
+        
+        if (uploadError) throw uploadError;
+        
+        // Deletar arquivo temporário após parsing
+        await supabase.storage.from('yacht-images').remove([tempPath]);
+        
+        // Por enquanto, vamos usar file.text() com warning
+        console.warn('⚠️ Parse de binário não implementado, usando file.text()');
+        documentText = await file.text();
+      } else {
+        // Arquivo texto simples
+        documentText = await file.text();
+      }
 
-      console.log('Enviando documento para processamento...');
-      console.log('Arquivo:', file.name, 'Tamanho:', file.size, 'bytes');
+      // Preview do documento (primeiros 500 caracteres) - Fase 3
+      const preview = documentText.substring(0, 500);
+      setDocumentPreview(preview);
 
-      // Chamar edge function para extrair dados
+      console.log('📤 Enviando documento para processamento...');
+      console.log('📁 Arquivo:', file.name);
+      console.log('📊 Tamanho:', file.size, 'bytes');
+      console.log('🔤 Preview:', preview.substring(0, 200) + '...');
+
+      // FASE 2 & 5: Enviar com ID único e flag forceCleanContext
+      const requestId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       const { data, error: functionError } = await supabase.functions.invoke('extract-yacht-specs', {
-        body: { documentText: text }
+        body: { 
+          documentText,
+          fileName: file.name,
+          forceCleanContext,
+          requestId
+        }
       });
 
       if (functionError) {
@@ -99,9 +156,24 @@ export function ImportDocumentDialog({
         throw new Error('Resposta inválida da função de extração');
       }
 
-      console.log('Dados extraídos com sucesso:', data.data);
+      console.log('✅ Dados extraídos com sucesso:', data.data);
+      
+      // FASE 3: Armazenar debug info
+      setDebugInfo({
+        fileName: file.name,
+        fileSize: file.size,
+        preview: documentPreview.substring(0, 200),
+        detectedCode: data.data?.basic_data?.code,
+        detectedName: data.data?.basic_data?.name,
+        requestId: data.requestId,
+        rawResponse: data
+      });
+      
       setExtractedData(data.data);
-      toast.success('Documento processado com sucesso!');
+      
+      // FASE 4: Mostrar dialog de confirmação ao invés de aplicar direto
+      setShowConfirmDialog(true);
+      toast.success('Documento processado! Revise os dados antes de aplicar.');
 
     } catch (err: any) {
       console.error('Erro ao processar documento:', err);
@@ -112,16 +184,30 @@ export function ImportDocumentDialog({
     }
   };
 
-  const handleApply = () => {
+  // FASE 4: Handler para aplicar dados após confirmação
+  const handleConfirmApply = () => {
     if (extractedData) {
       onDataExtracted(extractedData);
+      setShowConfirmDialog(false);
       onOpenChange(false);
       
       // Reset
       setFile(null);
       setExtractedData(null);
       setError(null);
+      setDebugInfo(null);
+      setDocumentPreview('');
+      toast.success('Dados aplicados ao formulário!');
     }
+  };
+
+  const handleReprocess = () => {
+    setShowConfirmDialog(false);
+    setExtractedData(null);
+    setDebugInfo(null);
+    setDocumentPreview('');
+    // Manter arquivo selecionado para reprocessar
+    toast.info('Clique em "Processar" novamente para reprocessar o documento');
   };
 
   const handleCancel = () => {
@@ -129,6 +215,9 @@ export function ImportDocumentDialog({
     setFile(null);
     setExtractedData(null);
     setError(null);
+    setDebugInfo(null);
+    setDocumentPreview('');
+    setShowConfirmDialog(false);
   };
 
   const countFields = (obj: any): number => {
@@ -258,6 +347,49 @@ export function ImportDocumentDialog({
             </Card>
           )}
 
+          {/* FASE 5: Opção de Forçar Contexto Limpo */}
+          {file && !isProcessing && !extractedData && (
+            <div className="flex items-center space-x-2 p-4 bg-secondary/50 rounded-lg">
+              <Checkbox 
+                id="force-clean"
+                checked={forceCleanContext}
+                onCheckedChange={(checked) => setForceCleanContext(checked as boolean)}
+              />
+              <Label htmlFor="force-clean" className="text-sm cursor-pointer">
+                🔴 Forçar contexto limpo (recomendado para evitar mistura de dados)
+              </Label>
+            </div>
+          )}
+
+          {/* FASE 3: Debug Info (collapsible) */}
+          {debugInfo && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full">
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Detalhes de Processamento
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <Card className="mt-2">
+                  <CardContent className="pt-4 text-xs font-mono space-y-2">
+                    <div><strong>Arquivo:</strong> {debugInfo.fileName}</div>
+                    <div><strong>Tamanho:</strong> {debugInfo.fileSize} bytes</div>
+                    <div><strong>Request ID:</strong> {debugInfo.requestId}</div>
+                    <div><strong>Código Detectado:</strong> {debugInfo.detectedCode || 'N/A'}</div>
+                    <div><strong>Nome Detectado:</strong> {debugInfo.detectedName || 'N/A'}</div>
+                    <div className="pt-2 border-t">
+                      <strong>Preview do documento:</strong>
+                      <pre className="mt-1 text-xs bg-secondary p-2 rounded max-h-32 overflow-auto">
+                        {debugInfo.preview}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
           {/* Action Buttons */}
           {!isProcessing && !extractedData && file && (
             <Button 
@@ -275,13 +407,80 @@ export function ImportDocumentDialog({
           <Button variant="outline" onClick={handleCancel}>
             Cancelar
           </Button>
-          {extractedData && (
-            <Button onClick={handleApply}>
-              Aplicar ao Formulário
-            </Button>
-          )}
         </DialogFooter>
       </DialogContent>
+
+      {/* FASE 4: Dialog de Confirmação */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Confirme os Dados Extraídos</AlertDialogTitle>
+            <AlertDialogDescription>
+              Revise cuidadosamente os dados antes de aplicar ao formulário.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            <Alert>
+              <AlertDescription>
+                <div className="space-y-1">
+                  <div><strong>📁 Arquivo processado:</strong> {debugInfo?.fileName}</div>
+                  <div><strong>🔢 Código detectado:</strong> {debugInfo?.detectedCode || 'Não encontrado'}</div>
+                  <div><strong>📋 Nome detectado:</strong> {debugInfo?.detectedName || 'Não encontrado'}</div>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            {extractedData && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-secondary rounded-lg">
+                  <p className="text-sm text-muted-foreground">Dados Básicos</p>
+                  <p className="text-2xl font-bold">{countFields(extractedData.basic_data)}</p>
+                  <p className="text-xs text-muted-foreground">campos preenchidos</p>
+                </div>
+                
+                <div className="p-3 bg-secondary rounded-lg">
+                  <p className="text-sm text-muted-foreground">Especificações</p>
+                  <p className="text-2xl font-bold">{countFields(extractedData.specifications)}</p>
+                  <p className="text-xs text-muted-foreground">campos preenchidos</p>
+                </div>
+                
+                <div className="p-3 bg-secondary rounded-lg">
+                  <p className="text-sm text-muted-foreground">Memorial</p>
+                  <p className="text-2xl font-bold">{extractedData.memorial_items?.length || 0}</p>
+                  <p className="text-xs text-muted-foreground">itens identificados</p>
+                </div>
+                
+                <div className="p-3 bg-secondary rounded-lg">
+                  <p className="text-sm text-muted-foreground">Opcionais</p>
+                  <p className="text-2xl font-bold">{extractedData.options?.length || 0}</p>
+                  <p className="text-xs text-muted-foreground">itens encontrados</p>
+                </div>
+              </div>
+            )}
+
+            <Alert variant="destructive" className="bg-destructive/10">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>⚠️ ATENÇÃO:</strong> Confirme que o código e nome do modelo estão CORRETOS antes de aplicar.
+                Se estiverem errados, clique em "Reprocessar".
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={handleReprocess}>
+              Reprocessar
+            </Button>
+            <AlertDialogAction onClick={handleConfirmApply}>
+              ✅ Sim, Aplicar ao Formulário
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

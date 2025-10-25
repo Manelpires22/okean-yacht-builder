@@ -11,7 +11,8 @@ serve(async (req) => {
   }
 
   try {
-    const { documentText } = await req.json();
+    // FASE 2 & 5: Receber metadados adicionais
+    const { documentText, fileName, forceCleanContext, requestId } = await req.json();
 
     if (!documentText) {
       return new Response(
@@ -19,6 +20,17 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // FASE 3: Logging detalhado
+    const uniqueId = requestId || `req_${Date.now()}`;
+    console.log('=' .repeat(80));
+    console.log(`🆕 NOVA REQUISIÇÃO - ID: ${uniqueId}`);
+    console.log('📁 Arquivo:', fileName || 'não especificado');
+    console.log('📊 Tamanho do texto:', documentText.length, 'caracteres');
+    console.log('🔴 Forçar contexto limpo:', forceCleanContext ? 'SIM' : 'NÃO');
+    console.log('🔤 Primeiras 500 caracteres do documento:');
+    console.log(documentText.substring(0, 500));
+    console.log('=' .repeat(80));
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -29,18 +41,37 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `Você é um especialista em especificações técnicas de iates. 
+    // FASE 2 & 5: Prompt com instruções de contexto limpo
+    let contextInstructions = '';
+    if (forceCleanContext) {
+      contextInstructions = `
+🔴 ALERTA DE CONTEXTO LIMPO - REQUISIÇÃO ID: ${uniqueId}:
+- Este é um documento NOVO e ÚNICO que você NUNCA processou antes
+- IGNORE COMPLETAMENTE qualquer informação de documentos processados anteriormente
+- NÃO use conhecimento de outros modelos de iates (FY850, FY1000, FY670, etc) que você possa ter visto
+- ESQUEÇA qualquer contexto anterior
+- Extraia APENAS as informações deste documento específico
+- Se você encontrar "FY670" no título, o código é "FY670", não "FY850" ou qualquer outro
+- CADA REQUISIÇÃO É INDEPENDENTE - trate como se fosse a primeira vez
+
+`;
+    }
+
+    const systemPrompt = `${contextInstructions}Você é um especialista em especificações técnicas de iates. 
 Sua tarefa é EXTRAIR E PREENCHER cada campo com os dados encontrados no documento.
 
 # DADOS BÁSICOS - PROCURE E PREENCHA:
 
 **code** (OBRIGATÓRIO):
-- **PRIORIDADE MÁXIMA**: Use EXATAMENTE o número que aparece no TÍTULO PRINCIPAL da primeira página
-- Se o título diz "FERRETTI YACHTS 670", o código é "FY670"
-- Se o título diz "FERRETTI YACHTS 850", o código é "FY850"
-- NÃO confunda os números! 670 ≠ 850
-- Padrões: "FY###", "OK-##", "AZIMUT-##"
-- ⚠️ CRÍTICO: Extraia o código do TÍTULO/INÍCIO, nunca de referências no meio do texto
+- **PRIORIDADE 1**: Use EXATAMENTE o código que aparece no TÍTULO PRINCIPAL da primeira página
+- **PRIORIDADE 2**: Se não houver no título, use o nome do arquivo: "${fileName || 'não especificado'}"
+- **PRIORIDADE 3**: Se não houver em nenhum dos dois, procure em headers/footers/watermarks
+- Se o título diz "FERRETTI YACHTS 670", o código DEVE SER "FY670"
+- Se o título diz "FERRETTI YACHTS 850", o código DEVE SER "FY850"
+- Se o título diz "OKEAN 52", o código DEVE SER "OK-52"
+- ⚠️ CRÍTICO: NÃO confunda números! 670 ≠ 850 ≠ 1000
+- ⚠️ CRÍTICO: Extraia o código do TÍTULO/INÍCIO, NUNCA de referências no meio do texto
+- ⚠️ CRÍTICO: Se você detectar "FY670" no começo, NÃO mude para "FY850" por causa de texto no meio do documento
 
 **name** (OBRIGATÓRIO):
 - Nome completo do modelo
@@ -138,9 +169,9 @@ Categorize cada item em:
 # OPCIONAIS:
 Extraia nome, descrição e preço (se disponível) de cada opcional sugerido.`;
 
-    console.log('📄 Enviando texto para Lovable AI (Gemini 2.5 Pro - Large Context)...');
-    console.log('📊 Tamanho do texto:', documentText.length, 'caracteres');
-    console.log('🔧 Usando tool calling para JSON estruturado...');
+    console.log(`📤 Enviando para Lovable AI (Gemini 2.5 Pro)...`);
+    console.log(`🔧 Usando tool calling para JSON estruturado`);
+    console.log(`🆔 Request ID: ${uniqueId}`);
 
     // Define schema for structured output via tool calling
     const toolDefinition = {
@@ -231,7 +262,10 @@ Extraia nome, descrição e preço (se disponível) de cada opcional sugerido.`;
         model: 'google/gemini-2.5-pro', // Using Pro for larger context window
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Documento a analisar:\n\n${documentText}` }
+          { 
+            role: 'user', 
+            content: `[DOCUMENTO NOVO - REQUEST_ID: ${uniqueId}]\n\nArquivo: ${fileName || 'não especificado'}\n\n${documentText}` 
+          }
         ],
         tools: [toolDefinition],
         tool_choice: { type: "function", function: { name: "extract_yacht_specifications" } }
@@ -311,11 +345,15 @@ Extraia nome, descrição e preço (se disponível) de cada opcional sugerido.`;
         console.log('✅ JSON extraído do conteúdo');
       }
       
-      console.log('📋 Dados extraídos com sucesso:');
-      console.log('  - Campos básicos:', Object.keys(extractedData.basic_data || {}).length);
-      console.log('  - Especificações:', Object.keys(extractedData.specifications || {}).filter(k => extractedData.specifications[k] != null).length);
-      console.log('  - Itens de memorial:', (extractedData.memorial_items || []).length);
-      console.log('  - Opcionais:', (extractedData.options || []).length);
+      // FASE 3: Logging detalhado dos resultados
+      console.log('✅ DADOS EXTRAÍDOS COM SUCESSO:');
+      console.log('  📋 Código detectado:', extractedData.basic_data?.code || 'NÃO ENCONTRADO');
+      console.log('  📋 Nome detectado:', extractedData.basic_data?.name || 'NÃO ENCONTRADO');
+      console.log('  📊 Campos básicos preenchidos:', Object.keys(extractedData.basic_data || {}).filter(k => extractedData.basic_data[k] != null).length);
+      console.log('  📊 Especificações preenchidas:', Object.keys(extractedData.specifications || {}).filter(k => extractedData.specifications[k] != null).length);
+      console.log('  📋 Itens de memorial:', (extractedData.memorial_items || []).length);
+      console.log('  🔧 Opcionais:', (extractedData.options || []).length);
+      console.log('=' .repeat(80));
       
     } catch (parseError: any) {
       console.error('❌ Erro ao fazer parse dos dados:', parseError);
@@ -329,10 +367,14 @@ Extraia nome, descrição e preço (se disponível) de cada opcional sugerido.`;
       );
     }
 
+    // FASE 3: Retornar com metadados de debug
     return new Response(
       JSON.stringify({ 
         success: true, 
-        data: extractedData 
+        data: extractedData,
+        requestId: uniqueId,
+        fileName: fileName || 'não especificado',
+        forceCleanContext
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
