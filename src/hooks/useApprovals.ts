@@ -365,21 +365,13 @@ export const useReviewApproval = () => {
       // Determine new quotation status based on remaining pending approvals
       let newQuotationStatus = 'draft';
       
-      if (!pendingApprovals || pendingApprovals.length === 0) {
-        // All approvals completed - if all approved, keep as draft (ready for manual sending)
+      if (pendingApprovals && pendingApprovals.length > 0) {
+        // Still has pending approvals - keep current status or set to draft
+        // The quotation should remain in draft until all approvals are complete
         newQuotationStatus = 'draft';
       } else {
-        // Check which types of approvals are still pending
-        const hasPendingCommercial = pendingApprovals.some(a => a.approval_type === 'commercial');
-        const hasPendingTechnical = pendingApprovals.some(a => a.approval_type === 'technical');
-
-        if (hasPendingCommercial && hasPendingTechnical) {
-          newQuotationStatus = 'pending_approval';
-        } else if (hasPendingCommercial) {
-          newQuotationStatus = 'pending_commercial_approval';
-        } else if (hasPendingTechnical) {
-          newQuotationStatus = 'pending_technical_approval';
-        }
+        // All approvals completed (or rejected) - return to draft
+        newQuotationStatus = 'draft';
       }
 
       const { error: quotationError } = await supabase
