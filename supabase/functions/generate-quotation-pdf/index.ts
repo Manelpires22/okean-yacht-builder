@@ -43,26 +43,10 @@ const COLORS = {
   watermark: [204, 204, 204],  // light gray for watermark
 };
 
-// Load and embed Noto Sans font for Unicode support (no emojis needed)
-async function setupFont(doc: jsPDF) {
-  try {
-    // Fetch Noto Sans Regular from Google Fonts
-    const fontResp = await fetch('https://fonts.gstatic.com/s/notosans/v30/o-0IIpQlx3QUlC5A4PNb4j5Ba_2c7A.woff2');
-    const fontBuf = new Uint8Array(await fontResp.arrayBuffer());
-    const fontBase64 = btoa(String.fromCharCode(...fontBuf));
-    
-    // Register font in jsPDF
-    doc.addFileToVFS('NotoSans-Regular.ttf', fontBase64);
-    doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-    
-    // Set as default font
-    doc.setFont('NotoSans', 'normal');
-    
-    console.log('✅ Noto Sans font loaded successfully');
-  } catch (error) {
-    console.warn('⚠️ Failed to load Noto Sans, falling back to Helvetica:', error);
-    doc.setFont('helvetica', 'normal');
-  }
+// Setup font - use Helvetica (built-in, supports Portuguese characters)
+function setupFont(doc: jsPDF) {
+  // Helvetica has built-in support for Latin characters including Portuguese
+  doc.setFont('helvetica', 'normal');
 }
 
 serve(async (req) => {
@@ -182,8 +166,8 @@ serve(async (req) => {
       format: 'a4'
     });
 
-    // Setup Unicode font (Noto Sans) - no emojis needed
-    await setupFont(doc);
+    // Setup font (Helvetica with Portuguese support)
+    setupFont(doc);
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -196,7 +180,7 @@ serve(async (req) => {
       
       doc.setTextColor(COLORS.watermark[0], COLORS.watermark[1], COLORS.watermark[2]);
       doc.setFontSize(72);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.saveGraphicsState();
       doc.setGState(new doc.GState({ opacity: 0.12 }));
       doc.text('RASCUNHO', pageWidth / 2, pageHeight / 2, { angle: 35, align: 'center' });
@@ -212,17 +196,17 @@ serve(async (req) => {
       // Logo/Company name
       doc.setFontSize(32);
       doc.setTextColor(255, 255, 255);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('OKEAN YACHTS', pageWidth / 2, 35, { align: 'center' });
       
       doc.setFontSize(14);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text('Propostas Comerciais Premium', pageWidth / 2, 45, { align: 'center' });
 
       // Model name (large)
       doc.setFontSize(28);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text(quotation.yacht_models.name, pageWidth / 2, 110, { align: 'center' });
 
       // Proposal info box
@@ -232,25 +216,25 @@ serve(async (req) => {
       
       doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       
       let boxYPos = boxY + 12;
-      doc.text(`Proposta Nº: ${quotation.quotation_number}`, margin + 10, boxYPos);
+      doc.text(`Proposta No: ${quotation.quotation_number}`, margin + 10, boxYPos);
       boxYPos += 8;
       doc.text(`Cliente: ${quotation.clients?.name || quotation.client_name}`, margin + 10, boxYPos);
       boxYPos += 8;
-      doc.text(`Data de Emissão: ${formatDate(quotation.created_at)}`, margin + 10, boxYPos);
+      doc.text(`Data de Emissao: ${formatDate(quotation.created_at)}`, margin + 10, boxYPos);
       boxYPos += 8;
       doc.text(`Validade: ${formatDate(quotation.valid_until)}`, margin + 10, boxYPos);
       boxYPos += 8;
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.text(`Valor Total: ${formatCurrency(quotation.final_price)}`, margin + 10, boxYPos);
 
       // Footer
       doc.setFontSize(10);
       doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'italic');
       doc.text(
         'Proposta exclusiva e personalizada para suas necessidades',
         pageWidth / 2,
@@ -269,7 +253,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(20);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text(quotation.yacht_models.name, margin, 30);
       
       // Divider line
@@ -283,7 +267,7 @@ serve(async (req) => {
       if (quotation.yacht_models.description) {
         doc.setFontSize(11);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'normal');
         
         const descLines = doc.splitTextToSize(quotation.yacht_models.description, contentWidth);
         doc.text(descLines, margin, yPos);
@@ -293,13 +277,13 @@ serve(async (req) => {
       // Key Highlights
       doc.setFontSize(14);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Destaques do Modelo', margin, yPos);
       yPos += 10;
 
       doc.setFontSize(10);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
 
       const highlights = [];
       if (quotation.yacht_models.cabins) {
@@ -309,10 +293,10 @@ serve(async (req) => {
         highlights.push(`${quotation.yacht_models.bathrooms} Banheiros`);
       }
       if (quotation.yacht_models.engines) {
-        highlights.push(`Motorização: ${quotation.yacht_models.engines}`);
+        highlights.push(`Motorizacao: ${quotation.yacht_models.engines}`);
       }
       if (quotation.yacht_models.max_speed) {
-        highlights.push(`Velocidade Máxima: ${formatNumber(quotation.yacht_models.max_speed, 1)} nos`);
+        highlights.push(`Velocidade Maxima: ${formatNumber(quotation.yacht_models.max_speed, 1)} nos`);
       }
       if (quotation.yacht_models.range_nautical_miles) {
         highlights.push(`Autonomia: ${formatNumber(quotation.yacht_models.range_nautical_miles, 0)} milhas nauticas`);
@@ -333,7 +317,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Especificações Técnicas', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -351,19 +335,19 @@ serve(async (req) => {
         
         doc.setFontSize(12);
         doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'bold');
         doc.text(title, xPos, yPos);
         
         let localY = yPos + 7;
         doc.setFontSize(9);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'normal');
         
         specs.forEach(spec => {
           if (spec.value && spec.value !== 'null' && spec.value !== '0') {
-            doc.setFont('NotoSans', 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.text(spec.label + ':', xPos, localY);
-            doc.setFont('NotoSans', 'normal');
+            doc.setFont('helvetica', 'normal');
             doc.text(spec.value, xPos + 40, localY);
             localY += 5;
           }
@@ -431,7 +415,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Memorial Descritivo', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -457,7 +441,7 @@ serve(async (req) => {
           
           doc.setFontSize(11);
           doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-          doc.setFont('NotoSans', 'normal');
+          doc.setFont('helvetica', 'bold');
           doc.text(category.toUpperCase(), margin + 3, yPos + 2);
           yPos += 12;
           currentCategory = category;
@@ -473,7 +457,7 @@ serve(async (req) => {
         // Item details (compact format)
         doc.setFontSize(9);
         doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'normal');
         
         // Item name (bold, 1 line max)
         const itemNameLines = doc.splitTextToSize(item.item_name, pageWidth - 50);
@@ -524,7 +508,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Opcionais Selecionados', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -539,7 +523,7 @@ serve(async (req) => {
       
       doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Codigo', margin + 2, yPos);
       doc.text('Nome', margin + 25, yPos);
       doc.text('Qtd', pageWidth - 75, yPos);
@@ -549,7 +533,7 @@ serve(async (req) => {
 
       // Table rows
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       
       quotation.quotation_options.forEach((qo: any, index: number) => {
         if (yPos > 265) {
@@ -565,7 +549,7 @@ serve(async (req) => {
         }
 
         doc.setFontSize(9);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.text(qo.options?.code || 'N/A', margin + 2, yPos);
         
         // Limit option name to 95mm width
@@ -587,7 +571,7 @@ serve(async (req) => {
       doc.line(pageWidth - 80, yPos - 3, pageWidth - margin, yPos - 3);
       
       doc.setFontSize(11);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.text('TOTAL OPCIONAIS:', pageWidth - 80, yPos);
       doc.text(
@@ -611,7 +595,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Customizações Solicitadas', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -626,7 +610,7 @@ serve(async (req) => {
       
       doc.setFontSize(9);
       doc.setTextColor(255, 255, 255);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Item', margin + 2, yPos);
       doc.text('Status', pageWidth / 2, yPos);
       doc.text('Custo Adicional', pageWidth - margin - 35, yPos, { align: 'right' });
@@ -634,7 +618,7 @@ serve(async (req) => {
 
       // Table rows
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       
       quotation.quotation_customizations.forEach((custom: any, index: number) => {
         if (yPos > 265) {
@@ -650,7 +634,7 @@ serve(async (req) => {
         }
 
         doc.setFontSize(9);
-        doc.setFont('NotoSans', 'normal');
+        doc.setFont('helvetica', 'normal');
         
         const customName = doc.splitTextToSize(custom.item_name, 70);
         doc.text(customName[0] + (customName.length > 1 ? '...' : ''), margin + 2, yPos);
@@ -676,7 +660,7 @@ serve(async (req) => {
       doc.line(pageWidth - 80, yPos - 3, pageWidth - margin, yPos - 3);
       
       doc.setFontSize(11);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.text('TOTAL CUSTOMIZAÇÕES:', pageWidth - 80, yPos);
       doc.text(
@@ -696,7 +680,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Resumo Financeiro', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -732,10 +716,10 @@ serve(async (req) => {
         }
 
         if (item.isBold) {
-          doc.setFont('NotoSans', 'normal');
+          doc.setFont('helvetica', 'bold');
           doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
         } else {
-          doc.setFont('NotoSans', 'normal');
+          doc.setFont('helvetica', 'normal');
           doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
         }
 
@@ -757,7 +741,7 @@ serve(async (req) => {
       yPos += 8;
 
       doc.setFontSize(14);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
       doc.text('VALOR TOTAL', margin, yPos);
       doc.text(formatCurrency(quotation.final_price), pageWidth - margin, yPos, { align: 'right' });
@@ -766,7 +750,7 @@ serve(async (req) => {
       yPos += 15;
       doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(`Prazo de Entrega: ${quotation.total_delivery_days} dias`, margin, yPos);
 
       // Conditions
@@ -796,7 +780,7 @@ serve(async (req) => {
       // Title
       doc.setFontSize(18);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Contato e Termos', margin, 30);
       
       doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
@@ -808,13 +792,13 @@ serve(async (req) => {
       // Sales Representative
       doc.setFontSize(12);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Consultor Responsável', margin, yPos);
       yPos += 8;
 
       doc.setFontSize(11);
       doc.setTextColor(COLORS.dark[0], COLORS.dark[1], COLORS.dark[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       
       if (quotation.users) {
         doc.text(quotation.users.full_name, margin, yPos);
@@ -827,13 +811,13 @@ serve(async (req) => {
       yPos += 15;
       doc.setFontSize(12);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('Termos e Condições', margin, yPos);
       yPos += 10;
 
       doc.setFontSize(9);
       doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'normal');
       
       const terms = [
         'Esta proposta é válida por 30 dias a partir da data de emissão.',
@@ -853,11 +837,12 @@ serve(async (req) => {
       yPos = pageHeight - 30;
       doc.setFontSize(12);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont('NotoSans', 'normal');
+      doc.setFont('helvetica', 'bold');
       doc.text('OKEAN Yachts', pageWidth / 2, yPos, { align: 'center' });
       yPos += 6;
       doc.setFontSize(9);
       doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+      doc.setFont('helvetica', 'normal');
       doc.text('Inovação e Excelência Naval', pageWidth / 2, yPos, { align: 'center' });
       
       addDraftWatermark();
@@ -873,50 +858,60 @@ serve(async (req) => {
     addFinancialSummary();
     addContactPage();
 
-    // Generate integrity hash (SHA-256)
+    // Create content snapshot for integrity
     const snapshot = {
       quotation_number: quotation.quotation_number,
       version: quotation.version ?? 1,
       final_price: quotation.final_price,
       valid_until: quotation.valid_until,
       model: quotation.yacht_models?.name,
-      status: quotation.status,
-      options_count: quotation.quotation_options?.length ?? 0,
-      customizations_count: quotation.quotation_customizations?.length ?? 0,
+      options: (quotation.quotation_options ?? []).map((o: any) => ({
+        code: o.options?.code,
+        qty: o.quantity,
+        price: o.total_price
+      })),
+      customizations: (quotation.quotation_customizations ?? []).map((c: any) => ({
+        name: c.item_name,
+        cost: c.additional_cost,
+        status: c.status
+      })),
     };
-    
-    const integrityHash = await generateHash(snapshot);
-    console.log(`📝 Integrity hash generated: ${integrityHash.slice(0, 16)}...`);
 
-    // Add page numbers and integrity footer
+    // Generate integrity hash
+    const integrityHash = await generateHash(snapshot);
+
+    // Add page numbers with integrity hash in footer
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
-      doc.setFont('NotoSans', 'normal');
-      doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
       doc.setFontSize(8);
+      doc.setTextColor(COLORS.muted[0], COLORS.muted[1], COLORS.muted[2]);
+      doc.setFont('helvetica', 'normal');
       doc.text(
-        `Snapshot: ${integrityHash.slice(0, 16)} · Não altere após envio`,
+        `Pagina ${i} de ${pageCount}`,
         pageWidth / 2,
-        pageHeight - 10,
+        pageHeight - 6,
         { align: 'center' }
       );
-      doc.setFontSize(9);
+      
+      // Integrity hash on bottom
+      doc.setFontSize(7);
       doc.text(
-        `Página ${i} de ${pageCount}`,
+        `Hash: ${integrityHash.slice(0, 16)} • Nao altere apos envio`,
         pageWidth / 2,
-        pageHeight - 5,
+        pageHeight - 3,
         { align: 'center' }
       );
     }
 
-    // Generate PDF blob
-    const pdfBlob = doc.output('blob');
+    // Generate PDF as ArrayBuffer
+    const pdfBytes = doc.output('arraybuffer');
+    const pdfBlob = new Uint8Array(pdfBytes);
 
-    // Upload to storage (private bucket)
-    const filePath = `${quotation.quotation_number}/${quotation.quotation_number}_v${quotation.version || 1}.pdf`;
-    console.log('Uploading premium PDF to storage:', filePath);
-    
+    // Upload to Supabase Storage
+    const fileName = `quotation-${quotation.quotation_number}-v${quotation.version ?? 1}-${Date.now()}.pdf`;
+    const filePath = `${quotation.id}/${fileName}`;
+
     const { error: uploadError } = await supabase.storage
       .from('quotation-pdfs')
       .upload(filePath, pdfBlob, {
@@ -924,45 +919,55 @@ serve(async (req) => {
         upsert: true
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error('Failed to upload PDF: ' + uploadError.message);
+    }
 
-    // Get signed URL (30 days validity, aligned with quotation validity)
-    const { data: signedData, error: signedError } = await supabase.storage
+    // Generate signed URL (30 days)
+    const { data: signedData, error: signError } = await supabase.storage
       .from('quotation-pdfs')
-      .createSignedUrl(filePath, 60 * 60 * 24 * 30); // 30 days
+      .createSignedUrl(filePath, 60 * 60 * 24 * 30);
 
-    if (signedError) throw signedError;
+    if (signError) {
+      console.error('Signed URL error:', signError);
+      throw new Error('Failed to generate signed URL: ' + signError.message);
+    }
 
-    const pdfUrl = signedData.signedUrl;
-    console.log('✅ Premium PDF generated with signed URL (30 days validity)');
-    console.log(`📄 File: ${filePath}`);
-    console.log(`🔒 Hash: ${integrityHash.slice(0, 32)}...`);
+    console.log('✅ PDF generated successfully:', signedData.signedUrl);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        pdfUrl,
-        integrityHash: integrityHash.slice(0, 32),
-        pages: pageCount,
-        memorialItemsCompacted: memorialItems ? `${memorialItems.length} → ${memorialClean.length}` : '0'
+      JSON.stringify({
+        success: true,
+        pdfUrl: signedData.signedUrl,
+        integrityHash,
+        pageCount,
+        memorialCompaction: {
+          original: memorialItems?.length || 0,
+          deduplicated: memorialClean.length,
+          reductionPercent: memorialItems && memorialItems.length > 0
+            ? Math.round((1 - memorialClean.length / memorialItems.length) * 100)
+            : 0
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 200
       }
     );
 
   } catch (error) {
     console.error('Error generating PDF:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: errorMessage 
+      JSON.stringify({
+        success: false,
+        error: errorMessage
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: 500
       }
     );
   }
