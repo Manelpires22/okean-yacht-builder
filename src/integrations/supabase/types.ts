@@ -839,6 +839,12 @@ export type Database = {
         | "comercial"
         | "producao"
         | "financeiro"
+        | "pm_engenharia"
+        | "comprador"
+        | "planejador"
+        | "broker"
+        | "diretor_comercial"
+        | "backoffice_comercial"
       approval_status: "pending" | "approved" | "rejected"
       approval_type: "discount" | "customization" | "commercial" | "technical"
       department_type:
@@ -1032,6 +1038,12 @@ export const Constants = {
         "comercial",
         "producao",
         "financeiro",
+        "pm_engenharia",
+        "comprador",
+        "planejador",
+        "broker",
+        "diretor_comercial",
+        "backoffice_comercial",
       ],
       approval_status: ["pending", "approved", "rejected"],
       approval_type: ["discount", "customization", "commercial", "technical"],
