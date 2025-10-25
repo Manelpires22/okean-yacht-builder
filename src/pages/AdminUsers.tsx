@@ -24,6 +24,7 @@ interface UserWithRoles {
   department: string;
   is_active: boolean;
   roles: string[];
+  pm_yacht_models: string[];
 }
 
 const AdminUsers = () => {
@@ -48,10 +49,16 @@ const AdminUsers = () => {
       
       if (rolesError) throw rolesError;
 
+      // Fetch PM yacht model assignments
+      const { data: pmAssignments } = await supabase
+        .from('pm_yacht_model_assignments')
+        .select('pm_user_id, yacht_model_id');
+
       // Combine data
       return usersData?.map(user => ({
         ...user,
-        roles: rolesData?.filter(r => r.user_id === user.id).map(r => r.role) || []
+        roles: rolesData?.filter(r => r.user_id === user.id).map(r => r.role) || [],
+        pm_yacht_models: pmAssignments?.filter(a => a.pm_user_id === user.id).map(a => a.yacht_model_id) || []
       })) || [];
     }
   });
