@@ -55,6 +55,8 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
   };
 
   const getTypeBadge = (type: string) => {
+    if (type === 'commercial') return 'Desconto Comercial';
+    if (type === 'technical') return 'Validação Técnica';
     return type === 'discount' ? 'Desconto' : 'Customização';
   };
 
@@ -109,14 +111,14 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
               <DollarSign className="h-4 w-4" />
               Valores
             </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Preço Base:</span>
                 <p className="font-medium">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(Number(approval.quotations?.base_price) || 0)}
+                  }).format(Number(approval.request_details?.original_base_price || approval.quotations?.base_price) || 0)}
                 </p>
               </div>
               <div>
@@ -125,26 +127,42 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(Number(approval.quotations?.total_options_price) || 0)}
+                  }).format(Number(approval.request_details?.original_options_price || approval.quotations?.total_options_price) || 0)}
                 </p>
               </div>
-              <div>
-                <span className="text-muted-foreground">Desconto:</span>
-                <p className="font-medium text-red-600">
-                  {approval.quotations?.discount_percentage}% 
-                  ({new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(Number(approval.quotations?.discount_amount) || 0)})
-                </p>
-              </div>
-              <div>
+              
+              {approval.approval_type === 'commercial' && approval.request_details && (
+                <>
+                  <div>
+                    <span className="text-muted-foreground">Desconto Base:</span>
+                    <p className="font-medium text-destructive">
+                      {approval.request_details.base_discount_percentage}% 
+                      (-{new Intl.NumberFormat('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                      }).format(Number(approval.request_details.base_discount_amount) || 0)})
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Desconto Opcionais:</span>
+                    <p className="font-medium text-destructive">
+                      {approval.request_details.options_discount_percentage}% 
+                      (-{new Intl.NumberFormat('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                      }).format(Number(approval.request_details.options_discount_amount) || 0)})
+                    </p>
+                  </div>
+                </>
+              )}
+              
+              <div className="col-span-2">
                 <span className="text-muted-foreground">Preço Final:</span>
                 <p className="font-bold text-lg">
                   {new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(Number(approval.quotations?.final_price) || 0)}
+                  }).format(Number(approval.request_details?.final_price || approval.quotations?.final_price) || 0)}
                 </p>
               </div>
             </div>
@@ -158,14 +176,9 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
               <User className="h-4 w-4" />
               Solicitante
             </h3>
-            <div className="text-sm">
-              <p className="font-medium">{approval.requester?.full_name}</p>
-              <p className="text-muted-foreground">{approval.requester?.email}</p>
-              <p className="text-muted-foreground">{approval.requester?.department}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                <Calendar className="h-3 w-3" />
-                {format(new Date(approval.requested_at), "PPP 'às' HH:mm", { locale: ptBR })}
-              </p>
+            <div className="text-sm flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {format(new Date(approval.requested_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
             </div>
           </div>
 
@@ -184,7 +197,12 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
               <Separator />
               <div className="space-y-2">
                 <h3 className="font-semibold">Detalhes da Solicitação</h3>
-                <pre className="text-xs bg-muted p-2 rounded overflow-auto">
+                {approval.approval_type === 'technical' && approval.request_details.customizations_count && (
+                  <p className="text-sm text-muted-foreground">
+                    Esta cotação possui {approval.request_details.customizations_count} {approval.request_details.customizations_count === 1 ? 'customização' : 'customizações'} que {approval.request_details.customizations_count === 1 ? 'precisa' : 'precisam'} de validação técnica.
+                  </p>
+                )}
+                <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-64">
                   {JSON.stringify(approval.request_details, null, 2)}
                 </pre>
               </div>

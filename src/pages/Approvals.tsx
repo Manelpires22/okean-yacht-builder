@@ -58,6 +58,8 @@ export default function Approvals() {
   };
 
   const getTypeBadge = (type: string) => {
+    if (type === 'commercial') return 'Desconto';
+    if (type === 'technical') return 'Customização';
     return type === 'discount' ? 'Desconto' : 'Customização';
   };
 
@@ -125,14 +127,27 @@ export default function Approvals() {
                             {approval.quotations?.quotation_number}
                           </TableCell>
                           <TableCell>{approval.quotations?.client_name}</TableCell>
-                          <TableCell>{approval.requester?.full_name}</TableCell>
+                          <TableCell>
+                            {/* TODO: Buscar nome do vendedor quando necessário */}
+                            -
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{getTypeBadge(approval.approval_type)}</Badge>
                           </TableCell>
                           <TableCell>
-                            {approval.approval_type === 'discount' && (
-                              <span className="text-red-600 font-medium">
-                                {approval.quotations?.discount_percentage}%
+                            {approval.approval_type === 'commercial' && approval.request_details && (
+                              <div className="space-y-1">
+                                <div className="text-destructive font-medium text-xs">
+                                  Base: {approval.request_details.base_discount_percentage}%
+                                </div>
+                                <div className="text-destructive font-medium text-xs">
+                                  Opcionais: {approval.request_details.options_discount_percentage}%
+                                </div>
+                              </div>
+                            )}
+                            {approval.approval_type === 'technical' && approval.request_details && (
+                              <span className="text-sm text-muted-foreground">
+                                {approval.request_details.customizations_count || 0} {approval.request_details.customizations_count === 1 ? 'item' : 'itens'}
                               </span>
                             )}
                           </TableCell>

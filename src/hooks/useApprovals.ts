@@ -5,7 +5,7 @@ import { toast } from "sonner";
 export interface Approval {
   id: string;
   quotation_id: string;
-  approval_type: 'discount' | 'customization';
+  approval_type: 'commercial' | 'technical' | 'discount' | 'customization';
   requested_by: string;
   requested_at: string;
   reviewed_by: string | null;
