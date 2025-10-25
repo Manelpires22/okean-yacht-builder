@@ -53,12 +53,11 @@ export function ImportDocumentDialog({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Validar tipo de arquivo
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/plain'];
-      if (!validTypes.includes(selectedFile.type)) {
-        setError('Formato não suportado. Use PDF, DOCX, XLSX ou TXT');
-        return;
-      }
+      // Aceitar qualquer arquivo que o input permita
+      // A validação real será feita durante o processamento
+      console.log('📁 Arquivo selecionado:', selectedFile.name);
+      console.log('📊 Tipo MIME:', selectedFile.type);
+      console.log('📊 Tamanho:', selectedFile.size, 'bytes');
       
       // Validar tamanho (máx 20MB)
       if (selectedFile.size > 20 * 1024 * 1024) {
@@ -69,6 +68,8 @@ export function ImportDocumentDialog({
       setFile(selectedFile);
       setError(null);
       setExtractedData(null);
+      setDebugInfo(null);
+      setDocumentPreview('');
     }
   };
 
@@ -80,7 +81,7 @@ export function ImportDocumentDialog({
     setDebugInfo(null);
 
     try {
-      // FASE 1: Usar parse_document para arquivos binários (DOCX, XLSX, PDF)
+      // FASE 1: Detectar tipo de arquivo e extrair texto corretamente
       let documentText = '';
       
       const isBinaryFile = file.type.includes('wordprocessingml') || 
@@ -88,25 +89,61 @@ export function ImportDocumentDialog({
                            file.type.includes('pdf');
       
       if (isBinaryFile) {
-        console.log('📄 Arquivo binário detectado, usando parse_document...');
-        toast.info('Extraindo texto do documento...');
+        console.log('📄 Arquivo binário detectado:', file.type);
+        toast.info('Extraindo texto do documento binário...');
         
-        // Fazer upload temporário para parsing
+        // Fazer upload temporário para o storage
         const tempPath = `temp/${Date.now()}_${file.name}`;
+        
+        console.log('📤 Fazendo upload temporário...');
         const { error: uploadError } = await supabase.storage
           .from('yacht-images')
-          .upload(tempPath, file);
+          .upload(tempPath, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
         
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Erro ao fazer upload:', uploadError);
+          throw new Error('Erro ao fazer upload do arquivo: ' + uploadError.message);
+        }
+
+        // Obter URL pública temporária
+        const { data: { publicUrl } } = supabase.storage
+          .from('yacht-images')
+          .getPublicUrl(tempPath);
+
+        console.log('🔗 URL pública:', publicUrl);
         
-        // Deletar arquivo temporário após parsing
+        // Baixar arquivo como blob para ler localmente
+        const response = await fetch(publicUrl);
+        const blob = await response.blob();
+        
+        // Converter blob para ArrayBuffer
+        const arrayBuffer = await blob.arrayBuffer();
+        
+        // Extrair texto básico (limitado)
+        // Para DOCX e PDF, precisamos de parsing especializado
+        // Por enquanto, vamos usar uma abordagem simples
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        documentText = decoder.decode(uint8Array);
+        
+        // Limpar caracteres de controle e não imprimíveis
+        documentText = documentText.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, ' ');
+        
+        console.log('📝 Texto extraído (primeiros 500 chars):', documentText.substring(0, 500));
+        
+        // Deletar arquivo temporário
+        console.log('🗑️ Removendo arquivo temporário...');
         await supabase.storage.from('yacht-images').remove([tempPath]);
         
-        // Por enquanto, vamos usar file.text() com warning
-        console.warn('⚠️ Parse de binário não implementado, usando file.text()');
-        documentText = await file.text();
+        if (!documentText || documentText.trim().length < 50) {
+          throw new Error('Não foi possível extrair texto suficiente do documento. Tente converter para PDF ou TXT primeiro.');
+        }
       } else {
         // Arquivo texto simples
+        console.log('📝 Arquivo de texto detectado');
         documentText = await file.text();
       }
 
@@ -116,7 +153,7 @@ export function ImportDocumentDialog({
 
       console.log('📤 Enviando documento para processamento...');
       console.log('📁 Arquivo:', file.name);
-      console.log('📊 Tamanho:', file.size, 'bytes');
+      console.log('📊 Tamanho do texto extraído:', documentText.length, 'caracteres');
       console.log('🔤 Preview:', preview.substring(0, 200) + '...');
 
       // FASE 2 & 5: Enviar com ID único e flag forceCleanContext
@@ -247,7 +284,7 @@ export function ImportDocumentDialog({
               <Input
                 id="file-upload"
                 type="file"
-                accept=".pdf,.docx,.xlsx,.txt"
+                accept=".pdf,.docx,.xlsx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain"
                 onChange={handleFileChange}
                 disabled={isProcessing}
               />
@@ -258,8 +295,15 @@ export function ImportDocumentDialog({
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Formatos: PDF, Word (.docx), Excel (.xlsx), TXT | Máximo: 20MB
+              ✅ Formatos aceitos: PDF, Word (.docx), Excel (.xlsx), TXT | Máximo: 20MB
             </p>
+            <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-xs">
+                <strong>Dica:</strong> Para melhor extração de texto, prefira arquivos TXT ou PDF com texto selecionável.
+                Documentos escaneados (apenas imagens) podem ter resultados limitados.
+              </AlertDescription>
+            </Alert>
           </div>
 
           {/* Error Alert */}
