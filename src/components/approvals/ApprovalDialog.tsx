@@ -105,68 +105,83 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
 
           <Separator />
 
-          {/* Valores */}
-          <div className="space-y-2">
-            <h3 className="font-semibold flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Valores
-            </h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Preço Base:</span>
-                <p className="font-medium">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(Number(approval.request_details?.original_base_price || approval.quotations?.base_price) || 0)}
-                </p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Opcionais:</span>
-                <p className="font-medium">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(Number(approval.request_details?.original_options_price || approval.quotations?.total_options_price) || 0)}
-                </p>
-              </div>
-              
-              {approval.approval_type === 'commercial' && approval.request_details && (
-                <>
-                  <div>
-                    <span className="text-muted-foreground">Desconto Base:</span>
-                    <p className="font-medium text-destructive">
-                      {approval.request_details.base_discount_percentage}% 
-                      (-{new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(approval.request_details.base_discount_amount) || 0)})
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Desconto Opcionais:</span>
-                    <p className="font-medium text-destructive">
-                      {approval.request_details.options_discount_percentage}% 
-                      (-{new Intl.NumberFormat('pt-BR', { 
-                        style: 'currency', 
-                        currency: 'BRL' 
-                      }).format(Number(approval.request_details.options_discount_amount) || 0)})
-                    </p>
-                  </div>
-                </>
-              )}
-              
-              <div className="col-span-2">
-                <span className="text-muted-foreground">Preço Final:</span>
-                <p className="font-bold text-lg">
-                  {new Intl.NumberFormat('pt-BR', { 
-                    style: 'currency', 
-                    currency: 'BRL' 
-                  }).format(Number(approval.request_details?.final_price || approval.quotations?.final_price) || 0)}
-                </p>
+          {/* Valores - Commercial */}
+          {approval.approval_type === 'commercial' && approval.request_details && (
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                {approval.request_details.discount_type === 'base' ? 'Desconto sobre Valor Base' : 'Desconto sobre Opcionais'}
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Valor Original:</span>
+                  <p className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', { 
+                      style: 'currency', 
+                      currency: 'BRL' 
+                    }).format(Number(approval.request_details.original_price) || 0)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Desconto:</span>
+                  <p className="font-medium text-destructive">
+                    {approval.request_details.discount_percentage}% 
+                    (-{new Intl.NumberFormat('pt-BR', { 
+                      style: 'currency', 
+                      currency: 'BRL' 
+                    }).format(Number(approval.request_details.discount_amount) || 0)})
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-muted-foreground">Valor Final:</span>
+                  <p className="font-bold text-lg">
+                    {new Intl.NumberFormat('pt-BR', { 
+                      style: 'currency', 
+                      currency: 'BRL' 
+                    }).format(Number(approval.request_details.final_price) || 0)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Customization Details - Technical */}
+          {approval.approval_type === 'technical' && approval.request_details && (
+            <div className="space-y-2">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Package className="h-4 w-4" />
+                Customização Solicitada
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <span className="text-muted-foreground">Item:</span>
+                  <p className="font-medium">{approval.request_details.customization_item_name}</p>
+                </div>
+                {approval.request_details.quantity > 1 && (
+                  <div>
+                    <span className="text-muted-foreground">Quantidade:</span>
+                    <p className="font-medium">{approval.request_details.quantity}</p>
+                  </div>
+                )}
+                {approval.request_details.notes && (
+                  <div>
+                    <span className="text-muted-foreground">Observações:</span>
+                    <p className="text-sm whitespace-pre-wrap">{approval.request_details.notes}</p>
+                  </div>
+                )}
+                {approval.request_details.image_url && (
+                  <div>
+                    <span className="text-muted-foreground">Imagem de Referência:</span>
+                    <img 
+                      src={approval.request_details.image_url} 
+                      alt="Customização" 
+                      className="mt-2 max-w-md rounded-lg border"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <Separator />
 
@@ -192,22 +207,6 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
             </>
           )}
 
-          {approval.request_details && (
-            <>
-              <Separator />
-              <div className="space-y-2">
-                <h3 className="font-semibold">Detalhes da Solicitação</h3>
-                {approval.approval_type === 'technical' && approval.request_details.customizations_count && (
-                  <p className="text-sm text-muted-foreground">
-                    Esta cotação possui {approval.request_details.customizations_count} {approval.request_details.customizations_count === 1 ? 'customização' : 'customizações'} que {approval.request_details.customizations_count === 1 ? 'precisa' : 'precisam'} de validação técnica.
-                  </p>
-                )}
-                <pre className="text-xs bg-muted p-3 rounded-md overflow-auto max-h-64">
-                  {JSON.stringify(approval.request_details, null, 2)}
-                </pre>
-              </div>
-            </>
-          )}
 
           {!isPending && approval.reviewer && (
             <>

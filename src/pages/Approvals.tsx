@@ -128,27 +128,36 @@ export default function Approvals() {
                           </TableCell>
                           <TableCell>{approval.quotations?.client_name}</TableCell>
                           <TableCell>
-                            {/* TODO: Buscar nome do vendedor quando necessário */}
-                            -
+                            {approval.quotations?.sales_representative?.full_name || '-'}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{getTypeBadge(approval.approval_type)}</Badge>
+                            {approval.approval_type === 'commercial' && approval.request_details?.discount_type && (
+                              <Badge variant="outline">
+                                {approval.request_details.discount_type === 'base' ? 'Desconto Base' : 'Desconto Opcionais'}
+                              </Badge>
+                            )}
+                            {approval.approval_type === 'technical' && approval.request_details?.customization_item_name && (
+                              <Badge variant="outline">
+                                Customização: {approval.request_details.customization_item_name}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             {approval.approval_type === 'commercial' && approval.request_details && (
-                              <div className="space-y-1">
-                                <div className="text-destructive font-medium text-xs">
-                                  Base: {approval.request_details.base_discount_percentage}%
-                                </div>
-                                <div className="text-destructive font-medium text-xs">
-                                  Opcionais: {approval.request_details.options_discount_percentage}%
-                                </div>
+                              <div className="text-destructive font-medium">
+                                {approval.request_details.discount_percentage}%
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  (-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approval.request_details.discount_amount)})
+                                </span>
                               </div>
                             )}
                             {approval.approval_type === 'technical' && approval.request_details && (
-                              <span className="text-sm text-muted-foreground">
-                                {approval.request_details.customizations_count || 0} {approval.request_details.customizations_count === 1 ? 'item' : 'itens'}
-                              </span>
+                              <div className="text-sm">
+                                <p className="font-medium">{approval.request_details.customization_item_name}</p>
+                                {approval.request_details.quantity > 1 && (
+                                  <span className="text-muted-foreground text-xs">Qtd: {approval.request_details.quantity}</span>
+                                )}
+                              </div>
                             )}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">

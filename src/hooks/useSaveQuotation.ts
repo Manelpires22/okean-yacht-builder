@@ -163,9 +163,10 @@ export function useSaveQuotation() {
         if (customizationsError) throw customizationsError;
       }
 
-      // 5. Create commercial approval request if needed
-      if (requiresApproval) {
-        const { error: approvalError } = await supabase
+      // 5. Create individual commercial approval requests
+      // Base discount approval (if > 10%)
+      if (baseDiscountPercentage > 10) {
+        const { error: baseApprovalError } = await supabase
           .from("approvals")
           .insert({
             quotation_id: quotation.id,
@@ -173,36 +174,62 @@ export function useSaveQuotation() {
             requested_by: user.id,
             status: 'pending',
             request_details: {
-              base_discount_percentage: baseDiscountPercentage,
-              options_discount_percentage: optionsDiscountPercentage,
-              base_discount_amount: baseDiscountAmount,
-              options_discount_amount: optionsDiscountAmount,
-              original_base_price: data.base_price,
-              original_options_price: totalOptionsPrice,
-              final_base_price: finalBasePrice,
-              final_options_price: finalOptionsPrice,
-              final_price: finalPrice
+              discount_type: 'base',
+              discount_percentage: baseDiscountPercentage,
+              discount_amount: baseDiscountAmount,
+              original_price: data.base_price,
+              final_price: finalBasePrice
             },
-            notes: data.notes || null
+            notes: `Desconto de ${baseDiscountPercentage}% sobre o valor base do iate`
           });
 
-        if (approvalError) throw approvalError;
+        if (baseApprovalError) throw baseApprovalError;
       }
 
-      // 6. Create technical approval request if has customizations
-      if (hasCustomizations) {
-        const { error: technicalApprovalError } = await supabase
+      // Options discount approval (if > 8%)
+      if (optionsDiscountPercentage > 8) {
+        const { error: optionsApprovalError } = await supabase
           .from("approvals")
           .insert({
             quotation_id: quotation.id,
-            approval_type: 'technical',
+            approval_type: 'commercial',
             requested_by: user.id,
             status: 'pending',
             request_details: {
-              customizations_count: data.customizations?.length || 0
+              discount_type: 'options',
+              discount_percentage: optionsDiscountPercentage,
+              discount_amount: optionsDiscountAmount,
+              original_price: totalOptionsPrice,
+              final_price: finalOptionsPrice
             },
-            notes: 'Customizações solicitadas pelo cliente'
+            notes: `Desconto de ${optionsDiscountPercentage}% sobre os opcionais`
           });
+
+        if (optionsApprovalError) throw optionsApprovalError;
+      }
+
+      // 6. Create individual technical approval for EACH customization
+      if (hasCustomizations && data.customizations) {
+        const technicalApprovals = data.customizations.map((customization) => ({
+          quotation_id: quotation.id,
+          approval_type: 'technical' as const,
+          requested_by: user.id,
+          status: 'pending' as const,
+          request_details: {
+            customization_item_name: customization.item_name,
+            memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
+              ? null 
+              : customization.memorial_item_id,
+            quantity: customization.quantity || 1,
+            notes: customization.notes || '',
+            image_url: customization.image_url || null
+          },
+          notes: `Customização solicitada: ${customization.item_name}`
+        }));
+
+        const { error: technicalApprovalError } = await supabase
+          .from("approvals")
+          .insert(technicalApprovals);
 
         if (technicalApprovalError) throw technicalApprovalError;
       }

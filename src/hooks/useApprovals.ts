@@ -22,8 +22,14 @@ export interface Approval {
     final_price: number;
     base_price: number;
     total_options_price: number;
-    discount_percentage: number;
-    discount_amount: number;
+    base_discount_percentage: number;
+    options_discount_percentage: number;
+    sales_representative_id: string;
+    sales_representative?: {
+      full_name: string;
+      email: string;
+      department: string;
+    };
     yacht_models?: {
       name: string;
       code: string;
@@ -52,7 +58,7 @@ export const useApprovals = (params?: UseApprovalsParams) => {
         .from('approvals')
         .select(`
           *,
-          quotation:quotations!quotation_id (
+          quotations!quotation_id (
             quotation_number,
             client_name,
             client_email,
@@ -60,9 +66,15 @@ export const useApprovals = (params?: UseApprovalsParams) => {
             final_price,
             base_price,
             total_options_price,
-            discount_percentage,
-            discount_amount,
-            yacht_model:yacht_models (
+            base_discount_percentage,
+            options_discount_percentage,
+            sales_representative_id,
+            sales_representative:users!sales_representative_id (
+              full_name,
+              email,
+              department
+            ),
+            yacht_models (
               name,
               code
             )
@@ -90,7 +102,7 @@ export const useApproval = (id: string) => {
         .from('approvals')
         .select(`
           *,
-          quotation:quotations!quotation_id (
+          quotations!quotation_id (
             quotation_number,
             client_name,
             client_email,
@@ -98,9 +110,15 @@ export const useApproval = (id: string) => {
             final_price,
             base_price,
             total_options_price,
-            discount_percentage,
-            discount_amount,
-            yacht_model:yacht_models (
+            base_discount_percentage,
+            options_discount_percentage,
+            sales_representative_id,
+            sales_representative:users!sales_representative_id (
+              full_name,
+              email,
+              department
+            ),
+            yacht_models (
               name,
               code
             )
@@ -219,8 +237,35 @@ export const useReviewApproval = () => {
 
       if (error) throw error;
 
-      // Update quotation status based on approval decision
-      const newQuotationStatus = params.status === 'approved' ? 'pending' : 'draft';
+      // Check if there are any remaining pending approvals for this quotation
+      const { data: pendingApprovals, error: pendingError } = await supabase
+        .from('approvals')
+        .select('id, approval_type')
+        .eq('quotation_id', approval.quotation_id)
+        .eq('status', 'pending');
+
+      if (pendingError) throw pendingError;
+
+      // Determine new quotation status based on remaining pending approvals
+      let newQuotationStatus = 'draft';
+      
+      if (!pendingApprovals || pendingApprovals.length === 0) {
+        // All approvals completed
+        newQuotationStatus = params.status === 'approved' ? 'ready_to_send' : 'draft';
+      } else {
+        // Check which types of approvals are still pending
+        const hasPendingCommercial = pendingApprovals.some(a => a.approval_type === 'commercial');
+        const hasPendingTechnical = pendingApprovals.some(a => a.approval_type === 'technical');
+
+        if (hasPendingCommercial && hasPendingTechnical) {
+          newQuotationStatus = 'pending_approval';
+        } else if (hasPendingCommercial) {
+          newQuotationStatus = 'pending_commercial_approval';
+        } else if (hasPendingTechnical) {
+          newQuotationStatus = 'pending_technical_approval';
+        }
+      }
+
       const { error: quotationError } = await supabase
         .from('quotations')
         .update({ status: newQuotationStatus })
