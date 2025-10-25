@@ -58,8 +58,9 @@ export default function ClientDialog({
 
   useEffect(() => {
     if (client) {
+      console.log('Cliente sendo editado:', client);
       form.reset({
-        name: client.name,
+        name: client.name || "",
         email: client.email || "",
         phone: client.phone || "",
         company: client.company || "",
