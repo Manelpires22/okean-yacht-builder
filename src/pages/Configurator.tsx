@@ -322,6 +322,13 @@ export default function Configurator() {
               onBaseDiscountChange={setBaseDiscount}
               onOptionsDiscountChange={setOptionsDiscount}
               onSave={() => setSaveDialogOpen(true)}
+              onRemoveOption={removeOption}
+              onRemoveCustomization={removeCustomization}
+              onEditCustomization={(customization) => {
+                // Abrir dialog de edição de customização
+                setFreeCustomizationDialogOpen(true);
+                // TODO: Carregar dados da customização no dialog
+              }}
             />
           </div>
         </div>

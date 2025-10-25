@@ -8,9 +8,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { BASE_DISCOUNT_LIMITS, OPTIONS_DISCOUNT_LIMITS, getDiscountApprovalMessage } from "@/lib/approval-utils";
-import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown } from "lucide-react";
+import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil } from "lucide-react";
 import { Customization } from "@/hooks/useConfigurationState";
 import { MessageSquare, Package } from "lucide-react";
+import { useState } from "react";
 
 interface ConfigurationSummaryProps {
   modelName: string;
@@ -38,6 +39,9 @@ interface ConfigurationSummaryProps {
   onBaseDiscountChange: (percentage: number) => void;
   onOptionsDiscountChange: (percentage: number) => void;
   onSave: () => void;
+  onRemoveOption?: (optionId: string) => void;
+  onRemoveCustomization?: (itemId: string) => void;
+  onEditCustomization?: (customization: Customization) => void;
 }
 
 export function ConfigurationSummary({
@@ -57,7 +61,12 @@ export function ConfigurationSummary({
   onBaseDiscountChange,
   onOptionsDiscountChange,
   onSave,
+  onRemoveOption,
+  onRemoveCustomization,
+  onEditCustomization,
 }: ConfigurationSummaryProps) {
+  const [expandedCustomizations, setExpandedCustomizations] = useState(true);
+  
   const requiresApproval = 
     baseDiscountPercentage > BASE_DISCOUNT_LIMITS.noApprovalRequired ||
     optionsDiscountPercentage > OPTIONS_DISCOUNT_LIMITS.noApprovalRequired;
@@ -100,13 +109,26 @@ export function ConfigurationSummary({
                   (o) => o.id === selected.option_id
                 )?.name || "Opcional";
                 return (
-                  <div key={selected.option_id} className="text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">{optionName}</span>
-                      <span className="font-medium">
+                  <div 
+                    key={selected.option_id} 
+                    className="flex items-start justify-between gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{optionName}</p>
+                      <p className="text-xs text-muted-foreground">
                         {formatCurrency(selected.unit_price * selected.quantity)}
-                      </span>
+                      </p>
                     </div>
+                    {onRemoveOption && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => onRemoveOption(selected.option_id)}
+                      >
+                        <X className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
@@ -127,26 +149,57 @@ export function ConfigurationSummary({
                 <p className="text-sm font-medium text-muted-foreground">Customizações</p>
                 <Badge variant="secondary">{totalCustomizations}</Badge>
               </div>
-              <Collapsible>
+              <Collapsible open={expandedCustomizations} onOpenChange={setExpandedCustomizations}>
                 <CollapsibleTrigger asChild>
                   <Button variant="ghost" size="sm" className="w-full justify-between">
                     <span className="text-xs">Ver solicitações</span>
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className={`h-3 w-3 transition-transform ${expandedCustomizations ? 'rotate-180' : ''}`} />
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
                   {customizations.map((customization) => (
                     <div
                       key={customization.memorial_item_id}
-                      className="p-2 bg-accent/50 rounded-md"
+                      className="p-2 bg-accent/50 rounded-md group relative"
                     >
-                      <p className="text-xs font-medium mb-1">
-                        <Edit className="h-3 w-3 inline mr-1" />
-                        {customization.item_name}
-                      </p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {customization.notes}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium mb-1">
+                            <Edit className="h-3 w-3 inline mr-1" />
+                            {customization.item_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {customization.notes}
+                          </p>
+                          {customization.quantity && customization.quantity > 1 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Qtd: {customization.quantity}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {onEditCustomization && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => onEditCustomization(customization)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {onRemoveCustomization && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => onRemoveCustomization(customization.memorial_item_id)}
+                            >
+                              <X className="h-3 w-3 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {selectedOptions
