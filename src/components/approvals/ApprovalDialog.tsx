@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApproval, useReviewApproval } from "@/hooks/useApprovals";
 import {
   Dialog,
@@ -30,6 +30,15 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
   const [deliveryImpactDays, setDeliveryImpactDays] = useState("");
   const { data: approval, isLoading } = useApproval(approvalId || "");
   const reviewMutation = useReviewApproval();
+
+  // Limpar campos quando o modal abrir com uma nova aprovação
+  useEffect(() => {
+    if (open && approvalId) {
+      setReviewNotes("");
+      setAdditionalCost("");
+      setDeliveryImpactDays("");
+    }
+  }, [open, approvalId]);
 
   const handleReview = async (status: 'approved' | 'rejected') => {
     if (!approvalId) return;
