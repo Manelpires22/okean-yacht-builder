@@ -67,6 +67,14 @@ Deno.serve(async (req) => {
       throw new Error('At least one role must be selected');
     }
 
+    // Check if user already exists in auth.users
+    const { data: existingAuthUsers } = await supabase.auth.admin.listUsers();
+    const emailExists = existingAuthUsers?.users?.some(u => u.email?.toLowerCase() === payload.email.toLowerCase());
+    
+    if (emailExists) {
+      throw new Error('Um utilizador com este email já existe no sistema');
+    }
+
     // Create user in Supabase Auth
     const { data: authData, error: createError } = await supabase.auth.admin.createUser({
       email: payload.email,
@@ -82,15 +90,17 @@ Deno.serve(async (req) => {
     const userId = authData.user.id;
     console.log('Auth user created:', userId);
 
-    // Insert user data into users table
+    // Insert user data into users table (or update if trigger already created it)
     const { error: userError } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: userId,
         email: payload.email,
         full_name: payload.full_name,
         department: payload.department,
         is_active: payload.is_active,
+      }, {
+        onConflict: 'id'
       });
 
     if (userError) {
