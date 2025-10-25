@@ -267,6 +267,7 @@ export default function QuotationDetail() {
       {/* Customizações (se houver) */}
       {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
         <CustomizationStatusCard
+          quotationId={quotation.id}
           customizations={quotation.quotation_customizations.map((c: any) => ({
             id: c.id,
             item_name: c.item_name,

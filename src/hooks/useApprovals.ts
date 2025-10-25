@@ -262,18 +262,20 @@ export const useReviewApproval = () => {
       // If technical approval was approved, update the customization record
       if (approval.approval_type === 'technical' && params.status === 'approved') {
         const approvalDetails = updateData.request_details || {};
-        const memorialItemId = approvalDetails.memorial_item_id;
         const itemName = approvalDetails.customization_item_name;
         
         // Find and update the customization in quotation_customizations
+        // Match by quotation_id, item_name, AND status='pending' to avoid updating already approved ones
         const { data: customizations } = await supabase
           .from('quotation_customizations')
           .select('id')
           .eq('quotation_id', approval.quotation_id)
-          .eq('item_name', itemName);
+          .eq('item_name', itemName)
+          .eq('status', 'pending')
+          .limit(1);
 
         if (customizations && customizations.length > 0) {
-          // Update the first matching customization
+          // Update the first matching pending customization
           await supabase
             .from('quotation_customizations')
             .update({
@@ -285,43 +287,69 @@ export const useReviewApproval = () => {
               engineering_notes: params.review_notes || null
             })
             .eq('id', customizations[0].id);
+        }
 
-          // Recalculate quotation totals from all approved customizations
-          const { data: allCustomizations } = await supabase
-            .from('quotation_customizations')
-            .select('additional_cost, delivery_impact_days, status')
-            .eq('quotation_id', approval.quotation_id);
+        // Recalculate quotation totals from all approved customizations
+        const { data: allCustomizations } = await supabase
+          .from('quotation_customizations')
+          .select('additional_cost, delivery_impact_days, status')
+          .eq('quotation_id', approval.quotation_id);
 
-          if (allCustomizations) {
-            const totalCustomizationsCost = allCustomizations
-              .filter(c => c.status === 'approved')
-              .reduce((sum, c) => sum + (c.additional_cost || 0), 0);
-            
-            const maxDeliveryImpact = allCustomizations
-              .filter(c => c.status === 'approved')
-              .reduce((max, c) => Math.max(max, c.delivery_impact_days || 0), 0);
+        if (allCustomizations) {
+          const totalCustomizationsCost = allCustomizations
+            .filter(c => c.status === 'approved')
+            .reduce((sum, c) => sum + (c.additional_cost || 0), 0);
+          
+          const maxDeliveryImpact = allCustomizations
+            .filter(c => c.status === 'approved')
+            .reduce((max, c) => Math.max(max, c.delivery_impact_days || 0), 0);
 
-            // Get current quotation to update totals
-            const { data: quotation } = await supabase
+          // Get current quotation to update totals
+          const { data: quotation } = await supabase
+            .from('quotations')
+            .select('final_base_price, final_options_price, base_delivery_days')
+            .eq('id', approval.quotation_id)
+            .maybeSingle();
+
+          if (quotation) {
+            const newFinalPrice = (quotation.final_base_price || 0) + (quotation.final_options_price || 0) + totalCustomizationsCost;
+            const newTotalDeliveryDays = (quotation.base_delivery_days || 0) + maxDeliveryImpact;
+
+            await supabase
               .from('quotations')
-              .select('final_base_price, final_options_price, base_delivery_days')
-              .eq('id', approval.quotation_id)
-              .single();
-
-            if (quotation) {
-              const newFinalPrice = (quotation.final_base_price || 0) + (quotation.final_options_price || 0) + totalCustomizationsCost;
-              const newTotalDeliveryDays = (quotation.base_delivery_days || 0) + maxDeliveryImpact;
-
-              await supabase
-                .from('quotations')
-                .update({
-                  total_customizations_price: totalCustomizationsCost,
-                  total_delivery_days: newTotalDeliveryDays,
-                  final_price: newFinalPrice
-                })
-                .eq('id', approval.quotation_id);
-            }
+              .update({
+                total_customizations_price: totalCustomizationsCost,
+                total_delivery_days: newTotalDeliveryDays,
+                final_price: newFinalPrice
+              })
+              .eq('id', approval.quotation_id);
           }
+        }
+      }
+
+      // If technical approval was rejected, mark customization as rejected
+      if (approval.approval_type === 'technical' && params.status === 'rejected') {
+        const approvalDetails = updateData.request_details || {};
+        const itemName = approvalDetails.customization_item_name;
+        
+        const { data: customizations } = await supabase
+          .from('quotation_customizations')
+          .select('id')
+          .eq('quotation_id', approval.quotation_id)
+          .eq('item_name', itemName)
+          .eq('status', 'pending')
+          .limit(1);
+
+        if (customizations && customizations.length > 0) {
+          await supabase
+            .from('quotation_customizations')
+            .update({
+              status: 'rejected',
+              reviewed_by: user.id,
+              reviewed_at: new Date().toISOString(),
+              engineering_notes: params.review_notes || null
+            })
+            .eq('id', customizations[0].id);
         }
       }
 

@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, FileText, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
+import { useSyncCustomizations } from "@/hooks/useSyncCustomizations";
 
 interface Customization {
   id: string;
@@ -18,9 +20,12 @@ interface Customization {
 
 interface CustomizationStatusCardProps {
   customizations: Customization[];
+  quotationId: string;
 }
 
-export function CustomizationStatusCard({ customizations }: CustomizationStatusCardProps) {
+export function CustomizationStatusCard({ customizations, quotationId }: CustomizationStatusCardProps) {
+  const syncMutation = useSyncCustomizations();
+  
   if (!customizations || customizations.length === 0) {
     return null;
   }
@@ -56,11 +61,23 @@ export function CustomizationStatusCard({ customizations }: CustomizationStatusC
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">Customizações Solicitadas</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {pendingCount > 0 && (
-              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                {pendingCount} Pendente{pendingCount > 1 ? 's' : ''}
-              </Badge>
+              <>
+                <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                  {pendingCount} Pendente{pendingCount > 1 ? 's' : ''}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => syncMutation.mutate(quotationId)}
+                  disabled={syncMutation.isPending}
+                  className="ml-2"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                  Sincronizar
+                </Button>
+              </>
             )}
             {approvedCount > 0 && (
               <Badge variant="outline" className="text-green-600 border-green-600">
