@@ -16,6 +16,7 @@ import AdminYachtModelCreate from "./pages/AdminYachtModelCreate";
 import AdminOptions from "./pages/AdminOptions";
 import AdminMemorialCategories from "./pages/AdminMemorialCategories";
 import AdminDiscountSettings from "./pages/AdminDiscountSettings";
+import AdminApprovalSettings from "./pages/AdminApprovalSettings";
 import Configurator from "./pages/Configurator";
 import Quotations from "@/pages/Quotations";
 import QuotationDetail from "@/pages/QuotationDetail";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
             <Route path="/admin/memorial-categories" element={<ProtectedRoute requireAdmin><AdminMemorialCategories /></ProtectedRoute>} />
             <Route path="/admin/discount-settings" element={<ProtectedRoute requireAdmin><AdminDiscountSettings /></ProtectedRoute>} />
+            <Route path="/admin/approval-settings" element={<ProtectedRoute requireAdmin><AdminApprovalSettings /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
