@@ -8,20 +8,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ===== FONT & STYLE =====
-async function loadNotoSansFont() {
-  try {
-    const url = "https://fonts.gstatic.com/s/notosans/v36/o-0IIpQlx3QUlC5A4PNr5TRA.woff2";
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to fetch font");
-    const fontData = await res.arrayBuffer();
-    return btoa(
-      new Uint8Array(fontData).reduce((data, byte) => data + String.fromCharCode(byte), "")
-    );
-  } catch (error) {
-    console.error("Error loading Noto Sans font:", error);
-    return null;
-  }
+// ===== FONT SETUP =====
+// Using Helvetica (built-in) for better PDF compatibility
+function setupFont(doc: jsPDF, style: "normal" | "bold" = "normal") {
+  doc.setFont("helvetica", style);
 }
 
 // ===== COLOR PALETTE (Luxury Edition) =====
@@ -135,21 +125,8 @@ serve(async (req) => {
     // === SETUP PDF ===
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     
-    // Load Noto Sans font
-    const fontBase64 = await loadNotoSansFont();
-    if (fontBase64) {
-      try {
-        doc.addFileToVFS("NotoSans.woff2", fontBase64);
-        doc.addFont("NotoSans.woff2", "NotoSans", "normal");
-        doc.setFont("NotoSans", "normal");
-        console.log("✓ Noto Sans font loaded successfully");
-      } catch (error) {
-        console.error("Error adding font to PDF:", error);
-        doc.setFont("helvetica", "normal");
-      }
-    } else {
-      doc.setFont("helvetica", "normal");
-    }
+    // Setup font (using Helvetica for compatibility)
+    setupFont(doc);
 
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
@@ -181,7 +158,7 @@ serve(async (req) => {
       
       doc.setTextColor(200, 200, 200);
       doc.setFontSize(72);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.saveGraphicsState();
       doc.setGState(new doc.GState({ opacity: 0.12 }));
       doc.text("RASCUNHO", pageW / 2, pageH / 2, { angle: 35, align: "center" });
@@ -230,12 +207,12 @@ serve(async (req) => {
       // Company logo/name
       doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
       doc.setFontSize(36);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("OKEAN YACHTS", pageW / 2, 90, { align: "center" });
 
       // Model name
       doc.setFontSize(22);
-      doc.setFont("NotoSans", "normal");
+      setupFont(doc);
       doc.text(quotation.yacht_models.name, pageW / 2, 110, { align: "center" });
 
       // Proposal number
@@ -254,7 +231,7 @@ serve(async (req) => {
       // Total price (accent color)
       doc.setFontSize(20);
       doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text(
         formatCurrency(quotation.final_price),
         pageW / 2,
@@ -265,7 +242,7 @@ serve(async (req) => {
       // Footer tagline
       doc.setFontSize(10);
       doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
-      doc.setFont("NotoSans", "normal");
+      setupFont(doc);
       doc.text("Proposta exclusiva e personalizada", pageW / 2, pageH - 20, { align: "center" });
 
       addDraftWatermark();
@@ -277,7 +254,7 @@ serve(async (req) => {
       
       doc.setFontSize(22);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Destaques do Modelo", margin, 40);
 
       // Divider
@@ -288,7 +265,7 @@ serve(async (req) => {
       let yPos = 60;
       doc.setFontSize(12);
       doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
-      doc.setFont("NotoSans", "normal");
+      setupFont(doc);
 
       const highlights = [];
       if (quotation.yacht_models.cabins) {
@@ -308,11 +285,11 @@ serve(async (req) => {
       }
 
       highlights.forEach((line) => {
-        doc.setFont("NotoSans", "bold");
+        setupFont(doc, "bold");
         doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
         doc.text("•", margin, yPos);
         
-        doc.setFont("NotoSans", "normal");
+        setupFont(doc);
         doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
         doc.text(line, margin + 8, yPos);
         yPos += 10;
@@ -327,7 +304,7 @@ serve(async (req) => {
       
       doc.setFontSize(22);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Resumo Financeiro", margin, 40);
 
       // Divider
@@ -351,11 +328,11 @@ serve(async (req) => {
 
       financialItems.forEach((item) => {
         if (item.bold) {
-          doc.setFont("NotoSans", "bold");
+          setupFont(doc, "bold");
           doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
           doc.setFontSize(16);
         } else {
-          doc.setFont("NotoSans", "normal");
+          setupFont(doc);
           doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
           doc.setFontSize(12);
         }
@@ -383,7 +360,7 @@ serve(async (req) => {
       
       doc.setFontSize(22);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Itens Opcionais Selecionados", margin, 40);
 
       doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
@@ -401,14 +378,14 @@ serve(async (req) => {
         }
 
         // Option name
-        doc.setFont("NotoSans", "bold");
+        setupFont(doc, "bold");
         doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
         const optionName = qo.options?.name || "Item";
         doc.text(`• ${optionName}`, margin, yPos);
         yPos += 6;
 
         // Details
-        doc.setFont("NotoSans", "normal");
+        setupFont(doc);
         doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
         doc.setFontSize(9);
         
@@ -437,7 +414,7 @@ serve(async (req) => {
       
       doc.setFontSize(22);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Memorial Descritivo", margin, 40);
       
       doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
@@ -463,7 +440,7 @@ serve(async (req) => {
           
           doc.setFontSize(11);
           doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-          doc.setFont("NotoSans", "bold");
+          setupFont(doc, "bold");
           doc.text(category.toUpperCase(), margin + 3, yPos + 2);
           yPos += 12;
           currentCategory = category;
@@ -479,7 +456,7 @@ serve(async (req) => {
         // Item details
         doc.setFontSize(9);
         doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
-        doc.setFont("NotoSans", "normal");
+        setupFont(doc);
         
         // Item name
         const itemNameLines = doc.splitTextToSize(item.item_name, pageW - 50);
@@ -511,7 +488,7 @@ serve(async (req) => {
       
       doc.setFontSize(22);
       doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Contato", margin, 40);
 
       doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
@@ -521,7 +498,7 @@ serve(async (req) => {
       let yPos = 65;
       doc.setFontSize(12);
       doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
-      doc.setFont("NotoSans", "normal");
+      setupFont(doc);
 
       doc.text(`Consultor: ${quotation.users.full_name}`, margin, yPos);
       yPos += 10;
@@ -531,10 +508,10 @@ serve(async (req) => {
       yPos += 20;
 
       // Client info
-      doc.setFont("NotoSans", "bold");
+      setupFont(doc, "bold");
       doc.text("Cliente:", margin, yPos);
       yPos += 10;
-      doc.setFont("NotoSans", "normal");
+      setupFont(doc);
       doc.text(`Nome: ${quotation.clients?.name || quotation.client_name}`, margin, yPos);
       yPos += 10;
       if (quotation.clients?.email || quotation.client_email) {
@@ -548,7 +525,7 @@ serve(async (req) => {
       // Footer
       doc.setFontSize(10);
       doc.setTextColor(COLORS.gray[0], COLORS.gray[1], COLORS.gray[2]);
-      doc.setFont("NotoSans", "italic");
+      setupFont(doc);
       doc.text(
         `Proposta valida ate ${formatDate(quotation.valid_until)}`,
         pageW / 2,
