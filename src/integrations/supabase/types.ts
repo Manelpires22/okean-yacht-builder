@@ -769,7 +769,7 @@ export type Database = {
         | "producao"
         | "financeiro"
       approval_status: "pending" | "approved" | "rejected"
-      approval_type: "discount" | "customization"
+      approval_type: "discount" | "customization" | "commercial" | "technical"
       memorial_category:
         | "dimensoes"
         | "motorizacao"
@@ -957,7 +957,7 @@ export const Constants = {
         "financeiro",
       ],
       approval_status: ["pending", "approved", "rejected"],
-      approval_type: ["discount", "customization"],
+      approval_type: ["discount", "customization", "commercial", "technical"],
       memorial_category: [
         "dimensoes",
         "motorizacao",

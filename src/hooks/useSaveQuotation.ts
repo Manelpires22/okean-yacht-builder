@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { generateQuotationNumber } from "@/lib/quotation-utils";
 import { needsApproval } from "@/lib/approval-utils";
+import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
 
 interface SaveQuotationData {
@@ -79,7 +80,19 @@ export function useSaveQuotation() {
 
       // Determine if approval is needed
       const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
-      const initialStatus = requiresApproval ? "pending_approval" : "draft";
+      const hasCustomizations = data.customizations && data.customizations.length > 0;
+      
+      // Calculate initial status based on approvals needed
+      const initialStatus = calculateQuotationStatus({
+        hasDiscounts: baseDiscountPercentage > 0 || optionsDiscountPercentage > 0,
+        baseDiscount: baseDiscountPercentage,
+        optionsDiscount: optionsDiscountPercentage,
+        hasCustomizations,
+        commercialApproved: !requiresApproval,
+        technicalApproved: !hasCustomizations,
+        isExpired: false,
+        currentStatus: 'draft'
+      });
 
       // 2. Create quotation
       const { data: quotation, error: quotationError } = await supabase
@@ -148,13 +161,13 @@ export function useSaveQuotation() {
         if (customizationsError) throw customizationsError;
       }
 
-      // 5. Create approval request if needed
+      // 5. Create commercial approval request if needed
       if (requiresApproval) {
         const { error: approvalError } = await supabase
           .from("approvals")
           .insert({
             quotation_id: quotation.id,
-            approval_type: 'discount',
+            approval_type: 'commercial',
             requested_by: user.id,
             status: 'pending',
             request_details: {
@@ -174,6 +187,24 @@ export function useSaveQuotation() {
         if (approvalError) throw approvalError;
       }
 
+      // 6. Create technical approval request if has customizations
+      if (hasCustomizations) {
+        const { error: technicalApprovalError } = await supabase
+          .from("approvals")
+          .insert({
+            quotation_id: quotation.id,
+            approval_type: 'technical',
+            requested_by: user.id,
+            status: 'pending',
+            request_details: {
+              customizations_count: data.customizations?.length || 0
+            },
+            notes: 'Customizações solicitadas pelo cliente'
+          });
+
+        if (technicalApprovalError) throw technicalApprovalError;
+      }
+
       return quotation;
     },
     onSuccess: (quotation) => {
@@ -181,9 +212,15 @@ export function useSaveQuotation() {
       queryClient.invalidateQueries({ queryKey: ["approvals"] });
       queryClient.invalidateQueries({ queryKey: ["approvals-count"] });
       
-      const message = quotation.status === 'pending_approval' 
-        ? `Cotação ${quotation.quotation_number} criada e enviada para aprovação!`
-        : `Cotação ${quotation.quotation_number} salva com sucesso!`;
+      const statusMessages = {
+        'pending_commercial_approval': 'criada e enviada para aprovação comercial',
+        'pending_technical_approval': 'criada e enviada para validação técnica',
+        'ready_to_send': 'criada e pronta para envio',
+        'draft': 'salva como rascunho'
+      };
+      
+      const statusText = statusMessages[quotation.status as keyof typeof statusMessages] || 'salva com sucesso';
+      const message = `Cotação ${quotation.quotation_number} ${statusText}!`;
       
       toast({
         title: "Sucesso!",
