@@ -16,7 +16,29 @@ export function useSendQuotation() {
 
   return useMutation({
     mutationFn: async (input: SendQuotationInput) => {
-      const { quotationId, sendEmail, recipientEmail, emailSubject, emailMessage } = input;
+      const { quotationId, sendEmail, generatePDF, recipientEmail, emailSubject, emailMessage } = input;
+
+      let pdfUrl: string | null = null;
+
+      // 1. Gerar PDF se solicitado
+      if (generatePDF) {
+        console.log('Gerando PDF para cotação:', quotationId);
+        
+        const { data: pdfData, error: pdfError } = await supabase.functions.invoke(
+          'generate-quotation-pdf',
+          {
+            body: { quotationId }
+          }
+        );
+
+        if (pdfError) {
+          console.error('Erro ao gerar PDF:', pdfError);
+          throw new Error('Erro ao gerar PDF: ' + pdfError.message);
+        }
+
+        pdfUrl = pdfData.pdfUrl;
+        console.log('PDF gerado com sucesso:', pdfUrl);
+      }
 
       // 1. Buscar dados completos da cotação
       const { data: quotation, error: fetchError } = await supabase
@@ -85,7 +107,8 @@ export function useSendQuotation() {
               quotationId,
               recipientEmail,
               subject: emailSubject,
-              message: emailMessage
+              message: emailMessage,
+              pdfUrl // Anexar PDF se foi gerado
             }
           }
         );
@@ -95,17 +118,26 @@ export function useSendQuotation() {
           throw new Error('Erro ao enviar email: ' + emailError.message);
         }
 
-        return { quotation, emailSent: true, emailData };
+        return { quotation, emailSent: true, pdfGenerated: generatePDF, pdfUrl, emailData };
       }
 
-      return { quotation, emailSent: false };
+      // 5. Se gerou PDF mas não enviou email, abrir para download
+      if (generatePDF && pdfUrl && !sendEmail) {
+        window.open(pdfUrl, '_blank');
+      }
+
+      return { quotation, emailSent: false, pdfGenerated: generatePDF, pdfUrl };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
       queryClient.invalidateQueries({ queryKey: ['quotations', data.quotation.id] });
       
-      if (data.emailSent) {
-        toast.success('Proposta enviada por email com sucesso!');
+      if (data.emailSent && data.pdfGenerated) {
+        toast.success('Proposta enviada por email com PDF em anexo!');
+      } else if (data.emailSent) {
+        toast.success('Proposta enviada por email!');
+      } else if (data.pdfGenerated) {
+        toast.success('PDF gerado e baixado com sucesso!');
       } else {
         toast.success('Proposta marcada como enviada!');
       }

@@ -14,6 +14,7 @@ interface SendQuotationEmailRequest {
   recipientEmail: string;
   subject?: string;
   message?: string;
+  pdfUrl?: string;
 }
 
 serve(async (req) => {
@@ -30,10 +31,10 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { quotationId, recipientEmail, subject, message }: SendQuotationEmailRequest = 
+    const { quotationId, recipientEmail, subject, message, pdfUrl }: SendQuotationEmailRequest = 
       await req.json();
 
-    console.log("Request data:", { quotationId, recipientEmail });
+    console.log("Request data:", { quotationId, recipientEmail, pdfUrl });
 
     if (!quotationId || !recipientEmail) {
       throw new Error("quotationId e recipientEmail são obrigatórios");
@@ -238,14 +239,24 @@ serve(async (req) => {
     `;
 
     // Enviar email via Resend
-    console.log("Enviando email para:", recipientEmail);
+    console.log("Enviando email para:", recipientEmail, pdfUrl ? 'com PDF anexo' : 'sem anexo');
     
-    const emailResponse = await resend.emails.send({
-      from: "OKEAN Yachts <onboarding@resend.dev>", // TODO: Trocar por domínio verificado
+    const emailConfig: any = {
+      from: "OKEAN Yachts <onboarding@resend.dev>",
       to: [recipientEmail],
       subject: subject || `Proposta OKEAN Yachts - ${quotation.quotation_number}`,
       html: emailHtml,
-    });
+    };
+
+    // Anexar PDF se disponível
+    if (pdfUrl) {
+      emailConfig.attachments = [{
+        filename: `${quotation.quotation_number}.pdf`,
+        path: pdfUrl
+      }];
+    }
+
+    const emailResponse = await resend.emails.send(emailConfig);
 
     console.log("Email enviado com sucesso:", emailResponse);
 
