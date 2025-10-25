@@ -1,4 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuotation } from "@/hooks/useQuotations";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -38,6 +40,41 @@ export default function QuotationDetail() {
   const { data: revalidation } = useQuotationRevalidation(id);
   const sendQuotation = useSendQuotation();
   const createRevision = useCreateRevision();
+
+  // Buscar status das aprovações
+  const { data: approvals } = useQuery({
+    queryKey: ['quotation-approvals', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('approvals')
+        .select('approval_type, status')
+        .eq('quotation_id', id!);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id
+  });
+
+  // Calcular status de aprovações
+  const commercialApprovals = approvals?.filter(a => a.approval_type === 'commercial') || [];
+  const technicalApprovals = approvals?.filter(a => a.approval_type === 'technical') || [];
+  
+  const commercialApprovalStatus = commercialApprovals.length === 0 
+    ? undefined 
+    : commercialApprovals.every(a => a.status === 'approved') 
+      ? 'approved' 
+      : commercialApprovals.some(a => a.status === 'rejected')
+        ? 'rejected'
+        : 'pending';
+
+  const technicalApprovalStatus = technicalApprovals.length === 0
+    ? undefined
+    : technicalApprovals.every(a => a.status === 'approved')
+      ? 'approved'
+      : technicalApprovals.some(a => a.status === 'rejected')
+        ? 'rejected'
+        : 'pending';
 
   const handleRevalidate = async () => {
     setIsRevalidating(true);
@@ -146,6 +183,8 @@ export default function QuotationDetail() {
           hasCustomizations={!!quotation.quotation_customizations?.length}
           customizationsApproved={quotation.quotation_customizations?.every((c: any) => c.status === 'approved') || false}
           validUntil={quotation.valid_until}
+          commercialApprovalStatus={commercialApprovalStatus}
+          technicalApprovalStatus={technicalApprovalStatus}
         />
 
         {/* Tracking e Versões (se enviada) */}
