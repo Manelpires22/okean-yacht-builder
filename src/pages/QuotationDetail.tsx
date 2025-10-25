@@ -4,7 +4,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Mail, Edit, Send } from "lucide-react";
+import { ArrowLeft, Download, Mail, Edit, Send, Copy } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,10 +13,14 @@ import { QuotationStatusChecklist } from "@/components/quotations/QuotationStatu
 import { CustomizationStatusCard } from "@/components/quotations/CustomizationStatusCard";
 import { RevalidationAlert } from "@/components/quotations/RevalidationAlert";
 import { SendQuotationDialog, type SendQuotationData } from "@/components/quotations/SendQuotationDialog";
+import { QuotationTrackingCard } from "@/components/quotations/QuotationTrackingCard";
+import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
+import { useCreateRevision } from "@/hooks/useCreateRevision";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function QuotationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +33,7 @@ export default function QuotationDetail() {
   const quotationStatus = useQuotationStatus(quotation || null);
   const { data: revalidation } = useQuotationRevalidation(id);
   const sendQuotation = useSendQuotation();
+  const createRevision = useCreateRevision();
 
   const handleRevalidate = async () => {
     setIsRevalidating(true);
@@ -42,6 +47,18 @@ export default function QuotationDetail() {
 
   const handleOpenSendDialog = () => {
     setSendDialogOpen(true);
+  };
+
+  const handleCreateRevision = async () => {
+    if (!quotation) return;
+    
+    try {
+      const newQuotation = await createRevision.mutateAsync(quotation.id);
+      toast.success(`Revisão criada! Redirecionando...`);
+      setTimeout(() => navigate(`/quotations/${newQuotation.id}`), 1500);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
   const handleSend = async (data: SendQuotationData) => {
@@ -104,6 +121,16 @@ export default function QuotationDetail() {
           hasCustomizations={!!quotation.quotation_customizations?.length}
           customizationsApproved={quotation.quotation_customizations?.every((c: any) => c.status === 'approved') || false}
           validUntil={quotation.valid_until}
+        />
+
+        {/* Tracking e Versões (se enviada) */}
+        {(quotation.status === 'sent' || quotation.status === 'accepted') && (
+          <QuotationTrackingCard quotationId={quotation.id} />
+        )}
+
+        <QuotationVersionHistory 
+          quotationId={quotation.id} 
+          currentVersion={quotation.version || 1}
         />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -326,6 +353,18 @@ export default function QuotationDetail() {
           <Button variant="outline" onClick={handleOpenSendDialog}>
             <Mail className="mr-2 h-4 w-4" />
             Reenviar Proposta
+          </Button>
+        )}
+
+        {/* Botão Criar Revisão - se enviada ou expirada */}
+        {(quotation.status === 'sent' || quotation.status === 'expired') && (
+          <Button 
+            variant="outline" 
+            onClick={handleCreateRevision}
+            disabled={createRevision.isPending}
+          >
+            <Copy className="mr-2 h-4 w-4" />
+            {createRevision.isPending ? 'Criando...' : 'Criar Revisão'}
           </Button>
         )}
 

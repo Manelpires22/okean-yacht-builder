@@ -4,6 +4,7 @@ import { useQuotations, useUpdateQuotationStatus, useDuplicateQuotation, useDele
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
+import { QuotationsDashboard } from "@/components/quotations/QuotationsDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {

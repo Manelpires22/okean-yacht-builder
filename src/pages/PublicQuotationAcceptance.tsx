@@ -13,8 +13,9 @@ import { CheckCircle2, Loader2, AlertCircle, ThumbsUp } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { trackQuotationView } from "@/hooks/useQuotationViews";
 
 export default function PublicQuotationAcceptance() {
   const { token } = useParams<{ token: string }>();
@@ -45,6 +46,14 @@ export default function PublicQuotationAcceptance() {
     },
     enabled: !!token
   });
+
+  // Registrar visualização quando a página carregar
+  useEffect(() => {
+    if (quotation) {
+      const userAgent = navigator.userAgent;
+      trackQuotationView(quotation.id, undefined, userAgent);
+    }
+  }, [quotation]);
 
   // Mutation para aceitar proposta
   const acceptMutation = useMutation({

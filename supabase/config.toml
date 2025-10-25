@@ -15,3 +15,6 @@ verify_jwt = true
 [functions.send-quotation-email]
 verify_jwt = true
 
+[functions.check-expiring-quotations]
+verify_jwt = false
+
