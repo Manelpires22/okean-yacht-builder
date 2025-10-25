@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Mail, Edit, Send, Copy } from "lucide-react";
+import { ArrowLeft, Download, Mail, Edit, Send, Copy, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -111,6 +111,27 @@ export default function QuotationDetail() {
     });
   };
 
+  const handleCopyPublicLink = () => {
+    if (!quotation) return;
+    
+    const publicUrl = `${window.location.origin}/quotation/${quotation.id}/${quotation.secure_token}`;
+    
+    navigator.clipboard.writeText(publicUrl).then(() => {
+      toast.success("Link copiado!", {
+        description: "O link público da cotação foi copiado para a área de transferência.",
+      });
+    }).catch(() => {
+      toast.error("Erro ao copiar link");
+    });
+  };
+
+  const handleOpenPublicView = () => {
+    if (!quotation) return;
+    
+    const publicUrl = `/quotation/${quotation.id}/${quotation.secure_token}`;
+    window.open(publicUrl, '_blank');
+  };
+
   const handleCreateRevision = async () => {
     if (!quotation) return;
     
@@ -169,12 +190,34 @@ export default function QuotationDetail() {
       <AppHeader title={`Cotação ${quotation.quotation_number}`} />
       <div className="container mx-auto p-6 space-y-6 pb-24">
         {/* Header com navegação e status */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <Button variant="ghost" onClick={() => navigate("/quotations")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
           <div className="flex-1" />
+          
+          {/* Botões de Link Público */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopyPublicLink}
+            className="gap-2"
+          >
+            <LinkIcon className="h-4 w-4" />
+            Copiar Link Público
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleOpenPublicView}
+            className="gap-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Ver Versão Pública
+          </Button>
+          
           <QuotationStatusBadge status={quotation.status as any} />
         </div>
 
