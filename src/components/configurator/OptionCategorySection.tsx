@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { OptionCard } from "./OptionCard";
+import { OptionCustomizationDialog } from "./OptionCustomizationDialog";
 import { useOptions } from "@/hooks/useOptions";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -10,15 +12,20 @@ interface OptionCategorySectionProps {
     name: string;
     description?: string;
   }>;
-  selectedOptionIds: string[];
+  selectedOptions: Array<{
+    option_id: string;
+    customization_notes?: string;
+  }>;
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
+  onCustomizeOption: (optionId: string, notes: string) => void;
   yachtModelId?: string;
 }
 
 export function OptionCategorySection({
   categories,
-  selectedOptionIds,
+  selectedOptions,
   onToggleOption,
+  onCustomizeOption,
   yachtModelId,
 }: OptionCategorySectionProps) {
   return (
@@ -27,8 +34,9 @@ export function OptionCategorySection({
         <CategoryAccordionItem
           key={category.id}
           category={category}
-          selectedOptionIds={selectedOptionIds}
+          selectedOptions={selectedOptions}
           onToggleOption={onToggleOption}
+          onCustomizeOption={onCustomizeOption}
           yachtModelId={yachtModelId}
         />
       ))}
@@ -38,19 +46,25 @@ export function OptionCategorySection({
 
 function CategoryAccordionItem({
   category,
-  selectedOptionIds,
+  selectedOptions,
   onToggleOption,
+  onCustomizeOption,
   yachtModelId,
 }: {
   category: { id: string; name: string; description?: string };
-  selectedOptionIds: string[];
+  selectedOptions: Array<{
+    option_id: string;
+    customization_notes?: string;
+  }>;
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
+  onCustomizeOption: (optionId: string, notes: string) => void;
   yachtModelId?: string;
 }) {
+  const [customizingOption, setCustomizingOption] = useState<{ id: string; name: string } | null>(null);
   const { data: options, isLoading } = useOptions(category.id, yachtModelId);
 
   const selectedCount = options?.filter((opt) =>
-    selectedOptionIds.includes(opt.id)
+    selectedOptions.some(s => s.option_id === opt.id)
   ).length || 0;
 
   return (
@@ -78,22 +92,42 @@ function CategoryAccordionItem({
             ))}
           </div>
         ) : options && options.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {options.map((option) => (
-              <OptionCard
-                key={option.id}
-                option={option}
-                isSelected={selectedOptionIds.includes(option.id)}
-                onToggle={() =>
-                  onToggleOption(
-                    option.id,
-                    Number(option.base_price),
-                    option.delivery_days_impact || 0
-                  )
-                }
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {options.map((option) => {
+                const selectedOption = selectedOptions.find(s => s.option_id === option.id);
+                return (
+                  <OptionCard
+                    key={option.id}
+                    option={option}
+                    isSelected={!!selectedOption}
+                    customizationNotes={selectedOption?.customization_notes}
+                    onToggle={() =>
+                      onToggleOption(
+                        option.id,
+                        Number(option.base_price),
+                        option.delivery_days_impact || 0
+                      )
+                    }
+                    onCustomize={() => setCustomizingOption({ id: option.id, name: option.name })}
+                  />
+                );
+              })}
+            </div>
+
+            {customizingOption && (
+              <OptionCustomizationDialog
+                open={!!customizingOption}
+                onOpenChange={(open) => !open && setCustomizingOption(null)}
+                optionName={customizingOption.name}
+                existingNotes={selectedOptions.find(s => s.option_id === customizingOption.id)?.customization_notes}
+                onSave={(notes) => {
+                  onCustomizeOption(customizingOption.id, notes);
+                  setCustomizingOption(null);
+                }}
               />
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <p className="text-sm text-muted-foreground py-4">
             Nenhum opcional disponível nesta categoria

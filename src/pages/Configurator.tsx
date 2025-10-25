@@ -26,6 +26,7 @@ export default function Configurator() {
     setYachtModel,
     addOption,
     removeOption,
+    updateOptionCustomization,
     setBaseDiscount,
     setOptionsDiscount,
     addCustomization,
@@ -40,7 +41,6 @@ export default function Configurator() {
   const saveQuotation = useSaveQuotation();
 
   const selectedModel = models?.find((m) => m.id === state.yacht_model_id);
-  const selectedOptionIds = state.selected_options.map((o) => o.option_id);
 
   const handleSelectModel = (
     modelId: string,
@@ -55,7 +55,8 @@ export default function Configurator() {
     unitPrice: number,
     deliveryDaysImpact: number
   ) => {
-    if (selectedOptionIds.includes(optionId)) {
+    const isSelected = state.selected_options.some(o => o.option_id === optionId);
+    if (isSelected) {
       removeOption(optionId);
     } else {
       addOption({
@@ -64,6 +65,15 @@ export default function Configurator() {
         unit_price: unitPrice,
         delivery_days_impact: deliveryDaysImpact,
       });
+    }
+  };
+
+  const handleCustomizeOption = (optionId: string, notes: string) => {
+    updateOptionCustomization(optionId, notes);
+    if (notes) {
+      toast.success("Customização do opcional salva");
+    } else {
+      toast.success("Customização do opcional removida");
     }
   };
 
@@ -200,8 +210,9 @@ export default function Configurator() {
                 {categories && categories.length > 0 ? (
                   <OptionCategorySection
                     categories={categories}
-                    selectedOptionIds={selectedOptionIds}
+                    selectedOptions={state.selected_options}
                     onToggleOption={handleToggleOption}
+                    onCustomizeOption={handleCustomizeOption}
                     yachtModelId={state.yacht_model_id}
                   />
                 ) : (

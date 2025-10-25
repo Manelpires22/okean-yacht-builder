@@ -5,6 +5,7 @@ export interface SelectedOption {
   quantity: number;
   unit_price: number;
   delivery_days_impact: number;
+  customization_notes?: string; // Notes for customizing the option
 }
 
 export interface Customization {
@@ -111,6 +112,15 @@ export function useConfigurationState() {
     }));
   };
 
+  const updateOptionCustomization = (optionId: string, notes: string) => {
+    setState((prev) => ({
+      ...prev,
+      selected_options: prev.selected_options.map((o) =>
+        o.option_id === optionId ? { ...o, customization_notes: notes } : o
+      ),
+    }));
+  };
+
   const addCustomization = (customization: Customization) => {
     setState((prev) => ({
       ...prev,
@@ -180,6 +190,7 @@ export function useConfigurationState() {
     addOption,
     removeOption,
     updateOptionQuantity,
+    updateOptionCustomization,
     setBaseDiscount,
     setOptionsDiscount,
     addCustomization,

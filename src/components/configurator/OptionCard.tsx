@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/quotation-utils";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus, MessageSquare, Edit } from "lucide-react";
 
 interface OptionCardProps {
   option: {
@@ -15,10 +15,12 @@ interface OptionCardProps {
     image_url?: string;
   };
   isSelected: boolean;
+  customizationNotes?: string;
   onToggle: () => void;
+  onCustomize?: () => void;
 }
 
-export function OptionCard({ option, isSelected, onToggle }: OptionCardProps) {
+export function OptionCard({ option, isSelected, customizationNotes, onToggle, onCustomize }: OptionCardProps) {
   return (
     <Card className={isSelected ? "border-primary" : ""}>
       <CardHeader>
@@ -52,6 +54,17 @@ export function OptionCard({ option, isSelected, onToggle }: OptionCardProps) {
             {option.description}
           </p>
         )}
+
+        {customizationNotes && (
+          <div className="p-2 bg-muted rounded-md border border-border">
+            <div className="flex items-start gap-2">
+              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {customizationNotes}
+              </p>
+            </div>
+          </div>
+        )}
         
         <div className="flex items-center justify-between">
           <div>
@@ -65,23 +78,35 @@ export function OptionCard({ option, isSelected, onToggle }: OptionCardProps) {
             ) : null}
           </div>
           
-          <Button
-            variant={isSelected ? "outline" : "default"}
-            size="sm"
-            onClick={onToggle}
-          >
-            {isSelected ? (
-              <>
-                <Check className="h-4 w-4 mr-1" />
-                Remover
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4 mr-1" />
-                Adicionar
-              </>
+          <div className="flex gap-2">
+            {isSelected && onCustomize && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCustomize}
+                title="Customizar opcional"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
             )}
-          </Button>
+            <Button
+              variant={isSelected ? "outline" : "default"}
+              size="sm"
+              onClick={onToggle}
+            >
+              {isSelected ? (
+                <>
+                  <Check className="h-4 w-4 mr-1" />
+                  Remover
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
