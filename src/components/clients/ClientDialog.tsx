@@ -22,11 +22,12 @@ import { Button } from "@/components/ui/button";
 import { useCreateClient, useUpdateClient, Client } from "@/hooks/useClients";
 
 const clientSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-  notes: z.string().optional(),
+  name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
+  email: z.string().email("Email inválido").max(255, "Email muito longo").optional().or(z.literal("")),
+  phone: z.string().max(20, "Telefone muito longo").optional(),
+  cpf: z.string().max(14, "CPF inválido").optional(),
+  company: z.string().max(255, "Nome da empresa muito longo").optional(),
+  notes: z.string().max(1000, "Observações muito longas").optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -51,6 +52,7 @@ export default function ClientDialog({
       name: "",
       email: "",
       phone: "",
+      cpf: "",
       company: "",
       notes: "",
     },
@@ -58,11 +60,11 @@ export default function ClientDialog({
 
   useEffect(() => {
     if (client) {
-      console.log('Cliente sendo editado:', client);
       form.reset({
         name: client.name || "",
         email: client.email || "",
         phone: client.phone || "",
+        cpf: client.cpf || "",
         company: client.company || "",
         notes: client.notes || "",
       });
@@ -71,6 +73,7 @@ export default function ClientDialog({
         name: "",
         email: "",
         phone: "",
+        cpf: "",
         company: "",
         notes: "",
       });
@@ -144,7 +147,7 @@ export default function ClientDialog({
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder="+5511999999999" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -152,19 +155,35 @@ export default function ClientDialog({
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="company"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Empresa</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="cpf"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF/CNPJ</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="000.000.000-00" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Empresa</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

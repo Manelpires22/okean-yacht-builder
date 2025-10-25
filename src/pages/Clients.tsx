@@ -110,6 +110,7 @@ export default function Clients() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>CPF/CNPJ</TableHead>
                 <TableHead>Empresa</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -118,7 +119,7 @@ export default function Clients() {
             <TableBody>
               {filteredClients?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     Nenhum cliente encontrado
                   </TableCell>
                 </TableRow>
@@ -128,6 +129,7 @@ export default function Clients() {
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell>{client.email || "-"}</TableCell>
                     <TableCell>{client.phone || "-"}</TableCell>
+                    <TableCell>{client.cpf || "-"}</TableCell>
                     <TableCell>{client.company || "-"}</TableCell>
                     <TableCell>
                       {format(new Date(client.created_at), "dd/MM/yyyy", {
