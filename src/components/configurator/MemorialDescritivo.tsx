@@ -75,10 +75,19 @@ export function MemorialDescritivo({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('memorial_items')
-        .select('*')
+        .select(`
+          *,
+          memorial_categories!inner(
+            display_order,
+            label
+          )
+        `)
         .eq('yacht_model_id', yachtModelId)
         .eq('is_active', true)
-        .order('category_display_order')
+        .order('display_order', { 
+          referencedTable: 'memorial_categories',
+          ascending: true 
+        })
         .order('display_order');
       
       if (error) throw error;
