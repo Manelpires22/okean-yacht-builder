@@ -329,7 +329,13 @@ export const useReviewApproval = () => {
 
       // If technical approval was rejected, mark customization as rejected
       if (approval.approval_type === 'technical' && params.status === 'rejected') {
-        const approvalDetails = updateData.request_details || {};
+        const { data: currentApproval } = await supabase
+          .from('approvals')
+          .select('request_details')
+          .eq('id', params.id)
+          .single();
+
+        const approvalDetails = (currentApproval?.request_details as Record<string, any>) || {};
         const itemName = approvalDetails.customization_item_name;
         
         const { data: customizations } = await supabase
@@ -362,16 +368,28 @@ export const useReviewApproval = () => {
 
       if (pendingError) throw pendingError;
 
-      // Determine new quotation status based on remaining pending approvals
+      // Determine new quotation status based on approval result and remaining pending approvals
       let newQuotationStatus = 'draft';
       
-      if (pendingApprovals && pendingApprovals.length > 0) {
-        // Still has pending approvals - keep current status or set to draft
-        // The quotation should remain in draft until all approvals are complete
+      if (params.status === 'rejected') {
+        // If this approval was rejected, quotation goes back to draft for revision
         newQuotationStatus = 'draft';
+      } else if (pendingApprovals && pendingApprovals.length > 0) {
+        // Still has pending approvals - determine which type
+        const hasPendingCommercial = pendingApprovals.some(a => a.approval_type === 'commercial');
+        const hasPendingTechnical = pendingApprovals.some(a => a.approval_type === 'technical');
+
+        if (hasPendingCommercial && hasPendingTechnical) {
+          // Has both types pending - prioritize showing commercial
+          newQuotationStatus = 'pending_commercial_approval';
+        } else if (hasPendingCommercial) {
+          newQuotationStatus = 'pending_commercial_approval';
+        } else if (hasPendingTechnical) {
+          newQuotationStatus = 'pending_technical_approval';
+        }
       } else {
-        // All approvals completed (or rejected) - return to draft
-        newQuotationStatus = 'draft';
+        // All approvals completed successfully
+        newQuotationStatus = 'ready_to_send';
       }
 
       const { error: quotationError } = await supabase
