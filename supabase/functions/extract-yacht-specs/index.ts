@@ -35,10 +35,12 @@ Sua tarefa é EXTRAIR E PREENCHER cada campo com os dados encontrados no documen
 # DADOS BÁSICOS - PROCURE E PREENCHA:
 
 **code** (OBRIGATÓRIO):
-- Procure no TÍTULO ou INÍCIO do documento
-- Padrões: "FY###", "OK-##", "AZIMUT-##", etc.
-- Ex: "FY670", "FY850", "OK-52"
-- ⚠️ Use o código do TÍTULO, não de referências no meio do texto
+- **PRIORIDADE MÁXIMA**: Use EXATAMENTE o número que aparece no TÍTULO PRINCIPAL da primeira página
+- Se o título diz "FERRETTI YACHTS 670", o código é "FY670"
+- Se o título diz "FERRETTI YACHTS 850", o código é "FY850"
+- NÃO confunda os números! 670 ≠ 850
+- Padrões: "FY###", "OK-##", "AZIMUT-##"
+- ⚠️ CRÍTICO: Extraia o código do TÍTULO/INÍCIO, nunca de referências no meio do texto
 
 **name** (OBRIGATÓRIO):
 - Nome completo do modelo
