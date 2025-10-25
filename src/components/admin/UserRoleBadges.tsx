@@ -13,24 +13,49 @@ const ROLE_CONFIG = {
     description: "Acesso total ao sistema",
   },
   gerente_comercial: {
-    label: "Gerente",
+    label: "Gerente Comercial",
     variant: "default" as const,
     description: "Gestão comercial e quotações",
   },
-  comercial: {
+  vendedor: {
     label: "Comercial",
     variant: "secondary" as const,
     description: "Criação e gestão de quotações",
   },
-  producao: {
+  engenheiro: {
     label: "Produção",
     variant: "outline" as const,
     description: "Acesso à área de produção",
   },
-  financeiro: {
-    label: "Financeiro",
+  pm_engenharia: {
+    label: "PM Engenharia",
+    variant: "default" as const,
+    description: "Project Manager de Engenharia",
+  },
+  comprador: {
+    label: "Supply",
+    variant: "secondary" as const,
+    description: "Comprador (Supply)",
+  },
+  planejador: {
+    label: "Planning",
+    variant: "secondary" as const,
+    description: "Planejador (Planning)",
+  },
+  diretor_comercial: {
+    label: "Diretor Comercial",
+    variant: "destructive" as const,
+    description: "Diretor Comercial",
+  },
+  broker: {
+    label: "Broker",
     variant: "outline" as const,
-    description: "Gestão financeira e faturação",
+    description: "Broker",
+  },
+  backoffice_comercial: {
+    label: "Backoffice",
+    variant: "outline" as const,
+    description: "Backoffice Comercial",
   },
 };
 
