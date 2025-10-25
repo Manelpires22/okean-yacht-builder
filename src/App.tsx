@@ -22,6 +22,7 @@ import Clients from "@/pages/Clients";
 import Approvals from "@/pages/Approvals";
 import Profile from "@/pages/Profile";
 import PublicQuotationAcceptance from "@/pages/PublicQuotationAcceptance";
+import PublicQuotationView from "@/pages/PublicQuotationView";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/p/:token" element={<PublicQuotationAcceptance />} />
+            <Route path="/quotation/:id/:token" element={<PublicQuotationView />} />
             <Route path="/configurador" element={<ProtectedRoute><Configurator /></ProtectedRoute>} />
             <Route path="/configurator" element={<ProtectedRoute><Configurator /></ProtectedRoute>} />
             <Route path="/quotations" element={<ProtectedRoute><Quotations /></ProtectedRoute>} />
