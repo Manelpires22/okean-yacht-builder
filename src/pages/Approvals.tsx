@@ -236,9 +236,14 @@ export default function Approvals() {
                           <TableCell>
                             {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
                              approval.request_details?.customization_id && (
-                              <Badge variant="secondary" className="text-xs">
-                                Workflow Ativo
-                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
+                              >
+                                <Workflow className="h-4 w-4 mr-2" />
+                                Ver Workflow
+                              </Button>
                             )}
                           </TableCell>
                           <TableCell>
