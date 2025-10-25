@@ -234,17 +234,31 @@ export default function Approvals() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
-                             approval.request_details?.customization_id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
-                              >
-                                <Workflow className="h-4 w-4 mr-2" />
-                                Ver Workflow
-                              </Button>
-                            )}
+                            {(() => {
+                              const isTechnical = approval.approval_type === 'technical' || approval.approval_type === 'customization';
+                              const customizationId = approval.request_details?.customization_id;
+                              
+                              console.log('Workflow Button Check:', {
+                                approval_type: approval.approval_type,
+                                isTechnical,
+                                request_details: approval.request_details,
+                                customizationId
+                              });
+                              
+                              if (isTechnical && customizationId) {
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewWorkflow(customizationId)}
+                                  >
+                                    <Workflow className="h-4 w-4 mr-2" />
+                                    Ver Workflow
+                                  </Button>
+                                );
+                              }
+                              return null;
+                            })()}
                           </TableCell>
                           <TableCell>
                             {format(new Date(approval.requested_at), 'dd/MM/yyyy', { locale: ptBR })}
