@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApprovals } from "@/hooks/useApprovals";
 import { ApprovalStats } from "@/components/approvals/ApprovalStats";
 import { ApprovalDialog } from "@/components/approvals/ApprovalDialog";
@@ -63,6 +63,47 @@ export default function Approvals() {
     return type === 'discount' ? 'Desconto' : 'Customização';
   };
 
+  // Determinar aprovador baseado no tipo e dados da aprovação
+  const getApproverInfo = (approval: any) => {
+    if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
+      // Para customizações técnicas, buscar PM do modelo
+      const pmAssignments = approval.quotations?.yacht_models?.pm_assignments || [];
+      if (pmAssignments.length > 0 && pmAssignments[0].pm_user) {
+        return {
+          name: pmAssignments[0].pm_user.full_name,
+          role: 'PM Engenharia'
+        };
+      }
+      return {
+        name: 'PM não atribuído',
+        role: 'PM Engenharia'
+      };
+    }
+
+    // Para descontos comerciais, determinar baseado no percentual
+    if (approval.approval_type === 'commercial' || approval.approval_type === 'discount') {
+      const discountPercentage = approval.request_details?.discount_percentage || 0;
+      
+      // Limites configuráveis (devem vir de discount_limits_config idealmente)
+      // Mas por ora usamos valores padrão que correspondem ao sistema atual
+      if (discountPercentage > 15) {
+        return {
+          name: 'Administrador',
+          role: 'Administrador'
+        };
+      }
+      return {
+        name: 'Diretor Comercial',
+        role: 'Diretor Comercial'
+      };
+    }
+
+    return {
+      name: '-',
+      role: '-'
+    };
+  };
+
   const displayedApprovals = getDisplayedApprovals();
 
   return (
@@ -112,6 +153,7 @@ export default function Approvals() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead>Tipo</TableHead>
+                      <TableHead>Aprovador</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
@@ -121,6 +163,7 @@ export default function Approvals() {
                   <TableBody>
                     {displayedApprovals.map((approval) => {
                       const statusBadge = getStatusBadge(approval.status);
+                      const approverInfo = getApproverInfo(approval);
                       return (
                         <TableRow key={approval.id}>
                           <TableCell className="font-medium">
@@ -143,25 +186,12 @@ export default function Approvals() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {approval.approval_type === 'commercial' && approval.request_details && (
-                              <div className="text-destructive font-medium">
-                                {approval.request_details.discount_percentage}%
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  (-{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(approval.request_details.discount_amount)})
-                                </span>
-                              </div>
-                            )}
-                            {approval.approval_type === 'technical' && approval.request_details && (
-                              <div className="text-sm">
-                                <p className="font-medium">{approval.request_details.customization_item_name}</p>
-                                {approval.request_details.quantity > 1 && (
-                                  <span className="text-muted-foreground text-xs">Qtd: {approval.request_details.quantity}</span>
-                                )}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {format(new Date(approval.requested_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{approverInfo.name}</p>
+                              <Badge variant="outline" className="text-xs">
+                                {approverInfo.role}
+                              </Badge>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>

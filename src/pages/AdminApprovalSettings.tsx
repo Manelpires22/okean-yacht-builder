@@ -5,7 +5,7 @@ import { PermissionsMatrix } from "@/components/admin/approval-settings/Permissi
 import { ApprovalTypesCards } from "@/components/admin/approval-settings/ApprovalTypesCards";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, BookOpen } from "lucide-react";
+import { Info, BookOpen, Percent, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -69,6 +69,60 @@ export default function AdminApprovalSettings() {
           </CardHeader>
           <CardContent>
             <PermissionsMatrix />
+          </CardContent>
+        </Card>
+
+        {/* Onde Configurar as Regras */}
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              ⚙️ Onde Configurar as Regras de Aprovação
+            </CardTitle>
+            <CardDescription>
+              Locais onde você pode modificar as regras do sistema de aprovações
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="p-4 border rounded-lg bg-background">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Percent className="h-4 w-4 text-orange-600" />
+                  Limites de Desconto
+                </h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Configure os percentuais que acionam aprovação automática de Diretor ou Admin.
+                </p>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/admin/discount-settings">
+                    Ir para Gestão de Descontos
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="p-4 border rounded-lg bg-background">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  Atribuições de PM
+                </h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Defina qual PM de Engenharia é responsável por cada modelo de iate.
+                </p>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/admin/users">
+                    Ir para Utilizadores
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-4 border rounded-lg bg-muted/50">
+              <h4 className="font-semibold mb-2">📁 Arquivos de Código (para desenvolvedores)</h4>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                <li><code className="text-xs bg-background px-1 py-0.5 rounded">src/lib/approval-utils.ts</code> - Lógica de cálculo de aprovações de desconto</li>
+                <li><code className="text-xs bg-background px-1 py-0.5 rounded">src/hooks/useApprovals.ts</code> - Determinação de aprovador (PM para customizações, Diretor/Admin para descontos)</li>
+                <li><code className="text-xs bg-background px-1 py-0.5 rounded">supabase/migrations/</code> - RLS policies e permissões de banco de dados</li>
+              </ul>
+            </div>
           </CardContent>
         </Card>
 

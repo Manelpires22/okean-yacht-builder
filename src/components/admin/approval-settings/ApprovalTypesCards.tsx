@@ -120,16 +120,15 @@ export function ApprovalTypesCards() {
             <h4 className="font-semibold mb-2">👤 Quem aprova?</h4>
             <div className="space-y-2">
               <div className="flex items-start gap-2 text-sm">
-                <Badge variant="outline" className="mt-0.5">Engenheiro</Badge>
-                <span className="text-muted-foreground">
-                  Analisa viabilidade técnica e define custos/prazos
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-sm">
-                <Badge variant="default" className="mt-0.5">PM Eng.</Badge>
-                <span className="text-muted-foreground">
-                  Project Manager pode validar e aprovar customizações
-                </span>
+                <Badge variant="outline" className="mt-0.5">PM Engenharia</Badge>
+                <div className="flex-1">
+                  <span className="text-muted-foreground">
+                    O PM (Project Manager) atribuído ao modelo do iate
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ⚙️ Configure em: Admin → Utilizadores → Atribuições PM
+                  </p>
+                </div>
               </div>
               <div className="flex items-start gap-2 text-sm">
                 <Badge variant="default" className="mt-0.5">Admin</Badge>

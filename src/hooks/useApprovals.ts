@@ -69,6 +69,7 @@ export const useApprovals = (params?: UseApprovalsParams) => {
             base_discount_percentage,
             options_discount_percentage,
             sales_representative_id,
+            yacht_model_id,
             sales_representative:users!sales_representative_id (
               full_name,
               email,
@@ -76,7 +77,14 @@ export const useApprovals = (params?: UseApprovalsParams) => {
             ),
             yacht_models (
               name,
-              code
+              code,
+              pm_assignments:pm_yacht_model_assignments(
+                pm_user:users!pm_user_id(
+                  id,
+                  full_name,
+                  email
+                )
+              )
             )
           )
         `)
@@ -113,6 +121,7 @@ export const useApproval = (id: string) => {
             base_discount_percentage,
             options_discount_percentage,
             sales_representative_id,
+            yacht_model_id,
             sales_representative:users!sales_representative_id (
               full_name,
               email,
@@ -120,7 +129,14 @@ export const useApproval = (id: string) => {
             ),
             yacht_models (
               name,
-              code
+              code,
+              pm_assignments:pm_yacht_model_assignments(
+                pm_user:users!pm_user_id(
+                  id,
+                  full_name,
+                  email
+                )
+              )
             )
           )
         `)
