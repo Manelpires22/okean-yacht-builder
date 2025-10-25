@@ -7,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
-import { BASE_DISCOUNT_LIMITS, OPTIONS_DISCOUNT_LIMITS, getDiscountApprovalMessage } from "@/lib/approval-utils";
+import { getDiscountLimitsSync } from "@/lib/approval-utils";
 import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil } from "lucide-react";
 import { Customization } from "@/hooks/useConfigurationState";
 import { MessageSquare, Package } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ConfigurationSummaryProps {
   modelName: string;
@@ -66,10 +66,24 @@ export function ConfigurationSummary({
   onEditCustomization,
 }: ConfigurationSummaryProps) {
   const [expandedCustomizations, setExpandedCustomizations] = useState(true);
+  const [approvalMessage, setApprovalMessage] = useState<string>("");
+  
+  // Obter limites de desconto dinamicamente
+  const limits = getDiscountLimitsSync();
   
   const requiresApproval = 
-    baseDiscountPercentage > BASE_DISCOUNT_LIMITS.noApprovalRequired ||
-    optionsDiscountPercentage > OPTIONS_DISCOUNT_LIMITS.noApprovalRequired;
+    baseDiscountPercentage > limits.BASE_DISCOUNT_LIMITS.noApprovalRequired ||
+    optionsDiscountPercentage > limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired;
+
+  // Atualizar mensagem de aprovação quando descontos mudarem
+  useEffect(() => {
+    if (requiresApproval) {
+      import("@/lib/approval-utils").then(({ getDiscountApprovalMessage }) => {
+        getDiscountApprovalMessage(baseDiscountPercentage, optionsDiscountPercentage)
+          .then(setApprovalMessage);
+      });
+    }
+  }, [baseDiscountPercentage, optionsDiscountPercentage, requiresApproval]);
 
   // Count total customizations (base/free + option customizations)
   const optionCustomizationsCount = selectedOptions.filter(opt => opt.customization_notes).length;
@@ -234,7 +248,7 @@ export function ConfigurationSummary({
           <div className="space-y-2">
             <Label htmlFor="base-discount" className="text-sm flex items-center gap-2">
               <Percent className="h-3 w-3" />
-              Desconto Base (até {BASE_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
+              Desconto Base (até {limits.BASE_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
             </Label>
             <Input
               id="base-discount"
@@ -251,7 +265,7 @@ export function ConfigurationSummary({
           <div className="space-y-2">
             <Label htmlFor="options-discount" className="text-sm flex items-center gap-2">
               <Percent className="h-3 w-3" />
-              Desconto Opcionais (até {OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
+              Desconto Opcionais (até {limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
             </Label>
             <Input
               id="options-discount"
@@ -266,11 +280,11 @@ export function ConfigurationSummary({
           </div>
         </div>
 
-        {requiresApproval && (
+        {requiresApproval && approvalMessage && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              {getDiscountApprovalMessage(baseDiscountPercentage, optionsDiscountPercentage)}
+              {approvalMessage}
             </AlertDescription>
           </Alert>
         )}

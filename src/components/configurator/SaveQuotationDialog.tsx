@@ -75,11 +75,19 @@ export function SaveQuotationDialog({
 }: SaveQuotationDialogProps) {
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [useExistingClient, setUseExistingClient] = useState(false);
+  const [requiresApproval, setRequiresApproval] = useState(false);
+  const [approvalMessage, setApprovalMessage] = useState<string>("");
   
   const { data: clients = [] } = useClients();
   
-  const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
-  const approvalMessage = getDiscountApprovalMessage(baseDiscountPercentage, optionsDiscountPercentage);
+  // Atualizar status de aprovação quando descontos mudarem
+  useEffect(() => {
+    needsApproval(baseDiscountPercentage, optionsDiscountPercentage)
+      .then(setRequiresApproval);
+    
+    getDiscountApprovalMessage(baseDiscountPercentage, optionsDiscountPercentage)
+      .then(setApprovalMessage);
+  }, [baseDiscountPercentage, optionsDiscountPercentage]);
   
   const form = useForm<SaveQuotationFormValues>({
     resolver: zodResolver(saveQuotationSchema),
