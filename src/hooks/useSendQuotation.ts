@@ -36,8 +36,15 @@ export function useSendQuotation() {
           throw new Error('Erro ao gerar PDF: ' + pdfError.message);
         }
 
-        pdfUrl = pdfData.pdfUrl;
-        console.log('PDF gerado com sucesso:', pdfUrl);
+        // Obter URL pública do PDF
+        if (pdfData?.fileName) {
+          const { data: urlData } = supabase.storage
+            .from('quotation-pdfs')
+            .getPublicUrl(`${quotationId}/${pdfData.fileName}`);
+          
+          pdfUrl = urlData.publicUrl;
+          console.log('PDF gerado com sucesso:', pdfUrl);
+        }
       }
 
       // 1. Buscar dados completos da cotação
