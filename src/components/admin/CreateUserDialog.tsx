@@ -29,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useCreateUser } from "@/hooks/useCreateUser";
+import { useYachtModels } from "@/hooks/useYachtModels";
+import { Ship } from "lucide-react";
 
 const formSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -36,6 +38,7 @@ const formSchema = z.object({
   password: z.string().min(8, "Password deve ter pelo menos 8 caracteres"),
   department: z.string().min(1, "Selecione um departamento"),
   roles: z.array(z.string()).min(1, "Selecione pelo menos uma role"),
+  pm_yacht_models: z.array(z.string()).optional(),
   is_active: z.boolean().default(true),
 });
 
@@ -71,6 +74,7 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const { mutate: createUser, isPending } = useCreateUser();
+  const { data: yachtModels } = useYachtModels();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -80,9 +84,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       password: "",
       department: "",
       roles: [],
+      pm_yacht_models: [],
       is_active: true,
     },
   });
+
+  const selectedRoles = form.watch("roles");
+  const isPMSelected = selectedRoles?.includes("pm_engenharia");
 
   const onSubmit = (data: FormValues) => {
     createUser({
@@ -91,6 +99,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       full_name: data.full_name,
       department: data.department,
       roles: data.roles,
+      pm_yacht_models: data.pm_yacht_models || [],
       is_active: data.is_active,
     }, {
       onSuccess: () => {
@@ -226,6 +235,63 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 </FormItem>
               )}
             />
+
+            {/* Modelos de Iates (apenas se PM Engenharia estiver selecionado) */}
+            {isPMSelected && (
+              <FormField
+                control={form.control}
+                name="pm_yacht_models"
+                render={() => (
+                  <FormItem className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Ship className="h-5 w-5 text-primary" />
+                      <FormLabel className="text-base font-semibold">
+                        Modelos Atribuídos (PM)
+                      </FormLabel>
+                    </div>
+                    <FormDescription className="text-sm text-muted-foreground mb-3">
+                      Selecione os modelos de iates que este PM será responsável
+                    </FormDescription>
+                    <div className="grid grid-cols-2 gap-3">
+                      {yachtModels?.map((model) => (
+                        <FormField
+                          key={model.id}
+                          control={form.control}
+                          name="pm_yacht_models"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={model.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(model.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), model.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== model.id
+                                            )
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {model.code} - {model.name}
+                                </FormLabel>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

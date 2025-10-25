@@ -11,6 +11,7 @@ interface CreateUserPayload {
   full_name: string;
   department: string;
   roles: string[];
+  pm_yacht_models: string[];
   is_active: boolean;
 }
 
@@ -115,6 +116,28 @@ Deno.serve(async (req) => {
       await supabase.from('users').delete().eq('id', userId);
       await supabase.auth.admin.deleteUser(userId);
       throw new Error(`Failed to assign roles: ${rolesError.message}`);
+    }
+
+    // Insert PM yacht model assignments if PM role is selected
+    if (payload.roles.includes('pm_engenharia') && payload.pm_yacht_models?.length > 0) {
+      const pmAssignments = payload.pm_yacht_models.map(modelId => ({
+        pm_user_id: userId,
+        yacht_model_id: modelId,
+        assigned_by: requestingUser.id,
+      }));
+
+      const { error: pmError } = await supabase
+        .from('pm_yacht_model_assignments')
+        .insert(pmAssignments);
+
+      if (pmError) {
+        console.error('Error inserting PM assignments:', pmError);
+        // Rollback: delete user, roles and auth user
+        await supabase.from('user_roles').delete().eq('user_id', userId);
+        await supabase.from('users').delete().eq('id', userId);
+        await supabase.auth.admin.deleteUser(userId);
+        throw new Error(`Failed to assign yacht models: ${pmError.message}`);
+      }
     }
 
     console.log('User created successfully:', userId);
