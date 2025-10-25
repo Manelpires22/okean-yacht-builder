@@ -30,59 +30,111 @@ serve(async (req) => {
     }
 
     const systemPrompt = `Você é um especialista em especificações técnicas de iates. 
-Extraia TODOS os dados possíveis do documento fornecido.
+Sua tarefa é EXTRAIR E PREENCHER cada campo com os dados encontrados no documento.
 
-# ESTRATÉGIA DE EXTRAÇÃO
+# DADOS BÁSICOS - PROCURE E PREENCHA:
 
-## 1. IDENTIFICAR MODELO E CÓDIGO (⚠️ PRIORIDADE ABSOLUTA)
-O código do modelo está SEMPRE no nome do arquivo ou no início do documento.
+**code** (OBRIGATÓRIO):
+- Procure no TÍTULO ou INÍCIO do documento
+- Padrões: "FY###", "OK-##", "AZIMUT-##", etc.
+- Ex: "FY670", "FY850", "OK-52"
+- ⚠️ Use o código do TÍTULO, não de referências no meio do texto
 
-Passos para identificar corretamente:
-1. Procure no INÍCIO do documento por padrões como "FY###", "OK-##", "AZIMUT-##"
-2. Verifique se há título com código (ex: "FY670 - Memorial Descritivo", "Ferretti Yachts 670")
-3. O código é geralmente uma SIGLA/ABREVIAÇÃO (2-6 caracteres + número)
-4. ❌ NUNCA use códigos de outros modelos mencionados no documento
-5. ❌ NUNCA invente um código - se não encontrar claramente, retorne null
+**name** (OBRIGATÓRIO):
+- Nome completo do modelo
+- Ex: "Ferretti Yachts 670", "OKEAN 52", "Azimut 60"
 
-Exemplos CORRETOS:
-- "FY670" → código: "FY670", nome: "Ferretti Yachts 670"
-- "OK-52" → código: "OK-52", nome: "OKEAN 52"
-- "AZIMUT-60" → código: "AZIMUT-60"
+**description**:
+- Descrição geral do iate (geralmente no início do documento)
+- Pode ser um parágrafo explicando o modelo
 
-## 2. LOCALIZAR SEÇÕES POR TÍTULOS
-- "ESPECIFICAÇÕES TÉCNICAS" ou "DIMENSÕES" → extrair specs técnicas
-- "MEMORIAL DESCRITIVO" ou "MEMORIAL PADRÃO" → extrair memorial_items
-- "OPCIONAIS" ou "OPCIONAIS SUGERIDOS" → extrair options
+**base_price**:
+- Procure por: "Preço Base", "Valor Base", "Price"
+- Converta para número (remova "R$", pontos, vírgulas)
+- Ex: "R$ 15.900.000,00" → 15900000
 
-## 3. PARSE DE LISTAS NUMERADAS
-- "1. Item description" → extrair como memorial_item ou option
-- Identifique a categoria pela área mencionada
+**base_delivery_days**:
+- Procure por: "Prazo de Entrega", "Delivery", "Dias"
+- Extraia apenas o número
+- Ex: "500 dias" → 500
 
-## 4. CONVERSÃO DE UNIDADES
-- Metros (m) → manter em metros (formato decimal com ponto)
-- Quilogramas (Kg) → converter para kg (remover pontos/vírgulas)
-- Litros (l) → manter em litros
-- HP → extrair para campo "engines"
-- Nós → manter em nós
+**registration_number**:
+- Procure por: "Registro", "Matrícula", "Registration"
+- Ex: "RJ-0001-BR"
 
-## 5. MAPEAMENTO DE CATEGORIAS
+**delivery_date**:
+- Procure por: "Data de Entrega", "Entrega prevista"
+- Formato: YYYY-MM-DD
+- Ex: "Março/2026" → "2026-03-01"
 
-**equipamentos**: Molinete, guincho, bow/stern thruster, geradores, bombas, âncoras, plataforma de banho
-**acabamento**: Teca, madeira, carpete, piso, estofados, sofás, portas, janelas, móveis
-**eletrica**: Painéis, baterias, inversores, iluminação, luzes, tomadas, som, TVs
-**hidraulica**: Tanques, bombas, válvulas, sistemas de água, chuveiros, torneiras
-**propulsao**: Motores, hélices, eixos, transmissão, sistemas de direção
-**seguranca**: Coletes, balsas, sinalizadores, extintores, EPIs, alarmes
-**navegacao**: GPS, radar, sonar, piloto automático, VHF, comunicação
-**conforto**: TVs, som, entretenimento, geladeiras, ar-condicionado, aquecedores
-**outros**: Itens que não se encaixam nas categorias acima
+# ESPECIFICAÇÕES TÉCNICAS - PROCURE CADA CAMPO:
 
-REGRAS:
-- Use null para campos não encontrados
-- Preserve formatação de números com ponto (ex: 26.14)
-- Para memorial items, mantenha descrições completas
-- Para opcionais, extraia nome curto e descrição completa
-- ⚠️ O código do modelo é CRÍTICO - procure no TÍTULO/INÍCIO do documento`;
+**DIMENSÕES (em metros - use ponto decimal):**
+- **length_overall**: Comprimento total, LOA, Length Overall
+- **hull_length**: Comprimento do casco, Hull Length
+- **beam**: Boca, Largura, Beam
+- **draft**: Calado, Draft
+- **height_from_waterline**: Altura da linha d'água
+
+**PESOS (em quilogramas - apenas números):**
+- **dry_weight**: Peso seco, Dry Weight
+- **displacement_light**: Deslocamento leve, Light Displacement
+- **displacement_loaded**: Deslocamento carregado, Loaded Displacement
+
+**CAPACIDADES:**
+- **fuel_capacity**: Capacidade de combustível (litros)
+  - Procure: "Combustível", "Fuel Tank", "Diesel"
+- **water_capacity**: Capacidade de água (litros)
+  - Procure: "Água Potável", "Water Tank"
+- **passengers_capacity**: Capacidade de passageiros (número)
+  - Procure: "Passageiros", "Passengers"
+- **cabins**: Número de camarotes (número inteiro)
+  - Procure: "Camarotes", "Cabins", "Quartos"
+- **bathrooms**: Banheiros (string, pode ser "3 + 1")
+  - Procure: "Banheiros", "WC", "Toilets"
+
+**MOTORIZAÇÃO:**
+- **engines**: Descrição completa dos motores (texto)
+  - Procure: "Motores", "Engines", "Motorização"
+  - Ex: "2 x Volvo Penta D13 de 900 HP"
+- **max_speed**: Velocidade máxima (em nós)
+  - Procure: "Velocidade Máxima", "Max Speed"
+- **cruise_speed**: Velocidade de cruzeiro (em nós)
+  - Procure: "Velocidade de Cruzeiro", "Cruise Speed"
+- **range_nautical_miles**: Autonomia (em milhas náuticas)
+  - Procure: "Autonomia", "Range"
+
+**OUTROS:**
+- **hull_color**: Cor do casco
+  - Procure: "Cor do Casco", "Hull Color"
+
+# CONVERSÃO DE UNIDADES:
+- Metros: mantenha formato decimal com ponto (26.14)
+- Quilos/Toneladas: converta tudo para kg
+- Litros: mantenha em litros
+- Nós: mantenha em nós (knots)
+
+# REGRAS CRÍTICAS:
+✅ Procure ATIVAMENTE cada campo no documento
+✅ Use null apenas se o campo NÃO existir no documento
+✅ Preserve números com ponto decimal (não vírgula)
+✅ Remova símbolos de moeda e formatação
+✅ Para cada campo, procure variações em português e inglês
+
+# MEMORIAL DESCRITIVO:
+Categorize cada item em:
+- **equipamentos**: Molinete, guincho, thruster, geradores, âncoras
+- **acabamento**: Teca, madeira, carpete, estofados, móveis
+- **eletrica**: Painéis, baterias, iluminação, som, TVs
+- **hidraulica**: Tanques, bombas, água, chuveiros
+- **propulsao**: Motores, hélices, eixos
+- **seguranca**: Coletes, balsas, extintores
+- **navegacao**: GPS, radar, VHF
+- **conforto**: Ar-condicionado, entretenimento
+- **outros**: Demais itens
+
+# OPCIONAIS:
+Extraia nome, descrição e preço (se disponível) de cada opcional sugerido.`;
 
     console.log('📄 Enviando texto para Lovable AI (Gemini 2.5 Pro - Large Context)...');
     console.log('📊 Tamanho do texto:', documentText.length, 'caracteres');
