@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +15,15 @@ const navItems = [
   { path: "/cotacoes", icon: FileText, label: "Cotações" },
   { path: "/clientes", icon: UserCheck, label: "Clientes" },
   { path: "/aprovacoes", icon: CheckSquare, label: "Aprovações", showBadge: true },
+  { path: "/tarefas-workflow", icon: ListChecks, label: "Minhas Tarefas Workflow" },
   { path: "/admin", icon: Settings, label: "Dashboard" },
   { path: "/admin/yacht-models", icon: Ship, label: "Modelos" },
   { path: "/admin/options", icon: Package, label: "Opcionais" },
   { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
   { path: "/admin/discount-settings", icon: Percent, label: "Gestão de Descontos" },
   { path: "/admin/approval-settings", icon: ClipboardCheck, label: "Gestão de Aprovações" },
+  { path: "/admin/workflow-settings", icon: Workflow, label: "Configurações Workflow" },
+  { path: "/admin/internal-users", icon: Briefcase, label: "Usuários Internos (PM)" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
 ];
 

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, Settings, Users, FileText } from "lucide-react";
+import { Ship, Settings, Users, FileText, ListChecks } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useStats } from "@/hooks/useStats";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,13 @@ const Index = () => {
       description: "Gerencie cotações e propostas comerciais",
       action: () => navigate("/cotacoes"),
       color: "text-secondary"
+    },
+    {
+      icon: ListChecks,
+      title: "Minhas Tarefas",
+      description: "Visualize e processe tarefas de workflow",
+      action: () => navigate("/tarefas-workflow"),
+      color: "text-green-600"
     },
     {
       icon: Settings,
@@ -79,7 +86,7 @@ const Index = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-16">
           {mainFeatures.map((feature, index) => {
             const Icon = feature.icon;
             return (

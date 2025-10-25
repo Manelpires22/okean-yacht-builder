@@ -25,6 +25,9 @@ import Approvals from "@/pages/Approvals";
 import Profile from "@/pages/Profile";
 import PublicQuotationAcceptance from "@/pages/PublicQuotationAcceptance";
 import PublicQuotationView from "@/pages/PublicQuotationView";
+import AdminWorkflowSettings from "@/pages/AdminWorkflowSettings";
+import WorkflowTasks from "@/pages/WorkflowTasks";
+import AdminInternalUsers from "@/pages/AdminInternalUsers";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +63,10 @@ const App = () => (
             <Route path="/admin/discount-settings" element={<ProtectedRoute requireAdmin><AdminDiscountSettings /></ProtectedRoute>} />
             <Route path="/admin/approval-settings" element={<ProtectedRoute requireAdmin><AdminApprovalSettings /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/workflow-settings" element={<ProtectedRoute requireAdmin><AdminWorkflowSettings /></ProtectedRoute>} />
+            <Route path="/admin/internal-users" element={<ProtectedRoute requireAdmin><AdminInternalUsers /></ProtectedRoute>} />
+            <Route path="/workflow-tasks" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
+            <Route path="/tarefas-workflow" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
