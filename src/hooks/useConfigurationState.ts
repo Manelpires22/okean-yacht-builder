@@ -155,6 +155,30 @@ export function useConfigurationState() {
     localStorage.removeItem(STORAGE_KEY);
   };
 
+  const loadFromQuotation = (quotation: any) => {
+    // Carregar dados da cotação existente
+    setState({
+      yacht_model_id: quotation.yacht_model_id,
+      base_price: quotation.base_price || 0,
+      base_delivery_days: quotation.base_delivery_days || 0,
+      base_discount_percentage: quotation.base_discount_percentage || 0,
+      options_discount_percentage: quotation.options_discount_percentage || 0,
+      selected_options: quotation.quotation_options?.map((qo: any) => ({
+        option_id: qo.option_id,
+        quantity: qo.quantity,
+        unit_price: qo.unit_price,
+        delivery_days_impact: qo.delivery_days_impact || 0,
+      })) || [],
+      customizations: quotation.quotation_customizations?.map((qc: any) => ({
+        memorial_item_id: qc.memorial_item_id || `free-${qc.id}`,
+        item_name: qc.item_name,
+        notes: qc.notes || '',
+        quantity: qc.quantity,
+        is_free_customization: !qc.memorial_item_id,
+      })) || [],
+    });
+  };
+
   const totals = useMemo(() => {
     const optionsTotal = state.selected_options.reduce(
       (sum, option) => sum + option.unit_price * option.quantity,
@@ -197,6 +221,7 @@ export function useConfigurationState() {
     removeCustomization,
     getCustomization,
     clearConfiguration,
+    loadFromQuotation,
     totals,
   };
 }

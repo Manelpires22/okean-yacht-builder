@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ModelSelector } from "@/components/configurator/ModelSelector";
 import { MemorialDescritivo } from "@/components/configurator/MemorialDescritivo";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
@@ -10,6 +10,7 @@ import { useConfigurationState } from "@/hooks/useConfigurationState";
 import { useOptionCategories, useOptions } from "@/hooks/useOptions";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useSaveQuotation } from "@/hooks/useSaveQuotation";
+import { useQuotation } from "@/hooks/useQuotations";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,9 @@ import { toast } from "sonner";
 
 export default function Configurator() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editQuotationId = searchParams.get('edit');
+  
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [freeCustomizationDialogOpen, setFreeCustomizationDialogOpen] = useState(false);
   
@@ -33,12 +37,24 @@ export default function Configurator() {
     removeCustomization,
     totals,
     clearConfiguration,
+    loadFromQuotation,
   } = useConfigurationState();
 
   const { data: models } = useYachtModels();
   const { data: categories } = useOptionCategories();
   const { data: allOptions } = useOptions();
   const saveQuotation = useSaveQuotation();
+  
+  // Carregar cotação se estiver editando
+  const { data: existingQuotation, isLoading: isLoadingQuotation } = useQuotation(editQuotationId || '');
+
+  // Carregar dados da cotação existente no estado
+  useEffect(() => {
+    if (existingQuotation && editQuotationId && !isLoadingQuotation) {
+      loadFromQuotation(existingQuotation);
+      toast.success(`Editando cotação ${existingQuotation.quotation_number}`);
+    }
+  }, [existingQuotation, editQuotationId, isLoadingQuotation]);
 
   const selectedModel = models?.find((m) => m.id === state.yacht_model_id);
 

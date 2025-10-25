@@ -50,9 +50,9 @@ export default function QuotationDetail() {
     
     try {
       const newQuotation = await createRevision.mutateAsync(quotation.id);
-      toast.success(`Editando cotação ${newQuotation.quotation_number}`);
-      // Navegar para a nova revisão após um breve delay
-      setTimeout(() => navigate(`/quotations/${newQuotation.id}`), 1500);
+      toast.success(`Revisão ${newQuotation.quotation_number} criada! Redirecionando para edição...`);
+      // Navegar para o configurador com a nova cotação
+      setTimeout(() => navigate(`/configurator?edit=${newQuotation.id}`), 1000);
     } catch (error) {
       // Erro já tratado no hook
     }
