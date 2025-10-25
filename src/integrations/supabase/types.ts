@@ -325,7 +325,10 @@ export type Database = {
       }
       quotation_customizations: {
         Row: {
+          additional_cost: number | null
           created_at: string | null
+          delivery_impact_days: number | null
+          engineering_notes: string | null
           file_paths: string[] | null
           id: string
           item_name: string
@@ -333,9 +336,15 @@ export type Database = {
           notes: string | null
           quantity: number | null
           quotation_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
         }
         Insert: {
+          additional_cost?: number | null
           created_at?: string | null
+          delivery_impact_days?: number | null
+          engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
           item_name: string
@@ -343,9 +352,15 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           quotation_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
         }
         Update: {
+          additional_cost?: number | null
           created_at?: string | null
+          delivery_impact_days?: number | null
+          engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
           item_name?: string
@@ -353,6 +368,9 @@ export type Database = {
           notes?: string | null
           quantity?: number | null
           quotation_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
         }
         Relationships: [
           {
@@ -367,6 +385,13 @@ export type Database = {
             columns: ["quotation_id"]
             isOneToOne: false
             referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_customizations_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +446,9 @@ export type Database = {
       }
       quotations: {
         Row: {
+          accepted_at: string | null
+          accepted_by_email: string | null
+          accepted_by_name: string | null
           base_delivery_days: number
           base_discount_percentage: number | null
           base_price: number
@@ -436,17 +464,24 @@ export type Database = {
           final_price: number
           id: string
           options_discount_percentage: number | null
+          parent_quotation_id: string | null
           quotation_number: string
           sales_representative_id: string | null
+          secure_token: string | null
+          snapshot_json: Json | null
           status: string
           total_customizations_price: number | null
           total_delivery_days: number
           total_options_price: number | null
           updated_at: string | null
           valid_until: string
+          version: number | null
           yacht_model_id: string | null
         }
         Insert: {
+          accepted_at?: string | null
+          accepted_by_email?: string | null
+          accepted_by_name?: string | null
           base_delivery_days: number
           base_discount_percentage?: number | null
           base_price: number
@@ -462,17 +497,24 @@ export type Database = {
           final_price: number
           id?: string
           options_discount_percentage?: number | null
+          parent_quotation_id?: string | null
           quotation_number: string
           sales_representative_id?: string | null
+          secure_token?: string | null
+          snapshot_json?: Json | null
           status: string
           total_customizations_price?: number | null
           total_delivery_days: number
           total_options_price?: number | null
           updated_at?: string | null
           valid_until: string
+          version?: number | null
           yacht_model_id?: string | null
         }
         Update: {
+          accepted_at?: string | null
+          accepted_by_email?: string | null
+          accepted_by_name?: string | null
           base_delivery_days?: number
           base_discount_percentage?: number | null
           base_price?: number
@@ -488,14 +530,18 @@ export type Database = {
           final_price?: number
           id?: string
           options_discount_percentage?: number | null
+          parent_quotation_id?: string | null
           quotation_number?: string
           sales_representative_id?: string | null
+          secure_token?: string | null
+          snapshot_json?: Json | null
           status?: string
           total_customizations_price?: number | null
           total_delivery_days?: number
           total_options_price?: number | null
           updated_at?: string | null
           valid_until?: string
+          version?: number | null
           yacht_model_id?: string | null
         }
         Relationships: [
@@ -504,6 +550,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_parent_quotation_id_fkey"
+            columns: ["parent_quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
             referencedColumns: ["id"]
           },
           {

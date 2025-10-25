@@ -3,33 +3,48 @@ import { useQuotation } from "@/hooks/useQuotations";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Mail } from "lucide-react";
+import { ArrowLeft, Download, Mail, Edit, Send } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-const statusColors: Record<string, string> = {
-  draft: "bg-slate-500",
-  sent: "bg-blue-500",
-  approved: "bg-green-500",
-  rejected: "bg-red-500",
-  expired: "bg-gray-500",
-};
-
-const statusLabels: Record<string, string> = {
-  draft: "Rascunho",
-  sent: "Enviada",
-  approved: "Aprovada",
-  rejected: "Rejeitada",
-  expired: "Expirada",
-};
+import { QuotationStatusBadge } from "@/components/quotations/QuotationStatusBadge";
+import { QuotationStatusChecklist } from "@/components/quotations/QuotationStatusChecklist";
+import { CustomizationStatusCard } from "@/components/quotations/CustomizationStatusCard";
+import { RevalidationAlert } from "@/components/quotations/RevalidationAlert";
+import { useQuotationStatus } from "@/hooks/useQuotationStatus";
+import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
+import { useState } from "react";
 
 export default function QuotationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: quotation, isLoading } = useQuotation(id!);
+  const [isRevalidating, setIsRevalidating] = useState(false);
+
+  // Hooks para status e revalidação
+  const quotationStatus = useQuotationStatus(quotation || null);
+  const { data: revalidation } = useQuotationRevalidation(id);
+
+  const handleRevalidate = async () => {
+    setIsRevalidating(true);
+    // TODO: Implementar lógica de revalidação
+    setTimeout(() => setIsRevalidating(false), 2000);
+  };
+
+  const handleEdit = () => {
+    navigate(`/configurator?quotation=${id}`);
+  };
+
+  const handleSendEmail = () => {
+    // TODO: Implementar envio de email (Fase 2)
+    console.log("Enviar email");
+  };
+
+  const handleGeneratePDF = () => {
+    // TODO: Implementar geração de PDF (Fase 2)
+    console.log("Gerar PDF");
+  };
 
   if (isLoading) {
     return (
@@ -51,16 +66,34 @@ export default function QuotationDetail() {
     <>
       <AppHeader title={`Cotação ${quotation.quotation_number}`} />
       <div className="container mx-auto p-6 space-y-6">
+        {/* Header com navegação e status */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate("/quotations")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar para Cotações
           </Button>
           <div className="flex-1" />
-          <Badge className={statusColors[quotation.status]}>
-            {statusLabels[quotation.status]}
-          </Badge>
+          <QuotationStatusBadge status={quotation.status as any} />
         </div>
+
+        {/* Alerta de Revalidação (se necessário) */}
+        {revalidation?.needsRevalidation && quotation.status === 'draft' && (
+          <RevalidationAlert
+            issues={revalidation.issues}
+            onRevalidate={handleRevalidate}
+            isRevalidating={isRevalidating}
+          />
+        )}
+
+        {/* Checklist de Status */}
+        <QuotationStatusChecklist
+          status={quotation.status}
+          baseDiscountPercentage={quotation.base_discount_percentage || 0}
+          optionsDiscountPercentage={quotation.options_discount_percentage || 0}
+          hasCustomizations={!!quotation.quotation_customizations?.length}
+          customizationsApproved={quotation.quotation_customizations?.every((c: any) => c.status === 'approved') || false}
+          validUntil={quotation.valid_until}
+        />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -166,6 +199,23 @@ export default function QuotationDetail() {
         </CardContent>
       </Card>
 
+      {/* Customizações (se houver) */}
+      {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
+        <CustomizationStatusCard
+          customizations={quotation.quotation_customizations.map((c: any) => ({
+            id: c.id,
+            item_name: c.item_name,
+            notes: c.notes,
+            quantity: c.quantity,
+            status: c.status || 'pending',
+            additional_cost: c.additional_cost,
+            delivery_impact_days: c.delivery_impact_days,
+            engineering_notes: c.engineering_notes,
+            file_paths: c.file_paths
+          }))}
+        />
+      )}
+
       {quotation.quotation_options && quotation.quotation_options.length > 0 && (
         <Card>
           <CardHeader>
@@ -242,15 +292,45 @@ export default function QuotationDetail() {
         </CardContent>
       </Card>
 
+      {/* Botões de Ação Contextuais */}
       <div className="flex gap-4 justify-end">
-        <Button variant="outline">
-          <Mail className="mr-2 h-4 w-4" />
-          Enviar por Email
-        </Button>
-        <Button>
-          <Download className="mr-2 h-4 w-4" />
-          Gerar PDF
-        </Button>
+        {/* Botão Editar - só se draft */}
+        {quotationStatus.canEdit && (
+          <Button variant="outline" onClick={handleEdit}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar Proposta
+          </Button>
+        )}
+
+        {/* Botões de Envio - só se ready_to_send */}
+        {quotationStatus.canSend && (
+          <>
+            <Button variant="outline" onClick={handleSendEmail}>
+              <Mail className="mr-2 h-4 w-4" />
+              Enviar por Email
+            </Button>
+            <Button onClick={handleGeneratePDF}>
+              <Download className="mr-2 h-4 w-4" />
+              Gerar PDF
+            </Button>
+          </>
+        )}
+
+        {/* Botão Download PDF - se já foi enviada */}
+        {quotation.status === 'sent' && (
+          <Button variant="outline" onClick={handleGeneratePDF}>
+            <Download className="mr-2 h-4 w-4" />
+            Baixar PDF
+          </Button>
+        )}
+
+        {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
+        {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
+          <Button onClick={() => console.log("Solicitar aprovação")}>
+            <Send className="mr-2 h-4 w-4" />
+            Solicitar Aprovação
+          </Button>
+        )}
       </div>
       </div>
     </>

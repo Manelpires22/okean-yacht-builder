@@ -91,6 +91,17 @@ export function useQuotation(id: string) {
               code,
               description
             )
+          ),
+          quotation_customizations (
+            id,
+            item_name,
+            notes,
+            quantity,
+            status,
+            additional_cost,
+            delivery_impact_days,
+            engineering_notes,
+            file_paths
           )
         `)
         .eq("id", id)
