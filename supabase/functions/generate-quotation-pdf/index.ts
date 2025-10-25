@@ -404,6 +404,120 @@ serve(async (req) => {
       addDraftWatermark();
     }
 
+    // ===== PAGE 4.5 – CUSTOMIZATIONS =====
+    function addCustomizations() {
+      if (!quotation.quotation_customizations || quotation.quotation_customizations.length === 0) {
+        return;
+      }
+
+      doc.addPage();
+      
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Customizações Solicitadas", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 60;
+      doc.setFontSize(10);
+
+      quotation.quotation_customizations.forEach((custom: any) => {
+        if (yPos > 260) {
+          doc.addPage();
+          yPos = 30;
+          addDraftWatermark();
+        }
+
+        // Customization name
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(`• ${custom.item_name}`, margin, yPos);
+        yPos += 6;
+
+        // Status badge
+        setupFont(doc);
+        doc.setFontSize(9);
+        let statusColor = COLORS.grayDark;
+        let statusText = "Pendente";
+        
+        if (custom.status === "approved") {
+          statusColor = [34, 197, 94]; // Green
+          statusText = "Aprovada";
+        } else if (custom.status === "rejected") {
+          statusColor = [239, 68, 68]; // Red
+          statusText = "Rejeitada";
+        }
+        
+        doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+        doc.text(`Status: ${statusText}`, margin + 5, yPos);
+        yPos += 6;
+
+        // Notes
+        if (custom.notes) {
+          doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+          const notesLines = doc.splitTextToSize(custom.notes, pageW - 50);
+          notesLines.forEach((line: string) => {
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 30;
+              addDraftWatermark();
+            }
+            doc.text(line, margin + 5, yPos);
+            yPos += 5;
+          });
+        }
+
+        // Engineering feedback (if approved)
+        if (custom.status === "approved") {
+          yPos += 2;
+          
+          if (custom.engineering_notes) {
+            doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+            setupFont(doc, "bold");
+            doc.text("Validação Técnica:", margin + 5, yPos);
+            yPos += 5;
+            
+            doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+            setupFont(doc);
+            const engineeringLines = doc.splitTextToSize(custom.engineering_notes, pageW - 50);
+            engineeringLines.forEach((line: string) => {
+              if (yPos > 270) {
+                doc.addPage();
+                yPos = 30;
+                addDraftWatermark();
+              }
+              doc.text(line, margin + 10, yPos);
+              yPos += 5;
+            });
+          }
+          
+          const details = [];
+          if (custom.additional_cost && custom.additional_cost > 0) {
+            details.push(`Custo adicional: ${formatCurrency(custom.additional_cost)}`);
+          }
+          if (custom.delivery_impact_days && custom.delivery_impact_days > 0) {
+            details.push(`Impacto no prazo: +${custom.delivery_impact_days} ${custom.delivery_impact_days === 1 ? 'dia' : 'dias'}`);
+          }
+          
+          if (details.length > 0) {
+            yPos += 2;
+            doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+            setupFont(doc, "bold");
+            doc.text(details.join(" | "), margin + 10, yPos);
+            yPos += 6;
+          }
+        }
+
+        yPos += 8;
+        doc.setFontSize(10);
+      });
+
+      addDraftWatermark();
+    }
+
     // ===== PAGES 5-N – MEMORIAL DESCRITIVO =====
     function addMemorialDescritivo() {
       if (!memorialClean || memorialClean.length === 0) {
@@ -547,6 +661,7 @@ serve(async (req) => {
     addModelHighlights();
     addFinancialSummary();
     addOptionalItems();
+    addCustomizations();
     addMemorialDescritivo();
     addContactPage();
 
