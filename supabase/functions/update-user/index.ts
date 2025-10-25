@@ -10,6 +10,7 @@ interface UpdateUserPayload {
   full_name: string;
   department: string;
   roles: string[];
+  pm_yacht_models: string[];
   is_active: boolean;
   new_password?: string;
 }
@@ -101,6 +102,32 @@ Deno.serve(async (req) => {
     if (insertRolesError) {
       console.error('Error inserting new roles:', insertRolesError);
       throw new Error(`Failed to assign roles: ${insertRolesError.message}`);
+    }
+
+    // Update PM yacht model assignments if PM role is selected
+    // First, delete existing assignments
+    await supabase
+      .from('pm_yacht_model_assignments')
+      .delete()
+      .eq('pm_user_id', payload.user_id);
+
+    // Then insert new ones if PM role is selected
+    if (payload.roles.includes('pm_engenharia') && payload.pm_yacht_models?.length > 0) {
+      const pmAssignments = payload.pm_yacht_models.map(modelId => ({
+        pm_user_id: payload.user_id,
+        yacht_model_id: modelId,
+        assigned_by: requestingUser.id,
+      }));
+
+      const { error: pmError } = await supabase
+        .from('pm_yacht_model_assignments')
+        .insert(pmAssignments);
+
+      if (pmError) {
+        console.error('Error updating PM assignments:', pmError);
+        // Don't fail the entire update if PM assignments fail
+        console.warn('Continuing despite PM assignment error');
+      }
     }
 
     // Update password if provided

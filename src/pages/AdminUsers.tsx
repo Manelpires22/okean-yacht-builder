@@ -14,7 +14,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateUserDialog } from "@/components/admin/CreateUserDialog";
-import { EditUserDialog } from "@/components/admin/EditUserDialog";
 import { UserRoleBadges } from "@/components/admin/UserRoleBadges";
 import { useState } from "react";
 
@@ -28,8 +27,7 @@ interface UserWithRoles {
 }
 
 const AdminUsers = () => {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
 
   const { data: users, isLoading } = useQuery({
@@ -66,7 +64,10 @@ const AdminUsers = () => {
             <h1 className="text-3xl font-bold">Utilizadores</h1>
             <p className="text-muted-foreground">Gerir utilizadores e permissões</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={() => {
+            setSelectedUser(null);
+            setDialogOpen(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Utilizador
           </Button>
@@ -122,7 +123,7 @@ const AdminUsers = () => {
                         size="sm"
                         onClick={() => {
                           setSelectedUser(user);
-                          setEditDialogOpen(true);
+                          setDialogOpen(true);
                         }}
                       >
                         Editar
@@ -137,13 +138,8 @@ const AdminUsers = () => {
       </div>
 
       <CreateUserDialog 
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-      />
-
-      <EditUserDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         user={selectedUser}
       />
     </AdminLayout>

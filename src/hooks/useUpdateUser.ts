@@ -7,6 +7,7 @@ interface UpdateUserData {
   full_name: string;
   department: string;
   roles: string[];
+  pm_yacht_models: string[];
   is_active: boolean;
   new_password?: string;
 }

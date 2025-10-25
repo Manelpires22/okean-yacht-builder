@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -29,17 +29,39 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useCreateUser } from "@/hooks/useCreateUser";
+import { useUpdateUser } from "@/hooks/useUpdateUser";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { Ship } from "lucide-react";
 
 const formSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  password: z.string().min(8, "Password deve ter pelo menos 8 caracteres"),
+  email: z.string().email("Email inválido").optional(),
+  password: z.string().optional(),
   department: z.string().min(1, "Selecione um departamento"),
   roles: z.array(z.string()).min(1, "Selecione pelo menos uma role"),
   pm_yacht_models: z.array(z.string()).optional(),
   is_active: z.boolean().default(true),
+  change_password: z.boolean().default(false),
+  new_password: z.string().optional(),
+}).refine((data) => {
+  // Se está criando novo usuário, password é obrigatório
+  if (!data.email) return true; // Modo edição
+  if (!data.password || data.password.length < 8) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Password deve ter pelo menos 8 caracteres",
+  path: ["password"],
+}).refine((data) => {
+  // Se marcou para alterar password, new_password é obrigatório
+  if (data.change_password && (!data.new_password || data.new_password.length < 8)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Nova password deve ter pelo menos 8 caracteres",
+  path: ["new_password"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -70,11 +92,24 @@ const DEPARTMENTS = [
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  user?: {
+    id: string;
+    full_name: string;
+    email: string;
+    department: string;
+    is_active: boolean;
+    roles: string[];
+    pm_yacht_models?: string[];
+  } | null;
 }
 
-export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
-  const { mutate: createUser, isPending } = useCreateUser();
+export function CreateUserDialog({ open, onOpenChange, user }: CreateUserDialogProps) {
+  const { mutate: createUser, isPending: isCreating } = useCreateUser();
+  const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
   const { data: yachtModels } = useYachtModels();
+  const [changePassword, setChangePassword] = useState(false);
+  
+  const isEditMode = !!user;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -86,28 +121,80 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       roles: [],
       pm_yacht_models: [],
       is_active: true,
+      change_password: false,
+      new_password: "",
     },
   });
+
+  useEffect(() => {
+    if (user && open) {
+      form.reset({
+        full_name: user.full_name,
+        email: user.email,
+        password: "",
+        department: user.department,
+        roles: user.roles,
+        pm_yacht_models: user.pm_yacht_models || [],
+        is_active: user.is_active,
+        change_password: false,
+        new_password: "",
+      });
+      setChangePassword(false);
+    } else if (!user && open) {
+      form.reset({
+        full_name: "",
+        email: "",
+        password: "",
+        department: "",
+        roles: [],
+        pm_yacht_models: [],
+        is_active: true,
+        change_password: false,
+        new_password: "",
+      });
+    }
+  }, [user, open, form]);
 
   const selectedRoles = form.watch("roles");
   const isPMSelected = selectedRoles?.includes("pm_engenharia");
 
   const onSubmit = (data: FormValues) => {
-    createUser({
-      email: data.email,
-      password: data.password,
-      full_name: data.full_name,
-      department: data.department,
-      roles: data.roles,
-      pm_yacht_models: data.pm_yacht_models || [],
-      is_active: data.is_active,
-    }, {
-      onSuccess: () => {
-        form.reset();
-        onOpenChange(false);
-      },
-    });
+    if (isEditMode && user) {
+      // Modo edição
+      updateUser({
+        user_id: user.id,
+        full_name: data.full_name,
+        department: data.department,
+        roles: data.roles,
+        pm_yacht_models: data.pm_yacht_models || [],
+        is_active: data.is_active,
+        new_password: data.change_password ? data.new_password : undefined,
+      }, {
+        onSuccess: () => {
+          form.reset();
+          onOpenChange(false);
+        },
+      });
+    } else {
+      // Modo criação
+      createUser({
+        email: data.email!,
+        password: data.password!,
+        full_name: data.full_name,
+        department: data.department,
+        roles: data.roles,
+        pm_yacht_models: data.pm_yacht_models || [],
+        is_active: data.is_active,
+      }, {
+        onSuccess: () => {
+          form.reset();
+          onOpenChange(false);
+        },
+      });
+    }
   };
+
+  const isPending = isCreating || isUpdating;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,7 +230,12 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="joao@exemplo.com" {...field} />
+                      <Input 
+                        type="email" 
+                        placeholder="joao@exemplo.com" 
+                        {...field} 
+                        disabled={isEditMode}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -324,7 +416,10 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 Cancelar
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "A criar..." : "Criar Utilizador"}
+                {isPending 
+                  ? (isEditMode ? "A guardar..." : "A criar...") 
+                  : (isEditMode ? "Guardar Alterações" : "Criar Utilizador")
+                }
               </Button>
             </div>
           </form>
