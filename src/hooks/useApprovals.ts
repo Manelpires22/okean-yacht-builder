@@ -259,27 +259,69 @@ export const useReviewApproval = () => {
 
       if (error) throw error;
 
-      // If technical approval was approved, update quotation totals
-      if (approval.approval_type === 'technical' && params.status === 'approved' && (params.additional_cost || params.delivery_impact_days)) {
-        const { data: quotation } = await supabase
-          .from('quotations')
-          .select('total_customizations_price, total_delivery_days, final_price')
-          .eq('id', approval.quotation_id)
-          .single();
+      // If technical approval was approved, update the customization record
+      if (approval.approval_type === 'technical' && params.status === 'approved') {
+        const approvalDetails = updateData.request_details || {};
+        const memorialItemId = approvalDetails.memorial_item_id;
+        const itemName = approvalDetails.customization_item_name;
+        
+        // Find and update the customization in quotation_customizations
+        const { data: customizations } = await supabase
+          .from('quotation_customizations')
+          .select('id')
+          .eq('quotation_id', approval.quotation_id)
+          .eq('item_name', itemName);
 
-        if (quotation) {
-          const newCustomizationsPrice = (quotation.total_customizations_price || 0) + (params.additional_cost || 0);
-          const newTotalDeliveryDays = (quotation.total_delivery_days || 0) + (params.delivery_impact_days || 0);
-          const newFinalPrice = (quotation.final_price || 0) + (params.additional_cost || 0);
-
+        if (customizations && customizations.length > 0) {
+          // Update the first matching customization
           await supabase
-            .from('quotations')
+            .from('quotation_customizations')
             .update({
-              total_customizations_price: newCustomizationsPrice,
-              total_delivery_days: newTotalDeliveryDays,
-              final_price: newFinalPrice
+              status: 'approved',
+              additional_cost: params.additional_cost || 0,
+              delivery_impact_days: params.delivery_impact_days || 0,
+              reviewed_by: user.id,
+              reviewed_at: new Date().toISOString(),
+              engineering_notes: params.review_notes || null
             })
-            .eq('id', approval.quotation_id);
+            .eq('id', customizations[0].id);
+
+          // Recalculate quotation totals from all approved customizations
+          const { data: allCustomizations } = await supabase
+            .from('quotation_customizations')
+            .select('additional_cost, delivery_impact_days, status')
+            .eq('quotation_id', approval.quotation_id);
+
+          if (allCustomizations) {
+            const totalCustomizationsCost = allCustomizations
+              .filter(c => c.status === 'approved')
+              .reduce((sum, c) => sum + (c.additional_cost || 0), 0);
+            
+            const maxDeliveryImpact = allCustomizations
+              .filter(c => c.status === 'approved')
+              .reduce((max, c) => Math.max(max, c.delivery_impact_days || 0), 0);
+
+            // Get current quotation to update totals
+            const { data: quotation } = await supabase
+              .from('quotations')
+              .select('final_base_price, final_options_price, base_delivery_days')
+              .eq('id', approval.quotation_id)
+              .single();
+
+            if (quotation) {
+              const newFinalPrice = (quotation.final_base_price || 0) + (quotation.final_options_price || 0) + totalCustomizationsCost;
+              const newTotalDeliveryDays = (quotation.base_delivery_days || 0) + maxDeliveryImpact;
+
+              await supabase
+                .from('quotations')
+                .update({
+                  total_customizations_price: totalCustomizationsCost,
+                  total_delivery_days: newTotalDeliveryDays,
+                  final_price: newFinalPrice
+                })
+                .eq('id', approval.quotation_id);
+            }
+          }
         }
       }
 
@@ -296,8 +338,8 @@ export const useReviewApproval = () => {
       let newQuotationStatus = 'draft';
       
       if (!pendingApprovals || pendingApprovals.length === 0) {
-        // All approvals completed
-        newQuotationStatus = params.status === 'approved' ? 'ready_to_send' : 'draft';
+        // All approvals completed - if all approved, keep as draft (ready for manual sending)
+        newQuotationStatus = 'draft';
       } else {
         // Check which types of approvals are still pending
         const hasPendingCommercial = pendingApprovals.some(a => a.approval_type === 'commercial');
