@@ -28,6 +28,7 @@ import PublicQuotationView from "@/pages/PublicQuotationView";
 import AdminWorkflowSettings from "@/pages/AdminWorkflowSettings";
 import WorkflowTasks from "@/pages/WorkflowTasks";
 import AdminInternalUsers from "@/pages/AdminInternalUsers";
+import AdminAuditLogs from "@/pages/AdminAuditLogs";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/workflow-settings" element={<ProtectedRoute requireAdmin><AdminWorkflowSettings /></ProtectedRoute>} />
             <Route path="/admin/internal-users" element={<ProtectedRoute requireAdmin><AdminInternalUsers /></ProtectedRoute>} />
+            <Route path="/admin/audit-logs" element={<ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>} />
             <Route path="/workflow-tasks" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
             <Route path="/tarefas-workflow" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
             

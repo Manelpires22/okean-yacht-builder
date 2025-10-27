@@ -78,6 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Log logout action before signing out
+    if (user) {
+      try {
+        await supabase.from('audit_logs').insert({
+          user_id: user.id,
+          user_email: user.email,
+          action: 'LOGOUT',
+          metadata: { timestamp: new Date().toISOString() }
+        });
+      } catch (error) {
+        console.error('Error logging logout:', error);
+      }
+    }
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
