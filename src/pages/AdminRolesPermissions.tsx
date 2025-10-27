@@ -140,12 +140,12 @@ export default function AdminRolesPermissions() {
         </div>
 
         <div className="rounded-lg border overflow-x-auto">
-          <Table>
+          <Table className="min-w-[1200px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[300px] font-semibold">Permissão</TableHead>
+                <TableHead className="w-[300px] font-semibold sticky left-0 bg-background z-10">Permissão</TableHead>
                 {roles.map(role => (
-                  <TableHead key={role} className="text-center">
+                  <TableHead key={role} className="text-center min-w-[120px]">
                     <div className="flex flex-col items-center gap-2">
                       <Badge variant={ROLE_DEFINITIONS[role].color as any}>
                         {ROLE_DEFINITIONS[role].label}
@@ -155,7 +155,7 @@ export default function AdminRolesPermissions() {
                         size="sm"
                         onClick={() => handleResetRole(role)}
                         disabled={resetMutation.isPending}
-                        className="text-xs"
+                        className="text-xs whitespace-nowrap"
                       >
                         <RotateCcw className="h-3 w-3 mr-1" />
                         Reset

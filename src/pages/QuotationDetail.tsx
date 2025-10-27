@@ -290,43 +290,59 @@ export default function QuotationDetail() {
 
       {/* Botões de Ação - Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
-        <div className="container mx-auto flex gap-3 justify-end">
-          {/* Botão Editar - só se draft */}
-          {quotationStatus.canEdit && (
-            <Button variant="outline" onClick={handleEdit} size="lg">
-              <Edit className="mr-2 h-4 w-4" />
-              Editar Proposta
-            </Button>
-          )}
+        <div className="container mx-auto">
+          <div className="flex flex-wrap gap-3 justify-end">
+            {/* Botão Editar - só se draft */}
+            {quotationStatus.canEdit && (
+              <Button 
+                variant="outline" 
+                onClick={handleEdit} 
+                size="lg"
+                className="flex-1 sm:flex-none"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Editar Proposta
+              </Button>
+            )}
 
-          {/* Botões de Envio - ready_to_send ou sent */}
-          {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
-            <Button onClick={handleSendToClient} size="lg">
-              <Send className="mr-2 h-4 w-4" />
-              {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
-            </Button>
-          )}
+            {/* Botões de Envio - ready_to_send ou sent */}
+            {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
+              <Button 
+                onClick={handleSendToClient} 
+                size="lg"
+                className="flex-1 sm:flex-none"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
+              </Button>
+            )}
 
-          {/* Botão Criar Revisão - se enviada ou expirada */}
-          {(quotation.status === 'sent' || quotation.status === 'expired') && (
-            <Button 
-              variant="outline" 
-              onClick={handleCreateRevision}
-              disabled={createRevision.isPending}
-              size="lg"
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              {createRevision.isPending ? 'Criando...' : 'Criar Revisão'}
-            </Button>
-          )}
+            {/* Botão Criar Revisão - se enviada ou expirada */}
+            {(quotation.status === 'sent' || quotation.status === 'expired') && (
+              <Button 
+                variant="outline" 
+                onClick={handleCreateRevision}
+                disabled={createRevision.isPending}
+                size="lg"
+                className="flex-1 sm:flex-none"
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                {createRevision.isPending ? 'Criando...' : 'Criar Revisão'}
+              </Button>
+            )}
 
-          {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
-          {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
-            <Button onClick={() => console.log("Solicitar aprovação")} size="lg">
-              <Mail className="mr-2 h-4 w-4" />
-              Solicitar Aprovação
-            </Button>
-          )}
+            {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
+            {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
+              <Button 
+                onClick={() => console.log("Solicitar aprovação")} 
+                size="lg"
+                className="flex-1 sm:flex-none"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Solicitar Aprovação
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

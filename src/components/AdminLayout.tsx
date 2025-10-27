@@ -1,9 +1,10 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { usePendingApprovalsCount } from "@/hooks/useApprovals";
 
 interface AdminLayoutProps {
@@ -32,15 +33,42 @@ const navItems = [
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const { data: pendingCount = 0 } = usePendingApprovalsCount();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-card">
-        <div className="p-6">
-          <h2 className="text-2xl font-bold text-primary">Admin</h2>
-          <p className="text-sm text-muted-foreground">OKEAN CPQ</p>
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar - Responsiva */}
+      <aside className={cn(
+        "fixed lg:static inset-y-0 left-0 z-50",
+        "w-64 border-r border-border bg-card",
+        "transform transition-transform duration-200 ease-in-out",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
+        {/* Header da Sidebar */}
+        <div className="flex items-center justify-between p-6 lg:block">
+          <div>
+            <h2 className="text-2xl font-bold text-primary">Admin</h2>
+            <p className="text-sm text-muted-foreground">OKEAN CPQ</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
+        
+        {/* Nav items */}
         <nav className="px-3 space-y-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -48,6 +76,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => setSidebarOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
                   item.highlight && "border-t border-b border-border mt-2 mb-2",
@@ -70,13 +99,25 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto min-w-0">
         <div className="border-b border-border">
-          <div className="container flex items-center justify-end h-16">
-            <UserMenu />
+          <div className="container flex items-center justify-between h-16 px-4">
+            {/* Botão hamburger mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+            
+            <div className="flex-1 lg:flex lg:justify-end">
+              <UserMenu />
+            </div>
           </div>
         </div>
-        <div className="container py-8">
+        <div className="container py-8 px-4">
           {children}
         </div>
       </main>

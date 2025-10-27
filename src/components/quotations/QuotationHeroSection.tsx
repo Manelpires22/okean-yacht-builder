@@ -32,21 +32,21 @@ export function QuotationHeroSection({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Modelo do Iate */}
       <Card className="overflow-hidden">
-        <div className="relative">
-          {yachtModel.image_url ? (
-            <div className="relative h-64 bg-gradient-to-br from-primary/10 to-primary/5">
-              <img
-                src={yachtModel.image_url}
-                alt={yachtModel.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/50 to-transparent" />
-            </div>
-          ) : (
-            <div className="h-64 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-              <Ship className="h-24 w-24 text-primary/30" />
-            </div>
+        <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-primary/10 to-primary/5">
+          {yachtModel.image_url && (
+            <img
+              src={yachtModel.image_url}
+              alt={yachtModel.name}
+              className="w-full h-full object-cover"
+            />
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white">
+            <h3 className="text-2xl sm:text-3xl font-bold mb-2">{yachtModel.name}</h3>
+            {yachtModel.code && (
+              <p className="text-sm opacity-90">Código: {yachtModel.code}</p>
+            )}
+          </div>
         </div>
         <CardContent className="p-6">
           <div className="flex items-start justify-between gap-4">

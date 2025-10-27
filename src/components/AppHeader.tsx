@@ -40,8 +40,8 @@ export function AppHeader({ title, showHomeButton = true }: AppHeaderProps) {
             {/* Título da página (opcional) */}
             {title && (
               <>
-                <span className="text-muted-foreground">/</span>
-                <span className="font-medium">{title}</span>
+                <span className="text-muted-foreground hidden sm:inline">/</span>
+                <span className="font-medium truncate max-w-xs md:max-w-md">{title}</span>
               </>
             )}
           </div>

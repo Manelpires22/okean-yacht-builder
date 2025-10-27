@@ -149,19 +149,20 @@ export default function Quotations() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Modelo</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Validade</TableHead>
-                <TableHead>Criada em</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[800px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="sticky left-0 bg-background z-10">Número</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="hidden md:table-cell">Modelo</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Validade</TableHead>
+                  <TableHead className="hidden xl:table-cell">Criada em</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
             <TableBody>
               {filteredQuotations?.length === 0 ? (
                 <TableRow>
@@ -187,19 +188,19 @@ export default function Quotations() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {quotation.yacht_models?.name || "N/A"}
                     </TableCell>
                     <TableCell>{formatCurrency(quotation.final_price)}</TableCell>
                     <TableCell>
                       <QuotationStatusBadge status={quotation.status as any} />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden lg:table-cell">
                       {format(new Date(quotation.valid_until), "dd/MM/yyyy", {
                         locale: ptBR,
                       })}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       {format(new Date(quotation.created_at), "dd/MM/yyyy", {
                         locale: ptBR,
                       })}
@@ -274,6 +275,7 @@ export default function Quotations() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
       </div>

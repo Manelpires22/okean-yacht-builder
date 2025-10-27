@@ -90,7 +90,7 @@ export function ConfigurationSummary({
   const totalCustomizations = customizations.length + optionCustomizationsCount;
 
   return (
-    <Card className="sticky top-4">
+    <Card className="lg:sticky lg:top-4">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Ship className="h-5 w-5" />
