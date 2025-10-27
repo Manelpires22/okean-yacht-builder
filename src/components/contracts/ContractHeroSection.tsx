@@ -17,6 +17,9 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { SendContractEmailDialog } from "./SendContractEmailDialog";
 
 interface ContractHeroSectionProps {
   contract: Contract;
@@ -25,17 +28,42 @@ interface ContractHeroSectionProps {
 export function ContractHeroSection({ contract }: ContractHeroSectionProps) {
   const navigate = useNavigate();
   const { data: userRoleData } = useUserRole();
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const canManageContract = userRoleData?.roles?.some((r: string) =>
     ["administrador", "gerente_comercial"].includes(r)
   );
 
-  const handleExportPDF = () => {
-    toast.info("Exportação de PDF em desenvolvimento");
+  const handleExportPDF = async () => {
+    try {
+      setIsDownloading(true);
+      const { data, error } = await supabase.functions.invoke(
+        "generate-contract-pdf",
+        {
+          body: { contract_id: contract.id },
+        }
+      );
+
+      if (error) throw error;
+
+      // Download the file
+      const link = document.createElement("a");
+      link.href = `data:application/${data.format};base64,${data.data}`;
+      link.download = data.filename;
+      link.click();
+
+      toast.success("PDF gerado com sucesso!");
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF: " + error.message);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleSendEmail = () => {
-    toast.info("Envio por email em desenvolvimento");
+    setEmailDialogOpen(true);
   };
 
   return (
@@ -143,6 +171,14 @@ export function ContractHeroSection({ contract }: ContractHeroSectionProps) {
           </div>
         )}
       </div>
+
+      <SendContractEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={setEmailDialogOpen}
+        contractId={contract.id}
+        defaultEmail={contract.client?.email}
+        defaultName={contract.client?.name}
+      />
     </div>
   );
 }

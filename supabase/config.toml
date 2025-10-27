@@ -21,6 +21,9 @@ verify_jwt = true
 [functions.check-expiring-quotations]
 verify_jwt = false
 
-[functions.create-contract-from-quotation]
+[functions.send-contract-email]
+verify_jwt = true
+
+[functions.generate-contract-pdf]
 verify_jwt = true
 
