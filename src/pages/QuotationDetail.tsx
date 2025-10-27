@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Mail, Edit, Send, Copy, ExternalLink, Link as LinkIcon, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Download, Mail, Edit, Send, Copy, ExternalLink, Link as LinkIcon, CheckCircle2, FileCheck } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -335,6 +335,35 @@ export default function QuotationDetail() {
             customizations={quotation.quotation_customizations}
             contractId={contract.id}
           />
+        )}
+
+        {/* Card de Contrato Ativo - Se aprovada e contrato existe */}
+        {quotation.status === 'approved' && contract && (
+          <Card className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                <FileCheck className="h-5 w-5" />
+                Contrato Ativo Criado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Esta cotação foi aprovada internamente e um contrato foi gerado automaticamente.
+              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-lg">{contract.contract_number}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Você pode gerenciar o contrato, criar ATOs e acompanhar o andamento da produção.
+                  </p>
+                </div>
+                <Button onClick={() => navigate(`/contracts/${contract.id}`)}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Ver Contrato
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Detalhes em Accordion */}

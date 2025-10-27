@@ -110,6 +110,15 @@ serve(async (req) => {
     };
 
     // 4. Criar contrato
+    // Determinar quem assinou: se accepted, é o cliente; se approved, é interno
+    const isInternalApproval = quotation.status === 'approved';
+    const signedByName = isInternalApproval 
+      ? (user.user_metadata?.full_name || user.email || 'Sistema')
+      : (quotation.accepted_by_name || quotation.client?.name);
+    const signedByEmail = isInternalApproval
+      ? user.email
+      : (quotation.accepted_by_email || quotation.client?.email);
+
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .insert({
@@ -124,8 +133,8 @@ serve(async (req) => {
         current_total_delivery_days: quotation.total_delivery_days,
         status: "active",
         signed_at: quotation.accepted_at || new Date().toISOString(),
-        signed_by_name: quotation.accepted_by_name || quotation.client?.name,
-        signed_by_email: quotation.accepted_by_email || quotation.client?.email,
+        signed_by_name: signedByName,
+        signed_by_email: signedByEmail,
         created_by: user.id,
       })
       .select()

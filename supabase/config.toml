@@ -30,3 +30,6 @@ verify_jwt = true
 [functions.convert-customization-to-ato]
 verify_jwt = true
 
+[functions.create-contract-from-quotation]
+verify_jwt = true
+

@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Eye, Copy, FileText, Pencil, Trash2 } from "lucide-react";
+import { Search, Eye, Copy, FileText, Pencil, Trash2, FileCheck } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -59,6 +59,7 @@ export default function Quotations() {
     { value: "pending_technical_approval", label: "Aguardando Validação Técnica" },
     { value: "ready_to_send", label: "Pronta para Envio" },
     { value: "sent", label: "Enviada" },
+    { value: "approved", label: "Aprovada Internamente" },
     { value: "accepted", label: "Aceita" },
     { value: "rejected", label: "Rejeitada" },
     { value: "expired", label: "Expirada" },
@@ -193,7 +194,15 @@ export default function Quotations() {
                     </TableCell>
                     <TableCell>{formatCurrency(quotation.final_price)}</TableCell>
                     <TableCell>
-                      <QuotationStatusBadge status={quotation.status as any} />
+                      <div className="flex items-center gap-2">
+                        <QuotationStatusBadge status={quotation.status as any} />
+                        {(quotation.status === 'approved' || quotation.status === 'accepted' || quotation.status === 'converted_to_contract') && (
+                          <Badge variant="outline" className="border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-300">
+                            <FileCheck className="h-3 w-3 mr-1" />
+                            Contrato
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {format(new Date(quotation.valid_until), "dd/MM/yyyy", {

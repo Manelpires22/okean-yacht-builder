@@ -7,6 +7,8 @@ export function useApproveQuotation() {
 
   return useMutation({
     mutationFn: async (quotationId: string) => {
+      console.log('[useApproveQuotation] Starting approval for quotation:', quotationId);
+
       // 1. Atualizar status da cotação para 'approved'
       const { data: updatedQuotation, error: updateError } = await supabase
         .from("quotations")
@@ -15,7 +17,12 @@ export function useApproveQuotation() {
         .select()
         .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('[useApproveQuotation] Error updating status:', updateError);
+        throw updateError;
+      }
+
+      console.log('[useApproveQuotation] Status updated to approved, creating contract...');
 
       // 2. Criar contrato automaticamente
       const { data: contract, error: contractError } = await supabase.functions.invoke(
@@ -25,7 +32,12 @@ export function useApproveQuotation() {
         }
       );
 
-      if (contractError) throw contractError;
+      if (contractError) {
+        console.error('[useApproveQuotation] Error creating contract:', contractError);
+        throw contractError;
+      }
+
+      console.log('[useApproveQuotation] Contract created successfully:', contract?.contract?.id);
 
       // 3. Registrar log de auditoria
       await supabase.from("audit_logs").insert({
@@ -37,6 +49,8 @@ export function useApproveQuotation() {
           contract_created: contract?.contract?.id,
         },
       });
+
+      console.log('[useApproveQuotation] Approval process completed successfully');
 
       return { quotation: updatedQuotation, contract: contract?.contract };
     },
