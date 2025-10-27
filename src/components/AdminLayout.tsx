@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Home, FileText, UserCheck, CheckSquare, BookOpen, Percent, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck, Menu, X, ChevronDown } from "lucide-react";
+import { Ship, Settings, Package, Users, Home, FileText, UserCheck, CheckSquare, BookOpen, Percent, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck, Menu, X, ChevronDown, Calendar, FileSignature } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ const mainNavItems = [
   { path: "/", icon: Home, label: "🏠 Voltar ao Início", highlight: true },
   { path: "/admin", icon: Settings, label: "Dashboard" },
   { path: "/cotacoes", icon: FileText, label: "Cotações" },
+  { path: "/contratos", icon: FileSignature, label: "Contratos" },
   { path: "/clientes", icon: UserCheck, label: "Clientes" },
   { path: "/aprovacoes", icon: CheckSquare, label: "Aprovações", showBadge: true },
   { path: "/tarefas-workflow", icon: ListChecks, label: "Minhas Tarefas" },
@@ -51,6 +52,7 @@ const navGroups = [
       { path: "/admin/discount-settings", icon: Percent, label: "Descontos" },
       { path: "/admin/approval-settings", icon: ClipboardCheck, label: "Aprovações" },
       { path: "/admin/workflow-settings", icon: Workflow, label: "Workflow" },
+      { path: "/admin/job-stops", icon: Calendar, label: "Job-Stops" },
       { path: "/admin/audit-logs", icon: ScrollText, label: "Logs de Auditoria" },
     ],
   },

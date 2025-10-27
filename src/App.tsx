@@ -29,6 +29,9 @@ import AdminWorkflowSettings from "@/pages/AdminWorkflowSettings";
 import WorkflowTasks from "@/pages/WorkflowTasks";
 import AdminAuditLogs from "@/pages/AdminAuditLogs";
 import AdminRolesPermissions from "@/pages/AdminRolesPermissions";
+import Contracts from "@/pages/Contracts";
+import ContractDetail from "@/pages/ContractDetail";
+import AdminJobStops from "@/pages/AdminJobStops";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +72,11 @@ const App = () => (
             <Route path="/admin/audit-logs" element={<ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>} />
             <Route path="/workflow-tasks" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
             <Route path="/tarefas-workflow" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
+            <Route path="/contracts" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
+            <Route path="/contratos" element={<ProtectedRoute><Contracts /></ProtectedRoute>} />
+            <Route path="/contracts/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
+            <Route path="/contratos/:id" element={<ProtectedRoute><ContractDetail /></ProtectedRoute>} />
+            <Route path="/admin/job-stops" element={<ProtectedRoute requireAdmin><AdminJobStops /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
