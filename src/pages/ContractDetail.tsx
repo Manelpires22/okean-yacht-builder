@@ -6,6 +6,7 @@ import { ContractHeroSection } from "@/components/contracts/ContractHeroSection"
 import { ContractOverview } from "@/components/contracts/ContractOverview";
 import { ATOsList } from "@/components/contracts/ATOsList";
 import { LiveContractView } from "@/components/contracts/LiveContractView";
+import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { FileText, Plus, TrendingUp, Clock } from "lucide-react";
 
 export default function ContractDetail() {
@@ -74,10 +75,7 @@ export default function ContractDetail() {
           </TabsContent>
 
           <TabsContent value="timeline">
-            <div className="text-center py-12 text-muted-foreground">
-              <Clock className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>Linha do tempo em desenvolvimento</p>
-            </div>
+            <ContractTimeline contractId={contract.id} />
           </TabsContent>
         </Tabs>
       </div>
