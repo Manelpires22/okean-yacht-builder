@@ -806,6 +806,39 @@ export type Database = {
           },
         ]
       }
+      role_permissions_config: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean
+          is_granted: boolean
+          permission: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          is_granted?: boolean
+          permission: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          is_granted?: boolean
+          permission?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1007,6 +1040,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_effective_permissions: {
+        Args: { _user_id: string }
+        Returns: {
+          permission: string
+        }[]
+      }
       get_yacht_model_id: { Args: { modelo_text: string }; Returns: string }
       has_role: {
         Args: {
@@ -1021,6 +1060,10 @@ export type Database = {
       normalize_memorial_category: {
         Args: { okean_categoria: string }
         Returns: string
+      }
+      reset_role_permissions_to_default: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: undefined
       }
     }
     Enums: {
