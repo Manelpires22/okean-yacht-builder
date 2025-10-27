@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAssignPMToModel, useInternalUsers } from "@/hooks/useInternalUsers";
+import { useAssignPMToModel, usePMUsers } from "@/hooks/usePMAssignments";
 import { useYachtModels } from "@/hooks/useYachtModels";
 
 const assignmentSchema = z.object({
@@ -43,7 +43,7 @@ interface AssignPMDialogProps {
 
 export function AssignPMDialog({ open, onOpenChange }: AssignPMDialogProps) {
   const { mutate: assignPM, isPending } = useAssignPMToModel();
-  const { data: internalUsers } = useInternalUsers();
+  const { data: pmUsers } = usePMUsers();
   const { data: yachtModels } = useYachtModels();
 
   const form = useForm<AssignmentFormValues>({
@@ -53,11 +53,6 @@ export function AssignPMDialog({ open, onOpenChange }: AssignPMDialogProps) {
       yacht_model_id: "",
     },
   });
-
-  // Filtrar apenas PMs
-  const pms = internalUsers?.filter(
-    u => u.role_specialty === 'pm' && u.department === 'engineering'
-  );
 
   const onSubmit = (data: AssignmentFormValues) => {
     assignPM({
@@ -96,9 +91,9 @@ export function AssignPMDialog({ open, onOpenChange }: AssignPMDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {pms?.map((pm) => (
-                        <SelectItem key={pm.user_id} value={pm.user_id}>
-                          {pm.user?.full_name} ({pm.user?.email})
+                      {pmUsers?.map((pm) => (
+                        <SelectItem key={pm.id} value={pm.id}>
+                          {pm.full_name} ({pm.email})
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -8,28 +8,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Trash2, UserPlus } from "lucide-react";
-import { useUnassignPMFromModel } from "@/hooks/useInternalUsers";
+import { useUnassignPMFromModel, type PMAssignment } from "@/hooks/usePMAssignments";
 import { AssignPMDialog } from "./AssignPMDialog";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-
-interface PMAssignment {
-  id: string;
-  pm_user_id: string;
-  yacht_model_id: string;
-  assigned_at: string;
-  pm_user?: {
-    id: string;
-    full_name: string;
-    email: string;
-  };
-  yacht_model?: {
-    id: string;
-    name: string;
-    code: string;
-  };
-}
 
 interface PMAssignmentsTableProps {
   assignments: PMAssignment[];

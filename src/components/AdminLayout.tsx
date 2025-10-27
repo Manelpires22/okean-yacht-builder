@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Home, FileText, UserCheck, CheckSquare, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck, Menu, X, ChevronDown } from "lucide-react";
+import { Ship, Settings, Package, Users, Home, FileText, UserCheck, CheckSquare, BookOpen, Percent, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck, Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,6 @@ const navGroups = [
     icon: Users,
     items: [
       { path: "/admin/users", icon: Users, label: "Gestão de Utilizadores" },
-      { path: "/admin/internal-users", icon: Briefcase, label: "Usuários Internos (PM)" },
       { path: "/admin/roles-permissions", icon: ShieldCheck, label: "Roles & Permissões" },
     ],
   },
