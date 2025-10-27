@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks, ScrollText } from "lucide-react";
+import { Ship, Settings, Package, Users, Database, Home, FileText, UserCheck, CheckSquare, Folder, BookOpen, Percent, Briefcase, ClipboardCheck, Workflow, ListChecks, ScrollText, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "@/components/admin/UserMenu";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ const navItems = [
   { path: "/admin/workflow-settings", icon: Workflow, label: "Configurações Workflow" },
   { path: "/admin/internal-users", icon: Briefcase, label: "Usuários Internos (PM)" },
   { path: "/admin/users", icon: Users, label: "Utilizadores" },
+  { path: "/admin/roles-permissions", icon: ShieldCheck, label: "Roles & Permissões" },
   { path: "/admin/audit-logs", icon: ScrollText, label: "Logs de Auditoria" },
 ];
 
