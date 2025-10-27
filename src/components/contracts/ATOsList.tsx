@@ -1,17 +1,44 @@
 import { useState } from "react";
 import { useATOs } from "@/hooks/useATOs";
+import { useATOConfigurations } from "@/hooks/useATOConfigurations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, DollarSign, Calendar, ChevronRight } from "lucide-react";
+import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateATODialog } from "./CreateATODialog";
 import { ATODetailDialog } from "./ATODetailDialog";
+
+function ATOConfigurationBadge({ atoId }: { atoId: string }) {
+  const { data: configurations, isLoading } = useATOConfigurations(atoId);
+
+  if (isLoading) {
+    return <Badge variant="outline" className="animate-pulse">...</Badge>;
+  }
+
+  const count = configurations?.length || 0;
+
+  if (count === 0) {
+    return (
+      <Badge variant="outline" className="text-orange-600 border-orange-300 dark:border-orange-700">
+        <Package className="h-3 w-3 mr-1" />
+        Sem itens
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+      <Package className="h-3 w-3 mr-1" />
+      {count} {count === 1 ? "item" : "itens"}
+    </Badge>
+  );
+}
 
 interface ATOsListProps {
   contractId: string;
@@ -68,6 +95,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
                 <TableRow>
                   <TableHead>Número</TableHead>
                   <TableHead>Título</TableHead>
+                  <TableHead>Itens</TableHead>
                   <TableHead>Impacto Preço</TableHead>
                   <TableHead>Impacto Prazo</TableHead>
                   <TableHead>Status</TableHead>
@@ -90,6 +118,9 @@ export function ATOsList({ contractId }: ATOsListProps) {
                           </p>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <ATOConfigurationBadge atoId={ato.id} />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">

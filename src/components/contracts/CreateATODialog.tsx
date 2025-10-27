@@ -11,6 +11,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormDescription,
@@ -23,8 +33,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Check, Package } from "lucide-react";
 import { useCreateATO } from "@/hooks/useATOs";
+import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
 
 const atoSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -48,6 +59,9 @@ export function CreateATODialog({
   contractId,
 }: CreateATODialogProps) {
   const [step, setStep] = useState(1);
+  const [createdATOId, setCreatedATOId] = useState<string | null>(null);
+  const [showConfigPrompt, setShowConfigPrompt] = useState(false);
+  const [showConfigDialog, setShowConfigDialog] = useState(false);
   const { mutate: createATO, isPending } = useCreateATO();
 
   const form = useForm<ATOFormData>({
@@ -72,10 +86,9 @@ export function CreateATODialog({
     };
 
     createATO(payload, {
-      onSuccess: () => {
-        form.reset();
-        setStep(1);
-        onOpenChange(false);
+      onSuccess: (data) => {
+        setCreatedATOId(data.id);
+        setShowConfigPrompt(true);
       },
     });
   };
@@ -88,6 +101,24 @@ export function CreateATODialog({
 
   const handleBack = () => {
     setStep(step - 1);
+  };
+
+  const handleCloseDialog = () => {
+    form.reset();
+    setStep(1);
+    setCreatedATOId(null);
+    setShowConfigPrompt(false);
+    setShowConfigDialog(false);
+    onOpenChange(false);
+  };
+
+  const handleAddItemsNow = () => {
+    setShowConfigPrompt(false);
+    setShowConfigDialog(true);
+  };
+
+  const handleSkipItems = () => {
+    handleCloseDialog();
   };
 
   const steps = [
@@ -321,11 +352,7 @@ export function CreateATODialog({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    form.reset();
-                    setStep(1);
-                    onOpenChange(false);
-                  }}
+                  onClick={handleCloseDialog}
                 >
                   Cancelar
                 </Button>
@@ -346,6 +373,46 @@ export function CreateATODialog({
           </form>
         </Form>
       </DialogContent>
+
+      {/* Prompt após criação de ATO */}
+      <AlertDialog open={showConfigPrompt} onOpenChange={setShowConfigPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-600" />
+              ATO Criada com Sucesso!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>A ATO foi criada e está aguardando configuração.</p>
+              <p className="font-medium">Deseja adicionar itens (opcionais ou memorial descritivo) agora?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleSkipItems}>
+              Adicionar Depois
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleAddItemsNow}>
+              <Package className="mr-2 h-4 w-4" />
+              Adicionar Itens Agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de configuração de itens */}
+      {createdATOId && (
+        <ATOConfigurationDialog
+          open={showConfigDialog}
+          onOpenChange={(open) => {
+            setShowConfigDialog(open);
+            if (!open) {
+              handleCloseDialog();
+            }
+          }}
+          atoId={createdATOId}
+          contractId={contractId}
+        />
+      )}
     </Dialog>
   );
 }

@@ -7,6 +7,7 @@ import { ContractOverview } from "@/components/contracts/ContractOverview";
 import { ATOsList } from "@/components/contracts/ATOsList";
 import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
+import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
 import { FileText, Plus, TrendingUp, Clock } from "lucide-react";
 
 export default function ContractDetail() {
@@ -62,7 +63,11 @@ export default function ContractDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
+          <TabsContent value="overview" className="space-y-6">
+            <CustomizationToATOCard 
+              contractId={contract.id} 
+              quotationId={contract.quotation_id} 
+            />
             <ContractOverview contract={contract} />
           </TabsContent>
 
