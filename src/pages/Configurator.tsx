@@ -113,8 +113,8 @@ export default function Configurator() {
     toast.success("Customização removida");
   };
 
-  const freeCustomizations = state.customizations.filter(c => c.is_free_customization);
-  const memorialCustomizations = state.customizations.filter(c => !c.is_free_customization);
+  const freeCustomizations = state.customizations?.filter(c => c.is_free_customization) || [];
+  const memorialCustomizations = state.customizations?.filter(c => !c.is_free_customization) || [];
 
   const handleSaveQuotation = async (formData: {
     client_id?: string;
