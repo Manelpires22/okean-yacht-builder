@@ -145,7 +145,27 @@ serve(async (req) => {
       throw new Error("Failed to create contract: " + contractError.message);
     }
 
-    // 5. Atualizar status da cotação
+    // 5. Marcar customizações aprovadas como incluídas no contrato
+    if (quotation.quotation_customizations && quotation.quotation_customizations.length > 0) {
+      const approvedCustomizationIds = quotation.quotation_customizations
+        .filter((c: any) => c.status === "approved")
+        .map((c: any) => c.id);
+
+      if (approvedCustomizationIds.length > 0) {
+        const { error: customizationsError } = await supabase
+          .from("quotation_customizations")
+          .update({ included_in_contract: true })
+          .in("id", approvedCustomizationIds);
+
+        if (customizationsError) {
+          console.error("Error marking customizations as included:", customizationsError);
+        } else {
+          console.log(`Marked ${approvedCustomizationIds.length} customizations as included in contract`);
+        }
+      }
+    }
+
+    // 6. Atualizar status da cotação
     const { error: updateError } = await supabase
       .from("quotations")
       .update({ status: "converted_to_contract" })
@@ -155,7 +175,7 @@ serve(async (req) => {
       console.warn("Could not update quotation status:", updateError);
     }
 
-    // 6. Criar log de auditoria
+    // 7. Criar log de auditoria
     await supabase.from("audit_logs").insert({
       user_id: user.id,
       action: "CREATE_CONTRACT",

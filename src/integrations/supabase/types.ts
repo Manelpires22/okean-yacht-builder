@@ -786,6 +786,7 @@ export type Database = {
           engineering_notes: string | null
           file_paths: string[] | null
           id: string
+          included_in_contract: boolean | null
           item_name: string
           memorial_item_id: string | null
           notes: string | null
@@ -820,6 +821,7 @@ export type Database = {
           engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
+          included_in_contract?: boolean | null
           item_name: string
           memorial_item_id?: string | null
           notes?: string | null
@@ -854,6 +856,7 @@ export type Database = {
           engineering_notes?: string | null
           file_paths?: string[] | null
           id?: string
+          included_in_contract?: boolean | null
           item_name?: string
           memorial_item_id?: string | null
           notes?: string | null

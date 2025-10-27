@@ -26,6 +26,7 @@ export function CustomizationToATOCard({ contractId, quotationId }: Customizatio
         .eq("quotation_id", quotationId)
         .eq("status", "approved")
         .is("ato_id", null)
+        .eq("included_in_contract", false) // Only show post-contract revisions
         .order("created_at", { ascending: false });
 
       if (error) throw error;

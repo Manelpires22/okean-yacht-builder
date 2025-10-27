@@ -20,7 +20,6 @@ import { NextStepsCard } from "@/components/quotations/NextStepsCard";
 import { QuotationHeroSection } from "@/components/quotations/QuotationHeroSection";
 import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDetailsAccordion";
 import { CustomizationWorkflowCard } from "@/components/quotations/CustomizationWorkflowCard";
-import { CustomizationToATOCard } from "@/components/quotations/CustomizationToATOCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
@@ -327,14 +326,6 @@ export default function QuotationDetail() {
         {/* Workflow de Customizações */}
         {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && (
           <CustomizationWorkflowCard quotationId={quotation.id} />
-        )}
-
-        {/* Card de Conversão de Customizações em ATOs */}
-        {quotation.quotation_customizations && quotation.quotation_customizations.length > 0 && contract && (
-          <CustomizationToATOCard 
-            customizations={quotation.quotation_customizations}
-            contractId={contract.id}
-          />
         )}
 
         {/* Card de Contrato Ativo - Se aprovada e contrato existe */}

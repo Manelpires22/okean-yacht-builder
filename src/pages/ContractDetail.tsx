@@ -8,6 +8,7 @@ import { ATOsList } from "@/components/contracts/ATOsList";
 import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
+import { ContractRevisionsTab } from "@/components/contracts/ContractRevisionsTab";
 import { FileText, Plus, TrendingUp, Clock } from "lucide-react";
 
 export default function ContractDetail() {
@@ -44,7 +45,7 @@ export default function ContractDetail() {
 
       <div className="container mx-auto p-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <FileText className="h-4 w-4" />
               Visão Geral
@@ -53,13 +54,17 @@ export default function ContractDetail() {
               <Plus className="h-4 w-4" />
               ATOs
             </TabsTrigger>
+            <TabsTrigger value="revisions" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Revisões
+            </TabsTrigger>
             <TabsTrigger value="consolidated" className="gap-2">
               <TrendingUp className="h-4 w-4" />
-              Contrato Consolidado
+              Consolidado
             </TabsTrigger>
             <TabsTrigger value="timeline" className="gap-2">
               <Clock className="h-4 w-4" />
-              Linha do Tempo
+              Timeline
             </TabsTrigger>
           </TabsList>
 
@@ -73,6 +78,13 @@ export default function ContractDetail() {
 
           <TabsContent value="atos">
             <ATOsList contractId={contract.id} />
+          </TabsContent>
+
+          <TabsContent value="revisions">
+            <ContractRevisionsTab 
+              contractId={contract.id} 
+              quotationId={contract.quotation_id} 
+            />
           </TabsContent>
 
           <TabsContent value="consolidated">

@@ -16,6 +16,7 @@ interface Customization {
   delivery_impact_days?: number;
   engineering_notes?: string;
   file_paths?: string[];
+  included_in_contract?: boolean;
 }
 
 interface CustomizationStatusCardProps {
@@ -45,7 +46,15 @@ export function CustomizationStatusCard({ customizations, quotationId }: Customi
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, includedInContract?: boolean) => {
+    if (includedInContract) {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800">
+          Incluído no Contrato Base
+        </Badge>
+      );
+    }
+    
     switch (status) {
       case 'approved':
         return <Badge variant="default" className="bg-green-600">Validada</Badge>;
@@ -126,7 +135,7 @@ export function CustomizationStatusCard({ customizations, quotationId }: Customi
                   )}
                 </div>
               </div>
-              {getStatusBadge(custom.status)}
+              {getStatusBadge(custom.status, custom.included_in_contract)}
             </div>
 
             {/* Resposta da Engenharia */}
