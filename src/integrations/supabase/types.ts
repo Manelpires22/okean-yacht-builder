@@ -1219,6 +1219,7 @@ export type Database = {
           description: string | null
           displacement_light: number | null
           displacement_loaded: number | null
+          display_order: number | null
           draft: number | null
           dry_weight: number | null
           engines: string | null
@@ -1253,6 +1254,7 @@ export type Database = {
           description?: string | null
           displacement_light?: number | null
           displacement_loaded?: number | null
+          display_order?: number | null
           draft?: number | null
           dry_weight?: number | null
           engines?: string | null
@@ -1287,6 +1289,7 @@ export type Database = {
           description?: string | null
           displacement_light?: number | null
           displacement_loaded?: number | null
+          display_order?: number | null
           draft?: number | null
           dry_weight?: number | null
           engines?: string | null
@@ -1391,6 +1394,7 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
+      update_yacht_models_order: { Args: { updates: Json }; Returns: undefined }
     }
     Enums: {
       app_role:

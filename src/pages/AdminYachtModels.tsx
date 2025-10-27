@@ -13,10 +13,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
-import { Edit2, Plus } from "lucide-react";
+import { Edit2, Plus, ArrowUpDown } from "lucide-react";
+import { YachtModelOrderDialog } from "@/components/admin/yacht-models/YachtModelOrderDialog";
+import { useState } from "react";
 
 const AdminYachtModels = () => {
   const navigate = useNavigate();
+  const [orderDialogOpen, setOrderDialogOpen] = useState(false);
 
   const { data: models, isLoading } = useQuery({
     queryKey: ['admin-yacht-models'],
@@ -24,6 +27,7 @@ const AdminYachtModels = () => {
       const { data, error } = await supabase
         .from('yacht_models')
         .select('*')
+        .order('display_order')
         .order('code');
       
       if (error) throw error;
@@ -40,10 +44,19 @@ const AdminYachtModels = () => {
             <h1 className="text-3xl font-bold">Modelos de Iates</h1>
             <p className="text-muted-foreground">Gerir modelos de iates disponíveis</p>
           </div>
-          <Button onClick={() => navigate('/admin/yacht-models/new')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Modelo
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setOrderDialogOpen(true)}
+            >
+              <ArrowUpDown className="mr-2 h-4 w-4" />
+              Ordenar Modelos
+            </Button>
+            <Button onClick={() => navigate('/admin/yacht-models/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Modelo
+            </Button>
+          </div>
         </div>
 
         <div className="border rounded-lg">
@@ -121,6 +134,11 @@ const AdminYachtModels = () => {
           </Table>
         </div>
       </div>
+
+      <YachtModelOrderDialog 
+        open={orderDialogOpen} 
+        onOpenChange={setOrderDialogOpen} 
+      />
     </AdminLayout>
   );
 };
