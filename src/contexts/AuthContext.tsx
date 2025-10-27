@@ -26,8 +26,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Fetch roles after setting session (using setTimeout to avoid deadlock)
-        if (session?.user) {
+        // Log LOGIN event when user signs in
+        if (event === 'SIGNED_IN' && session?.user) {
+          setTimeout(() => {
+            supabase.from('audit_logs').insert({
+              user_id: session.user.id,
+              user_email: session.user.email,
+              action: 'LOGIN',
+              metadata: { 
+                event,
+                timestamp: new Date().toISOString(),
+                ip_address: session.user.user_metadata?.ip_address
+              }
+            }).then(({ error }) => {
+              if (error) console.error('Error logging login:', error);
+            });
+            
+            fetchUserRoles(session.user.id);
+          }, 0);
+        } else if (session?.user) {
           setTimeout(() => {
             fetchUserRoles(session.user.id);
           }, 0);
