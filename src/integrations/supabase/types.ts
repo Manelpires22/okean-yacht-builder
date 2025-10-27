@@ -778,6 +778,7 @@ export type Database = {
       quotation_customizations: {
         Row: {
           additional_cost: number | null
+          ato_id: string | null
           attachments: Json | null
           created_at: string | null
           delivery_impact_days: number | null
@@ -811,6 +812,7 @@ export type Database = {
         }
         Insert: {
           additional_cost?: number | null
+          ato_id?: string | null
           attachments?: Json | null
           created_at?: string | null
           delivery_impact_days?: number | null
@@ -844,6 +846,7 @@ export type Database = {
         }
         Update: {
           additional_cost?: number | null
+          ato_id?: string | null
           attachments?: Json | null
           created_at?: string | null
           delivery_impact_days?: number | null
@@ -876,6 +879,13 @@ export type Database = {
           workflow_status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quotation_customizations_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "additional_to_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotation_customizations_memorial_item_id_fkey"
             columns: ["memorial_item_id"]

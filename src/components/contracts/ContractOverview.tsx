@@ -5,6 +5,7 @@ import { FileText, Ship, User, Calendar, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { LinkedCustomizationsCard } from "./LinkedCustomizationsCard";
 
 interface ContractOverviewProps {
   contract: Contract;
@@ -136,6 +137,11 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
           )}
         </CardContent>
       </Card>
+
+      <LinkedCustomizationsCard 
+        contractId={contract.id}
+        quotationId={contract.quotation_id}
+      />
     </div>
   );
 }
