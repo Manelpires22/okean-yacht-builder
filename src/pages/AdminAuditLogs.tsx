@@ -74,16 +74,16 @@ export default function AdminAuditLogs() {
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [filters, setFilters] = useState({
-    action: "",
-    tableName: "",
+    action: "all",
+    tableName: "all",
     searchEmail: "",
     page: 1,
   });
 
   const { data: stats, isLoading: statsLoading } = useAuditLogStats();
   const { data, isLoading } = useAuditLogs({
-    action: filters.action || undefined,
-    tableName: filters.tableName || undefined,
+    action: filters.action && filters.action !== 'all' ? filters.action : undefined,
+    tableName: filters.tableName && filters.tableName !== 'all' ? filters.tableName : undefined,
     page: filters.page,
     pageSize: 50,
   });
@@ -181,7 +181,7 @@ export default function AdminAuditLogs() {
                     <SelectValue placeholder="Todas as ações" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="INSERT">Criação</SelectItem>
                     <SelectItem value="UPDATE">Atualização</SelectItem>
                     <SelectItem value="DELETE">Exclusão</SelectItem>
@@ -203,7 +203,7 @@ export default function AdminAuditLogs() {
                     <SelectValue placeholder="Todas as tabelas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     {Object.entries(tableLabels).map(([key, label]) => (
                       <SelectItem key={key} value={key}>
                         {label}
