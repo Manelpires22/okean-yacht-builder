@@ -11,6 +11,7 @@ import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateATODialog } from "./CreateATODialog";
+import { ATODetailDialog } from "./ATODetailDialog";
 
 interface ATOsListProps {
   contractId: string;
@@ -154,6 +155,12 @@ export function ATOsList({ contractId }: ATOsListProps) {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         contractId={contractId}
+      />
+
+      <ATODetailDialog
+        open={!!selectedATO}
+        onOpenChange={(open) => !open && setSelectedATO(null)}
+        atoId={selectedATO}
       />
     </div>
   );
