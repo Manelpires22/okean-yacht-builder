@@ -10,6 +10,8 @@ import { getContractStatusLabel, getContractStatusColor } from "@/lib/contract-u
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ContractsDashboard } from "@/components/contracts/ContractsDashboard";
 
 export default function Contracts() {
   const navigate = useNavigate();
@@ -36,9 +38,9 @@ export default function Contracts() {
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Contratos Ativos</h2>
+            <h2 className="text-2xl font-bold">Contratos</h2>
             <p className="text-muted-foreground">
-              Gestão de contratos e aditivos (ATOs)
+              Dashboard e gestão de contratos e aditivos (ATOs)
             </p>
           </div>
           <Badge variant="outline" className="text-lg px-4 py-2">
@@ -46,7 +48,18 @@ export default function Contracts() {
           </Badge>
         </div>
 
-        {!contracts || contracts.length === 0 ? (
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="list">Lista de Contratos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard">
+            <ContractsDashboard />
+          </TabsContent>
+
+          <TabsContent value="list" className="space-y-6">
+            {!contracts || contracts.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
@@ -133,9 +146,11 @@ export default function Contracts() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );
