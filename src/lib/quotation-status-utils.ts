@@ -9,6 +9,7 @@ export type QuotationStatus =
   | 'pending_technical_approval'
   | 'ready_to_send'
   | 'sent'
+  | 'approved'
   | 'accepted'
   | 'rejected'
   | 'expired';
@@ -37,8 +38,8 @@ export function calculateQuotationStatus({
   isExpired,
   currentStatus
 }: StatusCalculationInput): QuotationStatus {
-  // Se já foi enviada, aceita ou rejeitada, manter status
-  if (['sent', 'accepted', 'rejected'].includes(currentStatus)) {
+  // Se já foi enviada, aprovada, aceita ou rejeitada, manter status
+  if (['sent', 'approved', 'accepted', 'rejected'].includes(currentStatus)) {
     if (isExpired && currentStatus === 'sent') {
       return 'expired';
     }
@@ -103,7 +104,8 @@ export function canTransitionTo(
     pending_commercial_approval: ['ready_to_send', 'pending_technical_approval', 'rejected', 'draft'],
     pending_technical_approval: ['ready_to_send', 'pending_commercial_approval', 'rejected', 'draft'],
     ready_to_send: ['sent', 'draft'],
-    sent: ['accepted', 'rejected', 'expired'],
+    sent: ['approved', 'accepted', 'rejected', 'expired'],
+    approved: ['accepted'],
     accepted: [],
     rejected: ['draft'],
     expired: ['draft']

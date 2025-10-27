@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Download, Mail, Edit, Send, Copy, ExternalLink, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, Download, Mail, Edit, Send, Copy, ExternalLink, Link as LinkIcon, CheckCircle2 } from "lucide-react";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,23 +25,39 @@ import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
 import { useCreateRevision } from "@/hooks/useCreateRevision";
+import { useApproveQuotation } from "@/hooks/useApproveQuotation";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function QuotationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const { data: quotation, isLoading } = useQuotation(id!);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [sendMode, setSendMode] = useState<'client' | 'seller' | 'download'>('client');
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
 
   // Hooks para status e revalidação
   const quotationStatus = useQuotationStatus(quotation || null);
   const { data: revalidation } = useQuotationRevalidation(id);
   const sendQuotation = useSendQuotation();
   const createRevision = useCreateRevision();
+  const approveQuotation = useApproveQuotation();
+
+  // Verificar se usuário pode aprovar (diretor_comercial ou admin)
+  const canApprove = hasRole('diretor_comercial') || hasRole('administrador');
 
   // Buscar contrato associado à cotação (se existir)
   const { data: contract } = useQuery({
@@ -49,14 +65,14 @@ export default function QuotationDetail() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('contracts')
-        .select('id')
+        .select('id, contract_number')
         .eq('quotation_id', id!)
         .maybeSingle();
       
       if (error) throw error;
       return data;
     },
-    enabled: !!id && quotation?.status === 'accepted'
+    enabled: !!id && (quotation?.status === 'accepted' || quotation?.status === 'approved')
   });
 
   // Buscar status das aprovações
@@ -173,6 +189,21 @@ export default function QuotationDetail() {
       emailSubject: data.emailSubject,
       emailMessage: data.emailMessage
     });
+  };
+
+  const handleApprove = async () => {
+    if (!quotation) return;
+    
+    try {
+      await approveQuotation.mutateAsync(quotation.id);
+      setApproveDialogOpen(false);
+      // Redirecionar para o contrato criado após 2 segundos
+      setTimeout(() => {
+        navigate('/contracts');
+      }, 2000);
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
   if (isLoading) {
@@ -342,6 +373,31 @@ export default function QuotationDetail() {
               </Button>
             )}
 
+            {/* Botão Aprovar Cotação - só se enviada e usuário pode aprovar */}
+            {quotation.status === 'sent' && canApprove && (
+              <Button 
+                onClick={() => setApproveDialogOpen(true)} 
+                size="lg"
+                className="flex-1 sm:flex-none"
+                variant="default"
+              >
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Aprovar Cotação
+              </Button>
+            )}
+
+            {/* Botão Ver Contrato - se aprovada e contrato existe */}
+            {quotation.status === 'approved' && contract && (
+              <Button 
+                onClick={() => navigate(`/contracts/${contract.id}`)} 
+                size="lg"
+                className="flex-1 sm:flex-none"
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Ver Contrato
+              </Button>
+            )}
+
             {/* Botão Criar Revisão - se enviada ou expirada */}
             {(quotation.status === 'sent' || quotation.status === 'expired') && (
               <Button 
@@ -384,6 +440,37 @@ export default function QuotationDetail() {
           sellerEmail={user?.email || ''}
         />
       )}
+
+      {/* Dialog de Confirmação de Aprovação */}
+      <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar Cotação Internamente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Marcar a cotação como <strong>aprovada internamente</strong></li>
+                <li>Criar automaticamente um <strong>contrato ativo</strong></li>
+                <li>Permitir a criação de ATOs (Aditivos ao Contrato)</li>
+              </ul>
+              <p className="mt-3 text-muted-foreground">
+                Esta ação não pode ser desfeita.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={approveQuotation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleApprove}
+              disabled={approveQuotation.isPending}
+            >
+              {approveQuotation.isPending ? 'Aprovando...' : 'Aprovar e Criar Contrato'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

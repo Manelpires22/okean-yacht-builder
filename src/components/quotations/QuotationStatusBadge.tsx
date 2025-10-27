@@ -15,6 +15,7 @@ type QuotationStatus =
   | 'pending_technical_approval'
   | 'ready_to_send'
   | 'sent'
+  | 'approved'
   | 'accepted'
   | 'rejected'
   | 'expired';
@@ -54,6 +55,12 @@ const STATUS_CONFIG = {
     variant: "default" as const,
     icon: Send,
     color: "text-blue-600"
+  },
+  approved: {
+    label: "Aprovada Internamente",
+    variant: "default" as const,
+    icon: CheckCircle2,
+    color: "text-green-600"
   },
   accepted: {
     label: "Aceita pelo Cliente",
