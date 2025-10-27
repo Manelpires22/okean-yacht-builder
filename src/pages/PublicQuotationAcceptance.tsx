@@ -55,12 +55,13 @@ export default function PublicQuotationAcceptance() {
     }
   }, [quotation]);
 
-  // Mutation para aceitar proposta
+  // Mutation para aceitar proposta e criar contrato
   const acceptMutation = useMutation({
     mutationFn: async () => {
       if (!quotation) throw new Error('Cotação não encontrada');
 
-      const { error } = await supabase
+      // 1. Atualizar status da cotação
+      const { error: updateError } = await supabase
         .from('quotations')
         .update({
           status: 'accepted',
@@ -70,10 +71,21 @@ export default function PublicQuotationAcceptance() {
         })
         .eq('id', quotation.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // 2. Criar contrato a partir da cotação
+      const { data: contractData, error: contractError } = await supabase.functions.invoke(
+        'create-contract-from-quotation',
+        {
+          body: { quotation_id: quotation.id }
+        }
+      );
+
+      if (contractError) throw contractError;
+      return contractData;
     },
-    onSuccess: () => {
-      toast.success('Proposta aceita com sucesso!');
+    onSuccess: (data) => {
+      toast.success('Proposta aceita com sucesso! Contrato gerado: ' + data.contract.contract_number);
     },
     onError: (error: Error) => {
       toast.error('Erro ao aceitar proposta: ' + error.message);
