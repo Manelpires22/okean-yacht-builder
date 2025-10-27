@@ -35,6 +35,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMemorialCategories } from "@/hooks/useMemorialCategories";
+import { useJobStops } from "@/hooks/useJobStops";
 
 const UNITS = [
   { value: "unidade", label: "Unidade(s)" },
@@ -56,6 +57,9 @@ const memorialItemSchema = z.object({
   display_order: z.number().int().default(0),
   is_active: z.boolean().default(true),
   is_customizable: z.boolean().default(true),
+  is_configurable: z.boolean().default(false),
+  job_stop_id: z.string().uuid().nullable().optional(),
+  configurable_sub_items: z.string().optional(), // JSON string
 });
 
 type MemorialItemFormData = z.infer<typeof memorialItemSchema>;
@@ -82,6 +86,7 @@ export function MemorialItemDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: categories, isLoading: categoriesLoading } = useMemorialCategories();
+  const { data: jobStops } = useJobStops();
 
   const form = useForm<MemorialItemFormData>({
     resolver: zodResolver(memorialItemSchema),
@@ -96,6 +101,9 @@ export function MemorialItemDialog({
       display_order: 0,
       is_active: true,
       is_customizable: true,
+      is_configurable: false,
+      job_stop_id: null,
+      configurable_sub_items: "",
     },
   });
 
@@ -121,6 +129,9 @@ export function MemorialItemDialog({
           display_order: 0,
           is_active: true,
           is_customizable: true,
+          is_configurable: false,
+          job_stop_id: null,
+          configurable_sub_items: "",
         });
       }
     }
@@ -140,6 +151,13 @@ export function MemorialItemDialog({
         display_order: data.display_order,
         is_customizable: data.is_customizable,
         is_active: data.is_active,
+        is_configurable: data.is_configurable,
+        job_stop_id: data.job_stop_id || null,
+        configurable_sub_items: data.configurable_sub_items 
+          ? (typeof data.configurable_sub_items === 'string' 
+              ? JSON.parse(data.configurable_sub_items) 
+              : data.configurable_sub_items)
+          : [],
       };
 
       if (initialData?.id) {
@@ -370,6 +388,81 @@ export function MemorialItemDialog({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="is_configurable"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Item Configurável</FormLabel>
+                      <FormDescription>
+                        Item precisa ser configurado durante a construção (ex: tecidos, acabamentos)
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("is_configurable") && (
+                <FormField
+                  control={form.control}
+                  name="job_stop_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job-Stop de Definição</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o Job-Stop" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {jobStops?.map((js) => (
+                            <SelectItem key={js.id} value={js.id}>
+                              {js.name} - {js.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Prazo limite para definição desta configuração
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {form.watch("is_configurable") && (
+                <FormField
+                  control={form.control}
+                  name="configurable_sub_items"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sub-itens Configuráveis (JSON)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder='[{"name": "Tecido", "type": "text"}, {"name": "Cor", "type": "color"}]'
+                          rows={4}
+                          className="font-mono text-sm"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Definição de sub-itens em formato JSON (opcional)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

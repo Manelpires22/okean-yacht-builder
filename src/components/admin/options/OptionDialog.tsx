@@ -25,7 +25,9 @@ import {
 } from "@/components/ui/select";
 import { useOptionCategories } from "@/hooks/useOptions";
 import { useYachtModels } from "@/hooks/useYachtModels";
+import { useJobStops } from "@/hooks/useJobStops";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
@@ -36,6 +38,9 @@ const optionSchema = z.object({
   base_price: z.number().min(0, "Preço deve ser positivo"),
   delivery_days_impact: z.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
+  is_configurable: z.boolean().default(false),
+  job_stop_id: z.string().nullable().optional(),
+  configurable_sub_items: z.string().optional(), // JSON string
 });
 
 type OptionFormData = z.infer<typeof optionSchema>;
@@ -58,6 +63,7 @@ export function OptionDialog({
   const queryClient = useQueryClient();
   const { data: categories } = useOptionCategories();
   const { data: models } = useYachtModels();
+  const { data: jobStops } = useJobStops();
 
   const {
     register,
@@ -77,6 +83,9 @@ export function OptionDialog({
       base_price: 0,
       delivery_days_impact: 0,
       is_active: true,
+      is_configurable: false,
+      job_stop_id: null,
+      configurable_sub_items: "",
     },
   });
 
@@ -91,6 +100,13 @@ export function OptionDialog({
         base_price: Number(option.base_price),
         delivery_days_impact: Number(option.delivery_days_impact),
         is_active: option.is_active,
+        is_configurable: option.is_configurable || false,
+        job_stop_id: option.job_stop_id || null,
+        configurable_sub_items: option.configurable_sub_items 
+          ? (typeof option.configurable_sub_items === 'string' 
+              ? option.configurable_sub_items 
+              : JSON.stringify(option.configurable_sub_items, null, 2))
+          : "",
       });
     } else {
       reset({
@@ -102,6 +118,9 @@ export function OptionDialog({
         base_price: 0,
         delivery_days_impact: 0,
         is_active: true,
+        is_configurable: false,
+        job_stop_id: null,
+        configurable_sub_items: "",
       });
     }
   }, [option, yachtModelId, reset]);
@@ -297,14 +316,72 @@ export function OptionDialog({
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              {...register('is_active')}
-              className="h-4 w-4"
-            />
-            <Label htmlFor="is_active">Opcional ativo</Label>
+          <div className="space-y-4 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_active">Opcional ativo</Label>
+                <p className="text-sm text-muted-foreground">Exibir opcional no configurador</p>
+              </div>
+              <Switch
+                id="is_active"
+                checked={watch('is_active')}
+                onCheckedChange={(checked) => setValue('is_active', checked)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="is_configurable">Opcional configurável</Label>
+                <p className="text-sm text-muted-foreground">
+                  Precisa ser configurado durante a construção
+                </p>
+              </div>
+              <Switch
+                id="is_configurable"
+                checked={watch('is_configurable')}
+                onCheckedChange={(checked) => setValue('is_configurable', checked)}
+              />
+            </div>
+
+            {watch('is_configurable') && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="job_stop_id">Job-Stop de Definição</Label>
+                  <Select
+                    value={watch('job_stop_id') || ""}
+                    onValueChange={(value) => setValue('job_stop_id', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o Job-Stop" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobStops?.map((js) => (
+                        <SelectItem key={js.id} value={js.id}>
+                          {js.name} - {js.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Prazo limite para definição desta configuração
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="configurable_sub_items">Sub-itens Configuráveis (JSON)</Label>
+                  <Textarea
+                    id="configurable_sub_items"
+                    {...register('configurable_sub_items')}
+                    placeholder='[{"name": "Cor", "type": "color"}, {"name": "Material", "type": "text"}]'
+                    rows={4}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Definição de sub-itens em formato JSON (opcional)
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
