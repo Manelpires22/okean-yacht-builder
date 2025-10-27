@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_to_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          ato_number: string
+          commercial_approval_status: string | null
+          contract_id: string
+          created_at: string | null
+          delivery_days_impact: number | null
+          description: string | null
+          id: string
+          notes: string | null
+          price_impact: number | null
+          rejection_reason: string | null
+          requested_at: string | null
+          requested_by: string
+          requires_approval: boolean | null
+          sequence_number: number
+          status: string
+          technical_approval_status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          ato_number: string
+          commercial_approval_status?: string | null
+          contract_id: string
+          created_at?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          price_impact?: number | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          requested_by: string
+          requires_approval?: boolean | null
+          sequence_number: number
+          status?: string
+          technical_approval_status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          ato_number?: string
+          commercial_approval_status?: string | null
+          contract_id?: string
+          created_at?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          price_impact?: number | null
+          rejection_reason?: string | null
+          requested_at?: string | null
+          requested_by?: string
+          requires_approval?: boolean | null
+          sequence_number?: number
+          status?: string
+          technical_approval_status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_to_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "additional_to_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["contract_id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           approval_type: Database["public"]["Enums"]["approval_type"]
@@ -66,6 +150,50 @@ export type Database = {
             columns: ["quotation_id"]
             isOneToOne: false
             referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ato_configurations: {
+        Row: {
+          ato_id: string
+          configuration_details: Json | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          item_id: string
+          item_type: string
+          notes: string | null
+          sub_items: Json | null
+        }
+        Insert: {
+          ato_id: string
+          configuration_details?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          item_id: string
+          item_type: string
+          notes?: string | null
+          sub_items?: Json | null
+        }
+        Update: {
+          ato_id?: string
+          configuration_details?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          item_type?: string
+          notes?: string | null
+          sub_items?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ato_configurations_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "additional_to_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -163,6 +291,88 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          base_delivery_days: number
+          base_price: number
+          base_snapshot: Json | null
+          client_id: string
+          contract_number: string
+          created_at: string | null
+          created_by: string | null
+          current_total_delivery_days: number
+          current_total_price: number
+          id: string
+          quotation_id: string
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: string
+          updated_at: string | null
+          yacht_model_id: string
+        }
+        Insert: {
+          base_delivery_days: number
+          base_price: number
+          base_snapshot?: Json | null
+          client_id: string
+          contract_number: string
+          created_at?: string | null
+          created_by?: string | null
+          current_total_delivery_days: number
+          current_total_price: number
+          id?: string
+          quotation_id: string
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: string
+          updated_at?: string | null
+          yacht_model_id: string
+        }
+        Update: {
+          base_delivery_days?: number
+          base_price?: number
+          base_snapshot?: Json | null
+          client_id?: string
+          contract_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          current_total_delivery_days?: number
+          current_total_price?: number
+          id?: string
+          quotation_id?: string
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: string
+          updated_at?: string | null
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customization_workflow_steps: {
         Row: {
           assigned_to: string | null
@@ -247,6 +457,36 @@ export type Database = {
         }
         Relationships: []
       }
+      job_stops: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       memorial_categories: {
         Row: {
           created_at: string | null
@@ -289,14 +529,17 @@ export type Database = {
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order: number | null
           category_id: string
+          configurable_sub_items: Json | null
           created_at: string | null
           created_by: string | null
           description: string | null
           display_order: number
           id: string
           is_active: boolean | null
+          is_configurable: boolean | null
           is_customizable: boolean | null
           item_name: string
+          job_stop_id: string | null
           model: string | null
           quantity: number | null
           technical_specs: Json | null
@@ -309,14 +552,17 @@ export type Database = {
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
           category_id: string
+          configurable_sub_items?: Json | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           display_order?: number
           id?: string
           is_active?: boolean | null
+          is_configurable?: boolean | null
           is_customizable?: boolean | null
           item_name: string
+          job_stop_id?: string | null
           model?: string | null
           quantity?: number | null
           technical_specs?: Json | null
@@ -329,14 +575,17 @@ export type Database = {
           category?: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
           category_id?: string
+          configurable_sub_items?: Json | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           display_order?: number
           id?: string
           is_active?: boolean | null
+          is_configurable?: boolean | null
           is_customizable?: boolean | null
           item_name?: string
+          job_stop_id?: string | null
           model?: string | null
           quantity?: number | null
           technical_specs?: Json | null
@@ -350,6 +599,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "memorial_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memorial_items_job_stop_id_fkey"
+            columns: ["job_stop_id"]
+            isOneToOne: false
+            referencedRelation: "job_stops"
             referencedColumns: ["id"]
           },
           {
@@ -393,6 +649,7 @@ export type Database = {
           base_price: number
           category_id: string | null
           code: string
+          configurable_sub_items: Json | null
           cost: number | null
           created_at: string | null
           created_by: string | null
@@ -401,6 +658,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_configurable: boolean | null
+          job_stop_id: string | null
           name: string
           technical_specifications: Json | null
           updated_at: string | null
@@ -410,6 +669,7 @@ export type Database = {
           base_price: number
           category_id?: string | null
           code: string
+          configurable_sub_items?: Json | null
           cost?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -418,6 +678,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_configurable?: boolean | null
+          job_stop_id?: string | null
           name: string
           technical_specifications?: Json | null
           updated_at?: string | null
@@ -427,6 +689,7 @@ export type Database = {
           base_price?: number
           category_id?: string | null
           code?: string
+          configurable_sub_items?: Json | null
           cost?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -435,6 +698,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_configurable?: boolean | null
+          job_stop_id?: string | null
           name?: string
           technical_specifications?: Json | null
           updated_at?: string | null
@@ -453,6 +718,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "options_job_stop_id_fkey"
+            columns: ["job_stop_id"]
+            isOneToOne: false
+            referencedRelation: "job_stops"
             referencedColumns: ["id"]
           },
           {
@@ -1037,7 +1309,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      live_contracts: {
+        Row: {
+          approved_atos_count: number | null
+          base_delivery_days: number | null
+          base_price: number | null
+          client_id: string | null
+          contract_id: string | null
+          contract_number: string | null
+          created_at: string | null
+          current_total_delivery_days: number | null
+          current_total_price: number | null
+          pending_atos_count: number | null
+          quotation_id: string | null
+          signed_at: string | null
+          status: string | null
+          total_atos_count: number | null
+          total_atos_delivery_days: number | null
+          total_atos_price: number | null
+          updated_at: string | null
+          yacht_model_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_effective_permissions: {
