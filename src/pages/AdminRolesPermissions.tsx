@@ -11,16 +11,24 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Check, X, Shield, Users, Key } from "lucide-react";
+import { Check, X, Shield, Users, Key, Info, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminRolesPermissions() {
   const roles = Object.values(ROLE_DEFINITIONS);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   const renderPermissionMatrix = () => {
+    const categoriesToShow = filterCategory === "all" 
+      ? Object.entries(PERMISSION_CATEGORIES)
+      : Object.entries(PERMISSION_CATEGORIES).filter(([cat]) => cat === filterCategory);
     return (
       <div className="space-y-6">
-        {Object.entries(PERMISSION_CATEGORIES).map(([category, permissions]) => (
+        {categoriesToShow.map(([category, permissions]) => (
           <Card key={category}>
             <CardHeader>
               <CardTitle className="text-lg">{category}</CardTitle>
@@ -134,6 +142,28 @@ export default function AdminRolesPermissions() {
           </p>
         </div>
 
+        {/* Info Card: Como Editar Permissões */}
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="h-5 w-5 text-primary" />
+              Como Editar Permissões?
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-sm">
+              Esta página mostra as permissões <strong>pré-definidas</strong> para cada role. 
+              Para alterar as permissões de um usuário, você precisa <strong>atribuir ou remover roles</strong> na página de Gestão de Usuários.
+            </p>
+            <Button asChild>
+              <Link to="/admin/users">
+                <Settings className="mr-2 h-4 w-4" />
+                Gerenciar Roles de Usuários
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
@@ -180,6 +210,22 @@ export default function AdminRolesPermissions() {
           </TabsContent>
 
           <TabsContent value="matrix" className="space-y-4 mt-6">
+            {/* Filter by Category */}
+            <div className="flex items-center gap-3 mb-4">
+              <label className="text-sm font-medium">Filtrar por Categoria:</label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Todas as categorias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Categorias</SelectItem>
+                  {Object.keys(PERMISSION_CATEGORIES).map(cat => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             {renderPermissionMatrix()}
           </TabsContent>
         </Tabs>

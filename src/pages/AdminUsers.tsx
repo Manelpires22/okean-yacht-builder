@@ -2,7 +2,10 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ROLE_DEFINITIONS, getUserPermissions, type AppRole } from "@/lib/role-permissions";
 import {
   Table,
   TableBody,
@@ -30,6 +33,8 @@ interface UserWithRoles {
 const AdminUsers = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRoles | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -63,6 +68,17 @@ const AdminUsers = () => {
     }
   });
 
+  // Filter users based on search and role
+  const filteredUsers = users?.filter(user => {
+    const matchesSearch = searchTerm === "" || 
+      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = filterRole === "all" || user.roles.includes(filterRole as AppRole);
+    
+    return matchesSearch && matchesRole;
+  });
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -80,6 +96,33 @@ const AdminUsers = () => {
           </Button>
         </div>
 
+        {/* Search and Filters */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          <Select value={filterRole} onValueChange={setFilterRole}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Filtrar por role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Roles</SelectItem>
+              {Object.values(ROLE_DEFINITIONS).map(role => (
+                <SelectItem key={role.name} value={role.name}>
+                  {role.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
@@ -88,6 +131,7 @@ const AdminUsers = () => {
                 <TableHead>Email</TableHead>
                 <TableHead>Departamento</TableHead>
                 <TableHead>Roles</TableHead>
+                <TableHead>Permissões</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -101,23 +145,32 @@ const AdminUsers = () => {
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                   </TableRow>
                 ))
-              ) : users?.length === 0 ? (
+              ) : filteredUsers?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhum utilizador encontrado
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    {searchTerm || filterRole !== "all" 
+                      ? "Nenhum utilizador encontrado com os filtros aplicados"
+                      : "Nenhum utilizador encontrado"
+                    }
                   </TableCell>
                 </TableRow>
               ) : (
-                users?.map((user) => (
+                filteredUsers?.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.full_name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.department}</TableCell>
                     <TableCell>
                       <UserRoleBadges roles={user.roles} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {getUserPermissions(user.roles as AppRole[]).length} permissões
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant={user.is_active ? "default" : "secondary"}>

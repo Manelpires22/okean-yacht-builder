@@ -272,12 +272,18 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
   financeiro: {
     name: 'financeiro',
     label: 'Financeiro',
-    description: 'Visualiza cotações e valores para análise financeira e faturamento.',
+    description: 'Gestão financeira e análise de margens. Aprova descontos sob perspectiva financeira.',
     permissions: [
       'quotations:view_all',
+      'quotations:approve',
       'clients:view',
       'options:view',
-      'yacht_models:view'
+      'yacht_models:view',
+      'memorial:view',
+      'approvals:view',
+      'approvals:review',
+      'audit:view_logs',
+      'settings:view'
     ],
     color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
   }

@@ -69,8 +69,9 @@ type FormValues = z.infer<typeof formSchema>;
 const ROLES = [
   { value: "administrador", label: "Administrador" },
   { value: "gerente_comercial", label: "Gerente Comercial" },
-  { value: "vendedor", label: "Comercial" },
-  { value: "engenheiro", label: "Produção" },
+  { value: "comercial", label: "Comercial" },
+  { value: "producao", label: "Produção" },
+  { value: "financeiro", label: "Financeiro" },
   { value: "pm_engenharia", label: "PM Engenharia" },
   { value: "comprador", label: "Comprador (Supply)" },
   { value: "planejador", label: "Planejador (Planning)" },

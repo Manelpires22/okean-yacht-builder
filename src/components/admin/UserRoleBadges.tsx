@@ -17,15 +17,20 @@ const ROLE_CONFIG = {
     variant: "default" as const,
     description: "Gestão comercial e quotações",
   },
-  vendedor: {
+  comercial: {
     label: "Comercial",
     variant: "secondary" as const,
     description: "Criação e gestão de quotações",
   },
-  engenheiro: {
+  producao: {
     label: "Produção",
     variant: "outline" as const,
     description: "Acesso à área de produção",
+  },
+  financeiro: {
+    label: "Financeiro",
+    variant: "secondary" as const,
+    description: "Gestão financeira",
   },
   pm_engenharia: {
     label: "PM Engenharia",

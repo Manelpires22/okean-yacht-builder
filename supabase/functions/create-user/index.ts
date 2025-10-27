@@ -67,6 +67,17 @@ Deno.serve(async (req) => {
       throw new Error('At least one role must be selected');
     }
 
+    // Validate roles against enum
+    const validRoles = [
+      'administrador', 'gerente_comercial', 'comercial', 'producao', 'financeiro',
+      'pm_engenharia', 'comprador', 'planejador', 'diretor_comercial', 
+      'broker', 'backoffice_comercial'
+    ];
+    const invalidRoles = payload.roles.filter(r => !validRoles.includes(r));
+    if (invalidRoles.length > 0) {
+      throw new Error(`Roles inválidos: ${invalidRoles.join(', ')}`);
+    }
+
     // Check if user already exists in auth.users
     const { data: existingAuthUsers } = await supabase.auth.admin.listUsers();
     const emailExists = existingAuthUsers?.users?.some(u => u.email?.toLowerCase() === payload.email.toLowerCase());
