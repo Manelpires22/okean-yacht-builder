@@ -51,6 +51,12 @@ export function useQuotationApprovalStatus(
       c.workflow_status && c.workflow_status !== 'approved'
     );
 
+    console.log('🔍 DEBUG useQuotationApprovalStatus:', {
+      customizations,
+      pendingWorkflows,
+      approvals: quotation.approvals
+    });
+
     const pendingWorkflowDetails: PendingWorkflowDetail[] = pendingWorkflows.map(c => ({
       customizationId: c.id,
       itemName: c.item_name,
