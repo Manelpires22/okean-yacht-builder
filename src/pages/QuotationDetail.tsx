@@ -27,6 +27,7 @@ import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
 import { useCreateRevision } from "@/hooks/useCreateRevision";
 import { useApproveQuotation } from "@/hooks/useApproveQuotation";
+import { useCreateApproval } from "@/hooks/useApprovals";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -49,6 +50,7 @@ export default function QuotationDetail() {
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [sendMode, setSendMode] = useState<'client' | 'seller' | 'download'>('client');
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [requestApprovalDialogOpen, setRequestApprovalDialogOpen] = useState(false);
 
   // Hooks para status e revalidação
   const quotationStatus = useQuotationStatus(quotation || null);
@@ -57,6 +59,7 @@ export default function QuotationDetail() {
   const sendQuotation = useSendQuotation();
   const createRevision = useCreateRevision();
   const approveQuotation = useApproveQuotation();
+  const createApproval = useCreateApproval();
 
   // Verificar se usuário pode aprovar (diretor_comercial ou admin)
   const canApprove = hasRole('diretor_comercial') || hasRole('administrador');
@@ -200,6 +203,57 @@ export default function QuotationDetail() {
       }, 2000);
     } catch (error) {
       // Erro já tratado no hook
+    }
+  };
+
+  const handleRequestApproval = async () => {
+    if (!quotation) return;
+
+    try {
+      // 1. Criar aprovação comercial se necessário (desconto acima do limite)
+      if (quotationStatus.needsCommercialApproval) {
+        await createApproval.mutateAsync({
+          quotation_id: quotation.id,
+          approval_type: 'discount',
+          request_details: {
+            base_discount: quotation.base_discount_percentage || 0,
+            options_discount: quotation.options_discount_percentage || 0,
+            total_discount: Math.max(
+              quotation.base_discount_percentage || 0,
+              quotation.options_discount_percentage || 0
+            )
+          },
+          notes: `Desconto Base: ${quotation.base_discount_percentage || 0}%, Opcionais: ${quotation.options_discount_percentage || 0}%`
+        });
+      }
+
+      // 2. Criar aprovação técnica para cada customização pendente
+      if (quotationStatus.needsTechnicalApproval) {
+        const pendingCustomizations = quotation.quotation_customizations?.filter(
+          (c: any) => c.workflow_status === 'pending_pm_review' || c.status === 'pending'
+        ) || [];
+
+        for (const customization of pendingCustomizations) {
+          await createApproval.mutateAsync({
+            quotation_id: quotation.id,
+            approval_type: 'customization',
+            request_details: {
+              customization_id: customization.id,
+              customization_code: (customization as any).customization_code,
+              customization_item_name: customization.item_name,
+              memorial_item_id: (customization as any).memorial_item_id,
+              option_id: (customization as any).option_id,
+              quantity: customization.quantity
+            },
+            notes: `Customização: ${customization.item_name} (${(customization as any).customization_code || 'pendente'})`
+          });
+        }
+      }
+
+      setRequestApprovalDialogOpen(false);
+      toast.success('Aprovações solicitadas com sucesso!');
+    } catch (error) {
+      // Erro já tratado no hook useCreateApproval
     }
   };
 
@@ -436,12 +490,13 @@ export default function QuotationDetail() {
             {/* Botão Solicitar Aprovação - se draft e precisa aprovação */}
             {quotation.status === 'draft' && (quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval) && (
               <Button 
-                onClick={() => console.log("Solicitar aprovação")} 
+                onClick={() => setRequestApprovalDialogOpen(true)}
                 size="lg"
                 className="flex-1 sm:flex-none"
+                disabled={createApproval.isPending}
               >
                 <Mail className="mr-2 h-4 w-4" />
-                Solicitar Aprovação
+                {createApproval.isPending ? 'Solicitando...' : 'Solicitar Aprovação'}
               </Button>
             )}
           </div>
@@ -488,6 +543,50 @@ export default function QuotationDetail() {
               disabled={approveQuotation.isPending}
             >
               {approveQuotation.isPending ? 'Aprovando...' : 'Aprovar e Criar Contrato'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Solicitação de Aprovação */}
+      <AlertDialog open={requestApprovalDialogOpen} onOpenChange={setRequestApprovalDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Solicitar Aprovações</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>As seguintes aprovações serão solicitadas para esta cotação:</p>
+              <ul className="list-disc list-inside space-y-1 mt-2">
+                {quotationStatus.needsCommercialApproval && (
+                  <li>
+                    <strong>Aprovação Comercial</strong> - Desconto base: {quotation?.base_discount_percentage || 0}%, 
+                    Opcionais: {quotation?.options_discount_percentage || 0}%
+                  </li>
+                )}
+                {quotationStatus.needsTechnicalApproval && (
+                  <li>
+                    <strong>Aprovação Técnica</strong> - {
+                      quotation?.quotation_customizations?.filter((c: any) => 
+                        c.workflow_status === 'pending_pm_review' || c.status === 'pending'
+                      ).length || 0
+                    } customização(ões) pendente(s)
+                  </li>
+                )}
+              </ul>
+              <p className="mt-4 text-sm">
+                Após solicitar, o status da cotação mudará para "Aguardando Aprovação" e 
+                os aprovadores responsáveis serão notificados.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={createApproval.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRequestApproval}
+              disabled={createApproval.isPending}
+            >
+              {createApproval.isPending ? 'Solicitando...' : 'Solicitar Aprovações'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -102,7 +102,10 @@ export function useQuotation(id: string) {
             additional_cost,
             delivery_impact_days,
             engineering_notes,
-            file_paths
+            file_paths,
+            customization_code,
+            memorial_item_id,
+            option_id
           ),
           approvals (
             approval_type,
