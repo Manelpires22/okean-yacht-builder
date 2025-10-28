@@ -119,17 +119,19 @@ export default function QuotationDetail() {
   const handleEdit = async () => {
     if (!quotation) return;
     
-    // Se for draft, permitir edição direta
-    if (quotation.status === 'draft') {
+    // Permitir edição direta apenas se status é draft E nunca foi enviado
+    const canEditDirectly = quotation.status === 'draft' && !quotation.sent_at;
+    
+    if (canEditDirectly) {
       navigate(`/configurator?edit=${quotation.id}`);
       return;
     }
     
-    // Para outros status, criar revisão primeiro
+    // Se já foi enviado, SEMPRE criar nova revisão
     try {
+      toast.info('Criando nova revisão...');
       const newQuotation = await createRevision.mutateAsync(quotation.id);
       toast.success(`Revisão ${newQuotation.quotation_number} criada! Redirecionando para edição...`);
-      // Navegar para o configurador com a nova cotação
       setTimeout(() => navigate(`/configurator?edit=${newQuotation.id}`), 1000);
     } catch (error) {
       // Erro já tratado no hook

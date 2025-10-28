@@ -99,7 +99,8 @@ export function useSendQuotation() {
         .from('quotations')
         .update({
           status: newStatus,
-          snapshot_json: snapshot
+          snapshot_json: snapshot,
+          sent_at: quotation.sent_at || new Date().toISOString()
         })
         .eq('id', quotationId);
 

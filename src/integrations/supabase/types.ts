@@ -997,6 +997,7 @@ export type Database = {
           quotation_number: string
           sales_representative_id: string | null
           secure_token: string | null
+          sent_at: string | null
           snapshot_json: Json | null
           status: string
           total_customizations_price: number | null
@@ -1030,6 +1031,7 @@ export type Database = {
           quotation_number: string
           sales_representative_id?: string | null
           secure_token?: string | null
+          sent_at?: string | null
           snapshot_json?: Json | null
           status: string
           total_customizations_price?: number | null
@@ -1063,6 +1065,7 @@ export type Database = {
           quotation_number?: string
           sales_representative_id?: string | null
           secure_token?: string | null
+          sent_at?: string | null
           snapshot_json?: Json | null
           status?: string
           total_customizations_price?: number | null

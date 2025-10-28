@@ -142,16 +142,48 @@ export function useSaveQuotation() {
 
         // ✅ NOVO: Processar customizações em modo EDIÇÃO
         if (data.customizations && data.customizations.length > 0) {
-          // 1. Deletar customizações antigas
+          // 1. Buscar customizações existentes ANTES de deletar
+          const { data: existingCustomizations } = await supabase
+            .from('quotation_customizations')
+            .select('id, customization_code, status, item_name')
+            .eq('quotation_id', data.quotationId);
+
+          const approvedCustomizations = existingCustomizations?.filter(
+            c => c.status === 'approved'
+          ) || [];
+
+          const newCustomizationKeys = data.customizations.map(
+            c => `${c.memorial_item_id || 'free'}-${c.item_name}`
+          );
+
+          const removedApprovedCustomizations = approvedCustomizations.filter(
+            c => !newCustomizationKeys.includes(`${c.id || 'free'}-${c.item_name}`)
+          );
+
+          if (removedApprovedCustomizations.length > 0) {
+            console.warn('Customizações aprovadas removidas:', removedApprovedCustomizations);
+          }
+
+          // 2. Deletar customizações antigas
           await supabase
             .from("quotation_customizations")
             .delete()
             .eq('quotation_id', data.quotationId);
 
-          // 2. Inserir novas customizações com códigos únicos
+          // 3. Inserir novas customizações preservando status das aprovadas
           const customizationsDataWithCodes = await Promise.all(
             data.customizations.map(async (customization) => {
-              const code = await generateCustomizationCode(quotationNumber, supabase);
+              const customKey = `${customization.memorial_item_id || 'free'}-${customization.item_name}`;
+              const existingApproved = existingCustomizations?.find(
+                c => `${c.id || 'free'}-${c.item_name}` === customKey && c.status === 'approved'
+              );
+
+              const status = existingApproved ? 'approved' : 'pending';
+              const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
+
+              const code = existingApproved?.customization_code 
+                || await generateCustomizationCode(quotationNumber, supabase);
+
               return {
                 quotation_id: data.quotationId,
                 memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
@@ -162,8 +194,8 @@ export function useSaveQuotation() {
                 notes: customization.notes,
                 quantity: customization.quantity || null,
                 file_paths: customization.image_url ? [customization.image_url] : [],
-                status: 'pending',
-                workflow_status: 'pending_pm_review'
+                status,
+                workflow_status
               };
             })
           );
@@ -178,44 +210,73 @@ export function useSaveQuotation() {
             throw customizationsError;
           }
 
-          // 3. Criar approval requests técnicas para cada customização
-          if (insertedCustomizations && insertedCustomizations.length > 0) {
-            const technicalApprovals = insertedCustomizations.map((customization: any) => ({
-              quotation_id: data.quotationId,
-              approval_type: 'technical' as const,
-              requested_by: user.id,
-              status: 'pending' as const,
-              request_details: {
-                customization_id: customization.id,
-                customization_code: customization.customization_code,
-                customization_item_name: customization.item_name,
-                memorial_item_id: customization.memorial_item_id,
-                quantity: customization.quantity || 1,
-                notes: customization.notes || '',
-                is_free_customization: !customization.memorial_item_id
-              },
-              notes: !customization.memorial_item_id
-                ? `Customização livre adicionada em revisão: ${customization.item_name}`
-                : `Customização solicitada em revisão: ${customization.item_name}`
-            }));
+          // 4. Determinar novo status baseado nas mudanças
+          let newQuotationStatus = quotation.status;
+          const hasNewPendingCustomizations = insertedCustomizations?.some(
+            (c: any) => !existingCustomizations?.find(
+              ec => `${ec.id || 'free'}-${ec.item_name}` === `${c.memorial_item_id || 'free'}-${c.item_name}`
+            )
+          ) || false;
 
-            const { error: technicalApprovalError } = await supabase
-              .from("approvals")
-              .insert(technicalApprovals);
+          if (removedApprovedCustomizations.length > 0) {
+            newQuotationStatus = 'draft';
+            console.log('Status alterado para draft: customizações aprovadas foram removidas');
+          } else if (hasNewPendingCustomizations) {
+            newQuotationStatus = 'pending_technical_approval';
+            console.log('Status alterado para pending_technical_approval: novas customizações adicionadas');
+            
+            // Criar approval requests apenas para as NOVAS customizações pendentes
+            const newCustomizations = insertedCustomizations?.filter(
+              (c: any) => !existingCustomizations?.find(
+                ec => `${ec.id || 'free'}-${ec.item_name}` === `${c.memorial_item_id || 'free'}-${c.item_name}`
+              )
+            );
 
-            if (technicalApprovalError) {
-              console.error('Erro ao criar aprovações técnicas:', technicalApprovalError);
-              throw technicalApprovalError;
+            if (newCustomizations && newCustomizations.length > 0) {
+              const technicalApprovals = newCustomizations.map((customization: any) => ({
+                quotation_id: data.quotationId,
+                approval_type: 'technical' as const,
+                requested_by: user.id,
+                status: 'pending' as const,
+                request_details: {
+                  customization_id: customization.id,
+                  customization_code: customization.customization_code,
+                  customization_item_name: customization.item_name,
+                  memorial_item_id: customization.memorial_item_id,
+                  quantity: customization.quantity || 1,
+                  notes: customization.notes || '',
+                  is_free_customization: !customization.memorial_item_id
+                },
+                notes: !customization.memorial_item_id
+                  ? `Customização livre adicionada: ${customization.item_name}`
+                  : `Customização solicitada: ${customization.item_name}`
+              }));
+
+              const { error: technicalApprovalError } = await supabase
+                .from("approvals")
+                .insert(technicalApprovals);
+
+              if (technicalApprovalError) {
+                console.error('Erro ao criar aprovações técnicas:', technicalApprovalError);
+                throw technicalApprovalError;
+              }
             }
-
-            // 4. Atualizar status da cotação para pending_technical_approval
-            await supabase
-              .from("quotations")
-              .update({ status: 'pending_technical_approval' })
-              .eq('id', data.quotationId);
-
-            console.log(`✅ ${insertedCustomizations.length} customizações adicionadas com aprovações técnicas criadas`);
+          } else {
+            console.log('Mantém status atual: apenas customizações pendentes foram editadas/removidas');
           }
+
+          // 5. Atualizar status da cotação (se necessário)
+          if (newQuotationStatus !== quotation.status) {
+            await supabase
+              .from('quotations')
+              .update({ 
+                status: newQuotationStatus,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', data.quotationId);
+          }
+
+          console.log(`✅ Customizações processadas. Status: ${newQuotationStatus}`);
         }
         
         return quotation;
