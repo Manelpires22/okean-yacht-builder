@@ -214,11 +214,22 @@ export default function Approvals() {
                             )}
                           </TableCell>
                           <TableCell>
+                            {approval.approval_type === 'discount' && approval.request_details && (
+                              <div className="space-y-1">
+                                <div className="font-semibold text-destructive">
+                                  {approval.request_details.discount_percentage}%
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+                                    .format(approval.request_details.discount_amount || 0)}
+                                </div>
+                              </div>
+                            )}
                             {approval.request_details?.customization_code ? (
                               <span className="font-mono text-xs">{approval.request_details.customization_code}</span>
-                            ) : (
+                            ) : approval.approval_type !== 'discount' ? (
                               <span className="text-muted-foreground text-xs">-</span>
-                            )}
+                            ) : null}
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">

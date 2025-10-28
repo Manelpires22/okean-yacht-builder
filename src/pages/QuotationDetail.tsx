@@ -212,19 +212,48 @@ export default function QuotationDetail() {
     try {
       // 1. Criar aprovação comercial se necessário (desconto acima do limite)
       if (quotationStatus.needsCommercialApproval) {
-        await createApproval.mutateAsync({
-          quotation_id: quotation.id,
-          approval_type: 'discount',
-          request_details: {
-            base_discount: quotation.base_discount_percentage || 0,
-            options_discount: quotation.options_discount_percentage || 0,
-            total_discount: Math.max(
-              quotation.base_discount_percentage || 0,
-              quotation.options_discount_percentage || 0
-            )
-          },
-          notes: `Desconto Base: ${quotation.base_discount_percentage || 0}%, Opcionais: ${quotation.options_discount_percentage || 0}%`
-        });
+        const baseDiscount = quotation.base_discount_percentage || 0;
+        const optionsDiscount = quotation.options_discount_percentage || 0;
+        
+        // Criar aprovação para desconto base se > 10%
+        if (baseDiscount > 10) {
+          const basePrice = quotation.base_price;
+          const baseDiscountAmount = (basePrice * baseDiscount) / 100;
+          const baseFinalPrice = basePrice - baseDiscountAmount;
+
+          await createApproval.mutateAsync({
+            quotation_id: quotation.id,
+            approval_type: 'discount',
+            request_details: {
+              discount_type: 'base',
+              discount_percentage: baseDiscount,
+              original_price: basePrice,
+              discount_amount: baseDiscountAmount,
+              final_price: baseFinalPrice
+            },
+            notes: `Desconto sobre Valor Base: ${baseDiscount}%`
+          });
+        }
+
+        // Criar aprovação para desconto de opcionais se > 8%
+        if (optionsDiscount > 8) {
+          const optionsPrice = quotation.total_options_price || 0;
+          const optionsDiscountAmount = (optionsPrice * optionsDiscount) / 100;
+          const optionsFinalPrice = optionsPrice - optionsDiscountAmount;
+
+          await createApproval.mutateAsync({
+            quotation_id: quotation.id,
+            approval_type: 'discount',
+            request_details: {
+              discount_type: 'options',
+              discount_percentage: optionsDiscount,
+              original_price: optionsPrice,
+              discount_amount: optionsDiscountAmount,
+              final_price: optionsFinalPrice
+            },
+            notes: `Desconto sobre Opcionais: ${optionsDiscount}%`
+          });
+        }
       }
 
       // 2. Criar aprovação técnica para cada customização pendente
