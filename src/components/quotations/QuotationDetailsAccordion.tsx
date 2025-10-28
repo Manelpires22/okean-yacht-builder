@@ -88,37 +88,54 @@ export function QuotationDetailsAccordion({
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-4 space-y-3">
-            {quotation.quotation_options.map((opt: any) => (
-              <div
-                key={opt.id}
-                className="flex justify-between items-start p-3 border rounded-lg bg-muted/30"
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{opt.options?.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Código: {opt.options?.code}
-                  </p>
-                  {opt.options?.description && (
-                    <p className="text-sm mt-1 text-muted-foreground">
-                      {opt.options.description}
+            {quotation.quotation_options.map((opt: any) => {
+              // Buscar customização relacionada a este opcional
+              const optionCustomization = quotation.quotation_customizations?.find(
+                (c: any) => c.option_id === opt.option_id
+              );
+
+              return (
+                <div
+                  key={opt.id}
+                  className="flex justify-between items-start p-3 border rounded-lg bg-muted/30"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{opt.options?.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Código: {opt.options?.code}
                     </p>
-                  )}
-                </div>
-                <div className="text-right ml-4">
-                  <p className="text-sm text-muted-foreground">
-                    Qtd: {opt.quantity}
-                  </p>
-                  <p className="font-semibold">
-                    {formatCurrency(opt.total_price)}
-                  </p>
-                  {opt.delivery_days_impact > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      +{opt.delivery_days_impact} dias
+                    {opt.options?.description && (
+                      <p className="text-sm mt-1 text-muted-foreground">
+                        {opt.options.description}
+                      </p>
+                    )}
+                    {optionCustomization && (
+                      <div className="mt-2 p-2 bg-accent/30 rounded border border-accent">
+                        <p className="text-xs font-semibold text-accent-foreground mb-1">
+                          ✏️ Customização Solicitada:
+                        </p>
+                        <p className="text-sm text-accent-foreground">
+                          {optionCustomization.notes}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right ml-4">
+                    <p className="text-sm text-muted-foreground">
+                      Qtd: {opt.quantity}
                     </p>
-                  )}
+                    <p className="font-semibold">
+                      {formatCurrency(opt.total_price)}
+                    </p>
+                    {opt.delivery_days_impact > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        +{opt.delivery_days_impact} dias
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <Separator />
             <div className="flex justify-between items-center font-semibold">
               <span>Total de Opcionais</span>

@@ -790,6 +790,7 @@ export type Database = {
           item_name: string
           memorial_item_id: string | null
           notes: string | null
+          option_id: string | null
           planning_delivery_impact_days: number | null
           planning_notes: string | null
           planning_window_start: string | null
@@ -825,6 +826,7 @@ export type Database = {
           item_name: string
           memorial_item_id?: string | null
           notes?: string | null
+          option_id?: string | null
           planning_delivery_impact_days?: number | null
           planning_notes?: string | null
           planning_window_start?: string | null
@@ -860,6 +862,7 @@ export type Database = {
           item_name?: string
           memorial_item_id?: string | null
           notes?: string | null
+          option_id?: string | null
           planning_delivery_impact_days?: number | null
           planning_notes?: string | null
           planning_window_start?: string | null
@@ -894,6 +897,13 @@ export type Database = {
             columns: ["memorial_item_id"]
             isOneToOne: false
             referencedRelation: "memorial_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_customizations_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "options"
             referencedColumns: ["id"]
           },
           {
