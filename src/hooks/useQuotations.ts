@@ -103,6 +103,10 @@ export function useQuotation(id: string) {
             delivery_impact_days,
             engineering_notes,
             file_paths
+          ),
+          approvals (
+            approval_type,
+            status
           )
         `)
         .eq("id", id)

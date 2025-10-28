@@ -77,24 +77,9 @@ export default function QuotationDetail() {
     enabled: !!id && (quotation?.status === 'accepted' || quotation?.status === 'approved')
   });
 
-  // Buscar status das aprovações
-  const { data: approvals } = useQuery({
-    queryKey: ['quotation-approvals', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('approvals')
-        .select('approval_type, status')
-        .eq('quotation_id', id!);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id
-  });
-
-  // Calcular status de aprovações
-  const commercialApprovals = approvals?.filter(a => a.approval_type === 'commercial') || [];
-  const technicalApprovals = approvals?.filter(a => a.approval_type === 'technical') || [];
+  // Calcular status de aprovações usando approvals da query principal
+  const commercialApprovals = quotation?.approvals?.filter(a => a.approval_type === 'commercial') || [];
+  const technicalApprovals = quotation?.approvals?.filter(a => a.approval_type === 'technical') || [];
   
   const commercialApprovalStatus = commercialApprovals.length === 0 
     ? undefined 
