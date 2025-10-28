@@ -202,12 +202,12 @@ export default function Approvals() {
                             {approval.quotations?.sales_representative?.full_name || '-'}
                           </TableCell>
                           <TableCell>
-                            {approval.approval_type === 'commercial' && approval.request_details?.discount_type && (
+                            {(approval.approval_type === 'discount' || approval.approval_type === 'commercial') && approval.request_details?.discount_type && (
                               <Badge variant="outline">
                                 {approval.request_details.discount_type === 'base' ? 'Desconto Base' : 'Desconto Opcionais'}
                               </Badge>
                             )}
-                            {approval.approval_type === 'technical' && approval.request_details?.customization_item_name && (
+                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && approval.request_details?.customization_item_name && (
                               <Badge variant="outline">
                                 Customização: {approval.request_details.customization_item_name}
                               </Badge>
