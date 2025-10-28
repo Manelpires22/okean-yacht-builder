@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/formatters";
-import { Calendar, FileText, Package, Clock } from "lucide-react";
+import { Calendar, FileText, Package, Clock, Wrench, Box, CalendarCheck, Truck } from "lucide-react";
 import type { CustomizationWorkflow } from "@/hooks/useCustomizationWorkflow";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -101,6 +102,152 @@ export function CustomizationContextView({ customization }: CustomizationContext
           )}
         </CardContent>
       </Card>
+
+      {/* Análise do PM Inicial */}
+      {customization.pm_scope && (
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Análise do PM Inicial
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium mb-2">Escopo Técnico</p>
+              <div className="bg-muted p-3 rounded-md">
+                <p className="text-sm whitespace-pre-wrap">{customization.pm_scope}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Horas de Engenharia</p>
+                <p className="text-lg font-semibold">{customization.engineering_hours || 0}h</p>
+              </div>
+              {customization.required_parts && customization.required_parts.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Peças Necessárias</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(customization.required_parts as string[]).map((part, idx) => (
+                      <Badge key={idx} variant="outline">
+                        {part}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cotação de Materiais */}
+      {customization.supply_cost > 0 && (
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Box className="h-5 w-5" />
+              Cotação de Materiais (Supply)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {customization.supply_items && (
+              <div>
+                <p className="text-sm font-medium mb-2">Itens Cotados</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Fornecedor</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Preço Unit.</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(customization.supply_items as any[]).map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{item.name || item.item || '-'}</TableCell>
+                        <TableCell>{item.supplier || item.fornecedor || '-'}</TableCell>
+                        <TableCell className="text-right">{item.quantity || item.quantidade || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          {item.unit_price ? formatCurrency(item.unit_price) : 
+                           item.preco_unitario ? formatCurrency(item.preco_unitario) : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.total ? formatCurrency(item.total) : 
+                           item.unit_price && item.quantity ? formatCurrency(item.unit_price * item.quantity) : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+              <div>
+                <p className="text-sm text-muted-foreground">Custo Total de Materiais</p>
+                <p className="text-lg font-semibold text-primary">{formatCurrency(customization.supply_cost)}</p>
+              </div>
+              {customization.supply_lead_time_days > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Prazo de Fornecimento</p>
+                  <p className="text-lg font-semibold">{customization.supply_lead_time_days} dias</p>
+                </div>
+              )}
+              {customization.supply_notes && (
+                <div className="col-span-3">
+                  <p className="text-sm text-muted-foreground mb-1">Observações do Comprador</p>
+                  <div className="bg-muted p-3 rounded-md">
+                    <p className="text-sm">{customization.supply_notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Validação de Planejamento */}
+      {customization.planning_notes && (
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5" />
+              Validação de Planejamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              {customization.planning_window_start && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Janela de Produção</p>
+                  <p className="font-medium">
+                    {format(new Date(customization.planning_window_start), "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+              )}
+              {customization.planning_delivery_impact_days > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Impacto no Prazo</p>
+                  <p className="text-lg font-semibold text-primary">
+                    +{customization.planning_delivery_impact_days} dias
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Observações do Planejador</p>
+              <div className="bg-muted p-3 rounded-md">
+                <p className="text-sm whitespace-pre-wrap">{customization.planning_notes}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Timeline do Workflow */}
       <Card className="lg:col-span-3">
