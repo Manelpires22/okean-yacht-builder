@@ -342,6 +342,12 @@ export default function Configurator() {
         baseDiscountPercentage={state.base_discount_percentage}
         optionsDiscountPercentage={state.options_discount_percentage}
         customizationsCount={state.customizations.length}
+        existingClientData={existingQuotation ? {
+          client_id: existingQuotation.client_id || undefined,
+          client_name: existingQuotation.client_name,
+          client_email: existingQuotation.client_email || undefined,
+          client_phone: existingQuotation.client_phone || undefined,
+        } : undefined}
       />
 
       <FreeCustomizationDialog

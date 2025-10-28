@@ -62,6 +62,12 @@ interface SaveQuotationDialogProps {
   baseDiscountPercentage?: number;
   optionsDiscountPercentage?: number;
   customizationsCount?: number;
+  existingClientData?: {
+    client_id?: string;
+    client_name: string;
+    client_email?: string;
+    client_phone?: string;
+  };
 }
 
 export function SaveQuotationDialog({
@@ -72,6 +78,7 @@ export function SaveQuotationDialog({
   baseDiscountPercentage = 0,
   optionsDiscountPercentage = 0,
   customizationsCount = 0,
+  existingClientData,
 }: SaveQuotationDialogProps) {
   const [clientSearchOpen, setClientSearchOpen] = useState(false);
   const [useExistingClient, setUseExistingClient] = useState(false);
@@ -106,19 +113,34 @@ export function SaveQuotationDialog({
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      form.reset({
-        client_id: "",
-        client_name: "",
-        client_email: "",
-        client_phone: "",
-        client_cpf: "",
-        notes: "",
-        base_discount_percentage: baseDiscountPercentage,
-        options_discount_percentage: optionsDiscountPercentage,
-      });
-      setUseExistingClient(false);
+      // Se tem dados de cliente existente (modo edição), usar eles
+      if (existingClientData) {
+        form.reset({
+          client_id: existingClientData.client_id || "",
+          client_name: existingClientData.client_name,
+          client_email: existingClientData.client_email || "",
+          client_phone: existingClientData.client_phone || "",
+          client_cpf: "",
+          notes: "",
+          base_discount_percentage: baseDiscountPercentage,
+          options_discount_percentage: optionsDiscountPercentage,
+        });
+        setUseExistingClient(true);
+      } else {
+        form.reset({
+          client_id: "",
+          client_name: "",
+          client_email: "",
+          client_phone: "",
+          client_cpf: "",
+          notes: "",
+          base_discount_percentage: baseDiscountPercentage,
+          options_discount_percentage: optionsDiscountPercentage,
+        });
+        setUseExistingClient(false);
+      }
     }
-  }, [open, form, baseDiscountPercentage, optionsDiscountPercentage]);
+  }, [open, form, baseDiscountPercentage, optionsDiscountPercentage, existingClientData]);
 
   // When client is selected, populate fields
   const handleClientSelect = (clientId: string) => {
@@ -169,77 +191,79 @@ export function SaveQuotationDialog({
               </Alert>
             )}
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <FormLabel>Cliente</FormLabel>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setUseExistingClient(!useExistingClient);
-                    if (!useExistingClient) {
-                      form.setValue('client_id', '');
-                      form.setValue('client_name', '');
-                      form.setValue('client_email', '');
-                      form.setValue('client_phone', '');
-                      form.setValue('client_cpf', '');
-                    }
-                  }}
-                >
-                  {useExistingClient ? 'Novo Cliente' : 'Cliente Existente'}
-                </Button>
-              </div>
+            {!existingClientData && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <FormLabel>Cliente</FormLabel>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setUseExistingClient(!useExistingClient);
+                      if (!useExistingClient) {
+                        form.setValue('client_id', '');
+                        form.setValue('client_name', '');
+                        form.setValue('client_email', '');
+                        form.setValue('client_phone', '');
+                        form.setValue('client_cpf', '');
+                      }
+                    }}
+                  >
+                    {useExistingClient ? 'Novo Cliente' : 'Cliente Existente'}
+                  </Button>
+                </div>
 
-              {useExistingClient ? (
-                <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={clientSearchOpen}
-                      className="w-full justify-between"
-                    >
-                      {form.watch('client_id')
-                        ? clients.find((c) => c.id === form.watch('client_id'))?.name
-                        : "Selecione um cliente..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Buscar cliente..." />
-                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                      <CommandGroup className="max-h-64 overflow-auto">
-                        {clients.map((client) => (
-                          <CommandItem
-                            key={client.id}
-                            value={client.name}
-                            onSelect={() => {
-                              handleClientSelect(client.id);
-                              setClientSearchOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                form.watch('client_id') === client.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium">{client.name}</div>
-                              {client.email && (
-                                <div className="text-sm text-muted-foreground">{client.email}</div>
-                              )}
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              ) : null}
-            </div>
+                {useExistingClient ? (
+                  <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clientSearchOpen}
+                        className="w-full justify-between"
+                      >
+                        {form.watch('client_id')
+                          ? clients.find((c) => c.id === form.watch('client_id'))?.name
+                          : "Selecione um cliente..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar cliente..." />
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          {clients.map((client) => (
+                            <CommandItem
+                              key={client.id}
+                              value={client.name}
+                              onSelect={() => {
+                                handleClientSelect(client.id);
+                                setClientSearchOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  form.watch('client_id') === client.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium">{client.name}</div>
+                                {client.email && (
+                                  <div className="text-sm text-muted-foreground">{client.email}</div>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                ) : null}
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -251,9 +275,12 @@ export function SaveQuotationDialog({
                     <Input 
                       placeholder="João Silva" 
                       {...field}
-                      disabled={useExistingClient}
+                      disabled={useExistingClient || !!existingClientData}
                     />
                   </FormControl>
+                  {existingClientData && (
+                    <FormDescription>Cliente da cotação original</FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -270,7 +297,7 @@ export function SaveQuotationDialog({
                       type="email"
                       placeholder="joao@exemplo.com"
                       {...field}
-                      disabled={useExistingClient}
+                      disabled={useExistingClient || !!existingClientData}
                     />
                   </FormControl>
                   <FormDescription>Opcional</FormDescription>
@@ -289,7 +316,7 @@ export function SaveQuotationDialog({
                     <Input 
                       placeholder="+55 11 99999-9999" 
                       {...field}
-                      disabled={useExistingClient}
+                      disabled={useExistingClient || !!existingClientData}
                     />
                   </FormControl>
                   <FormDescription>Opcional</FormDescription>
@@ -298,25 +325,27 @@ export function SaveQuotationDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="client_cpf"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CPF</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="000.000.000-00" 
-                      {...field}
-                      disabled={useExistingClient}
-                      maxLength={14}
-                    />
-                  </FormControl>
-                  <FormDescription>Opcional</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!existingClientData && (
+              <FormField
+                control={form.control}
+                name="client_cpf"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="000.000.000-00" 
+                        {...field}
+                        disabled={useExistingClient}
+                        maxLength={14}
+                      />
+                    </FormControl>
+                    <FormDescription>Opcional</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
