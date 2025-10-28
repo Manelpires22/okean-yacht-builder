@@ -8,6 +8,23 @@ export function generateQuotationNumber(): string {
   return `QT-${year}-${random}`;
 }
 
+// Generate quotation number with version suffix
+export function generateQuotationNumberWithVersion(version: number = 1): string {
+  const baseNumber = generateQuotationNumber();
+  return `${baseNumber}-V${version}`;
+}
+
+// Extract base quotation number (without version suffix)
+export function getBaseQuotationNumber(quotationNumber: string): string {
+  return quotationNumber.replace(/-V\d+$/, '');
+}
+
+// Generate next version number maintaining base code
+export function generateNextVersionNumber(originalQuotationNumber: string, nextVersion: number): string {
+  const baseNumber = getBaseQuotationNumber(originalQuotationNumber);
+  return `${baseNumber}-V${nextVersion}`;
+}
+
 export function calculateTotalPrice(
   basePrice: number,
   selectedOptions: SelectedOption[]

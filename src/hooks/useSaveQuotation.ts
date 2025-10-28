@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { generateQuotationNumber } from "@/lib/quotation-utils";
+import { generateQuotationNumberWithVersion } from "@/lib/quotation-utils";
 import { needsApproval } from "@/lib/approval-utils";
 import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
@@ -131,7 +131,7 @@ export function useSaveQuotation() {
         clientId = newClient.id;
       }
 
-      const quotationNumber = generateQuotationNumber();
+      const quotationNumber = generateQuotationNumberWithVersion(1);
       
       // Calculate totals
       const totalOptionsPrice = data.selected_options.reduce(

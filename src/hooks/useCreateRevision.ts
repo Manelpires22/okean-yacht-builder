@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateQuotationNumber } from "@/lib/quotation-utils";
+import { generateNextVersionNumber } from "@/lib/quotation-utils";
 
 export function useCreateRevision() {
   const queryClient = useQueryClient();
@@ -22,9 +22,12 @@ export function useCreateRevision() {
       if (fetchError) throw fetchError;
       if (!originalQuotation) throw new Error('Cotação original não encontrada');
 
-      // 2. Gerar novo número de cotação
-      const newQuotationNumber = generateQuotationNumber();
+      // 2. Gerar novo número de cotação com versão incrementada
       const newVersion = (originalQuotation.version || 1) + 1;
+      const newQuotationNumber = generateNextVersionNumber(
+        originalQuotation.quotation_number,
+        newVersion
+      );
 
       // 3. Criar nova cotação (revisão)
       const { data: newQuotation, error: createError } = await supabase
