@@ -47,9 +47,31 @@ export function useQuotationApprovalStatus(
 
     // Verificar workflows pendentes (customizações com workflow_status !== 'approved')
     const customizations = quotation.customizations || [];
+    
+    console.log('🔍 DEBUG useQuotationApprovalStatus - RAW DATA:', {
+      quotation_id: (quotation as any).id,
+      customizations_length: customizations.length,
+      customizations_raw: customizations,
+      workflow_statuses: customizations.map(c => ({
+        id: c.id,
+        item: c.item_name,
+        workflow_status: c.workflow_status,
+        status: c.status
+      }))
+    });
+    
     const pendingWorkflows = customizations.filter(c => 
       c.workflow_status && c.workflow_status !== 'approved'
     );
+    
+    console.log('🔍 DEBUG - AFTER FILTER:', {
+      pendingWorkflows_length: pendingWorkflows.length,
+      pendingWorkflows: pendingWorkflows.map(c => ({
+        id: c.id,
+        item: c.item_name,
+        workflow_status: c.workflow_status
+      }))
+    });
 
     const pendingWorkflowDetails: PendingWorkflowDetail[] = pendingWorkflows.map(c => ({
       customizationId: c.id,
