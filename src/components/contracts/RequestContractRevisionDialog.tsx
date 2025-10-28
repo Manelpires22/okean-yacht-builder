@@ -29,7 +29,12 @@ export function RequestContractRevisionDialog({
 
   const createRevision = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Create the customization
+      const { data: customization, error: customizationError } = await supabase
         .from("quotation_customizations")
         .insert({
           quotation_id: quotationId,
@@ -37,18 +42,41 @@ export function RequestContractRevisionDialog({
           notes: description,
           quantity: quantity,
           status: "pending",
-          workflow_status: "pending_pm_review",
+          workflow_status: null, // Will be set to pending_pm_review after approval
           included_in_contract: false, // Marca como revisão pós-contrato
         })
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (customizationError) throw customizationError;
+
+      // Create the approval request
+      const { error: approvalError } = await supabase
+        .from("approvals")
+        .insert({
+          quotation_id: quotationId,
+          approval_type: "technical",
+          requested_by: user.id,
+          status: "pending",
+          request_details: {
+            is_contract_revision: true,
+            customization_id: customization.id,
+            item_name: itemName,
+            description: description,
+            quantity: quantity,
+          },
+          notes: `Revisão de contrato: ${itemName}`,
+        });
+
+      if (approvalError) throw approvalError;
+
+      return customization;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["quotation-customizations"] });
       queryClient.invalidateQueries({ queryKey: ["contract-revisions"] });
+      queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["approvals-count"] });
       
       toast.success("Revisão de contrato criada!", {
         description: `"${data.item_name}" entrará no workflow de aprovação.`,
@@ -131,6 +159,7 @@ export function RequestContractRevisionDialog({
           <div className="bg-muted/50 border rounded-lg p-4 space-y-2">
             <h4 className="font-medium text-sm">Próximos Passos:</h4>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Aprovação técnica inicial</li>
               <li>PM de Engenharia avaliará escopo e viabilidade</li>
               <li>Suprimentos cotará itens necessários</li>
               <li>Planejamento definirá impacto no prazo</li>
