@@ -149,3 +149,61 @@ export function useCreateContractFromQuotation() {
     },
   });
 }
+
+export function useDeleteContract() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contractId: string) => {
+      // 1. Buscar dados do contrato antes de deletar
+      const { data: contract, error: fetchError } = await supabase
+        .from("contracts")
+        .select("quotation_id")
+        .eq("id", contractId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // 2. Reverter customizações (included_in_contract = false)
+      const { error: customizationsError } = await supabase
+        .from("quotation_customizations")
+        .update({ included_in_contract: false })
+        .eq("quotation_id", contract.quotation_id);
+
+      if (customizationsError) {
+        console.warn("Error reverting customizations:", customizationsError);
+      }
+
+      // 3. Reverter status da cotação
+      const { error: quotationError } = await supabase
+        .from("quotations")
+        .update({ status: "accepted" })
+        .eq("id", contract.quotation_id);
+
+      if (quotationError) {
+        console.warn("Error reverting quotation status:", quotationError);
+      }
+
+      // 4. Deletar contrato
+      const { error: deleteError } = await supabase
+        .from("contracts")
+        .delete()
+        .eq("id", contractId);
+
+      if (deleteError) throw deleteError;
+
+      return { contractId, quotationId: contract.quotation_id };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["contract", data.contractId] });
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation", data.quotationId] });
+      toast.success("Contrato deletado e cotação revertida com sucesso");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting contract:", error);
+      toast.error("Erro ao deletar contrato: " + error.message);
+    },
+  });
+}

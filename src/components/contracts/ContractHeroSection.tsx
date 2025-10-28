@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Ship, Calendar, DollarSign, User, FileText, ArrowLeft, MoreVertical, Download, Mail } from "lucide-react";
+import { Ship, Calendar, DollarSign, User, FileText, ArrowLeft, MoreVertical, Download, Mail, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getContractStatusLabel, getContractStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -23,9 +23,10 @@ import { SendContractEmailDialog } from "./SendContractEmailDialog";
 
 interface ContractHeroSectionProps {
   contract: Contract;
+  onDelete?: () => void;
 }
 
-export function ContractHeroSection({ contract }: ContractHeroSectionProps) {
+export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionProps) {
   const navigate = useNavigate();
   const { data: userRoleData } = useUserRole();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -116,6 +117,18 @@ export function ContractHeroSection({ contract }: ContractHeroSectionProps) {
                     <Mail className="mr-2 h-4 w-4" />
                     Enviar por Email
                   </DropdownMenuItem>
+                  {onDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={onDelete}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Deletar Contrato
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
-import { useContract } from "@/hooks/useContracts";
+import { useParams, useNavigate } from "react-router-dom";
+import { useContract, useDeleteContract } from "@/hooks/useContracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractHeroSection } from "@/components/contracts/ContractHeroSection";
@@ -10,10 +10,35 @@ import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
 import { ContractRevisionsTab } from "@/components/contracts/ContractRevisionsTab";
 import { FileText, Plus, TrendingUp, Clock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 export default function ContractDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: contract, isLoading } = useContract(id);
+  const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  const handleDelete = () => {
+    if (!id) return;
+    
+    deleteContract(id, {
+      onSuccess: () => {
+        setShowDeleteDialog(false);
+        navigate("/contratos");
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -41,7 +66,10 @@ export default function ContractDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ContractHeroSection contract={contract} />
+      <ContractHeroSection 
+        contract={contract} 
+        onDelete={() => setShowDeleteDialog(true)}
+      />
 
       <div className="container mx-auto p-6">
         <Tabs defaultValue="overview" className="space-y-6">
@@ -96,6 +124,29 @@ export default function ContractDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão do contrato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O contrato será permanentemente deletado e a cotação será revertida para o status "Aceita".
+              <br /><br />
+              As customizações também serão desmarcadas do contrato.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deletando..." : "Deletar Contrato"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
