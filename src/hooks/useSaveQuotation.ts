@@ -8,6 +8,7 @@ import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
 
 interface SaveQuotationData {
+  quotationId?: string; // ✅ NOVO: ID da cotação sendo editada
   yacht_model_id: string;
   base_price: number;
   base_delivery_days: number;
@@ -31,6 +32,84 @@ export function useSaveQuotation() {
     mutationFn: async (data: SaveQuotationData) => {
       if (!user) throw new Error("Usuário não autenticado");
 
+      // ✅ MODO EDIÇÃO: Atualizar cotação existente
+      if (data.quotationId) {
+        // Calculate totals
+        const totalOptionsPrice = data.selected_options.reduce(
+          (sum, opt) => sum + opt.unit_price * opt.quantity,
+          0
+        );
+        
+        const maxDeliveryImpact = data.selected_options.reduce(
+          (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
+          0
+        );
+
+        // Calculate discounted prices
+        const baseDiscountPercentage = data.base_discount_percentage || 0;
+        const optionsDiscountPercentage = data.options_discount_percentage || 0;
+        
+        const baseDiscountAmount = data.base_price * (baseDiscountPercentage / 100);
+        const finalBasePrice = data.base_price - baseDiscountAmount;
+        
+        const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
+        const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
+
+        const finalPrice = finalBasePrice + finalOptionsPrice;
+        const totalDeliveryDays = data.base_delivery_days + maxDeliveryImpact;
+
+        // Update quotation
+        const { data: quotation, error } = await supabase
+          .from("quotations")
+          .update({
+            yacht_model_id: data.yacht_model_id,
+            base_price: data.base_price,
+            base_discount_percentage: baseDiscountPercentage,
+            final_base_price: finalBasePrice,
+            total_options_price: totalOptionsPrice,
+            options_discount_percentage: optionsDiscountPercentage,
+            final_options_price: finalOptionsPrice,
+            discount_amount: baseDiscountAmount + optionsDiscountAmount,
+            discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
+            final_price: finalPrice,
+            base_delivery_days: data.base_delivery_days,
+            total_delivery_days: totalDeliveryDays,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.quotationId)
+          .select()
+          .single();
+        
+        if (error) throw error;
+
+        // Delete old options
+        await supabase
+          .from("quotation_options")
+          .delete()
+          .eq('quotation_id', data.quotationId);
+        
+        // Insert new options
+        if (data.selected_options.length > 0) {
+          const quotationOptions = data.selected_options.map((opt) => ({
+            quotation_id: data.quotationId,
+            option_id: opt.option_id,
+            quantity: opt.quantity,
+            unit_price: opt.unit_price,
+            total_price: opt.unit_price * opt.quantity,
+            delivery_days_impact: opt.delivery_days_impact || 0,
+          }));
+
+          const { error: optionsError } = await supabase
+            .from("quotation_options")
+            .insert(quotationOptions);
+
+          if (optionsError) throw optionsError;
+        }
+        
+        return quotation;
+      }
+
+      // ✅ MODO CRIAÇÃO: Criar nova cotação
       // 1. Create or get client
       let clientId = data.client_id;
 

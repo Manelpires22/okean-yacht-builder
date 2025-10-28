@@ -119,6 +119,13 @@ export default function QuotationDetail() {
   const handleEdit = async () => {
     if (!quotation) return;
     
+    // Se for draft, permitir edição direta
+    if (quotation.status === 'draft') {
+      navigate(`/configurator?edit=${quotation.id}`);
+      return;
+    }
+    
+    // Para outros status, criar revisão primeiro
     try {
       const newQuotation = await createRevision.mutateAsync(quotation.id);
       toast.success(`Revisão ${newQuotation.quotation_number} criada! Redirecionando para edição...`);
@@ -171,8 +178,9 @@ export default function QuotationDetail() {
     
     try {
       const newQuotation = await createRevision.mutateAsync(quotation.id);
-      toast.success(`Revisão criada! Redirecionando...`);
-      setTimeout(() => navigate(`/quotations/${newQuotation.id}`), 1500);
+      toast.success(`Revisão ${newQuotation.quotation_number} criada! Redirecionando para edição...`);
+      // Redirecionar para configurador para permitir edição da nova revisão
+      setTimeout(() => navigate(`/configurator?edit=${newQuotation.id}`), 1000);
     } catch (error) {
       // Erro já tratado no hook
     }
@@ -372,8 +380,8 @@ export default function QuotationDetail() {
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
         <div className="container mx-auto">
           <div className="flex flex-wrap gap-3 justify-end">
-            {/* Botão Editar - só se draft */}
-            {quotationStatus.canEdit && (
+            {/* Botão Editar Rascunho - só se draft */}
+            {quotation.status === 'draft' && quotationStatus.canEdit && (
               <Button 
                 variant="outline" 
                 onClick={handleEdit} 
@@ -381,7 +389,7 @@ export default function QuotationDetail() {
                 className="flex-1 sm:flex-none"
               >
                 <Edit className="mr-2 h-4 w-4" />
-                Editar Proposta
+                Editar Rascunho
               </Button>
             )}
 

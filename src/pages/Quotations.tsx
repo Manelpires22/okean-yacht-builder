@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuotations, useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
+import { useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations";
+import { useQuotationsGroupedByVersion } from "@/hooks/useQuotationsGroupedByVersion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
-import { QuotationStatusBadge } from "@/components/quotations/QuotationStatusBadge";
+import { QuotationVersionRow } from "@/components/quotations/QuotationVersionRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,15 +36,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Eye, Copy, FileText, Pencil, Trash2, FileCheck } from "lucide-react";
-import { formatCurrency } from "@/lib/quotation-utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { Search, FileText } from "lucide-react";
 
 
 export default function Quotations() {
   const navigate = useNavigate();
-  const { data: quotations, isLoading } = useQuotations();
+  const { data: groupedQuotations, isLoading } = useQuotationsGroupedByVersion();
   const duplicateQuotation = useDuplicateQuotation();
   const deleteQuotation = useDeleteQuotation();
   const { data: userRoles } = useUserRole();
@@ -78,8 +76,9 @@ export default function Quotations() {
   };
 
   const filteredQuotations = useMemo(() => {
-    if (!quotations) return [];
-    return quotations.filter((q) => {
+    if (!groupedQuotations) return [];
+    return groupedQuotations.filter((group) => {
+      const q = group.latestVersion;
       const matchesSearch =
         q.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
         q.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,7 +88,7 @@ export default function Quotations() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [quotations, searchTerm, statusFilter]);
+  }, [groupedQuotations, searchTerm, statusFilter]);
 
   const handleDuplicate = (id: string) => {
     duplicateQuotation.mutate(id);
@@ -172,114 +171,20 @@ export default function Quotations() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredQuotations?.map((quotation) => (
-                  <TableRow key={quotation.id}>
-                    <TableCell className="font-medium">
-                      {quotation.quotation_number}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {quotation.clients?.name || quotation.client_name}
-                        </div>
-                        {quotation.clients?.company && (
-                          <div className="text-sm text-muted-foreground">
-                            {quotation.clients.company}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {quotation.yacht_models?.name || "N/A"}
-                    </TableCell>
-                    <TableCell>{formatCurrency(quotation.final_price)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <QuotationStatusBadge status={quotation.status as any} />
-                        {(quotation.status === 'approved' || quotation.status === 'accepted' || quotation.status === 'converted_to_contract') && (
-                          <Badge variant="outline" className="border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-300">
-                            <FileCheck className="h-3 w-3 mr-1" />
-                            Contrato
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {format(new Date(quotation.valid_until), "dd/MM/yyyy", {
-                        locale: ptBR,
-                      })}
-                    </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      {format(new Date(quotation.created_at), "dd/MM/yyyy", {
-                        locale: ptBR,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/quotations/${quotation.id}`)}
-                          title="Ver detalhes"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        
-                        {canEditQuotation(quotation) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/configurator?edit=${quotation.id}`)}
-                            title="Editar cotação"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {canDeleteQuotation(quotation) && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Deletar cotação"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja deletar a cotação {quotation.quotation_number}?
-                                  Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteQuotation.mutate(quotation.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Deletar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDuplicate(quotation.id)}
-                          disabled={duplicateQuotation.isPending}
-                          title="Duplicar cotação"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                filteredQuotations?.map((group) => (
+                  <QuotationVersionRow
+                    key={group.rootId}
+                    latestVersion={group.latestVersion}
+                    previousVersions={group.previousVersions}
+                    totalVersions={group.totalVersions}
+                    hasMultipleVersions={group.hasMultipleVersions}
+                    onNavigate={(id) => navigate(`/quotations/${id}`)}
+                    onEdit={(id) => navigate(`/configurator?edit=${id}`)}
+                    onDelete={(id) => deleteQuotation.mutate(id)}
+                    onDuplicate={(id) => handleDuplicate(id)}
+                    canEdit={canEditQuotation(group.latestVersion)}
+                    canDelete={canDeleteQuotation(group.latestVersion)}
+                  />
                 ))
               )}
             </TableBody>

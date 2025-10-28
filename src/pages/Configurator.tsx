@@ -128,6 +128,7 @@ export default function Configurator() {
     if (!state.yacht_model_id) return;
 
     await saveQuotation.mutateAsync({
+      quotationId: editQuotationId || undefined, // ✅ Passar ID se editando
       yacht_model_id: state.yacht_model_id,
       base_price: state.base_price,
       base_delivery_days: state.base_delivery_days,
@@ -144,7 +145,13 @@ export default function Configurator() {
 
     setSaveDialogOpen(false);
     clearConfiguration();
-    navigate("/");
+    
+    // Redirecionar para detalhes da cotação se editando, senão para lista
+    if (editQuotationId) {
+      navigate(`/quotations/${editQuotationId}`);
+    } else {
+      navigate("/cotacoes");
+    }
   };
 
   if (!state.yacht_model_id) {
