@@ -62,7 +62,7 @@ export function NextStepsCard({
                   <span>Desconto de {Math.max(quotation.base_discount_percentage || 0, quotation.options_discount_percentage || 0)}% requer aprovação</span>
                 </div>
               )}
-              {approvalStatus.hasPendingWorkflows && (
+              {approvalStatus.hasPendingWorkflows && approvalStatus.pendingWorkflowDetails?.length > 0 && (
                 <div className="space-y-1">
                   <div className="font-medium">• Técnicas ({approvalStatus.pendingWorkflowsCount}):</div>
                   <ul className="ml-4 space-y-1">
