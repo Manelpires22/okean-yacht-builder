@@ -46,9 +46,10 @@ export function useQuotationApprovalStatus(
     }
 
     // Verificar workflows pendentes (customizações com workflow_status !== 'approved')
-    const pendingWorkflows = quotation.customizations?.filter(c => 
+    const customizations = quotation.customizations || [];
+    const pendingWorkflows = customizations.filter(c => 
       c.workflow_status && c.workflow_status !== 'approved'
-    ) || [];
+    );
 
     const pendingWorkflowDetails: PendingWorkflowDetail[] = pendingWorkflows.map(c => ({
       customizationId: c.id,
