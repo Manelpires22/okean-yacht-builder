@@ -80,18 +80,19 @@ export function useQuotation(id: string) {
             full_name,
             email
           ),
-          quotation_options (
-            id,
-            quantity,
-            unit_price,
-            total_price,
-            delivery_days_impact,
-            options (
-              name,
-              code,
-              description
-            )
-          ),
+        quotation_options (
+          id,
+          option_id,
+          quantity,
+          unit_price,
+          total_price,
+          delivery_days_impact,
+          options (
+            name,
+            code,
+            description
+          )
+        ),
           quotation_customizations (
             id,
             item_name,

@@ -11,11 +11,11 @@ export function useCreateRevision() {
       // 1. Buscar cotação original com todos os dados
       const { data: originalQuotation, error: fetchError } = await supabase
         .from('quotations')
-        .select(`
-          *,
-          quotation_options (*),
-          quotation_customizations (*)
-        `)
+      .select(`
+        *,
+        quotation_options (id, option_id, quantity, unit_price, total_price, delivery_days_impact),
+        quotation_customizations (*)
+      `)
         .eq('id', originalQuotationId)
         .single();
 
