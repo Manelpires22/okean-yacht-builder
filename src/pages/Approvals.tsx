@@ -180,6 +180,7 @@ export default function Approvals() {
                       <TableHead>Cliente</TableHead>
                       <TableHead>Vendedor</TableHead>
                       <TableHead>Tipo</TableHead>
+                      <TableHead>Código</TableHead>
                       <TableHead>Aprovador</TableHead>
                       <TableHead>Status Workflow</TableHead>
                       <TableHead>Data</TableHead>
@@ -210,6 +211,13 @@ export default function Approvals() {
                               <Badge variant="outline">
                                 Customização: {approval.request_details.customization_item_name}
                               </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {approval.request_details?.customization_code ? (
+                              <span className="font-mono text-xs">{approval.request_details.customization_code}</span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
                             )}
                           </TableCell>
                           <TableCell>

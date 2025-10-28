@@ -68,6 +68,11 @@ export function CustomizationContextView({ customization }: CustomizationContext
             <div className="flex-1">
               <p className="text-sm font-medium">Customização</p>
               <p className="text-xs text-muted-foreground">{customization.item_name}</p>
+              {(customization as any).customization_code && (
+                <p className="text-xs font-mono text-primary mt-1">
+                  {(customization as any).customization_code}
+                </p>
+              )}
             </div>
           </div>
 

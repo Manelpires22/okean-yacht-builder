@@ -781,6 +781,7 @@ export type Database = {
           ato_id: string | null
           attachments: Json | null
           created_at: string | null
+          customization_code: string | null
           delivery_impact_days: number | null
           engineering_hours: number | null
           engineering_notes: string | null
@@ -817,6 +818,7 @@ export type Database = {
           ato_id?: string | null
           attachments?: Json | null
           created_at?: string | null
+          customization_code?: string | null
           delivery_impact_days?: number | null
           engineering_hours?: number | null
           engineering_notes?: string | null
@@ -853,6 +855,7 @@ export type Database = {
           ato_id?: string | null
           attachments?: Json | null
           created_at?: string | null
+          customization_code?: string | null
           delivery_impact_days?: number | null
           engineering_hours?: number | null
           engineering_notes?: string | null

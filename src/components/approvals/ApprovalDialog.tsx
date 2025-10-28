@@ -179,6 +179,12 @@ export function ApprovalDialog({ approvalId, open, onOpenChange }: ApprovalDialo
                 Customização Solicitada
               </h3>
               <div className="space-y-3">
+                {approval.request_details.customization_code && (
+                  <div>
+                    <span className="text-muted-foreground">Código:</span>
+                    <p className="font-mono text-sm font-bold">{approval.request_details.customization_code}</p>
+                  </div>
+                )}
                 <div>
                   <span className="text-muted-foreground">Item:</span>
                   <p className="font-medium">{approval.request_details.customization_item_name}</p>
