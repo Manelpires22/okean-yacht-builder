@@ -275,70 +275,70 @@ export const useReviewApproval = () => {
 
       if (error) throw error;
 
-      // If technical approval was approved, update the customization record
+      // If technical approval was approved, initialize workflow
       if (approval.approval_type === 'technical' && params.status === 'approved') {
         const approvalDetails = updateData.request_details || {};
         const itemName = approvalDetails.customization_item_name;
         
-        // Find and update the customization in quotation_customizations
-        // Match by quotation_id, item_name, AND status='pending' to avoid updating already approved ones
+        // Find the customization to initialize workflow
         const { data: customizations } = await supabase
           .from('quotation_customizations')
-          .select('id')
+          .select('id, quotation_id')
           .eq('quotation_id', approval.quotation_id)
           .eq('item_name', itemName)
           .eq('status', 'pending')
           .limit(1);
 
         if (customizations && customizations.length > 0) {
-          // Update the first matching pending customization
+          const customizationId = customizations[0].id;
+          
+          // Get yacht model to find assigned PM
+          const { data: quotation } = await supabase
+            .from('quotations')
+            .select(`
+              yacht_model_id,
+              yacht_models (
+                pm_assignments:pm_yacht_model_assignments(
+                  pm_user_id
+                )
+              )
+            `)
+            .eq('id', approval.quotation_id)
+            .single();
+
+          const pmUserId = quotation?.yacht_models?.pm_assignments?.[0]?.pm_user_id;
+
+          // Initialize workflow with pending_pm_review status
           await supabase
             .from('quotation_customizations')
             .update({
-              status: 'approved',
-              additional_cost: params.additional_cost || 0,
-              delivery_impact_days: params.delivery_impact_days || 0,
+              workflow_status: 'pending_pm_review',
               reviewed_by: user.id,
               reviewed_at: new Date().toISOString(),
               engineering_notes: params.review_notes || null
             })
-            .eq('id', customizations[0].id);
-        }
+            .eq('id', customizationId);
 
-        // Recalculate quotation totals from all approved customizations
-        const { data: allCustomizations } = await supabase
-          .from('quotation_customizations')
-          .select('additional_cost, delivery_impact_days, status')
-          .eq('quotation_id', approval.quotation_id);
+          // Create initial workflow step (pm_initial)
+          await supabase
+            .from('customization_workflow_steps')
+            .insert({
+              customization_id: customizationId,
+              step_type: 'pm_initial',
+              status: 'pending',
+              assigned_to: pmUserId,
+              notes: 'Aprovação técnica concedida. Aguardando análise inicial do PM.'
+            });
 
-        if (allCustomizations) {
-          const totalCustomizationsCost = allCustomizations
-            .filter(c => c.status === 'approved')
-            .reduce((sum, c) => sum + (c.additional_cost || 0), 0);
-          
-          const maxDeliveryImpact = allCustomizations
-            .filter(c => c.status === 'approved')
-            .reduce((max, c) => Math.max(max, c.delivery_impact_days || 0), 0);
-
-          // Get current quotation to update totals
-          const { data: quotation } = await supabase
-            .from('quotations')
-            .select('final_base_price, final_options_price, base_delivery_days')
-            .eq('id', approval.quotation_id)
-            .maybeSingle();
-
-          if (quotation) {
-            const newFinalPrice = (quotation.final_base_price || 0) + (quotation.final_options_price || 0) + totalCustomizationsCost;
-            const newTotalDeliveryDays = (quotation.base_delivery_days || 0) + maxDeliveryImpact;
-
-            await supabase
-              .from('quotations')
-              .update({
-                total_customizations_price: totalCustomizationsCost,
-                total_delivery_days: newTotalDeliveryDays,
-                final_price: newFinalPrice
-              })
-              .eq('id', approval.quotation_id);
+          // Send notification to PM if assigned
+          if (pmUserId) {
+            await supabase.functions.invoke('send-workflow-notification', {
+              body: {
+                assignedTo: pmUserId,
+                customizationId: customizationId,
+                stepType: 'pm_initial'
+              }
+            });
           }
         }
       }
@@ -421,6 +421,8 @@ export const useReviewApproval = () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] });
       queryClient.invalidateQueries({ queryKey: ['approvals-count'] });
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['customization-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-customizations-workflow'] });
       
       const message = params.status === 'approved' 
         ? "Aprovação concedida com sucesso!" 
