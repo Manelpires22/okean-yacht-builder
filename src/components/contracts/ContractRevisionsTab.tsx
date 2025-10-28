@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileEdit, Clock, CheckCircle2, XCircle, AlertCircle, Plus } from "lucide-react";
+import { FileEdit, Clock, CheckCircle2, XCircle, AlertCircle, Plus, ExternalLink } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { RequestContractRevisionDialog } from "./RequestContractRevisionDialog";
 
 interface ContractRevisionsTabProps {
@@ -15,6 +16,7 @@ interface ContractRevisionsTabProps {
 }
 
 export function ContractRevisionsTab({ contractId, quotationId }: ContractRevisionsTabProps) {
+  const navigate = useNavigate();
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
 
   const { data: revisions, isLoading } = useQuery({
@@ -33,6 +35,27 @@ export function ContractRevisionsTab({ contractId, quotationId }: ContractRevisi
     enabled: !!quotationId,
   });
 
+  const getWorkflowLink = (status: string, workflowStatus: string): string | null => {
+    // Se ainda está em aprovação inicial (pending sem workflow)
+    if (status === "pending" && !workflowStatus) {
+      return "/admin/aprovacoes";
+    }
+    
+    // Se está em workflow técnico
+    const workflowSteps = [
+      "pending_pm_review",
+      "pending_supply_quote", 
+      "pending_planning_validation",
+      "pending_pm_final"
+    ];
+    
+    if (workflowSteps.includes(workflowStatus)) {
+      return "/tarefas-workflow";
+    }
+    
+    return null; // Sem link para status finalizados
+  };
+
   const getStatusBadge = (status: string, workflowStatus: string) => {
     if (status === "approved") {
       return <Badge className="bg-green-600"><CheckCircle2 className="h-3 w-3 mr-1" />Aprovado</Badge>;
@@ -47,7 +70,7 @@ export function ContractRevisionsTab({ contractId, quotationId }: ContractRevisi
       pm_review_completed: { label: "PM Revisado", icon: CheckCircle2 },
       pending_supply_quote: { label: "Aguardando Suprimentos", icon: Clock },
       supply_quote_completed: { label: "Cotação Pronta", icon: CheckCircle2 },
-      pending_planning: { label: "Aguardando Planejamento", icon: Clock },
+      pending_planning_validation: { label: "Aguardando Planejamento", icon: Clock },
       planning_completed: { label: "Planejamento OK", icon: CheckCircle2 },
       pending_pm_final: { label: "Aguardando PM Final", icon: Clock },
       completed: { label: "Concluído", icon: CheckCircle2 },
@@ -55,11 +78,28 @@ export function ContractRevisionsTab({ contractId, quotationId }: ContractRevisi
 
     const workflow = workflowLabels[workflowStatus] || { label: "Pendente", icon: AlertCircle };
     const Icon = workflow.icon;
+    const link = getWorkflowLink(status, workflowStatus);
 
+    // Se não tem link, retornar badge normal
+    if (!link) {
+      return (
+        <Badge variant="secondary">
+          <Icon className="h-3 w-3 mr-1" />
+          {workflow.label}
+        </Badge>
+      );
+    }
+
+    // Badge clicável com link
     return (
-      <Badge variant="secondary">
+      <Badge 
+        variant="secondary" 
+        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+        onClick={() => navigate(link)}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {workflow.label}
+        <ExternalLink className="h-3 w-3 ml-1 opacity-70" />
       </Badge>
     );
   };
