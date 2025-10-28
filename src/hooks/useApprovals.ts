@@ -195,10 +195,15 @@ export const useCreateApproval = () => {
 
       if (error) throw error;
 
-      // Update quotation status to pending_approval
+      // Determine correct status based on approval type
+      const newStatus = params.approval_type === 'discount' 
+        ? 'pending_commercial_approval' 
+        : 'pending_technical_approval';
+
+      // Update quotation status
       const { error: quotationError } = await supabase
         .from('quotations')
-        .update({ status: 'pending_approval' })
+        .update({ status: newStatus })
         .eq('id', params.quotation_id);
 
       if (quotationError) throw quotationError;
