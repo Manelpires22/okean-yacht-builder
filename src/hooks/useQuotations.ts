@@ -98,6 +98,7 @@ export function useQuotation(id: string) {
             notes,
             quantity,
             status,
+            workflow_status,
             additional_cost,
             delivery_impact_days,
             engineering_notes,
