@@ -92,7 +92,7 @@ export function useSaveQuotation() {
         if (data.selected_options.length > 0) {
           const quotationOptions = data.selected_options.map((opt) => ({
             quotation_id: data.quotationId,
-            option_id: opt.option_id,
+            option_id: opt.option_id, // option_id sempre existe no SelectedOption
             quantity: opt.quantity,
             unit_price: opt.unit_price,
             total_price: opt.unit_price * opt.quantity,
@@ -104,6 +104,77 @@ export function useSaveQuotation() {
             .insert(quotationOptions);
 
           if (optionsError) throw optionsError;
+        }
+
+        // ✅ NOVO: Processar customizações em modo EDIÇÃO
+        if (data.customizations && data.customizations.length > 0) {
+          // 1. Deletar customizações antigas
+          await supabase
+            .from("quotation_customizations")
+            .delete()
+            .eq('quotation_id', data.quotationId);
+
+          // 2. Inserir novas customizações
+          const customizationsData = data.customizations.map((customization) => ({
+            quotation_id: data.quotationId,
+            memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
+              ? null 
+              : customization.memorial_item_id,
+            item_name: customization.item_name,
+            notes: customization.notes,
+            quantity: customization.quantity || null,
+            file_paths: customization.image_url ? [customization.image_url] : [],
+            status: 'pending',
+            workflow_status: 'pending_pm_review'
+          }));
+
+          const { data: insertedCustomizations, error: customizationsError } = await supabase
+            .from("quotation_customizations")
+            .insert(customizationsData)
+            .select('id, item_name, memorial_item_id, quantity, notes');
+
+          if (customizationsError) {
+            console.error('Erro ao inserir customizações:', customizationsError);
+            throw customizationsError;
+          }
+
+          // 3. Criar approval requests técnicas para cada customização
+          if (insertedCustomizations && insertedCustomizations.length > 0) {
+            const technicalApprovals = insertedCustomizations.map((customization) => ({
+              quotation_id: data.quotationId,
+              approval_type: 'technical' as const,
+              requested_by: user.id,
+              status: 'pending' as const,
+              request_details: {
+                customization_id: customization.id,
+                customization_item_name: customization.item_name,
+                memorial_item_id: customization.memorial_item_id,
+                quantity: customization.quantity || 1,
+                notes: customization.notes || '',
+                is_free_customization: !customization.memorial_item_id
+              },
+              notes: !customization.memorial_item_id
+                ? `Customização livre adicionada em revisão: ${customization.item_name}`
+                : `Customização solicitada em revisão: ${customization.item_name}`
+            }));
+
+            const { error: technicalApprovalError } = await supabase
+              .from("approvals")
+              .insert(technicalApprovals);
+
+            if (technicalApprovalError) {
+              console.error('Erro ao criar aprovações técnicas:', technicalApprovalError);
+              throw technicalApprovalError;
+            }
+
+            // 4. Atualizar status da cotação para pending_technical_approval
+            await supabase
+              .from("quotations")
+              .update({ status: 'pending_technical_approval' })
+              .eq('id', data.quotationId);
+
+            console.log(`✅ ${insertedCustomizations.length} customizações adicionadas com aprovações técnicas criadas`);
+          }
         }
         
         return quotation;

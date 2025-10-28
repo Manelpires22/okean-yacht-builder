@@ -69,8 +69,7 @@ export function CustomizationDialog({
           <Alert>
             <InfoIcon className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Descreva as modificações desejadas. A equipe técnica analisará a
-              viabilidade e fornecerá orçamento e prazo adicionais.
+              Descreva as modificações desejadas. <strong>Esta customização será enviada para validação técnica</strong> antes de ser incluída na cotação final. A equipe fornecerá orçamento e prazo adicionais.
             </AlertDescription>
           </Alert>
 

@@ -106,8 +106,7 @@ export function FreeCustomizationDialog({
           <Alert>
             <InfoIcon className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              Esta customização será analisada pela equipe técnica, que fornecerá
-              orçamento e prazo adicionais.
+              <strong>Esta customização será analisada pela equipe técnica</strong>, que fornecerá orçamento e prazo adicionais. A cotação ficará pendente de validação técnica.
             </AlertDescription>
           </Alert>
 
