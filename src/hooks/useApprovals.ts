@@ -282,21 +282,39 @@ export const useReviewApproval = () => {
 
       // If technical approval was approved, initialize workflow
       if (approval.approval_type === 'technical' && params.status === 'approved') {
-        const approvalDetails = updateData.request_details || {};
-        const itemName = approvalDetails.customization_item_name;
-        
-        // Find the customization to initialize workflow
-        const { data: customizations } = await supabase
-          .from('quotation_customizations')
-          .select('id, quotation_id')
-          .eq('quotation_id', approval.quotation_id)
-          .eq('item_name', itemName)
-          .eq('status', 'pending')
-          .limit(1);
+        // Get current approval details to check if it's a contract revision
+        const { data: currentApproval } = await supabase
+          .from('approvals')
+          .select('request_details')
+          .eq('id', params.id)
+          .single();
 
-        if (customizations && customizations.length > 0) {
-          const customizationId = customizations[0].id;
+        const approvalDetails = (currentApproval?.request_details as Record<string, any>) || {};
+        const isContractRevision = approvalDetails.is_contract_revision === true;
+        
+        let customizationId: string | null = null;
+
+        // For contract revisions, use the customization_id directly
+        if (isContractRevision && approvalDetails.customization_id) {
+          customizationId = approvalDetails.customization_id;
+        } else {
+          // For regular customizations, find by item_name
+          const itemName = approvalDetails.customization_item_name;
           
+          const { data: customizations } = await supabase
+            .from('quotation_customizations')
+            .select('id, quotation_id')
+            .eq('quotation_id', approval.quotation_id)
+            .eq('item_name', itemName)
+            .eq('status', 'pending')
+            .limit(1);
+
+          if (customizations && customizations.length > 0) {
+            customizationId = customizations[0].id;
+          }
+        }
+
+        if (customizationId) {
           // Get yacht model to find assigned PM
           const { data: quotation } = await supabase
             .from('quotations')
@@ -357,17 +375,31 @@ export const useReviewApproval = () => {
           .single();
 
         const approvalDetails = (currentApproval?.request_details as Record<string, any>) || {};
-        const itemName = approvalDetails.customization_item_name;
+        const isContractRevision = approvalDetails.is_contract_revision === true;
         
-        const { data: customizations } = await supabase
-          .from('quotation_customizations')
-          .select('id')
-          .eq('quotation_id', approval.quotation_id)
-          .eq('item_name', itemName)
-          .eq('status', 'pending')
-          .limit(1);
+        let customizationId: string | null = null;
 
-        if (customizations && customizations.length > 0) {
+        // For contract revisions, use the customization_id directly
+        if (isContractRevision && approvalDetails.customization_id) {
+          customizationId = approvalDetails.customization_id;
+        } else {
+          // For regular customizations, find by item_name
+          const itemName = approvalDetails.customization_item_name;
+          
+          const { data: customizations } = await supabase
+            .from('quotation_customizations')
+            .select('id')
+            .eq('quotation_id', approval.quotation_id)
+            .eq('item_name', itemName)
+            .eq('status', 'pending')
+            .limit(1);
+
+          if (customizations && customizations.length > 0) {
+            customizationId = customizations[0].id;
+          }
+        }
+
+        if (customizationId) {
           await supabase
             .from('quotation_customizations')
             .update({
@@ -376,7 +408,7 @@ export const useReviewApproval = () => {
               reviewed_at: new Date().toISOString(),
               engineering_notes: params.review_notes || null
             })
-            .eq('id', customizations[0].id);
+            .eq('id', customizationId);
         }
       }
 
