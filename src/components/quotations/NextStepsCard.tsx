@@ -20,8 +20,6 @@ export function NextStepsCard({
   onDownloadPDF,
   approvalStatus
 }: NextStepsCardProps) {
-  console.log('🎯 DEBUG NextStepsCard - approvalStatus:', approvalStatus);
-  
   const isAwaitingApprovals = approvalStatus.nextStep === 'awaiting_approvals';
   const cardBorderClass = isAwaitingApprovals 
     ? "border-yellow-600/50 bg-yellow-50/50 dark:bg-yellow-950/20" 
