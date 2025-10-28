@@ -65,9 +65,15 @@ export default function Approvals() {
     return variants[status as keyof typeof variants] || variants.pending;
   };
 
-  const getTypeBadge = (type: string) => {
+  const getTypeBadge = (type: string, requestDetails?: any) => {
     if (type === 'commercial') return 'Desconto';
-    if (type === 'technical') return 'Customização';
+    if (type === 'technical') {
+      // Check if it's a contract revision
+      if (requestDetails?.is_contract_revision) {
+        return 'Revisão de Contrato';
+      }
+      return 'Customização';
+    }
     return type === 'discount' ? 'Desconto' : 'Customização';
   };
 
@@ -207,9 +213,10 @@ export default function Approvals() {
                                 {approval.request_details.discount_type === 'base' ? 'Desconto Base' : 'Desconto Opcionais'}
                               </Badge>
                             )}
-                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && approval.request_details?.customization_item_name && (
-                              <Badge variant="outline">
-                                Customização: {approval.request_details.customization_item_name}
+                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && (
+                              <Badge variant={approval.request_details?.is_contract_revision ? "secondary" : "outline"}>
+                                {approval.request_details?.is_contract_revision ? '🔄 Revisão de Contrato' : 'Customização'}
+                                {approval.request_details?.item_name && `: ${approval.request_details.item_name}`}
                               </Badge>
                             )}
                           </TableCell>
