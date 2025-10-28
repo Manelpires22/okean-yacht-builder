@@ -94,28 +94,97 @@ export function useCreateRevision() {
 
       // 5. Copiar customizações
       if (originalQuotation.quotation_customizations && originalQuotation.quotation_customizations.length > 0) {
-        const customizationsToInsert = originalQuotation.quotation_customizations.map((custom: any) => ({
-          quotation_id: newQuotation.id,
-          memorial_item_id: custom.memorial_item_id,
-          item_name: custom.item_name,
-          quantity: custom.quantity,
-          notes: custom.notes,
-          file_paths: custom.file_paths,
-          // Status volta para pending
-          status: 'pending'
-        }));
+        const customizationsToInsert = originalQuotation.quotation_customizations.map((custom: any) => {
+          const isApproved = custom.status === 'approved';
+          
+          return {
+            quotation_id: newQuotation.id,
+            memorial_item_id: custom.memorial_item_id,
+            item_name: custom.item_name,
+            quantity: custom.quantity,
+            notes: custom.notes,
+            file_paths: custom.file_paths,
+            
+            // ✅ PRESERVAR STATUS SE APROVADO
+            status: isApproved ? 'approved' : 'pending',
+            workflow_status: isApproved ? 'approved' : 'pending_pm_review',
+            
+            // ✅ COPIAR DADOS TÉCNICOS SE APROVADO
+            additional_cost: isApproved ? custom.additional_cost : 0,
+            delivery_impact_days: isApproved ? custom.delivery_impact_days : 0,
+            engineering_hours: isApproved ? custom.engineering_hours : 0,
+            engineering_notes: isApproved ? custom.engineering_notes : null,
+            supply_cost: isApproved ? custom.supply_cost : 0,
+            supply_lead_time_days: isApproved ? custom.supply_lead_time_days : 0,
+            supply_items: isApproved ? custom.supply_items : [],
+            supply_notes: isApproved ? custom.supply_notes : null,
+            planning_window_start: isApproved ? custom.planning_window_start : null,
+            planning_delivery_impact_days: isApproved ? custom.planning_delivery_impact_days : 0,
+            planning_notes: isApproved ? custom.planning_notes : null,
+            pm_final_price: isApproved ? custom.pm_final_price : 0,
+            pm_final_delivery_impact_days: isApproved ? custom.pm_final_delivery_impact_days : 0,
+            pm_final_notes: isApproved ? custom.pm_final_notes : null,
+            pm_scope: isApproved ? custom.pm_scope : null,
+            
+            // Copiar metadados de workflow
+            workflow_audit: isApproved ? custom.workflow_audit : [],
+            reviewed_by: isApproved ? custom.reviewed_by : null,
+            reviewed_at: isApproved ? custom.reviewed_at : null,
+          };
+        });
 
-        const { error: customizationsError } = await supabase
+        const { error: customizationsError, data: newCustomizations } = await supabase
           .from('quotation_customizations')
-          .insert(customizationsToInsert);
+          .insert(customizationsToInsert)
+          .select();
 
         if (customizationsError) throw customizationsError;
+        
+        // ✅ COPIAR WORKFLOW STEPS PARA CUSTOMIZAÇÕES APROVADAS
+        if (newCustomizations) {
+          for (let i = 0; i < originalQuotation.quotation_customizations.length; i++) {
+            const originalCustom = originalQuotation.quotation_customizations[i];
+            const newCustom = newCustomizations[i];
+            
+            if (originalCustom.status === 'approved') {
+              // Buscar steps do workflow original
+              const { data: originalSteps } = await supabase
+                .from('customization_workflow_steps')
+                .select('*')
+                .eq('customization_id', originalCustom.id)
+                .order('created_at', { ascending: true });
+              
+              if (originalSteps && originalSteps.length > 0) {
+                // Copiar steps como 'completed'
+                const stepsToInsert = originalSteps.map(step => ({
+                  customization_id: newCustom.id,
+                  step_type: step.step_type,
+                  status: 'completed',
+                  assigned_to: step.assigned_to,
+                  response_data: step.response_data,
+                  notes: `${step.notes || ''} (Copiado da v${originalQuotation.version})`.trim(),
+                  completed_at: step.completed_at || step.updated_at
+                }));
+                
+                const { error: stepsError } = await supabase
+                  .from('customization_workflow_steps')
+                  .insert(stepsToInsert);
+                
+                if (stepsError) {
+                  console.error('Erro ao copiar workflow steps:', stepsError);
+                }
+              }
+            }
+          }
+        }
       }
 
       return newQuotation;
     },
     onSuccess: (newQuotation) => {
       queryClient.invalidateQueries({ queryKey: ['quotations'] });
+      queryClient.invalidateQueries({ queryKey: ['customization-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['quotation-customizations-workflow'] });
       toast.success(`Revisão ${newQuotation.quotation_number} criada com sucesso!`);
     },
     onError: (error: Error) => {

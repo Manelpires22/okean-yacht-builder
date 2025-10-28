@@ -1,178 +1,150 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { GitBranch, FileText, ArrowRight } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertTriangle, FileText, ChevronDown, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { useNavigate } from "react-router-dom";
+import { useQuotationVersionChain } from "@/hooks/useQuotationVersionChain";
+import { Skeleton } from "@/components/ui/skeleton";
+import { QuotationStatusBadge } from "./QuotationStatusBadge";
+
+type QuotationStatus = "draft" | "pending_approval" | "approved" | "rejected" | "sent" | "accepted" | "cancelled";
 
 interface QuotationVersionHistoryProps {
   quotationId: string;
-  currentVersion: number;
 }
 
-export function QuotationVersionHistory({ 
-  quotationId, 
-  currentVersion 
-}: QuotationVersionHistoryProps) {
+export function QuotationVersionHistory({ quotationId }: QuotationVersionHistoryProps) {
   const navigate = useNavigate();
-
-  // Buscar cotação pai (se esta for uma revisão)
-  const { data: parentQuotation } = useQuery({
-    queryKey: ['parent-quotation', quotationId],
-    queryFn: async () => {
-      const { data: current } = await supabase
-        .from('quotations')
-        .select('parent_quotation_id')
-        .eq('id', quotationId)
-        .single();
-
-      if (!current?.parent_quotation_id) return null;
-
-      const { data: parent } = await supabase
-        .from('quotations')
-        .select('*')
-        .eq('id', current.parent_quotation_id)
-        .single();
-
-      return parent;
-    }
-  });
-
-  // Buscar todas as revisões desta cotação
-  const { data: revisions } = useQuery({
-    queryKey: ['quotation-revisions', quotationId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('quotations')
-        .select('*')
-        .eq('parent_quotation_id', quotationId)
-        .order('version', { ascending: false });
-
-      return data || [];
-    }
-  });
-
-  const hasHistory = parentQuotation || (revisions && revisions.length > 0);
-
-  if (!hasHistory) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        <p className="text-sm">Nenhum histórico de versões disponível</p>
-      </div>
-    );
+  const { data: versionChain, isLoading } = useQuotationVersionChain(quotationId);
+  
+  if (isLoading) {
+    return <Skeleton className="h-32 w-full" />;
   }
-
+  
+  if (!versionChain) return null;
+  
+  const { currentQuotation, allVersions, isLatest, latestVersion } = versionChain;
+  const previousVersions = allVersions.filter(v => v.id !== currentQuotation.id);
+  
   return (
     <div className="space-y-4">
-        {/* Cotação Pai */}
-        {parentQuotation && (
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">
-                  {parentQuotation.quotation_number}
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  v{parentQuotation.version}
-                </Badge>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => navigate(`/quotations/${parentQuotation.id}`)}
-              >
-                Ver original
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+      {/* ⚠️ Alerta se não for a versão mais recente */}
+      {!isLatest && latestVersion && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Versão Desatualizada</AlertTitle>
+          <AlertDescription className="flex items-center justify-between flex-wrap gap-2">
+            <span>
+              Você está visualizando a <strong>v{currentQuotation.version}</strong>. 
+              Existe uma versão mais recente: <strong>v{latestVersion.version}</strong> ({latestVersion.quotation_number}).
+            </span>
+            <Button 
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/quotations/${latestVersion.id}`)}
+            >
+              Ver Última Versão →
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* ⭐ Card da Versão Atual */}
+      <Card className="border-2 border-primary bg-primary/5">
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Badge variant="default" className="text-sm">
+                VERSÃO ATUAL - v{currentQuotation.version}
+              </Badge>
+              <span className="font-mono text-sm font-medium">
+                {currentQuotation.quotation_number}
+              </span>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <p className="text-muted-foreground">Status</p>
-                <Badge variant="secondary">{parentQuotation.status}</Badge>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Valor</p>
-                <p className="font-medium">{formatCurrency(parentQuotation.final_price)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Criada em</p>
-                <p className="font-medium">
-                  {format(new Date(parentQuotation.created_at), "dd/MM/yy", { locale: ptBR })}
-                </p>
-              </div>
+            <QuotationStatusBadge status={currentQuotation.status as any} />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground mb-1">Cliente</p>
+              <p className="font-medium">{currentQuotation.client_name}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground mb-1">Valor Total</p>
+              <p className="font-medium text-lg">{formatCurrency(currentQuotation.final_price)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground mb-1">Criada em</p>
+              <p className="font-medium">
+                {format(new Date(currentQuotation.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground mb-1">Validade</p>
+              <p className="font-medium">
+                {format(new Date(currentQuotation.valid_until), 'dd/MM/yyyy', { locale: ptBR })}
+              </p>
             </div>
           </div>
-        )}
-
-        {/* Versão Atual */}
-        <div className="p-4 border-2 border-primary rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <span className="font-medium">Versão Atual</span>
-            <Badge variant="default">v{currentVersion}</Badge>
-          </div>
-        </div>
-
-        {/* Revisões Criadas */}
-        {revisions && revisions.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-muted-foreground">
-              Revisões Criadas ({revisions.length})
-            </h4>
-            {revisions.map((revision: any) => (
-              <div key={revision.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">
-                      {revision.quotation_number}
-                    </span>
-                    <Badge variant="outline" className="text-xs">
-                      v{revision.version}
-                    </Badge>
-                    <Badge 
-                      variant={revision.status === 'sent' ? 'default' : 'secondary'}
-                      className="text-xs"
+        </CardContent>
+      </Card>
+      
+      {/* 📜 Histórico de Versões Anteriores */}
+      {previousVersions.length > 0 && (
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                📜 Histórico de Versões ({previousVersions.length} {previousVersions.length === 1 ? 'versão anterior' : 'versões anteriores'})
+              </span>
+              <ChevronDown className="h-4 w-4 transition-transform duration-200" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {previousVersions.map((version: any) => (
+              <Card key={version.id} className="hover:bg-muted/50 transition-colors">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <Badge variant="outline">v{version.version}</Badge>
+                        <span className="font-mono text-sm">{version.quotation_number}</span>
+                        <QuotationStatusBadge status={version.status as any} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                        <div>
+                          <span className="font-medium">💰</span> {formatCurrency(version.final_price)}
+                        </div>
+                        <div>
+                          <span className="font-medium">📅</span> {format(new Date(version.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                        </div>
+                        <div>
+                          <span className="font-medium">⏳</span> Válida até {format(new Date(version.valid_until), 'dd/MM/yyyy', { locale: ptBR })}
+                        </div>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => navigate(`/quotations/${version.id}`)}
+                      className="shrink-0"
                     >
-                      {revision.status}
-                    </Badge>
+                      Abrir <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => navigate(`/quotations/${revision.id}`)}
-                  >
-                    Abrir
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Valor</p>
-                    <p className="font-medium">{formatCurrency(revision.final_price)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Válida até</p>
-                    <p className="font-medium">
-                      {format(new Date(revision.valid_until), "dd/MM/yy", { locale: ptBR })}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Criada em</p>
-                    <p className="font-medium">
-                      {format(new Date(revision.created_at), "dd/MM/yy", { locale: ptBR })}
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
-          </div>
-        )}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
     </div>
   );
 }

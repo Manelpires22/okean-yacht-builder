@@ -19,6 +19,7 @@ import { QuotationTrackingCard } from "@/components/quotations/QuotationTracking
 import { NextStepsCard } from "@/components/quotations/NextStepsCard";
 import { QuotationHeroSection } from "@/components/quotations/QuotationHeroSection";
 import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDetailsAccordion";
+import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
 import { CustomizationWorkflowCard } from "@/components/quotations/CustomizationWorkflowCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
@@ -357,12 +358,15 @@ export default function QuotationDetail() {
           </Card>
         )}
 
-        {/* Detalhes em Accordion */}
-        <QuotationDetailsAccordion 
-          quotation={quotation}
-          defaultExpanded={defaultExpandedSections}
-        />
-      </div>
+          {/* Detalhes em Accordion */}
+          <QuotationDetailsAccordion 
+            quotation={quotation}
+            defaultExpanded={defaultExpandedSections}
+          />
+
+          {/* Histórico de Versões */}
+          <QuotationVersionHistory quotationId={quotation.id} />
+        </div>
 
       {/* Botões de Ação - Sticky Footer */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">

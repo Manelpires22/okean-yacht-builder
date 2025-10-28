@@ -265,7 +265,6 @@ export function QuotationDetailsAccordion({
         <AccordionContent className="pt-4">
           <QuotationVersionHistory
             quotationId={quotation.id}
-            currentVersion={quotation.version || 1}
           />
         </AccordionContent>
       </AccordionItem>
