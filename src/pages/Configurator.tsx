@@ -201,9 +201,9 @@ export default function Configurator() {
                 <TabsTrigger value="base">Modelo Base</TabsTrigger>
                 <TabsTrigger value="options">
                   Opcionais
-                  {state.selected_options.length > 0 && (
+                  {(state.selected_options?.length || 0) > 0 && (
                     <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                      {state.selected_options.length}
+                      {state.selected_options?.length || 0}
                     </span>
                   )}
                 </TabsTrigger>
@@ -348,7 +348,7 @@ export default function Configurator() {
         isLoading={saveQuotation.isPending}
         baseDiscountPercentage={state.base_discount_percentage}
         optionsDiscountPercentage={state.options_discount_percentage}
-        customizationsCount={state.customizations.length}
+        customizationsCount={state.customizations?.length || 0}
         existingClientData={existingQuotation ? {
           client_id: existingQuotation.client_id || undefined,
           client_name: existingQuotation.client_name,

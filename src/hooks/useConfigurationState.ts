@@ -180,12 +180,12 @@ export function useConfigurationState() {
   };
 
   const totals = useMemo(() => {
-    const optionsTotal = state.selected_options.reduce(
+    const optionsTotal = (state.selected_options || []).reduce(
       (sum, option) => sum + option.unit_price * option.quantity,
       0
     );
     
-    const maxDeliveryImpact = state.selected_options.reduce(
+    const maxDeliveryImpact = (state.selected_options || []).reduce(
       (max, option) => Math.max(max, option.delivery_days_impact || 0),
       0
     );
