@@ -83,6 +83,9 @@ export function useSaveQuotation() {
         
         if (error) throw error;
 
+        // ✅ Extrair quotation_number para uso posterior
+        const quotationNumber = quotation.quotation_number;
+
         // Delete old options
         await supabase
           .from("quotation_options")
