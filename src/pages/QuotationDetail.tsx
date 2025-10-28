@@ -22,6 +22,7 @@ import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDeta
 import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
 import { CustomizationWorkflowCard } from "@/components/quotations/CustomizationWorkflowCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
+import { useQuotationApprovalStatus } from "@/hooks/useQuotationApprovalStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
 import { useSendQuotation } from "@/hooks/useSendQuotation";
 import { useCreateRevision } from "@/hooks/useCreateRevision";
@@ -51,6 +52,7 @@ export default function QuotationDetail() {
 
   // Hooks para status e revalidação
   const quotationStatus = useQuotationStatus(quotation || null);
+  const approvalStatus = useQuotationApprovalStatus(quotation || null);
   const { data: revalidation } = useQuotationRevalidation(id);
   const sendQuotation = useSendQuotation();
   const createRevision = useCreateRevision();
@@ -330,7 +332,7 @@ export default function QuotationDetail() {
             onSendToClient={handleSendToClient}
             onSendToSelf={handleSendToSelf}
             onDownloadPDF={handleDownloadPDF}
-            needsApproval={quotationStatus.needsCommercialApproval || quotationStatus.needsTechnicalApproval}
+            approvalStatus={approvalStatus}
           />
         )}
 
