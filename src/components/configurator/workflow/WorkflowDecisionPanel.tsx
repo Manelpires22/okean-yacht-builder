@@ -1,9 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CheckCircle2, Clock, AlertCircle, DollarSign, Calendar, TrendingUp } from "lucide-react";
+import { type CustomizationWorkflow } from "@/hooks/useCustomizationWorkflow";
 import { formatCurrency } from "@/lib/formatters";
-import type { CustomizationWorkflow } from "@/hooks/useCustomizationWorkflow";
+import { cn } from "@/lib/utils";
 
 interface WorkflowDecisionPanelProps {
   customization: CustomizationWorkflow;
@@ -51,113 +52,154 @@ export function WorkflowDecisionPanel({ customization, canEdit }: WorkflowDecisi
     if (workflowStatus === 'pending_planning_validation') {
       if (item.includes('Janela')) return !!customization.planning_window_start;
       if (item.includes('Impacto')) return customization.planning_delivery_impact_days >= 0;
-      if (item.includes('Conflitos')) return true; // Assume resolved if filled
+      if (item.includes('Conflitos')) return true;
     }
     if (workflowStatus === 'pending_pm_final_approval') {
       if (item.includes('Preço')) return customization.pm_final_price > 0;
       if (item.includes('Impacto')) return customization.pm_final_delivery_impact_days >= 0;
-      if (item.includes('Notas')) return true; // Optional
+      if (item.includes('Notas')) return true;
     }
     return false;
   };
 
-  const totalImpact = customization.pm_final_price || 0;
-  const deliveryImpact = customization.pm_final_delivery_impact_days || 
-                         customization.planning_delivery_impact_days || 0;
+  const estimatedPrice = customization.pm_final_price || 0;
+  const estimatedDelivery = customization.pm_final_delivery_impact_days || 0;
 
   return (
-    <div className="space-y-4">
-      <Card>
+    <div className="space-y-6">
+      {/* Preview de Impacto - Destacado */}
+      <Card className="border-primary/50 bg-primary/5">
         <CardHeader>
-          <CardTitle className="text-lg">Checklist de Consistência</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Preview de Impacto na Cotação
+          </CardTitle>
+          <CardDescription>
+            Impacto estimado desta customização no valor e prazo total
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {checklistItems.map((item, index) => (
-              <div key={index} className="flex items-center gap-2">
-                {isComplete(item) ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                ) : (
-                  <Clock className="h-5 w-5 text-yellow-600" />
-                )}
-                <span className={isComplete(item) ? 'text-foreground' : 'text-muted-foreground'}>
-                  {item}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Preço */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <DollarSign className="h-4 w-4" />
+                <span>Adicional ao Preço</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={cn(
+                  "text-3xl font-bold",
+                  estimatedPrice > 0 ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {estimatedPrice > 0 ? formatCurrency(estimatedPrice) : "Pendente"}
                 </span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Preview de Impacto na Cotação</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Preço Base + Opcionais:</span>
-              <span className="font-medium">
-                {formatCurrency(
-                  customization.quotations.base_price + customization.quotations.total_options_price
+                {estimatedPrice > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{((estimatedPrice / customization.quotations.base_price) * 100).toFixed(1)}%
+                  </Badge>
                 )}
-              </span>
-            </div>
-            {totalImpact > 0 && (
-              <div className="flex justify-between items-center text-primary">
-                <span className="text-sm font-medium">+ Customização:</span>
-                <span className="font-bold">{formatCurrency(totalImpact)}</span>
               </div>
-            )}
-            <div className="border-t pt-2 flex justify-between items-center">
-              <span className="font-semibold">Total Estimado:</span>
-              <span className="font-bold text-lg">
-                {formatCurrency(
-                  customization.quotations.base_price + 
-                  customization.quotations.total_options_price + 
-                  totalImpact
+            </div>
+
+            {/* Prazo */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="h-4 w-4" />
+                <span>Adicional ao Prazo</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className={cn(
+                  "text-3xl font-bold",
+                  estimatedDelivery > 0 ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {estimatedDelivery > 0 ? `+${estimatedDelivery}` : "Pendente"}
+                </span>
+                {estimatedDelivery > 0 && (
+                  <span className="text-lg text-muted-foreground">dias</span>
                 )}
-              </span>
-            </div>
-          </div>
-
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Prazo Original:</span>
-              <span className="font-medium">{customization.quotations.base_delivery_days} dias</span>
-            </div>
-            {deliveryImpact > 0 && (
-              <div className="flex justify-between items-center text-primary">
-                <span className="text-sm font-medium">+ Impacto:</span>
-                <span className="font-bold">+{deliveryImpact} dias</span>
               </div>
-            )}
-            <div className="border-t pt-2 flex justify-between items-center">
-              <span className="font-semibold">Prazo Total:</span>
-              <span className="font-bold text-lg">
-                {customization.quotations.base_delivery_days + deliveryImpact} dias
-              </span>
             </div>
           </div>
 
-          {workflowStatus === 'pending_pm_final_approval' && totalImpact > 50000 && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <Badge variant="secondary" className="mr-2">Atenção</Badge>
-                Poderá disparar aprovação comercial automática
-              </AlertDescription>
-            </Alert>
+          {/* Totais */}
+          {estimatedPrice > 0 && (
+            <div className="mt-6 pt-6 border-t space-y-3">
+              <h4 className="font-semibold text-sm text-muted-foreground">Novo Total da Cotação:</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Preço Total:</span>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(
+                      customization.quotations.base_price + 
+                      customization.quotations.total_options_price + 
+                      estimatedPrice
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Prazo Total:</span>
+                  <p className="text-lg font-bold">
+                    {customization.quotations.base_delivery_days + estimatedDelivery} dias
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Checklist de Consistência */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Checklist de Consistência</CardTitle>
+          <CardDescription>
+            Verifique se todas as etapas necessárias foram completadas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {checklistItems.map((item, index) => {
+              const completed = isComplete(item);
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                    completed && "bg-success/5 border-success/20"
+                  )}
+                >
+                  {completed ? (
+                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  )}
+                  <span className={completed ? "text-foreground font-medium" : "text-muted-foreground"}>
+                    {item}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Alertas */}
+      {workflowStatus === 'pending_pm_final_approval' && estimatedPrice > 50000 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Atenção</AlertTitle>
+          <AlertDescription>
+            Este valor pode disparar aprovação comercial automática após finalização.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {!canEdit && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Aguardando outro departamento</AlertTitle>
           <AlertDescription>
-            Esta customização está aguardando ação de outro departamento. 
-            Você será notificado quando for sua vez de atuar.
+            Esta customização está aguardando ação de outro departamento. Você será notificado quando for sua vez de atuar.
           </AlertDescription>
         </Alert>
       )}
