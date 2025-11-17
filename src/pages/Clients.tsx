@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useClients, useDeleteClient } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
-import { AppHeader } from "@/components/AppHeader";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -72,13 +72,15 @@ export default function Clients() {
   }
 
   return (
-    <>
-      <AppHeader title="Clientes" />
-      <div className="container mx-auto p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
-            Gerencie a base de clientes
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
+            <p className="text-muted-foreground">
+              Gerencie a base de clientes
+            </p>
+          </div>
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             Novo Cliente
@@ -190,7 +192,7 @@ export default function Clients() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-    </>
+      </div>
+    </AdminLayout>
   );
 }
