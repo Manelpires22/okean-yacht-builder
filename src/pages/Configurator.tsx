@@ -71,7 +71,7 @@ export default function Configurator() {
     unitPrice: number,
     deliveryDaysImpact: number
   ) => {
-    const isSelected = state.selected_options.some(o => o.option_id === optionId);
+    const isSelected = state.selected_options?.some(o => o.option_id === optionId) || false;
     if (isSelected) {
       removeOption(optionId);
     } else {

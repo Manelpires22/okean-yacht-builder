@@ -140,16 +140,19 @@ export function MemorialDescritivo({
         label: categoryData?.label ?? CATEGORY_LABELS[categoryKey] ?? categoryKey,
       });
     }
-    categoryMap.get(categoryKey)!.items.push(item);
+    const category = categoryMap.get(categoryKey);
+    if (category && Array.isArray(category.items)) {
+      category.items.push(item);
+    }
   });
 
   // Sort categories by display_order and convert to array
   const sortedCategories = Array.from(categoryMap.entries())
     .sort(([, a], [, b]) => a.order - b.order)
-    .filter(([_, categoryData]) => categoryData.items.length > 0);
+    .filter(([_, categoryData]) => categoryData?.items && Array.isArray(categoryData.items) && categoryData.items.length > 0);
 
   const getCustomization = (itemId: string) => {
-    return customizations.find((c) => c.memorial_item_id === itemId);
+    return customizations?.find((c) => c.memorial_item_id === itemId);
   };
 
   const handleOpenCustomization = (itemId: string, itemName: string, quantity?: number) => {
