@@ -4,7 +4,7 @@ import { useDuplicateQuotation, useDeleteQuotation } from "@/hooks/useQuotations
 import { useQuotationsGroupedByVersion } from "@/hooks/useQuotationsGroupedByVersion";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AdminLayout } from "@/components/AdminLayout";
 import { QuotationVersionRow } from "@/components/quotations/QuotationVersionRow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,13 +103,15 @@ export default function Quotations() {
   }
 
   return (
-    <>
-      <AppHeader title="Cotações" />
-      <div className="container mx-auto p-6 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <p className="text-muted-foreground">
-            Gerencie as cotações de iates personalizados
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Cotações</h1>
+            <p className="text-muted-foreground">
+              Gerencie as cotações de iates personalizados
+            </p>
+          </div>
           <Button onClick={() => navigate("/configurator")}>
             <FileText className="mr-2 h-4 w-4" />
             Nova Cotação
@@ -193,6 +195,6 @@ export default function Quotations() {
         </CardContent>
       </Card>
       </div>
-    </>
+    </AdminLayout>
   );
 }

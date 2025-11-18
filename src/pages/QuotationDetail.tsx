@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuotation } from "@/hooks/useQuotations";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppHeader } from "@/components/AppHeader";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -315,16 +315,20 @@ export default function QuotationDetail() {
   ];
 
   return (
-    <>
-      <AppHeader title={`Cotação ${quotation.quotation_number}`} />
-      <div className="container mx-auto p-6 space-y-6 pb-24">
+    <AdminLayout>
+      <div className="space-y-6 pb-24">{/* Extra padding for fixed footer */}
+        {/* Botão Voltar */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/cotacoes")}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Cotações
+        </Button>
+
         {/* Header com navegação e status */}
         <div className="flex items-center gap-4 flex-wrap">
-          <Button variant="ghost" onClick={() => navigate("/quotations")}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-          <div className="flex-1" />
           
           {/* Botões de Link Público */}
           <Button
@@ -335,16 +339,6 @@ export default function QuotationDetail() {
           >
             <LinkIcon className="h-4 w-4" />
             Copiar Link Público
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenPublicView}
-            className="gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Ver Versão Pública
           </Button>
           
           <QuotationStatusBadge status={quotation.status as any} />
@@ -448,9 +442,8 @@ export default function QuotationDetail() {
           <QuotationVersionHistory quotationId={quotation.id} />
         </div>
 
-      {/* Botões de Ação - Sticky Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
-        <div className="container mx-auto">
+        {/* Fixed Footer with Actions - Ajustado para AdminLayout */}
+        <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
           <div className="flex flex-wrap gap-3 justify-end">
             {/* Botão Editar Rascunho - só se draft */}
             {quotation.status === 'draft' && quotationStatus.canEdit && (
@@ -530,11 +523,10 @@ export default function QuotationDetail() {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Dialog de Envio */}
-      {quotation && (
-        <SendQuotationDialog
+        {/* Dialog de Envio */}
+        {quotation && (
+          <SendQuotationDialog
           open={sendDialogOpen}
           onOpenChange={setSendDialogOpen}
           quotationNumber={quotation.quotation_number}
@@ -620,6 +612,6 @@ export default function QuotationDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </AdminLayout>
   );
 }

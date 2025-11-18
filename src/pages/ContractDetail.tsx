@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useContract, useDeleteContract } from "@/hooks/useContracts";
+import { AdminLayout } from "@/components/AdminLayout";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractHeroSection } from "@/components/contracts/ContractHeroSection";
@@ -9,7 +11,7 @@ import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
 import { ContractRevisionsTab } from "@/components/contracts/ContractRevisionsTab";
-import { FileText, Plus, TrendingUp, Clock } from "lucide-react";
+import { FileText, Plus, TrendingUp, Clock, ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,36 +44,47 @@ export default function ContractDetail() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-48 w-full" />
-        <div className="container mx-auto p-6">
+      <AdminLayout>
+        <div className="space-y-6">
+          <Skeleton className="h-48 w-full" />
           <Skeleton className="h-96 w-full" />
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   if (!contract) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold mb-2">Contrato não encontrado</h2>
-          <p className="text-muted-foreground">
-            O contrato solicitado não existe ou você não tem permissão para visualizá-lo.
-          </p>
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-2">Contrato não encontrado</h2>
+            <p className="text-muted-foreground">
+              O contrato solicitado não existe ou você não tem permissão para visualizá-lo.
+            </p>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <ContractHeroSection 
-        contract={contract} 
-        onDelete={() => setShowDeleteDialog(true)}
-      />
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Botão Voltar */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/contratos")}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Contratos
+        </Button>
 
-      <div className="container mx-auto p-6">
+        <ContractHeroSection 
+          contract={contract} 
+          onDelete={() => setShowDeleteDialog(true)}
+        />
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
@@ -123,9 +136,8 @@ export default function ContractDetail() {
             <ContractTimeline contractId={contract.id} />
           </TabsContent>
         </Tabs>
-      </div>
 
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão do contrato</AlertDialogTitle>
@@ -147,6 +159,7 @@ export default function ContractDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
