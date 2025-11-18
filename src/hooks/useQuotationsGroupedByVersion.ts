@@ -5,7 +5,7 @@ export function useQuotationsGroupedByVersion() {
   const { data: quotations, isLoading } = useQuotations();
 
   const groupedQuotations = useMemo(() => {
-    if (!quotations) return [];
+    if (!quotations || !Array.isArray(quotations)) return [];
 
     // 1. Criar mapa de todas as cotações por ID
     const quotationsMap = new Map(quotations.map(q => [q.id, q]));
@@ -38,8 +38,12 @@ export function useQuotationsGroupedByVersion() {
     // 4. Incluir cotações órfãs (não são raiz e não tem raiz encontrada)
     const allVersionIds = new Set<string>();
     grouped.forEach(g => {
-      allVersionIds.add(g.latestVersion.id);
-      g.previousVersions.forEach(v => allVersionIds.add(v.id));
+      if (g.latestVersion) {
+        allVersionIds.add(g.latestVersion.id);
+      }
+      if (Array.isArray(g.previousVersions)) {
+        g.previousVersions.forEach(v => allVersionIds.add(v.id));
+      }
     });
     
     const orphans = quotations
