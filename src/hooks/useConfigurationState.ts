@@ -34,17 +34,23 @@ export function useConfigurationState() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Garantir que arrays sempre existam
+        return {
+          ...parsed,
+          selected_options: Array.isArray(parsed.selected_options) ? parsed.selected_options : [],
+          customizations: Array.isArray(parsed.customizations) ? parsed.customizations : [],
+        };
       } catch {
-    return {
-      yacht_model_id: null,
-      base_price: 0,
-      base_delivery_days: 0,
-      selected_options: [],
-      base_discount_percentage: 0,
-      options_discount_percentage: 0,
-      customizations: [],
-    };
+        return {
+          yacht_model_id: null,
+          base_price: 0,
+          base_delivery_days: 0,
+          selected_options: [],
+          base_discount_percentage: 0,
+          options_discount_percentage: 0,
+          customizations: [],
+        };
       }
     }
     return {
