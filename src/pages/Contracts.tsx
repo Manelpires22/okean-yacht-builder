@@ -33,15 +33,15 @@ export default function Contracts() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Contratos</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Contratos</h1>
+            <p className="text-sm text-muted-foreground">
               Dashboard e gestão de contratos e aditivos (ATOs)
             </p>
           </div>
-          <Badge variant="outline" className="text-lg px-4 py-2">
+          <Badge variant="outline" className="text-sm sm:text-lg px-3 sm:px-4 py-1.5 sm:py-2">
             {contracts?.length || 0} contrato(s)
           </Badge>
         </div>
@@ -56,51 +56,51 @@ export default function Contracts() {
             <ContractsDashboard />
           </TabsContent>
 
-          <TabsContent value="list" className="space-y-6">
+          <TabsContent value="list" className="space-y-4 md:space-y-6">
             {!contracts || contracts.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum contrato encontrado</h3>
-              <p className="text-muted-foreground text-center max-w-md">
+            <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <FileText className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-2 text-center">Nenhum contrato encontrado</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-md px-4">
                 Contratos são criados automaticamente quando cotações são aceitas pelos clientes.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-3 md:gap-4">
             {contracts.map((contract) => (
               <Card
                 key={contract.id}
                 className="hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => navigate(`/contracts/${contract.id}`)}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        {contract.contract_number}
+                <CardHeader className="pb-3 md:pb-6">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                        <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="truncate">{contract.contract_number}</span>
                       </CardTitle>
-                      <CardDescription className="flex items-center gap-4">
+                      <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm">
                         <span className="flex items-center gap-1">
-                          <Ship className="h-4 w-4" />
-                          {contract.yacht_model?.name || "N/A"}
+                          <Ship className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">{contract.yacht_model?.name || "N/A"}</span>
                         </span>
                         {contract.client && (
-                          <span>• {contract.client.name}</span>
+                          <span className="truncate">• {contract.client.name}</span>
                         )}
                       </CardDescription>
                     </div>
                     <Badge
-                      className={getContractStatusColor(contract.status)}
+                      className={`${getContractStatusColor(contract.status)} text-xs whitespace-nowrap`}
                     >
                       {getContractStatusLabel(contract.status)}
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     <div className="flex items-center gap-2">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
                       <div>

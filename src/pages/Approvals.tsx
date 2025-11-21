@@ -151,10 +151,10 @@ export default function Approvals() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Aprovações</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Aprovações</h1>
+          <p className="text-sm text-muted-foreground">
             Gerencie solicitações de aprovação de descontos e customizações
           </p>
         </div>
@@ -182,15 +182,16 @@ export default function Approvals() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value={activeTab} className="mt-6">
+          <TabsContent value={activeTab} className="mt-4 md:mt-6">
             {displayedApprovals.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-8 md:py-12 text-sm text-muted-foreground">
                 Nenhuma solicitação encontrada
               </div>
             ) : (
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
+              <div className="border rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[1000px]">
+                    <TableHeader>
                     <TableRow>
                       <TableHead>Cotação</TableHead>
                       <TableHead>Cliente</TableHead>
@@ -302,7 +303,8 @@ export default function Approvals() {
                       );
                     })}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </div>
             )}
           </TabsContent>

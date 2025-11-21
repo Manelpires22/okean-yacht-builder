@@ -73,15 +73,15 @@ export default function Clients() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Clientes</h1>
+            <p className="text-sm text-muted-foreground">
               Gerencie a base de clientes
             </p>
           </div>
-          <Button onClick={handleCreate}>
+          <Button onClick={handleCreate} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Cliente
           </Button>
@@ -106,8 +106,9 @@ export default function Clients() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
@@ -160,7 +161,8 @@ export default function Clients() {
                 ))
               )}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

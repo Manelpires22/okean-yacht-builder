@@ -12,6 +12,7 @@ import { useYachtModels } from "@/hooks/useYachtModels";
 import { useSaveQuotation } from "@/hooks/useSaveQuotation";
 import { useQuotation } from "@/hooks/useQuotations";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
@@ -176,8 +177,8 @@ export default function Configurator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+        <div className="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="ghost"
             onClick={() => {
@@ -186,41 +187,43 @@ export default function Configurator() {
                 navigate("/");
               }
             }}
+            size="sm"
             className="w-full sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+            <span className="hidden sm:inline">Voltar</span>
+            <span className="sm:hidden">Voltar</span>
           </Button>
-          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-center sm:text-left">
+          <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-center sm:text-left truncate">
             Configurador de Iates
           </h1>
-          <div className="hidden sm:block sm:w-24" /> {/* Spacer for alignment on desktop */}
+          <div className="hidden sm:block sm:w-20 lg:w-24" /> {/* Spacer for alignment on desktop */}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr] gap-4 md:gap-6 items-start">
+          <div className="min-w-0">
             <Tabs defaultValue="base" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="base" className="text-xs sm:text-sm">
+              <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsTrigger value="base" className="text-xs sm:text-sm py-2 px-2">
                   <span className="hidden sm:inline">Modelo Base</span>
                   <span className="sm:hidden">Base</span>
                 </TabsTrigger>
-                <TabsTrigger value="options" className="text-xs sm:text-sm">
+                <TabsTrigger value="options" className="text-xs sm:text-sm py-2 px-2 relative">
                   <span className="hidden sm:inline">Opcionais</span>
                   <span className="sm:hidden">Opções</span>
                   {(state.selected_options?.length || 0) > 0 && (
-                    <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    <Badge variant="secondary" className="ml-1 text-xs h-5 min-w-[20px] px-1 absolute -top-1 -right-1 sm:static">
                       {state.selected_options?.length || 0}
-                    </span>
+                    </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="custom" className="text-xs sm:text-sm">
+                <TabsTrigger value="custom" className="text-xs sm:text-sm py-2 px-2 relative">
                   <span className="hidden sm:inline">Customizações</span>
                   <span className="sm:hidden">Custom</span>
                   {freeCustomizations.length > 0 && (
-                    <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    <Badge variant="secondary" className="ml-1 text-xs h-5 min-w-[20px] px-1 absolute -top-1 -right-1 sm:static">
                       {freeCustomizations.length}
-                    </span>
+                    </Badge>
                   )}
                 </TabsTrigger>
               </TabsList>

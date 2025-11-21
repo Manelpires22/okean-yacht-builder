@@ -316,29 +316,31 @@ export default function QuotationDetail() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-24">{/* Extra padding for fixed footer */}
+      <div className="space-y-4 md:space-y-6 pb-20 md:pb-24">{/* Extra padding for fixed footer */}
         {/* Botão Voltar */}
         <Button
           variant="ghost"
           onClick={() => navigate("/cotacoes")}
-          className="mb-4"
+          className="mb-2 md:mb-4"
+          size="sm"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para Cotações
+          <span className="hidden sm:inline">Voltar para Cotações</span>
+          <span className="sm:hidden">Voltar</span>
         </Button>
 
         {/* Header com navegação e status */}
-        <div className="flex items-center gap-4 flex-wrap">
-          
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-wrap">
           {/* Botões de Link Público */}
           <Button
             variant="outline"
             size="sm"
             onClick={handleCopyPublicLink}
-            className="gap-2"
+            className="gap-2 w-full sm:w-auto"
           >
             <LinkIcon className="h-4 w-4" />
-            Copiar Link Público
+            <span className="hidden sm:inline">Copiar Link Público</span>
+            <span className="sm:hidden">Copiar Link</span>
           </Button>
           
           <QuotationStatusBadge status={quotation.status as any} />
