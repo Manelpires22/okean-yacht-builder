@@ -22,7 +22,7 @@ interface OptionCardProps {
 
 export function OptionCard({ option, isSelected, customizationNotes, onToggle, onCustomize }: OptionCardProps) {
   return (
-    <Card className={isSelected ? "border-primary" : ""}>
+    <Card className={isSelected ? "border-primary max-w-md mx-auto w-full" : "max-w-md mx-auto w-full"}>
       <CardHeader>
         {option.image_url ? (
           <img
@@ -48,7 +48,7 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 px-4 sm:px-6">
+      <CardContent className="space-y-3">
         {option.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">
             {option.description}
@@ -78,7 +78,7 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
             ) : null}
           </div>
           
-          <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+          <div className="flex gap-2 w-full sm:w-auto">
             {isSelected && onCustomize && (
               <Button
                 variant="outline"
@@ -87,8 +87,8 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
                 title="Customizar opcional"
                 className="flex-1 sm:flex-initial"
               >
-                <Edit className="h-4 w-4 mr-2 sm:mr-0" />
-                <span className="sm:hidden">Editar</span>
+                <Edit className="h-4 w-4 sm:mr-0" />
+                <span className="sm:hidden ml-2">Editar</span>
               </Button>
             )}
             <Button
