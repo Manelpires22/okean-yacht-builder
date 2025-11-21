@@ -241,12 +241,15 @@ export default function AdminApprovalSettings() {
                 <AccordionContent className="text-muted-foreground">
                   Quando um cliente solicita customização (alteração de item do memorial ou adição de item novo):
                   <ol className="list-decimal pl-6 mt-2 space-y-1">
-                    <li>A customização é registrada no sistema com status "Pendente"</li>
-                    <li>Um <strong>Engenheiro</strong> ou <strong>Administrador</strong> analisa a viabilidade</li>
-                    <li>Se aprovada, define o custo adicional e impacto no prazo de entrega</li>
+                    <li>Vendedor registra a customização no sistema com status "Pendente"</li>
+                    <li>O <strong>PM de Engenharia</strong> atribuído ao modelo do iate analisa diretamente</li>
+                    <li>PM aprova e define: custo adicional + impacto no prazo de entrega</li>
                     <li>A cotação é atualizada automaticamente com os novos valores</li>
-                    <li>Se rejeitada, vendedor é notificado para informar o cliente</li>
+                    <li>Se rejeitada, vendedor é notificado para ajustar ou informar o cliente</li>
                   </ol>
+                  <p className="mt-2 text-sm">
+                    <strong>Tempo estimado:</strong> 2-3 dias úteis (simplificado do fluxo anterior de 10+ dias)
+                  </p>
                 </AccordionContent>
               </AccordionItem>
 
