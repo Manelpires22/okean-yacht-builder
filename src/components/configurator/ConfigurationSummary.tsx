@@ -90,9 +90,9 @@ export function ConfigurationSummary({
   const totalCustomizations = customizations.length + optionCustomizationsCount;
 
   return (
-    <Card className="xl:sticky xl:top-4">
+    <Card className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+        <CardTitle className="flex items-center gap-2 text-base md:text-lg lg:text-xl">
           <Ship className="h-4 w-4 md:h-5 md:w-5" />
           Resumo da Configuração
         </CardTitle>
@@ -100,10 +100,10 @@ export function ConfigurationSummary({
           Revise sua seleção antes de salvar
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 md:space-y-4">
         <div>
           <p className="text-xs md:text-sm font-medium text-muted-foreground">Modelo Selecionado</p>
-          <p className="text-base md:text-lg font-semibold break-words">{modelName}</p>
+          <p className="text-sm md:text-base lg:text-lg font-semibold break-words line-clamp-2">{modelName}</p>
           <p className="text-xs md:text-sm text-muted-foreground">
             {formatCurrency(basePrice)}
           </p>
@@ -247,8 +247,8 @@ export function ConfigurationSummary({
         <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="base-discount" className="text-xs md:text-sm flex items-center gap-2">
-              <Percent className="h-3 w-3" />
-              <span className="break-words">Desconto Base (máx {limits.BASE_DISCOUNT_LIMITS.noApprovalRequired}%)</span>
+              <Percent className="h-3 w-3 flex-shrink-0" />
+              <span className="break-words">Desconto Base <span className="text-muted-foreground">(max {limits.BASE_DISCOUNT_LIMITS.noApprovalRequired}%)</span></span>
             </Label>
             <Input
               id="base-discount"
@@ -264,8 +264,8 @@ export function ConfigurationSummary({
 
           <div className="space-y-2">
             <Label htmlFor="options-discount" className="text-xs md:text-sm flex items-center gap-2">
-              <Percent className="h-3 w-3" />
-              <span className="break-words">Desconto Opcionais (máx {limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}%)</span>
+              <Percent className="h-3 w-3 flex-shrink-0" />
+              <span className="break-words">Desconto Opcionais <span className="text-muted-foreground">(max {limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}%)</span></span>
             </Label>
             <Input
               id="options-discount"

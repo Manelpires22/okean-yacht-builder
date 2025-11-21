@@ -104,15 +104,15 @@ export default function Quotations() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 md:space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Cotações</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Cotações</h1>
+            <p className="text-sm text-muted-foreground">
               Gerencie as cotações de iates personalizados
             </p>
           </div>
-          <Button onClick={() => navigate("/configurator")}>
+          <Button onClick={() => navigate("/configurator")} className="w-full sm:w-auto">
             <FileText className="mr-2 h-4 w-4" />
             Nova Cotação
           </Button>
@@ -123,7 +123,7 @@ export default function Quotations() {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -134,7 +134,7 @@ export default function Quotations() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[280px]">
+              <SelectTrigger className="w-full sm:w-[280px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
