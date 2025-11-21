@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { UserMenu } from "./admin/UserMenu";
 import { AppSidebar } from "./AppSidebar";
+import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 interface AdminLayoutProps {
@@ -14,9 +15,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         <AppSidebar />
         
         <main className="flex-1 flex flex-col">
-          {/* Header com trigger e UserMenu */}
+          {/* Header com trigger, breadcrumbs e UserMenu */}
           <header className="sticky top-0 z-10 h-14 border-b bg-background flex items-center px-4 gap-4">
             <SidebarTrigger />
+            
+            <AdminBreadcrumbs />
             
             <div className="ml-auto">
               <UserMenu />
