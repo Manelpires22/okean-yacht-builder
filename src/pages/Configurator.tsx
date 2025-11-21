@@ -177,7 +177,7 @@ export default function Configurator() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <div className="mb-4 md:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="ghost"
@@ -200,7 +200,7 @@ export default function Configurator() {
           <div className="hidden sm:block sm:w-20 lg:w-24" /> {/* Spacer for alignment on desktop */}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr] gap-4 md:gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr] 2xl:grid-cols-[4fr_1fr] gap-4 md:gap-6 items-start">
           <div className="min-w-0">
             <Tabs defaultValue="base" className="w-full">
               <TabsList className="grid w-full grid-cols-3 h-auto">

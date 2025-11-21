@@ -22,7 +22,7 @@ interface OptionCardProps {
 
 export function OptionCard({ option, isSelected, customizationNotes, onToggle, onCustomize }: OptionCardProps) {
   return (
-    <Card className={isSelected ? "border-primary" : ""}>
+    <Card className={isSelected ? "border-primary max-w-md mx-auto w-full" : "max-w-md mx-auto w-full"}>
       <CardHeader>
         {option.image_url ? (
           <img
