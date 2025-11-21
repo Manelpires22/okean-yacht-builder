@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { useApprovals } from "@/hooks/useApprovals";
 import { ApprovalStats } from "@/components/approvals/ApprovalStats";
 import { ApprovalDialog } from "@/components/approvals/ApprovalDialog";
+import { SimplifiedTechnicalApprovalDialog } from "@/components/approvals/SimplifiedTechnicalApprovalDialog";
 import { CustomizationWorkflowModal } from "@/components/configurator/CustomizationWorkflowModal";
+import { useSimplifiedWorkflow } from "@/hooks/useSimplifiedWorkflow";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,9 @@ export default function Approvals() {
   const [selectedCustomizationId, setSelectedCustomizationId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+
+  // Feature toggle: verificar se deve usar workflow simplificado
+  const { data: isSimplifiedWorkflowEnabled, isLoading: isLoadingFlag } = useSimplifiedWorkflow();
 
   const { data: allApprovals = [] } = useApprovals();
   const { data: pendingApprovals = [] } = useApprovals({ status: 'pending' });
@@ -138,6 +143,11 @@ export default function Approvals() {
   };
 
   const displayedApprovals = getDisplayedApprovals();
+
+  // Encontrar a approval selecionada para o diálogo simplificado
+  const selectedApproval = useMemo(() => {
+    return displayedApprovals.find(a => a.id === selectedApprovalId) || null;
+  }, [displayedApprovals, selectedApprovalId]);
 
   return (
     <AdminLayout>
@@ -298,17 +308,31 @@ export default function Approvals() {
           </TabsContent>
         </Tabs>
 
-        <ApprovalDialog
-          approvalId={selectedApprovalId}
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
+        {/* Approval Dialogs - Condicional baseado na flag */}
+        {!isLoadingFlag && isSimplifiedWorkflowEnabled && selectedApproval?.approval_type === 'technical' && selectedApproval.quotations ? (
+          // Novo fluxo simplificado para aprovações técnicas
+          <SimplifiedTechnicalApprovalDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            approval={selectedApproval as any}
+          />
+        ) : (
+          // Fluxo antigo (para aprovações de desconto e quando flag está desativada)
+          <ApprovalDialog
+            approvalId={selectedApprovalId}
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+          />
+        )}
 
-        <CustomizationWorkflowModal
-          customizationId={selectedCustomizationId}
-          open={workflowDialogOpen}
-          onOpenChange={setWorkflowDialogOpen}
-        />
+        {/* Customization Workflow Modal - Apenas para workflow antigo */}
+        {!isSimplifiedWorkflowEnabled && (
+          <CustomizationWorkflowModal
+            customizationId={selectedCustomizationId}
+            open={workflowDialogOpen}
+            onOpenChange={setWorkflowDialogOpen}
+          />
+        )}
       </div>
     </AdminLayout>
   );
