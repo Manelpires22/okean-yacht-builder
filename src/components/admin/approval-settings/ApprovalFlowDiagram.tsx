@@ -32,14 +32,12 @@ export function ApprovalFlowDiagram() {
     AdminDecision -->|Rejeitado| Rejected
     
     CheckCustom -->|Não| Approved([✅ Cotação Aprovada])
-    CheckCustom -->|Sim| EngApproval[🔧 Aprovação Engenharia]
+    CheckCustom -->|Sim| PMApproval[🔧 Aprovação PM]
     
-    EngApproval --> EngDecision{Decisão Engenheiro}
+    PMApproval --> PMDecision{Decisão PM}
     
-    EngDecision -->|Aprovado| UpdateCosts[Atualizar custos e prazos]
-    EngDecision -->|Rejeitado| Rejected
-    
-    UpdateCosts --> Approved
+    PMDecision -->|Aprovado - Define custo/prazo| Approved
+    PMDecision -->|Rejeitado| Rejected
     
     Approved --> ReadyToSend([📧 Pronta para envio])
     Rejected --> BackToDraft([↩️ Volta para rascunho])
@@ -51,7 +49,7 @@ export function ApprovalFlowDiagram() {
     style BackToDraft fill:#ffe0b2
     style DirApproval fill:#fff3e0
     style AdminApproval fill:#fce4ec
-    style EngApproval fill:#e1f5fe`;
+    style PMApproval fill:#e1f5fe`;
 
   return (
     <div className="w-full overflow-x-auto">
@@ -73,7 +71,7 @@ export function ApprovalFlowDiagram() {
             <h4 className="font-semibold">Aprovação Técnica</h4>
           </div>
           <p className="text-muted-foreground">
-            Validação de customizações por Engenheiro, com definição de custos e prazos
+            PM de Engenharia analisa e aprova customizações diretamente, definindo custo e prazo
           </p>
         </div>
         <div className="p-3 border rounded-lg">

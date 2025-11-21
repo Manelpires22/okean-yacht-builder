@@ -102,8 +102,8 @@ export function ApprovalTypesCards() {
             </h4>
             <p className="text-sm text-muted-foreground">
               Quando um cliente solicita alterações técnicas em itens do memorial descritivo
-              ou adição de novos itens personalizados, essas customizações precisam ser
-              validadas pela engenharia.
+              ou adição de novos itens personalizados, o PM de Engenharia analisa e aprova
+              diretamente, definindo custo adicional e impacto no prazo.
             </p>
           </div>
 
@@ -142,9 +142,9 @@ export function ApprovalTypesCards() {
           <div>
             <h4 className="font-semibold mb-2">⚡ Impacto</h4>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
-              <li><strong>Custo adicional:</strong> Engenheiro define valor extra</li>
-              <li><strong>Prazo de entrega:</strong> Pode adicionar dias ao cronograma</li>
-              <li><strong>Status:</strong> Cotação fica "Aguardando Aprovação Técnica"</li>
+              <li><strong>Custo adicional:</strong> PM define valor extra da customização</li>
+              <li><strong>Prazo de entrega:</strong> PM define impacto em dias no cronograma</li>
+              <li><strong>Status:</strong> Aprovada → cotação atualizada automaticamente</li>
             </ul>
           </div>
 
