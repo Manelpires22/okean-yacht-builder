@@ -22,7 +22,7 @@ interface OptionCardProps {
 
 export function OptionCard({ option, isSelected, customizationNotes, onToggle, onCustomize }: OptionCardProps) {
   return (
-    <Card className={isSelected ? "border-primary max-w-md mx-auto w-full" : "max-w-md mx-auto w-full"}>
+    <Card className={isSelected ? "border-primary w-full" : "w-full"}>
       <CardHeader>
         {option.image_url ? (
           <img
@@ -35,14 +35,14 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-sm sm:text-base break-words">{option.name}</CardTitle>
+            <CardTitle className="text-base md:text-lg break-words">{option.name}</CardTitle>
             <CardDescription className="font-mono text-xs">
               {option.code}
             </CardDescription>
           </div>
           {isSelected && (
-            <Badge variant="default" className="shrink-0">
-              <Check className="h-3 w-3 mr-1" />
+            <Badge variant="default" className="shrink-0 text-sm">
+              <Check className="h-4 w-4 mr-1" />
               Selecionado
             </Badge>
           )}
@@ -58,8 +58,8 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
         {customizationNotes && (
           <div className="p-2 bg-muted rounded-md border border-border">
             <div className="flex items-start gap-2">
-              <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground line-clamp-2">
+              <MessageSquare className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-xs md:text-sm text-muted-foreground line-clamp-2">
                 {customizationNotes}
               </p>
             </div>
@@ -68,11 +68,11 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
         
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-base sm:text-lg font-bold">
+            <p className="text-lg md:text-xl font-bold">
               {formatCurrency(Number(option.base_price))}
             </p>
             {option.delivery_days_impact && option.delivery_days_impact > 0 ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 +{option.delivery_days_impact} dias
               </p>
             ) : null}
@@ -82,29 +82,29 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
             {isSelected && onCustomize && (
               <Button
                 variant="outline"
-                size="sm"
+                size="default"
                 onClick={onCustomize}
                 title="Customizar opcional"
                 className="flex-1 sm:flex-initial"
               >
-                <Edit className="h-4 w-4 sm:mr-0" />
+                <Edit className="h-5 w-5 sm:mr-0" />
                 <span className="sm:hidden ml-2">Editar</span>
               </Button>
             )}
             <Button
               variant={isSelected ? "outline" : "default"}
-              size="sm"
+              size="default"
               onClick={onToggle}
               className="flex-1 sm:flex-initial"
             >
               {isSelected ? (
                 <>
-                  <Check className="h-4 w-4 mr-1" />
+                  <Check className="h-5 w-5 mr-1" />
                   Remover
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-5 w-5 mr-1" />
                   Adicionar
                 </>
               )}
