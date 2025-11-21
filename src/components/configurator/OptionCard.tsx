@@ -33,15 +33,15 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
         ) : (
           <div className="w-full h-32 bg-muted rounded-md mb-2" />
         )}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-base">{option.name}</CardTitle>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="text-sm sm:text-base break-words">{option.name}</CardTitle>
             <CardDescription className="font-mono text-xs">
               {option.code}
             </CardDescription>
           </div>
           {isSelected && (
-            <Badge variant="default" className="ml-2">
+            <Badge variant="default" className="shrink-0">
               <Check className="h-3 w-3 mr-1" />
               Selecionado
             </Badge>
@@ -66,9 +66,9 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
           </div>
         )}
         
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-lg font-bold">
+            <p className="text-base sm:text-lg font-bold">
               {formatCurrency(Number(option.base_price))}
             </p>
             {option.delivery_days_impact && option.delivery_days_impact > 0 ? (
@@ -78,21 +78,24 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
             ) : null}
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             {isSelected && onCustomize && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onCustomize}
                 title="Customizar opcional"
+                className="flex-1 sm:flex-initial"
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-4 w-4 sm:mr-0" />
+                <span className="sm:hidden ml-2">Editar</span>
               </Button>
             )}
             <Button
               variant={isSelected ? "outline" : "default"}
               size="sm"
               onClick={onToggle}
+              className="flex-1 sm:flex-initial"
             >
               {isSelected ? (
                 <>
