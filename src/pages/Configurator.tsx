@@ -177,7 +177,7 @@ export default function Configurator() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button
             variant="ghost"
             onClick={() => {
@@ -186,31 +186,39 @@ export default function Configurator() {
                 navigate("/");
               }
             }}
+            className="w-full sm:w-auto"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          <h1 className="text-2xl font-bold">Configurador de Iates</h1>
-          <div className="w-24" /> {/* Spacer for alignment */}
+          <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-center sm:text-left">
+            Configurador de Iates
+          </h1>
+          <div className="hidden sm:block sm:w-24" /> {/* Spacer for alignment on desktop */}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
             <Tabs defaultValue="base" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="base">Modelo Base</TabsTrigger>
-                <TabsTrigger value="options">
-                  Opcionais
+                <TabsTrigger value="base" className="text-xs sm:text-sm">
+                  <span className="hidden sm:inline">Modelo Base</span>
+                  <span className="sm:hidden">Base</span>
+                </TabsTrigger>
+                <TabsTrigger value="options" className="text-xs sm:text-sm">
+                  <span className="hidden sm:inline">Opcionais</span>
+                  <span className="sm:hidden">Opções</span>
                   {(state.selected_options?.length || 0) > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                       {state.selected_options?.length || 0}
                     </span>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="custom">
-                  Customizações
+                <TabsTrigger value="custom" className="text-xs sm:text-sm">
+                  <span className="hidden sm:inline">Customizações</span>
+                  <span className="sm:hidden">Custom</span>
                   {freeCustomizations.length > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                    <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
                       {freeCustomizations.length}
                     </span>
                   )}

@@ -90,21 +90,21 @@ export function ConfigurationSummary({
   const totalCustomizations = customizations.length + optionCustomizationsCount;
 
   return (
-    <Card className="lg:sticky lg:top-4">
+    <Card className="xl:sticky xl:top-4">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Ship className="h-5 w-5" />
+        <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+          <Ship className="h-4 w-4 md:h-5 md:w-5" />
           Resumo da Configuração
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs md:text-sm">
           Revise sua seleção antes de salvar
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Modelo Selecionado</p>
-          <p className="text-lg font-semibold">{modelName}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs md:text-sm font-medium text-muted-foreground">Modelo Selecionado</p>
+          <p className="text-base md:text-lg font-semibold break-words">{modelName}</p>
+          <p className="text-xs md:text-sm text-muted-foreground">
             {formatCurrency(basePrice)}
           </p>
         </div>
@@ -113,8 +113,8 @@ export function ConfigurationSummary({
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-muted-foreground">Opcionais</p>
-            <Badge variant="secondary">{selectedOptions.length}</Badge>
+            <p className="text-xs md:text-sm font-medium text-muted-foreground">Opcionais</p>
+            <Badge variant="secondary" className="text-xs">{selectedOptions.length}</Badge>
           </div>
           {selectedOptions.length > 0 ? (
             <div className="space-y-2">
@@ -128,7 +128,7 @@ export function ConfigurationSummary({
                     className="flex items-start justify-between gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors group"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{optionName}</p>
+                      <p className="text-xs md:text-sm font-medium line-clamp-2 break-words">{optionName}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(selected.unit_price * selected.quantity)}
                       </p>
@@ -137,7 +137,7 @@ export function ConfigurationSummary({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         onClick={() => onRemoveOption(selected.option_id)}
                       >
                         <X className="h-4 w-4 text-destructive" />
@@ -148,7 +148,7 @@ export function ConfigurationSummary({
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground italic">
+            <p className="text-xs md:text-sm text-muted-foreground italic">
               Nenhum opcional selecionado
             </p>
           )}
@@ -160,8 +160,8 @@ export function ConfigurationSummary({
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-muted-foreground">Customizações</p>
-                <Badge variant="secondary">{totalCustomizations}</Badge>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Customizações</p>
+                <Badge variant="secondary" className="text-xs">{totalCustomizations}</Badge>
               </div>
               <Collapsible open={expandedCustomizations} onOpenChange={setExpandedCustomizations}>
                 <CollapsibleTrigger asChild>
@@ -246,9 +246,9 @@ export function ConfigurationSummary({
 
         <div className="space-y-3">
           <div className="space-y-2">
-            <Label htmlFor="base-discount" className="text-sm flex items-center gap-2">
+            <Label htmlFor="base-discount" className="text-xs md:text-sm flex items-center gap-2">
               <Percent className="h-3 w-3" />
-              Desconto Base (até {limits.BASE_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
+              <span className="break-words">Desconto Base (máx {limits.BASE_DISCOUNT_LIMITS.noApprovalRequired}%)</span>
             </Label>
             <Input
               id="base-discount"
@@ -263,9 +263,9 @@ export function ConfigurationSummary({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="options-discount" className="text-sm flex items-center gap-2">
+            <Label htmlFor="options-discount" className="text-xs md:text-sm flex items-center gap-2">
               <Percent className="h-3 w-3" />
-              Desconto Opcionais (até {limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}% sem aprovação)
+              <span className="break-words">Desconto Opcionais (máx {limits.OPTIONS_DISCOUNT_LIMITS.noApprovalRequired}%)</span>
             </Label>
             <Input
               id="options-discount"
@@ -330,22 +330,22 @@ export function ConfigurationSummary({
         <Separator />
 
         <div className="space-y-1">
-          <div className="flex justify-between items-baseline">
-            <span className="text-lg font-semibold">Preço Total</span>
-            <span className="text-2xl font-bold">{formatCurrency(totalPrice)}</span>
+          <div className="flex justify-between items-baseline gap-2">
+            <span className="text-base md:text-lg font-semibold">Preço Total</span>
+            <span className="text-xl md:text-2xl font-bold">{formatCurrency(totalPrice)}</span>
           </div>
         </div>
 
         <Separator />
 
         <div className="space-y-1">
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-xs md:text-sm gap-2">
             <span className="text-muted-foreground">Prazo Base</span>
             <span>{formatDays(baseDeliveryDays)}</span>
           </div>
-          <div className="flex justify-between items-baseline">
-            <span className="font-medium">Prazo Total</span>
-            <span className="text-lg font-semibold">
+          <div className="flex justify-between items-baseline gap-2">
+            <span className="text-sm md:text-base font-medium">Prazo Total</span>
+            <span className="text-base md:text-lg font-semibold">
               {formatDays(totalDeliveryDays)}
             </span>
           </div>

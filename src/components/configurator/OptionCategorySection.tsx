@@ -70,30 +70,30 @@ function CategoryAccordionItem({
   return (
     <AccordionItem value={category.id}>
       <AccordionTrigger className="text-left hover:no-underline">
-        <div className="flex items-center justify-between w-full pr-4">
-          <div>
-            <span className="font-semibold">{category.name}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full pr-4 gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="font-semibold text-sm sm:text-base break-words">{category.name}</span>
             {category.description && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground break-words">
                 {category.description}
               </p>
             )}
           </div>
           {selectedCount > 0 && (
-            <Badge variant="secondary">{selectedCount} selecionado(s)</Badge>
+            <Badge variant="secondary" className="shrink-0 text-xs">{selectedCount} selecionado(s)</Badge>
           )}
         </div>
       </AccordionTrigger>
       <AccordionContent>
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-64" />
             ))}
           </div>
         ) : options && options.length > 0 ? (
           <>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {options.map((option) => {
                 const selectedOption = selectedOptions.find(s => s.option_id === option.id);
                 return (
