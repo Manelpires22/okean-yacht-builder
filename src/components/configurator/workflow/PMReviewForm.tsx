@@ -53,7 +53,8 @@ export function PMReviewForm({ customization }: PMReviewFormProps) {
   }, [totalMaterialsCost, totalLaborCost]);
 
   const suggestedPrice = useMemo(() => {
-    return totalCost / MARKUP_DIVISOR;
+    const rawPrice = totalCost / MARKUP_DIVISOR;
+    return Math.round(rawPrice * 100) / 100; // Arredondar para 2 casas decimais
   }, [totalCost]);
 
   const [finalPrice, setFinalPrice] = useState(customization.pm_final_price || 0);
@@ -89,22 +90,25 @@ export function PMReviewForm({ customization }: PMReviewFormProps) {
       return;
     }
 
+    // Garantir que o preço final tem no máximo 2 casas decimais
+    const roundedFinalPrice = Math.round(finalPrice * 100) / 100;
+
     advance({
       customizationId: customization.id,
       currentStep: 'pm_review',
       action: 'advance',
       data: {
         pm_scope: pmScope,
-        pm_final_price: finalPrice,
+        pm_final_price: roundedFinalPrice,
         pm_final_delivery_impact_days: deliveryImpact,
         pm_final_notes: notes,
         // Novos campos
         materials: materials,
-        total_materials_cost: totalMaterialsCost,
+        total_materials_cost: Math.round(totalMaterialsCost * 100) / 100,
         labor_hours: laborHours,
         labor_cost_per_hour: laborCostPerHour,
-        total_labor_cost: totalLaborCost,
-        total_cost: totalCost,
+        total_labor_cost: Math.round(totalLaborCost * 100) / 100,
+        total_cost: Math.round(totalCost * 100) / 100,
         suggested_price: suggestedPrice,
       },
     });
@@ -350,9 +354,13 @@ export function PMReviewForm({ customization }: PMReviewFormProps) {
             id="final-price"
             type="number"
             min="0"
-            step="1000"
+            step="0.01"
             value={finalPrice}
-            onChange={(e) => setFinalPrice(parseFloat(e.target.value) || 0)}
+            onChange={(e) => {
+              const value = parseFloat(e.target.value) || 0;
+              // Arredondar para 2 casas decimais
+              setFinalPrice(Math.round(value * 100) / 100);
+            }}
           />
           <p className="text-xs text-muted-foreground">
             Você pode ajustar o preço sugerido se necessário
