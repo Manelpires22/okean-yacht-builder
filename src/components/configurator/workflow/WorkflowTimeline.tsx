@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, XCircle, Circle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WorkflowTimelineProps {
@@ -7,10 +7,7 @@ interface WorkflowTimelineProps {
 }
 
 const WORKFLOW_STEPS = [
-  { key: 'pending_pm_review', label: 'PM Inicial', icon: Circle },
-  { key: 'pending_supply_quote', label: 'Supply', icon: Circle },
-  { key: 'pending_planning_validation', label: 'Planejamento', icon: Circle },
-  { key: 'pending_pm_final_approval', label: 'PM Final', icon: Circle },
+  { key: 'pending_pm_review', label: 'Análise PM', icon: Clock },
   { key: 'approved', label: 'Aprovado', icon: CheckCircle2 },
 ];
 

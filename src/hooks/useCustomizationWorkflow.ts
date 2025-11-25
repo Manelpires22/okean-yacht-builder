@@ -4,7 +4,7 @@ import { toast } from "sonner";
 
 export interface WorkflowStep {
   id: string;
-  step_type: 'pm_initial' | 'supply_quote' | 'planning_check' | 'pm_final';
+  step_type: 'pm_review';
   status: 'pending' | 'completed' | 'skipped' | 'rejected';
   assigned_to: string | null;
   response_data: any;
@@ -99,7 +99,7 @@ export function useAdvanceCustomizationWorkflow() {
   return useMutation({
     mutationFn: async (params: {
       customizationId: string;
-      currentStep: 'pm_initial' | 'supply_quote' | 'planning_check' | 'pm_final';
+      currentStep: 'pm_review';
       action: 'advance' | 'reject';
       data: any;
     }) => {

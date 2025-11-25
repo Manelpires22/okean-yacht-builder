@@ -279,10 +279,7 @@ export function CustomizationContextView({ customization }: CustomizationContext
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium">
-                          {step.step_type === 'pm_initial' && 'PM Inicial'}
-                          {step.step_type === 'supply_quote' && 'Cotação Supply'}
-                          {step.step_type === 'planning_check' && 'Validação Planejamento'}
-                          {step.step_type === 'pm_final' && 'PM Final'}
+                          {step.step_type === 'pm_review' && 'Análise PM'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {step.assigned_user?.full_name || 'Não atribuído'}
