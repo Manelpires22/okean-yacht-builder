@@ -40,7 +40,7 @@ export interface CreateATOInput {
   workflow_status?: string | null;
   configurations?: Array<{
     item_type: "memorial_item" | "option";
-    item_id: string;
+    item_id: string | null;
     configuration_details: any;
     sub_items?: any[];
     notes?: string;

@@ -27,11 +27,32 @@ export function useContractItems(contractId: string | undefined) {
       // Parsear base_snapshot para extrair itens
       const baseSnapshot = contract.base_snapshot as any;
       
-      // Extrair opcionais do snapshot
-      const options = baseSnapshot?.options || [];
+      // Extrair opcionais de selected_options (campo correto do snapshot)
+      const options = baseSnapshot?.selected_options?.map((so: any) => ({
+        id: so.option_id || so.option?.id,
+        name: so.option?.name,
+        code: so.option?.code,
+        description: so.option?.description,
+        base_price: so.unit_price,
+        unit_price: so.unit_price,
+        quantity: so.quantity,
+        delivery_days_impact: so.delivery_days_impact,
+        ...so.option
+      })) || [];
       
-      // Extrair memorial items do snapshot
-      const memorialItems = baseSnapshot?.memorial_items || [];
+      // Buscar memorial items da tabela usando yacht_model_id
+      const { data: memorialItems, error: memorialError } = await supabase
+        .from("memorial_items")
+        .select(`
+          *,
+          category:memorial_categories(*)
+        `)
+        .eq("yacht_model_id", contract.yacht_model_id)
+        .eq("is_active", true)
+        .order("category_display_order")
+        .order("display_order");
+
+      if (memorialError) throw memorialError;
 
       return {
         contract,
