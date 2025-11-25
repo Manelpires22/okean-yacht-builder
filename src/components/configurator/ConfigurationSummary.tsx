@@ -17,6 +17,7 @@ interface ConfigurationSummaryProps {
   modelName: string;
   basePrice: number;
   optionsPrice: number;
+  customizationsPrice: number;
   totalPrice: number;
   baseDeliveryDays: number;
   totalDeliveryDays: number;
@@ -48,6 +49,7 @@ export function ConfigurationSummary({
   modelName,
   basePrice,
   optionsPrice,
+  customizationsPrice,
   totalPrice,
   baseDeliveryDays,
   totalDeliveryDays,
@@ -111,6 +113,75 @@ export function ConfigurationSummary({
 
         <Separator />
 
+        {/* Customizações Aprovadas - Mostrar como opcionais */}
+        {customizations.filter(c => c.workflow_status === 'approved' && c.pm_final_price).length > 0 && (
+          <>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Customizações Aprovadas</p>
+                <Badge variant="secondary" className="text-xs bg-success/10 text-success border-success/20">
+                  {customizations.filter(c => c.workflow_status === 'approved' && c.pm_final_price).length}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {customizations
+                  .filter(c => c.workflow_status === 'approved' && c.pm_final_price)
+                  .map((customization) => (
+                    <div
+                      key={customization.memorial_item_id}
+                      className="flex items-start justify-between gap-2 p-3 rounded-md border border-success/20 bg-success/5 transition-colors group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 mb-1">
+                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                          <p className="text-xs md:text-sm font-medium line-clamp-2 break-words">
+                            {customization.item_name}
+                          </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mb-1">
+                          {customization.notes}
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs md:text-sm font-semibold text-success">
+                            {formatCurrency(customization.pm_final_price || 0)}
+                          </p>
+                          {customization.pm_final_delivery_impact_days && customization.pm_final_delivery_impact_days > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{customization.pm_final_delivery_impact_days} dias
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {onEditCustomization && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => onEditCustomization(customization)}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                        {onRemoveCustomization && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => onRemoveCustomization(customization.memorial_item_id)}
+                          >
+                            <X className="h-3 w-3 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs md:text-sm font-medium text-muted-foreground">Opcionais</p>
@@ -156,12 +227,15 @@ export function ConfigurationSummary({
 
         <Separator />
 
-        {totalCustomizations > 0 && (
+        {/* Customizações Pendentes/Outras - Manter no collapsible */}
+        {customizations.filter(c => c.workflow_status !== 'approved' || !c.pm_final_price).length > 0 && (
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium text-muted-foreground">Customizações</p>
-                <Badge variant="secondary" className="text-xs">{totalCustomizations}</Badge>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Outras Customizações</p>
+                <Badge variant="secondary" className="text-xs bg-warning/10 text-warning border-warning/20">
+                  {customizations.filter(c => c.workflow_status !== 'approved' || !c.pm_final_price).length}
+                </Badge>
               </div>
               <Collapsible open={expandedCustomizations} onOpenChange={setExpandedCustomizations}>
                 <CollapsibleTrigger asChild>
@@ -171,68 +245,64 @@ export function ConfigurationSummary({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
-                  {customizations.map((customization) => {
-                    const isApproved = customization.workflow_status === 'approved';
-                    const isPending = customization.workflow_status && customization.workflow_status !== 'approved';
-                    
-                    return (
-                      <div
-                        key={customization.memorial_item_id}
-                        className="p-2 bg-accent/50 rounded-md group relative"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1 mb-1">
-                              <Edit className="h-3 w-3 inline" />
-                              <p className="text-xs font-medium">
-                                {customization.item_name}
+                  {customizations
+                    .filter(c => c.workflow_status !== 'approved' || !c.pm_final_price)
+                    .map((customization) => {
+                      const isPending = customization.workflow_status && customization.workflow_status !== 'approved';
+                      
+                      return (
+                        <div
+                          key={customization.memorial_item_id}
+                          className="p-2 bg-accent/50 rounded-md group relative"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1 mb-1">
+                                <Edit className="h-3 w-3 inline" />
+                                <p className="text-xs font-medium">
+                                  {customization.item_name}
+                                </p>
+                                {isPending && (
+                                  <span title="Pendente aprovação">
+                                    <Clock className="h-3 w-3 text-warning ml-1 shrink-0" />
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {customization.notes}
                               </p>
-                              {isApproved && (
-                                <span title="Aprovado">
-                                  <CheckCircle className="h-3 w-3 text-success ml-1 shrink-0" />
-                                </span>
-                              )}
-                              {isPending && (
-                                <span title="Pendente aprovação">
-                                  <Clock className="h-3 w-3 text-warning ml-1 shrink-0" />
-                                </span>
+                              {customization.quantity && customization.quantity > 1 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Qtd: {customization.quantity}
+                                </p>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {customization.notes}
-                            </p>
-                            {customization.quantity && customization.quantity > 1 && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Qtd: {customization.quantity}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {onEditCustomization && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => onEditCustomization(customization)}
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            )}
-                            {onRemoveCustomization && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => onRemoveCustomization(customization.memorial_item_id)}
-                              >
-                                <X className="h-3 w-3 text-destructive" />
-                              </Button>
-                            )}
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {onEditCustomization && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => onEditCustomization(customization)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              )}
+                              {onRemoveCustomization && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => onRemoveCustomization(customization.memorial_item_id)}
+                                >
+                                  <X className="h-3 w-3 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                   {selectedOptions
                     .filter(opt => opt.customization_notes)
                     .map((selected) => {
@@ -341,6 +411,13 @@ export function ConfigurationSummary({
                 <span>{formatCurrency(finalOptionsPrice)}</span>
               </div>
             </>
+          )}
+
+          {customizationsPrice > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground text-success">Total Customizações</span>
+              <span className="font-medium text-success">{formatCurrency(customizationsPrice)}</span>
+            </div>
           )}
         </div>
 
