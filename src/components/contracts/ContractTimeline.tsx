@@ -12,7 +12,11 @@ import {
   Edit, 
   TrendingUp,
   Clock,
-  User
+  User,
+  Wrench,
+  ShoppingCart,
+  Calendar,
+  UserCheck
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -29,16 +33,24 @@ const EVENT_ICONS = {
   ato_cancelled: Ban,
   contract_updated: Edit,
   status_changed: TrendingUp,
+  ato_workflow_pm_review: Wrench,
+  ato_workflow_supply_quote: ShoppingCart,
+  ato_workflow_planning: Calendar,
+  ato_workflow_client_approval: UserCheck,
 };
 
 const EVENT_COLORS = {
   contract_created: "text-blue-600 bg-blue-100 dark:bg-blue-900/20",
-  ato_created: "text-purple-600 bg-purple-100 dark:bg-purple-900/20",
+  ato_created: "text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20",
   ato_approved: "text-green-600 bg-green-100 dark:bg-green-900/20",
   ato_rejected: "text-red-600 bg-red-100 dark:bg-red-900/20",
   ato_cancelled: "text-gray-600 bg-gray-100 dark:bg-gray-900/20",
   contract_updated: "text-orange-600 bg-orange-100 dark:bg-orange-900/20",
   status_changed: "text-indigo-600 bg-indigo-100 dark:bg-indigo-900/20",
+  ato_workflow_pm_review: "text-cyan-600 bg-cyan-100 dark:bg-cyan-900/20",
+  ato_workflow_supply_quote: "text-purple-600 bg-purple-100 dark:bg-purple-900/20",
+  ato_workflow_planning: "text-teal-600 bg-teal-100 dark:bg-teal-900/20",
+  ato_workflow_client_approval: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/20",
 };
 
 export function ContractTimeline({ contractId }: ContractTimelineProps) {
@@ -128,9 +140,19 @@ export function ContractTimeline({ contractId }: ContractTimelineProps) {
                           </Badge>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-3">
+                        <p className="text-sm text-muted-foreground mb-3 whitespace-pre-line">
                           {event.description}
                         </p>
+                        
+                        {/* Status do workflow para ATOs criadas */}
+                        {event.workflowStatus && (
+                          <div className="mb-3 p-2 bg-muted/50 rounded-md">
+                            <div className="flex items-center gap-2 text-xs">
+                              <Clock className="h-3 w-3 text-yellow-600" />
+                              <span className="font-medium">Status: {event.workflowStatus.status}</span>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -161,6 +183,28 @@ export function ContractTimeline({ contractId }: ContractTimelineProps) {
                                 +{event.metadata.delivery_days_impact} dias
                               </span>
                             </div>
+                          </div>
+                        )}
+                        
+                        {/* Metadata para workflow steps */}
+                        {event.metadata?.response_data && (
+                          <div className="mt-3 pt-3 border-t text-xs space-y-1">
+                            {event.metadata.response_data.estimated_cost && (
+                              <div>
+                                <span className="text-muted-foreground">Custo Estimado:</span>
+                                <span className="ml-1 font-semibold">
+                                  R$ {event.metadata.response_data.estimated_cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            )}
+                            {event.metadata.response_data.delivery_impact_days !== undefined && (
+                              <div>
+                                <span className="text-muted-foreground">Impacto Prazo:</span>
+                                <span className="ml-1 font-semibold">
+                                  +{event.metadata.response_data.delivery_impact_days} dias
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
