@@ -5,9 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, Upload, X } from "lucide-react";
+import { InfoIcon, Upload, X, AlertCircle } from "lucide-react";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { toast } from "sonner";
+
+const MIN_ITEM_NAME_CHARS = 5;
+const MIN_FREE_CUSTOMIZATION_CHARS = 100;
 
 interface FreeCustomizationDialogProps {
   open: boolean;
@@ -67,14 +70,27 @@ export function FreeCustomizationDialog({
   };
 
   const handleSave = () => {
-    if (!itemName.trim() || !notes.trim()) {
-      toast.error("Preencha o nome e a descrição da customização");
+    const trimmedName = itemName.trim();
+    const trimmedNotes = notes.trim();
+
+    if (!trimmedName || !trimmedNotes) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (trimmedName.length < MIN_ITEM_NAME_CHARS) {
+      toast.error(`O nome deve ter no mínimo ${MIN_ITEM_NAME_CHARS} caracteres`);
+      return;
+    }
+
+    if (trimmedNotes.length < MIN_FREE_CUSTOMIZATION_CHARS) {
+      toast.error(`A descrição deve ter no mínimo ${MIN_FREE_CUSTOMIZATION_CHARS} caracteres para análise do PM`);
       return;
     }
 
     onSave({
-      item_name: itemName.trim(),
-      notes: notes.trim(),
+      item_name: trimmedName,
+      notes: trimmedNotes,
       image_url: imageUrl,
     });
 
@@ -121,9 +137,17 @@ export function FreeCustomizationDialog({
               onChange={(e) => setItemName(e.target.value)}
               maxLength={200}
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {itemName.length}/200 caracteres
-            </p>
+            <div className="flex items-center justify-between text-xs">
+              <div className={itemName.trim().length < MIN_ITEM_NAME_CHARS ? "text-destructive flex items-center gap-1" : "text-muted-foreground"}>
+                {itemName.trim().length < MIN_ITEM_NAME_CHARS && (
+                  <AlertCircle className="h-3 w-3" />
+                )}
+                Mínimo: {MIN_ITEM_NAME_CHARS} caracteres
+              </div>
+              <span className="text-muted-foreground">
+                {itemName.length}/200 caracteres
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -139,9 +163,17 @@ export function FreeCustomizationDialog({
               maxLength={2000}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {notes.length}/2000 caracteres
-            </p>
+            <div className="flex items-center justify-between text-xs">
+              <div className={notes.trim().length < MIN_FREE_CUSTOMIZATION_CHARS ? "text-destructive flex items-center gap-1" : "text-muted-foreground"}>
+                {notes.trim().length < MIN_FREE_CUSTOMIZATION_CHARS && (
+                  <AlertCircle className="h-3 w-3" />
+                )}
+                Mínimo: {MIN_FREE_CUSTOMIZATION_CHARS} caracteres
+              </div>
+              <span className="text-muted-foreground">
+                {notes.length}/2000 caracteres
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -196,7 +228,13 @@ export function FreeCustomizationDialog({
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={!itemName.trim() || !notes.trim() || isUploading}
+            disabled={
+              !itemName.trim() || 
+              !notes.trim() || 
+              itemName.trim().length < MIN_ITEM_NAME_CHARS ||
+              notes.trim().length < MIN_FREE_CUSTOMIZATION_CHARS ||
+              isUploading
+            }
           >
             Adicionar Customização
           </Button>

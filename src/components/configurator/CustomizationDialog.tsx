@@ -5,9 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const MIN_CUSTOMIZATION_CHARS = 50;
 
 interface CustomizationDialogProps {
   open: boolean;
@@ -37,12 +39,20 @@ export function CustomizationDialog({
   );
 
   const handleSave = () => {
-    if (!notes.trim()) {
+    const trimmedNotes = notes.trim();
+    
+    if (!trimmedNotes) {
+      toast.error("A descrição não pode estar vazia");
+      return;
+    }
+
+    if (trimmedNotes.length < MIN_CUSTOMIZATION_CHARS) {
+      toast.error(`A descrição deve ter no mínimo ${MIN_CUSTOMIZATION_CHARS} caracteres para análise do PM`);
       return;
     }
 
     onSave({
-      notes: notes.trim(),
+      notes: trimmedNotes,
       quantity: quantity && quantity > 0 ? quantity : undefined,
     });
 
@@ -86,9 +96,17 @@ export function CustomizationDialog({
               maxLength={1000}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground text-right">
-              {notes.length}/1000 caracteres
-            </p>
+            <div className="flex items-center justify-between text-xs">
+              <div className={notes.trim().length < MIN_CUSTOMIZATION_CHARS ? "text-destructive flex items-center gap-1" : "text-muted-foreground"}>
+                {notes.trim().length < MIN_CUSTOMIZATION_CHARS && (
+                  <AlertCircle className="h-3 w-3" />
+                )}
+                Mínimo: {MIN_CUSTOMIZATION_CHARS} caracteres
+              </div>
+              <span className="text-muted-foreground">
+                {notes.length}/1000 caracteres
+              </span>
+            </div>
           </div>
 
           {defaultQuantity && (
@@ -112,7 +130,10 @@ export function CustomizationDialog({
           <Button variant="outline" onClick={handleCancel}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!notes.trim()}>
+          <Button 
+            onClick={handleSave} 
+            disabled={!notes.trim() || notes.trim().length < MIN_CUSTOMIZATION_CHARS}
+          >
             Salvar Customização
           </Button>
         </DialogFooter>
