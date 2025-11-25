@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,13 +8,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Wrench } from "lucide-react";
+import { Loader2, Package, Wrench, Search } from "lucide-react";
 import { useContractItems } from "@/hooks/useContractItems";
+import { useDebounce } from "@/hooks/useDebounce";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { PendingATOItem } from "./ATOItemsList";
 
@@ -34,8 +36,33 @@ export function SelectContractItemDialog({
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [itemType, setItemType] = useState<"option" | "memorial">("option");
   const [notes, setNotes] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading } = useContractItems(contractId);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Filtrar opcionais baseado na busca
+  const filteredOptions = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return data?.options || [];
+    const term = debouncedSearchTerm.toLowerCase();
+    return data?.options?.filter((option: any) =>
+      option.name?.toLowerCase().includes(term) ||
+      option.code?.toLowerCase().includes(term) ||
+      option.description?.toLowerCase().includes(term)
+    ) || [];
+  }, [data?.options, debouncedSearchTerm]);
+
+  // Filtrar memorial items baseado na busca
+  const filteredMemorialItems = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return data?.memorialItems || [];
+    const term = debouncedSearchTerm.toLowerCase();
+    return data?.memorialItems?.filter((item: any) =>
+      item.item_name?.toLowerCase().includes(term) ||
+      item.description?.toLowerCase().includes(term) ||
+      item.brand?.toLowerCase().includes(term) ||
+      item.model?.toLowerCase().includes(term)
+    ) || [];
+  }, [data?.memorialItems, debouncedSearchTerm]);
 
   const handleAdd = () => {
     if (!selectedItem) return;
@@ -75,24 +102,45 @@ export function SelectContractItemDialog({
             onValueChange={(v) => {
               setItemType(v as any);
               setSelectedItem(null);
+              setSearchTerm(""); // Limpar busca ao trocar de aba
             }}
             className="flex-1 flex flex-col overflow-hidden"
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="option" className="gap-2">
                 <Package className="h-4 w-4" />
-                Opcionais ({data?.options?.length || 0})
+                Opcionais ({filteredOptions.length})
               </TabsTrigger>
               <TabsTrigger value="memorial" className="gap-2">
                 <Wrench className="h-4 w-4" />
-                Memorial ({data?.memorialItems?.length || 0})
+                Memorial ({filteredMemorialItems.length})
               </TabsTrigger>
             </TabsList>
+
+            {/* Campo de busca */}
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={
+                  itemType === "option"
+                    ? "Buscar por nome, código ou descrição..."
+                    : "Buscar por nome, descrição, marca ou modelo..."
+                }
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
 
             <TabsContent value="option" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-[400px]">
                 <div className="space-y-2">
-                  {data?.options?.map((option: any) => (
+                  {filteredOptions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum opcional encontrado
+                    </div>
+                  ) : (
+                    filteredOptions.map((option: any) => (
                     <div
                       key={option.id}
                       onClick={() => setSelectedItem(option)}
@@ -121,7 +169,8 @@ export function SelectContractItemDialog({
                         </div>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
@@ -129,7 +178,12 @@ export function SelectContractItemDialog({
             <TabsContent value="memorial" className="flex-1 overflow-hidden mt-4">
               <ScrollArea className="h-[400px]">
                 <div className="space-y-2">
-                  {data?.memorialItems?.map((item: any) => (
+                  {filteredMemorialItems.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum item encontrado
+                    </div>
+                  ) : (
+                    filteredMemorialItems.map((item: any) => (
                     <div
                       key={item.id}
                       onClick={() => setSelectedItem(item)}
@@ -162,7 +216,8 @@ export function SelectContractItemDialog({
                         </div>
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </ScrollArea>
             </TabsContent>
