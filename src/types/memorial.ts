@@ -25,9 +25,12 @@ export interface MemorialItem {
   display_order: number;
   category_display_order: number;
   is_customizable: boolean;
+  is_configurable: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
   technical_specs: any;
+  job_stop_id: string | null;
+  configurable_sub_items: any;
 }
