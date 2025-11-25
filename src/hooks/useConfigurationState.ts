@@ -16,6 +16,8 @@ export interface Customization {
   image_url?: string;
   is_free_customization?: boolean; // true for user-created customizations
   workflow_status?: string; // Status do workflow (pending_pm_review, approved, etc)
+  pm_final_price?: number; // Preço final aprovado pelo PM
+  pm_final_delivery_impact_days?: number; // Impacto no prazo aprovado pelo PM
 }
 
 export interface ConfigurationState {
@@ -183,6 +185,8 @@ export function useConfigurationState() {
         quantity: qc.quantity,
         is_free_customization: !qc.memorial_item_id,
         workflow_status: qc.workflow_status,
+        pm_final_price: qc.pm_final_price,
+        pm_final_delivery_impact_days: qc.pm_final_delivery_impact_days,
       })) || [],
     });
   };
@@ -193,10 +197,22 @@ export function useConfigurationState() {
       0
     );
     
+    // Calcular total de customizações aprovadas
+    const customizationsTotal = (state.customizations || [])
+      .filter(c => c.workflow_status === 'approved' && c.pm_final_price)
+      .reduce((sum, c) => sum + (c.pm_final_price || 0), 0);
+    
     const maxDeliveryImpact = (state.selected_options || []).reduce(
       (max, option) => Math.max(max, option.delivery_days_impact || 0),
       0
     );
+
+    // Calcular máximo impacto de prazo de customizações aprovadas
+    const maxCustomizationDeliveryImpact = (state.customizations || [])
+      .filter(c => c.workflow_status === 'approved' && c.pm_final_delivery_impact_days)
+      .reduce((max, c) => Math.max(max, c.pm_final_delivery_impact_days || 0), 0);
+
+    const totalDeliveryImpact = Math.max(maxDeliveryImpact, maxCustomizationDeliveryImpact);
 
     // Calculate discounted prices
     const baseDiscountAmount = state.base_price * (state.base_discount_percentage / 100);
@@ -206,9 +222,10 @@ export function useConfigurationState() {
     const finalOptionsPrice = optionsTotal - optionsDiscountAmount;
 
     return {
-      totalPrice: finalBasePrice + finalOptionsPrice,
-      totalDeliveryDays: state.base_delivery_days + maxDeliveryImpact,
+      totalPrice: finalBasePrice + finalOptionsPrice + customizationsTotal,
+      totalDeliveryDays: state.base_delivery_days + totalDeliveryImpact,
       optionsPrice: optionsTotal,
+      customizationsPrice: customizationsTotal,
       finalBasePrice,
       finalOptionsPrice,
       baseDiscountAmount,

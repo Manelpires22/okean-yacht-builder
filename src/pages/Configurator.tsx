@@ -327,6 +327,7 @@ export default function Configurator() {
               modelName={selectedModel?.name || ""}
               basePrice={state.base_price}
               optionsPrice={totals.optionsPrice}
+              customizationsPrice={totals.customizationsPrice}
               totalPrice={totals.totalPrice}
               baseDeliveryDays={state.base_delivery_days}
               totalDeliveryDays={totals.totalDeliveryDays}
