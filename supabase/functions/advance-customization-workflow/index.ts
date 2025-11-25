@@ -108,19 +108,43 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Preparar audit trail com dados detalhados de custos
+    const existingAudit = customization.workflow_audit || [];
+    const newAuditEntry = {
+      timestamp: new Date().toISOString(),
+      step: 'pm_review',
+      action: 'approved',
+      user_id: user.id,
+      materials: data.materials || [],
+      total_materials_cost: data.total_materials_cost || 0,
+      labor_hours: data.labor_hours || 0,
+      labor_cost_per_hour: data.labor_cost_per_hour || 55,
+      total_labor_cost: data.total_labor_cost || 0,
+      total_cost: data.total_cost || 0,
+      suggested_price: data.suggested_price || 0,
+      final_price: data.pm_final_price,
+      markup_applied: data.suggested_price > 0 ? ((data.pm_final_price - data.total_cost) / data.total_cost * 100).toFixed(2) + '%' : 'N/A',
+    };
+
     const updateData = {
       pm_scope: data.pm_scope,
       pm_final_price: data.pm_final_price,
       pm_final_delivery_impact_days: data.pm_final_delivery_impact_days,
-      required_parts: data.required_parts || [],
       pm_final_notes: data.pm_final_notes,
+      // Novos campos de custo
+      supply_items: data.materials || [],
+      supply_cost: data.total_materials_cost || 0,
+      engineering_hours: data.labor_hours || 0,
       workflow_status: 'approved',
       status: 'approved',
       additional_cost: data.pm_final_price,
       delivery_impact_days: data.pm_final_delivery_impact_days,
       reviewed_at: new Date().toISOString(),
       reviewed_by: user.id,
+      workflow_audit: [...existingAudit, newAuditEntry],
     };
+
+    console.log('Updating customization with data:', updateData);
 
     // Atualizar customization
     await supabase
@@ -134,7 +158,7 @@ Deno.serve(async (req) => {
       .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
-        response_data: data,
+        response_data: newAuditEntry,
       })
       .eq('customization_id', customizationId)
       .eq('step_type', 'pm_review');
