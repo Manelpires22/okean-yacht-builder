@@ -76,10 +76,9 @@ export function CustomizationWorkflowModal({
         <WorkflowTimeline currentStatus={workflowStatus} className="mt-6 mb-4" />
 
         <Tabs defaultValue="analysis" className="mt-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="context">Contexto</TabsTrigger>
-            <TabsTrigger value="analysis">Análise</TabsTrigger>
-            <TabsTrigger value="decision">Decisão</TabsTrigger>
+            <TabsTrigger value="analysis">Análise e Decisão</TabsTrigger>
           </TabsList>
 
           <TabsContent value="context" className="space-y-4">
@@ -87,19 +86,6 @@ export function CustomizationWorkflowModal({
           </TabsContent>
 
           <TabsContent value="analysis" className="space-y-4">
-            {customization.workflow_status === 'pending_pm_review' && (isPM || isAdmin) && (
-              <PMReviewForm customization={customization} />
-            )}
-
-            {!['pending_pm_review'].includes(customization.workflow_status) && (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Você não tem permissão para editar esta etapa do workflow.</p>
-                <p className="text-sm mt-2">Status atual: {statusInfo.label}</p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="decision" className="space-y-4">
             {customization.workflow_status === 'pending_pm_review' && (isPM || isAdmin) && (
               <PMReviewForm customization={customization} />
             )}
