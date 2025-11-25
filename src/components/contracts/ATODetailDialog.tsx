@@ -42,9 +42,17 @@ import {
   Trash2,
   Package,
   Wrench,
+  Clock,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
+import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
+import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
+import { ATOPMReviewForm } from "./ATOPMReviewForm";
+import { ATOSupplyQuoteForm } from "./ATOSupplyQuoteForm";
+import { ATOPlanningValidationForm } from "./ATOPlanningValidationForm";
+import { ATOPMFinalForm } from "./ATOPMFinalForm";
 
 interface ATODetailDialogProps {
   open: boolean;
@@ -59,10 +67,12 @@ export function ATODetailDialog({
 }: ATODetailDialogProps) {
   const { data: ato, isLoading } = useATO(atoId || undefined);
   const { data: configurations, isLoading: loadingConfigurations } = useATOConfigurations(atoId || undefined);
+  const { data: workflowData, isLoading: loadingWorkflow } = useATOWorkflow(atoId || undefined);
   const { mutate: approveATO, isPending: isApproving } = useApproveATO();
   const { mutate: cancelATO, isPending: isCanceling } = useCancelATO();
   const { mutate: removeConfiguration, isPending: isRemoving } = useRemoveATOConfiguration();
   const { data: userRoleData } = useUserRole();
+  const { user } = useAuth();
 
   const [approvalNotes, setApprovalNotes] = useState("");
   const [showApproveDialog, setShowApproveDialog] = useState(false);
@@ -78,6 +88,13 @@ export function ATODetailDialog({
     userRoleData?.roles?.some((r: string) =>
       ["administrador", "gerente_comercial"].includes(r)
     ) && ato?.status !== "cancelled";
+
+  // Workflow logic
+  const currentStep = workflowData?.workflow_steps?.find(
+    (step) => step.status === "pending"
+  );
+  const canActOnWorkflow = currentStep?.assigned_to === user?.id;
+  const hasActiveWorkflow = ato?.workflow_status && ato.workflow_status !== "completed" && ato.workflow_status !== "rejected";
 
   const handleApprove = () => {
     if (!atoId) return;
@@ -148,6 +165,16 @@ export function ATODetailDialog({
                       </Badge>
                     )}
                   </TabsTrigger>
+                  {hasActiveWorkflow && (
+                    <TabsTrigger value="workflow">
+                      Workflow
+                      {canActOnWorkflow && (
+                        <Badge variant="default" className="ml-2">
+                          Aguardando Ação
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-6">
@@ -337,6 +364,137 @@ export function ATODetailDialog({
                     </div>
                   )}
                 </TabsContent>
+
+                {hasActiveWorkflow && (
+                  <TabsContent value="workflow" className="space-y-6">
+                    {/* Workflow Timeline */}
+                    <div>
+                      <h3 className="font-semibold mb-4">Progresso do Workflow</h3>
+                      <ATOWorkflowTimeline currentStatus={ato.workflow_status} />
+                    </div>
+
+                    <Separator />
+
+                    {/* Current Step Form */}
+                    {loadingWorkflow ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : currentStep && canActOnWorkflow && workflowData ? (
+                      <div>
+                        <h3 className="font-semibold mb-4">Sua Ação Requerida</h3>
+                        {currentStep.step_type === "pm_review" && (
+                          <ATOPMReviewForm
+                            atoWorkflow={workflowData}
+                            currentStep={currentStep}
+                          />
+                        )}
+                        {currentStep.step_type === "supply_quote" && (
+                          <ATOSupplyQuoteForm
+                            atoWorkflow={workflowData}
+                            currentStep={currentStep}
+                          />
+                        )}
+                        {currentStep.step_type === "planning_validation" && (
+                          <ATOPlanningValidationForm
+                            atoWorkflow={workflowData}
+                            currentStep={currentStep}
+                          />
+                        )}
+                        {currentStep.step_type === "pm_final" && (
+                          <ATOPMFinalForm
+                            atoWorkflow={workflowData}
+                            currentStep={currentStep}
+                          />
+                        )}
+                      </div>
+                    ) : currentStep ? (
+                      <div className="text-center py-8 border-2 border-dashed rounded-lg">
+                        <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="font-semibold mb-2">Aguardando Outro Responsável</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Esta etapa está atribuída a{" "}
+                          <span className="font-medium">{currentStep.assigned_to}</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <CheckCircle2 className="h-12 w-12 mx-auto text-green-600 mb-4" />
+                        <h3 className="font-semibold mb-2">Workflow Concluído</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Todas as etapas foram finalizadas com sucesso
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Workflow History */}
+                    {workflowData?.workflow_steps && workflowData.workflow_steps.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h3 className="font-semibold mb-4">Histórico de Etapas</h3>
+                          <div className="space-y-3">
+                            {workflowData.workflow_steps
+                              .filter((step) => step.status === "completed")
+                              .map((step) => (
+                                <div
+                                  key={step.id}
+                                  className="border rounded-lg p-4 bg-muted/50"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                      <span className="font-medium">
+                                        {step.step_type === "pm_review" && "Análise PM"}
+                                        {step.step_type === "supply_quote" && "Cotação Supply"}
+                                        {step.step_type === "planning_validation" &&
+                                          "Validação Planning"}
+                                        {step.step_type === "pm_final" && "Aprovação Final PM"}
+                                      </span>
+                                    </div>
+                                    {step.completed_at && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {format(new Date(step.completed_at), "dd/MM/yyyy HH:mm", {
+                                          locale: ptBR,
+                                        })}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {step.notes && (
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                      {step.notes}
+                                    </p>
+                                  )}
+                                  {step.response_data && (
+                                    <div className="mt-2 text-xs space-y-1">
+                                      {(step.response_data as any).supply_cost && (
+                                        <div>
+                                          <span className="text-muted-foreground">Custo: </span>
+                                          <span className="font-medium">
+                                            {formatCurrency((step.response_data as any).supply_cost)}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {(step.response_data as any).planning_delivery_impact_days !==
+                                        undefined && (
+                                        <div>
+                                          <span className="text-muted-foreground">Prazo: </span>
+                                          <span className="font-medium">
+                                            {(step.response_data as any).planning_delivery_impact_days}{" "}
+                                            dias
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </TabsContent>
+                )}
               </Tabs>
 
               <DialogFooter className="flex items-center justify-between">
