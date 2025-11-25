@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { CustomizationWorkflowModal } from "@/components/configurator/CustomizationWorkflowModal";
+import { ATOWorkflowModal } from "@/components/contracts/ATOWorkflowModal";
 
 export default function WorkflowTasks() {
   const { user } = useAuth();
@@ -24,9 +25,9 @@ export default function WorkflowTasks() {
   const isBuyer = roles.includes('comprador');
   const isPlanner = roles.includes('planejador');
 
-  // Buscar tarefas pendentes do usuário
-  const { data: myTasks, isLoading } = useQuery({
-    queryKey: ['workflow-my-tasks', user?.id],
+  // Buscar tarefas pendentes do usuário (Customizações)
+  const { data: myCustomizationTasks, isLoading: loadingCustomizations } = useQuery({
+    queryKey: ['workflow-my-customization-tasks', user?.id],
     queryFn: async () => {
       if (!user) return [];
 
@@ -58,9 +59,49 @@ export default function WorkflowTasks() {
     enabled: !!user,
   });
 
+  // Buscar tarefas pendentes do usuário (ATOs)
+  const { data: myATOTasks, isLoading: loadingATOs } = useQuery({
+    queryKey: ['workflow-my-ato-tasks', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('ato_workflow_steps')
+        .select(`
+          id,
+          step_type,
+          status,
+          created_at,
+          ato:additional_to_orders (
+            id,
+            ato_number,
+            title,
+            description,
+            workflow_status,
+            contract:contracts (
+              contract_number,
+              client:clients (
+                name
+              )
+            )
+          )
+        `)
+        .eq('assigned_to', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const isLoading = loadingCustomizations || loadingATOs;
+  const myTasks = [...(myCustomizationTasks || []), ...(myATOTasks || [])];
+
   // Buscar todas as tarefas do departamento (se for PM, Supply ou Planejamento)
-  const { data: departmentTasks } = useQuery({
-    queryKey: ['workflow-department-tasks', roles],
+  const { data: departmentCustomizationTasks } = useQuery({
+    queryKey: ['workflow-department-customization-tasks', roles],
     queryFn: async () => {
       if (!roles.length) return [];
 
@@ -100,15 +141,71 @@ export default function WorkflowTasks() {
     enabled: roles.length > 0,
   });
 
+  const { data: departmentATOTasks } = useQuery({
+    queryKey: ['workflow-department-ato-tasks', roles],
+    queryFn: async () => {
+      if (!roles.length) return [];
+
+      let stepTypes: string[] = [];
+      if (isPM) stepTypes.push('pm_review', 'pm_final');
+      if (isBuyer) stepTypes.push('supply_quote');
+      if (isPlanner) stepTypes.push('planning_validation');
+
+      if (!stepTypes.length) return [];
+
+      const { data, error } = await supabase
+        .from('ato_workflow_steps')
+        .select(`
+          id,
+          step_type,
+          status,
+          assigned_to,
+          created_at,
+          assigned_user:users (full_name, email),
+          ato:additional_to_orders (
+            id,
+            ato_number,
+            title,
+            workflow_status,
+            contract:contracts (
+              contract_number,
+              client:clients (
+                name
+              )
+            )
+          )
+        `)
+        .in('step_type', stepTypes)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: roles.length > 0,
+  });
+
+  const departmentTasks = [...(departmentCustomizationTasks || []), ...(departmentATOTasks || [])];
+
+  const [selectedATOId, setSelectedATOId] = useState<string | null>(null);
+  const [atoWorkflowModalOpen, setATOWorkflowModalOpen] = useState(false);
+
   const handleOpenWorkflow = (customizationId: string) => {
     setSelectedCustomizationId(customizationId);
     setWorkflowModalOpen(true);
   };
 
+  const handleOpenATOWorkflow = (atoId: string) => {
+    setSelectedATOId(atoId);
+    setATOWorkflowModalOpen(true);
+  };
+
   const STEP_LABELS: Record<string, string> = {
     pm_initial: 'PM Inicial',
+    pm_review: 'PM Review',
     supply_quote: 'Cotação Supply',
     planning_check: 'Validação Planejamento',
+    planning_validation: 'Validação Planning',
     pm_final: 'PM Final',
   };
 
@@ -200,42 +297,55 @@ export default function WorkflowTasks() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {myTasks.map((task: any) => (
-                  <Card key={task.id} className="hover:bg-muted/50 transition-colors">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {task.customization?.item_name}
-                          </CardTitle>
-                          <CardDescription>
-                            Cotação: {task.customization?.quotation?.quotation_number} •{' '}
-                            {task.customization?.quotation?.client_name}
-                          </CardDescription>
+                {myTasks.map((task: any) => {
+                  const isATO = !!task.ato;
+                  const itemName = isATO ? task.ato?.title : task.customization?.item_name;
+                  const reference = isATO 
+                    ? `${task.ato?.contract?.contract_number} • ${task.ato?.contract?.client?.name}`
+                    : `${task.customization?.quotation?.quotation_number} • ${task.customization?.quotation?.client_name}`;
+                  const notes = isATO ? task.ato?.description : task.customization?.notes;
+                  
+                  return (
+                    <Card key={task.id} className="hover:bg-muted/50 transition-colors">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-lg">{itemName}</CardTitle>
+                              {isATO && (
+                                <Badge variant="outline" className="text-xs">ATO</Badge>
+                              )}
+                            </div>
+                            <CardDescription>{reference}</CardDescription>
+                          </div>
+                          <Badge variant="secondary">{STEP_LABELS[task.step_type]}</Badge>
                         </div>
-                        <Badge variant="secondary">{STEP_LABELS[task.step_type]}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {task.customization?.notes}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">
-                            Atribuída em{' '}
-                            {format(new Date(task.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                          <Button
-                            onClick={() => handleOpenWorkflow(task.customization.id)}
-                          >
-                            Processar Tarefa
-                          </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {notes && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">{notes}</p>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              Atribuída em{' '}
+                              {format(new Date(task.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                            <Button
+                              onClick={() => 
+                                isATO 
+                                  ? handleOpenATOWorkflow(task.ato.id)
+                                  : handleOpenWorkflow(task.customization.id)
+                              }
+                            >
+                              Processar Tarefa
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -250,45 +360,57 @@ export default function WorkflowTasks() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {departmentTasks.map((task: any) => (
-                  <Card key={task.id} className="hover:bg-muted/50 transition-colors">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {task.customization?.item_name}
-                          </CardTitle>
-                          <CardDescription>
-                            Cotação: {task.customization?.quotation?.quotation_number} •{' '}
-                            {task.customization?.quotation?.client_name}
-                          </CardDescription>
+                {departmentTasks.map((task: any) => {
+                  const isATO = !!task.ato;
+                  const itemName = isATO ? task.ato?.title : task.customization?.item_name;
+                  const reference = isATO 
+                    ? `${task.ato?.contract?.contract_number} • ${task.ato?.contract?.client?.name}`
+                    : `${task.customization?.quotation?.quotation_number} • ${task.customization?.quotation?.client_name}`;
+                  
+                  return (
+                    <Card key={task.id} className="hover:bg-muted/50 transition-colors">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-lg">{itemName}</CardTitle>
+                              {isATO && (
+                                <Badge variant="outline" className="text-xs">ATO</Badge>
+                              )}
+                            </div>
+                            <CardDescription>{reference}</CardDescription>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge variant="secondary">{STEP_LABELS[task.step_type]}</Badge>
+                            {task.assigned_user && (
+                              <Badge variant="outline" className="text-xs">
+                                {task.assigned_user.full_name}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <Badge variant="secondary">{STEP_LABELS[task.step_type]}</Badge>
-                          {task.assigned_user && (
-                            <Badge variant="outline" className="text-xs">
-                              {task.assigned_user.full_name}
-                            </Badge>
-                          )}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Atribuída em{' '}
+                            {format(new Date(task.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                          <Button
+                            variant="outline"
+                            onClick={() => 
+                              isATO 
+                                ? handleOpenATOWorkflow(task.ato.id)
+                                : handleOpenWorkflow(task.customization.id)
+                            }
+                          >
+                            Ver Detalhes
+                          </Button>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          Atribuída em{' '}
-                          {format(new Date(task.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOpenWorkflow(task.customization.id)}
-                        >
-                          Ver Detalhes
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
@@ -299,6 +421,12 @@ export default function WorkflowTasks() {
         customizationId={selectedCustomizationId}
         open={workflowModalOpen}
         onOpenChange={setWorkflowModalOpen}
+      />
+
+      <ATOWorkflowModal
+        atoId={selectedATOId}
+        open={atoWorkflowModalOpen}
+        onOpenChange={setATOWorkflowModalOpen}
       />
     </AdminLayout>
   );

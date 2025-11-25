@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Hook para contar tarefas de workflow pendentes do usuário
+ * (Customizações + ATOs)
  */
 export function useWorkflowPendingCount() {
   const { user } = useAuth();
@@ -13,14 +14,25 @@ export function useWorkflowPendingCount() {
     queryFn: async () => {
       if (!user) return 0;
 
-      const { count, error } = await supabase
+      // Contar customizações pendentes
+      const { count: customizationCount, error: customizationError } = await supabase
         .from('customization_workflow_steps')
         .select('*', { count: 'exact', head: true })
         .eq('assigned_to', user.id)
         .eq('status', 'pending');
 
-      if (error) throw error;
-      return count || 0;
+      if (customizationError) throw customizationError;
+
+      // Contar ATOs pendentes
+      const { count: atoCount, error: atoError } = await supabase
+        .from('ato_workflow_steps')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_to', user.id)
+        .eq('status', 'pending');
+
+      if (atoError) throw atoError;
+
+      return (customizationCount || 0) + (atoCount || 0);
     },
     enabled: !!user,
     refetchInterval: 60000, // Refetch a cada 1 minuto
