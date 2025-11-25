@@ -83,7 +83,11 @@ export function WorkflowDecisionPanel({ customization }: WorkflowDecisionPanelPr
                   "text-3xl font-bold",
                   estimatedDelivery > 0 ? "text-primary" : "text-muted-foreground"
                 )}>
-                  {estimatedDelivery > 0 ? `+${estimatedDelivery}` : "Pendente"}
+                  {estimatedDelivery > 0 
+                    ? `+${estimatedDelivery}` 
+                    : workflowStatus === 'approved' 
+                      ? "Sem impacto" 
+                      : "Pendente"}
                 </span>
                 {estimatedDelivery > 0 && (
                   <span className="text-lg text-muted-foreground">dias</span>
