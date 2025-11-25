@@ -285,11 +285,24 @@ export function useSaveQuotation() {
 
           // 4. Determinar novo status baseado nas mudanças
           let newQuotationStatus = quotation.status;
-          const hasNewPendingCustomizations = insertedCustomizations?.some(
-            (c: any) => !existingCustomizations?.find(
-              ec => `${ec.id || 'free'}-${ec.item_name}` === `${c.memorial_item_id || 'free'}-${c.item_name}`
-            )
-          ) || false;
+          // Detectar novas customizações baseado no tipo correto de ID
+          const hasNewPendingCustomizations = insertedCustomizations?.some((c: any) => {
+            const wasApproved = existingCustomizations?.find((ec: any) => {
+              // Customização de opcional
+              if (c.option_id && ec.option_id) {
+                return ec.option_id === c.option_id && ec.status === 'approved';
+              }
+              // Customização de memorial
+              if (c.memorial_item_id && ec.memorial_item_id) {
+                return ec.memorial_item_id === c.memorial_item_id && ec.status === 'approved';
+              }
+              // Customização livre
+              return ec.item_name === c.item_name && ec.status === 'approved';
+            });
+            
+            // É nova se NÃO foi encontrada como aprovada anteriormente
+            return !wasApproved;
+          }) || false;
 
           if (removedApprovedCustomizations.length > 0) {
             newQuotationStatus = 'draft';
@@ -299,11 +312,19 @@ export function useSaveQuotation() {
             console.log('Status alterado para pending_technical_approval: novas customizações adicionadas');
             
             // Criar approval requests apenas para as NOVAS customizações pendentes
-            const newCustomizations = insertedCustomizations?.filter(
-              (c: any) => !existingCustomizations?.find(
-                ec => `${ec.id || 'free'}-${ec.item_name}` === `${c.memorial_item_id || 'free'}-${c.item_name}`
-              )
-            );
+            const newCustomizations = insertedCustomizations?.filter((c: any) => {
+              const wasApproved = existingCustomizations?.find((ec: any) => {
+                if (c.option_id && ec.option_id) {
+                  return ec.option_id === c.option_id && ec.status === 'approved';
+                }
+                if (c.memorial_item_id && ec.memorial_item_id) {
+                  return ec.memorial_item_id === c.memorial_item_id && ec.status === 'approved';
+                }
+                return ec.item_name === c.item_name && ec.status === 'approved';
+              });
+              
+              return !wasApproved;
+            });
 
             if (newCustomizations && newCustomizations.length > 0) {
               const technicalApprovals = newCustomizations.map((customization: any) => ({
