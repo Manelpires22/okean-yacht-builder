@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useATOs } from "@/hooks/useATOs";
+import { useSendATO } from "@/hooks/useSendATO";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -13,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 import { CreateATODialog } from "./CreateATODialog";
 import { ATODetailDialog } from "./ATODetailDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
+import { ATOsDashboard } from "./ATOsDashboard";
+import { SendATOToClientDialog, SendATOData } from "./SendATOToClientDialog";
 
 interface ATOsListProps {
   contractId: string;
@@ -20,8 +24,33 @@ interface ATOsListProps {
 
 export function ATOsList({ contractId }: ATOsListProps) {
   const { data: atos, isLoading } = useATOs(contractId);
+  const { mutateAsync: sendATO } = useSendATO();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
+  const [sendATODialog, setSendATODialog] = useState<{
+    open: boolean;
+    ato?: any;
+  }>({ open: false });
+  const [filterTab, setFilterTab] = useState<string>("all");
+
+  const handleSendATO = async (data: SendATOData) => {
+    if (!sendATODialog.ato) return;
+    
+    await sendATO({
+      atoId: sendATODialog.ato.id,
+      ...data
+    });
+  };
+
+  // Filtrar ATOs baseado na tab selecionada
+  const filteredATOs = atos?.filter((ato) => {
+    if (filterTab === "all") return true;
+    if (filterTab === "workflow") return ato.workflow_status && ato.workflow_status !== 'completed';
+    if (filterTab === "ready") return ato.workflow_status === 'completed' && ato.status === 'draft';
+    if (filterTab === "sent") return ato.status === 'pending_approval';
+    if (filterTab === "approved") return ato.status === 'approved';
+    return true;
+  }) || [];
 
   if (isLoading) {
     return (
@@ -35,6 +64,9 @@ export function ATOsList({ contractId }: ATOsListProps) {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard com Métricas */}
+      <ATOsDashboard atos={atos || []} isLoading={isLoading} />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -64,7 +96,27 @@ export function ATOsList({ contractId }: ATOsListProps) {
               </Button>
             </div>
           ) : (
-            <Table>
+            <Tabs value={filterTab} onValueChange={setFilterTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="all">
+                  Todas ({atos.length})
+                </TabsTrigger>
+                <TabsTrigger value="workflow">
+                  Em Workflow ({atos.filter(a => a.workflow_status && a.workflow_status !== 'completed').length})
+                </TabsTrigger>
+                <TabsTrigger value="ready">
+                  Prontas ({atos.filter(a => a.workflow_status === 'completed' && a.status === 'draft').length})
+                </TabsTrigger>
+                <TabsTrigger value="sent">
+                  Enviadas ({atos.filter(a => a.status === 'pending_approval').length})
+                </TabsTrigger>
+                <TabsTrigger value="approved">
+                  Aprovadas ({atos.filter(a => a.status === 'approved').length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={filterTab} className="mt-6">
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
@@ -78,7 +130,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {atos.map((ato) => (
+                {filteredATOs.map((ato) => (
                   <TableRow key={ato.id}>
                     <TableCell className="font-medium">
                       <Badge variant="outline">{ato.ato_number}</Badge>
@@ -165,19 +217,33 @@ export function ATOsList({ contractId }: ATOsListProps) {
                       })}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSelectedATO(ato.id)}
-                      >
-                        Ver
-                        <ChevronRight className="ml-1 h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        {ato.workflow_status === 'completed' && ato.status === 'draft' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSendATODialog({ open: true, ato })}
+                          >
+                            <Send className="mr-1 h-3 w-3" />
+                            Enviar Cliente
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedATO(ato.id)}
+                        >
+                          Ver
+                          <ChevronRight className="ml-1 h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>
@@ -195,6 +261,18 @@ export function ATOsList({ contractId }: ATOsListProps) {
         onOpenChange={(open) => !open && setSelectedATO(null)}
         atoId={selectedATO}
       />
+
+      {sendATODialog.ato && (
+        <SendATOToClientDialog
+          open={sendATODialog.open}
+          onOpenChange={(open) => setSendATODialog({ open, ato: undefined })}
+          atoNumber={sendATODialog.ato.ato_number}
+          atoTitle={sendATODialog.ato.title}
+          clientName={sendATODialog.ato.contracts?.clients?.name}
+          clientEmail={sendATODialog.ato.contracts?.clients?.email}
+          onSend={handleSendATO}
+        />
+      )}
     </div>
   );
 }
