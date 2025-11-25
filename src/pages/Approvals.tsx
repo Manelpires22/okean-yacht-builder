@@ -5,6 +5,7 @@ import { ApprovalDialog } from "@/components/approvals/ApprovalDialog";
 import { SimplifiedTechnicalApprovalDialog } from "@/components/approvals/SimplifiedTechnicalApprovalDialog";
 import { CustomizationWorkflowModal } from "@/components/configurator/CustomizationWorkflowModal";
 import { useSimplifiedWorkflow } from "@/hooks/useSimplifiedWorkflow";
+import { useCreateRetroactiveApprovals } from "@/hooks/useCreateRetroactiveApprovals";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Workflow } from "lucide-react";
+import { Eye, Workflow, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -32,6 +33,9 @@ export default function Approvals() {
 
   // Feature toggle: verificar se deve usar workflow simplificado
   const { data: isSimplifiedWorkflowEnabled, isLoading: isLoadingFlag } = useSimplifiedWorkflow();
+
+  // Hook para criar aprovações retroativas
+  const { mutate: createRetroactiveApprovals, isPending: isCreatingRetroactive } = useCreateRetroactiveApprovals();
 
   const { data: allApprovals = [] } = useApprovals();
   const { data: pendingApprovals = [] } = useApprovals({ status: 'pending' });
@@ -152,11 +156,21 @@ export default function Approvals() {
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Aprovações</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie solicitações de aprovação de descontos e customizações
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Aprovações</h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie solicitações de aprovação de descontos e customizações
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => createRetroactiveApprovals()}
+            disabled={isCreatingRetroactive}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            {isCreatingRetroactive ? 'Criando...' : 'Criar Aprovações Retroativas'}
+          </Button>
         </div>
 
         <ApprovalStats
