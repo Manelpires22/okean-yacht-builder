@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/quotation-utils";
 
 export default function Configurator() {
   const navigate = useNavigate();
@@ -273,38 +275,74 @@ export default function Configurator() {
 
                   {freeCustomizations.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2">
-                      {freeCustomizations.map((customization) => (
-                        <Card key={customization.memorial_item_id}>
-                          <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1">
-                                <CardTitle className="text-base">
-                                  {customization.item_name}
-                                </CardTitle>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveFreeCustomization(customization.memorial_item_id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            {customization.image_url && (
-                              <img
-                                src={customization.image_url}
-                                alt={customization.item_name}
-                                className="w-full h-32 object-cover rounded-md"
-                              />
+                      {freeCustomizations.map((customization) => {
+                        const isApproved = customization.workflow_status === 'approved';
+                        const hasPrice = customization.pm_final_price && customization.pm_final_price > 0;
+                        
+                        return (
+                          <Card 
+                            key={customization.memorial_item_id}
+                            className={cn(
+                              isApproved && hasPrice && "border-success/30 bg-success/5"
                             )}
-                            <CardDescription className="text-sm">
-                              {customization.notes}
-                            </CardDescription>
-                          </CardContent>
-                        </Card>
-                      ))}
+                          >
+                            <CardHeader className="pb-3">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <CardTitle className="text-base">
+                                      {customization.item_name}
+                                    </CardTitle>
+                                    {isApproved ? (
+                                      <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Aprovado
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+                                        <Clock className="h-3 w-3 mr-1" />
+                                        Pendente
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {hasPrice && (
+                                    <p className="text-lg font-semibold text-success">
+                                      {formatCurrency(customization.pm_final_price!)}
+                                    </p>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleRemoveFreeCustomization(customization.memorial_item_id)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              {customization.image_url && (
+                                <img
+                                  src={customization.image_url}
+                                  alt={customization.item_name}
+                                  className="w-full h-32 object-cover rounded-md"
+                                />
+                              )}
+                              <CardDescription className="text-sm">
+                                {customization.notes}
+                              </CardDescription>
+                              {isApproved && customization.pm_final_delivery_impact_days !== undefined && (
+                                <p className="text-xs text-muted-foreground">
+                                  {customization.pm_final_delivery_impact_days > 0 
+                                    ? `+${customization.pm_final_delivery_impact_days} dias no prazo`
+                                    : "Sem impacto no prazo"
+                                  }
+                                </p>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   ) : (
                     <Card>
