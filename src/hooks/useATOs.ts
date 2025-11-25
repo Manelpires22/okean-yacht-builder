@@ -12,6 +12,7 @@ export interface ATO {
   price_impact: number;
   delivery_days_impact: number;
   status: "draft" | "pending_approval" | "approved" | "rejected" | "cancelled";
+  workflow_status: string | null;
   requested_by: string;
   requested_at: string;
   requires_approval: boolean;
@@ -35,6 +36,7 @@ export interface CreateATOInput {
   description?: string;
   price_impact: number;
   delivery_days_impact: number;
+  workflow_status?: string | null;
   configurations?: Array<{
     item_type: "memorial_item" | "option";
     item_id: string;
@@ -120,7 +122,7 @@ export function useCreateATO() {
       // 2. Determinar se precisa aprovação (similar a cotações)
       const requiresApproval = Math.abs(input.price_impact) > 0 || input.delivery_days_impact > 7;
 
-      // 3. Criar ATO
+      // 3. Criar ATO com workflow_status se fornecido
       const { data: ato, error: atoError } = await supabase
         .from("additional_to_orders")
         .insert({
@@ -133,9 +135,10 @@ export function useCreateATO() {
           delivery_days_impact: input.delivery_days_impact,
           notes: input.notes,
           requested_by: user.id,
-          status: requiresApproval ? "pending_approval" : "approved",
-          requires_approval: requiresApproval,
-          commercial_approval_status: requiresApproval ? "pending" : null,
+          status: input.workflow_status ? "pending_approval" : (requiresApproval ? "pending_approval" : "approved"),
+          requires_approval: requiresApproval || !!input.workflow_status,
+          commercial_approval_status: requiresApproval && !input.workflow_status ? "pending" : null,
+          workflow_status: input.workflow_status || null,
         })
         .select()
         .single();

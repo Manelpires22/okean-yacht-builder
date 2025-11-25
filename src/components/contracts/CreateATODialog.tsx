@@ -62,6 +62,7 @@ export function CreateATODialog({
   const [createdATOId, setCreatedATOId] = useState<string | null>(null);
   const [showConfigPrompt, setShowConfigPrompt] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [requiresWorkflow, setRequiresWorkflow] = useState(true);
   const { mutate: createATO, isPending } = useCreateATO();
 
   const form = useForm<ATOFormData>({
@@ -83,6 +84,7 @@ export function CreateATODialog({
       price_impact: data.price_impact,
       delivery_days_impact: data.delivery_days_impact,
       notes: data.notes,
+      workflow_status: requiresWorkflow ? 'pending_pm_review' : null,
     };
 
     createATO(payload, {
@@ -210,6 +212,22 @@ export function CreateATODialog({
                     </FormItem>
                   )}
                 />
+
+                <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
+                  <input
+                    type="checkbox"
+                    id="requires-workflow"
+                    checked={requiresWorkflow}
+                    onChange={(e) => setRequiresWorkflow(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <label
+                    htmlFor="requires-workflow"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Requer workflow técnico completo (PM → Supply → Planning → PM Final)
+                  </label>
+                </div>
               </div>
             )}
 
