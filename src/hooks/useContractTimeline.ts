@@ -4,12 +4,28 @@ import { supabase } from "@/integrations/supabase/client";
 export interface TimelineEvent {
   id: string;
   timestamp: string;
-  event_type: "contract_created" | "ato_created" | "ato_approved" | "ato_rejected" | "ato_cancelled" | "contract_updated" | "status_changed";
+  event_type: 
+    | "contract_created" 
+    | "ato_created" 
+    | "ato_approved" 
+    | "ato_rejected" 
+    | "ato_cancelled" 
+    | "contract_updated" 
+    | "status_changed"
+    | "ato_workflow_pm_review"
+    | "ato_workflow_supply_quote"
+    | "ato_workflow_planning"
+    | "ato_workflow_client_approval";
   title: string;
   description: string;
   user_name: string | null;
   user_email: string | null;
   metadata?: any;
+  workflowStatus?: {
+    status: string;
+    assignedTo?: string;
+    stepType?: string;
+  };
 }
 
 export function useContractTimeline(contractId: string | undefined) {
@@ -28,10 +44,22 @@ export function useContractTimeline(contractId: string | undefined) {
 
       if (auditError) throw auditError;
 
-      // Buscar ATOs do contrato
+      // Buscar ATOs do contrato com workflow steps
       const { data: atos, error: atosError } = await supabase
         .from("additional_to_orders")
-        .select("*")
+        .select(`
+          *,
+          workflow_steps:ato_workflow_steps(
+            id,
+            step_type,
+            status,
+            completed_at,
+            notes,
+            response_data,
+            assigned_to,
+            assigned_user:users!ato_workflow_steps_assigned_to_fkey(full_name, email)
+          )
+        `)
         .eq("contract_id", contractId)
         .order("created_at", { ascending: false });
 
@@ -86,18 +114,84 @@ export function useContractTimeline(contractId: string | undefined) {
       });
 
       // Adicionar eventos de ATOs
-      atos?.forEach((ato) => {
+      atos?.forEach((ato: any) => {
+        const workflowSteps = ato.workflow_steps || [];
+        const currentStep = workflowSteps.find((s: any) => s.status === 'pending');
+        
+        // Determinar descrição baseada no status
+        let description = ato.title;
+        let workflowStatus = undefined;
+        
+        if (ato.workflow_status && ato.workflow_status !== 'completed') {
+          const stepLabels: Record<string, string> = {
+            'pending_pm_review': 'Aguardando Revisão do PM',
+            'pending_supply_quote': 'Aguardando Cotação de Suprimentos',
+            'pending_planning': 'Aguardando Validação do Planejamento',
+            'pending_client_approval': 'Aguardando Aprovação do Cliente',
+          };
+          
+          const statusLabel = stepLabels[ato.workflow_status] || ato.workflow_status;
+          const assignedName = currentStep?.assigned_user?.full_name || 'Não atribuído';
+          
+          description = `${ato.title}\n⏳ ${statusLabel} (${assignedName})`;
+          
+          workflowStatus = {
+            status: ato.workflow_status,
+            assignedTo: assignedName,
+            stepType: currentStep?.step_type,
+          };
+        }
+        
         // Criação da ATO
         timeline.push({
           id: `ato-created-${ato.id}`,
           timestamp: ato.requested_at,
           event_type: "ato_created",
           title: `ATO ${ato.ato_number} Criada`,
-          description: ato.title,
+          description,
           user_name: null,
           user_email: null,
           metadata: ato,
+          workflowStatus,
         });
+        
+        // Adicionar eventos para workflow steps completados
+        workflowSteps
+          .filter((step: any) => step.status === 'completed' && step.completed_at)
+          .forEach((step: any) => {
+            const stepEventTypes: Record<string, any> = {
+              'pm_review': {
+                type: 'ato_workflow_pm_review',
+                title: `ATO ${ato.ato_number} - Revisão PM Completa`,
+              },
+              'supply_quote': {
+                type: 'ato_workflow_supply_quote',
+                title: `ATO ${ato.ato_number} - Cotação de Suprimentos Completa`,
+              },
+              'planning_validation': {
+                type: 'ato_workflow_planning',
+                title: `ATO ${ato.ato_number} - Validação de Planejamento Completa`,
+              },
+              'client_approval': {
+                type: 'ato_workflow_client_approval',
+                title: `ATO ${ato.ato_number} - Aprovação do Cliente`,
+              },
+            };
+            
+            const eventInfo = stepEventTypes[step.step_type];
+            if (eventInfo) {
+              timeline.push({
+                id: `ato-workflow-${ato.id}-${step.id}`,
+                timestamp: step.completed_at,
+                event_type: eventInfo.type,
+                title: eventInfo.title,
+                description: step.notes || `Step ${step.step_type} concluído`,
+                user_name: step.assigned_user?.full_name || null,
+                user_email: step.assigned_user?.email || null,
+                metadata: { ato, step, response_data: step.response_data },
+              });
+            }
+          });
 
         // Aprovação da ATO
         if (ato.status === "approved" && ato.approved_at) {
