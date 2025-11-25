@@ -159,6 +159,21 @@ export function useDeleteQuotation() {
 
   return useMutation({
     mutationFn: async (quotationId: string) => {
+      // Verificar se existe contrato associado
+      const { data: contract, error: contractError } = await supabase
+        .from("contracts")
+        .select("id, contract_number")
+        .eq("quotation_id", quotationId)
+        .maybeSingle();
+
+      if (contractError) throw contractError;
+
+      if (contract) {
+        throw new Error(
+          `Esta cotação já foi convertida em contrato (${contract.contract_number}) e não pode ser deletada.`
+        );
+      }
+
       const { error } = await supabase
         .from("quotations")
         .delete()
