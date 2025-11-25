@@ -1,14 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useCustomizationWorkflow } from "@/hooks/useCustomizationWorkflow";
 import { useUserRole } from "@/hooks/useUserRole";
-import { Loader2, Clock, CheckCircle2, XCircle, Package, Calendar, DollarSign } from "lucide-react";
+import { Loader2, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { CustomizationContextView } from "./workflow/CustomizationContextView";
-import { PMInitialForm } from "./workflow/PMInitialForm";
-import { SupplyQuoteForm } from "./workflow/SupplyQuoteForm";
-import { PlanningValidationForm } from "./workflow/PlanningValidationForm";
-import { PMFinalForm } from "./workflow/PMFinalForm";
+import { PMReviewForm } from "./workflow/PMReviewForm";
 import { WorkflowDecisionPanel } from "./workflow/WorkflowDecisionPanel";
 import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 
@@ -19,10 +17,7 @@ interface CustomizationWorkflowModalProps {
 }
 
 const WORKFLOW_STATUS_LABELS: Record<string, { label: string; variant: any; icon: any }> = {
-  pending_pm_review: { label: 'Aguardando PM Inicial', variant: 'secondary', icon: Clock },
-  pending_supply_quote: { label: 'Aguardando Supply', variant: 'default', icon: Package },
-  pending_planning_validation: { label: 'Aguardando Planejamento', variant: 'default', icon: Calendar },
-  pending_pm_final_approval: { label: 'Aguardando PM Final', variant: 'default', icon: DollarSign },
+  pending_pm_review: { label: 'Aguardando Análise PM', variant: 'secondary', icon: Clock },
   approved: { label: 'Aprovado', variant: 'success', icon: CheckCircle2 },
   rejected: { label: 'Rejeitado', variant: 'destructive', icon: XCircle },
 };
@@ -57,14 +52,7 @@ export function CustomizationWorkflowModal({
 
   const roles = (userRoles as any)?.roles || [];
   const isPM = roles.includes('pm_engenharia');
-  const isBuyer = roles.includes('comprador');
-  const isPlanner = roles.includes('planejador');
   const isAdmin = roles.includes('administrador');
-
-  const canViewPMInitial = (isPM || isAdmin) && workflowStatus === 'pending_pm_review';
-  const canViewSupply = (isBuyer || isAdmin) && workflowStatus === 'pending_supply_quote';
-  const canViewPlanning = (isPlanner || isAdmin) && workflowStatus === 'pending_planning_validation';
-  const canViewPMFinal = (isPM || isAdmin) && workflowStatus === 'pending_pm_final_approval';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -99,23 +87,11 @@ export function CustomizationWorkflowModal({
           </TabsContent>
 
           <TabsContent value="analysis" className="space-y-4">
-            {canViewPMInitial && (
-              <PMInitialForm customization={customization} />
+            {customization.workflow_status === 'pending_pm_review' && (isPM || isAdmin) && (
+              <PMReviewForm customization={customization} />
             )}
 
-            {canViewSupply && (
-              <SupplyQuoteForm customization={customization} />
-            )}
-
-            {canViewPlanning && (
-              <PlanningValidationForm customization={customization} />
-            )}
-
-            {canViewPMFinal && (
-              <PMFinalForm customization={customization} />
-            )}
-
-            {!canViewPMInitial && !canViewSupply && !canViewPlanning && !canViewPMFinal && (
+            {!['pending_pm_review'].includes(customization.workflow_status) && (
               <div className="text-center py-12 text-muted-foreground">
                 <p>Você não tem permissão para editar esta etapa do workflow.</p>
                 <p className="text-sm mt-2">Status atual: {statusInfo.label}</p>
@@ -124,10 +100,33 @@ export function CustomizationWorkflowModal({
           </TabsContent>
 
           <TabsContent value="decision" className="space-y-4">
-            <WorkflowDecisionPanel
-              customization={customization}
-              canEdit={canViewPMInitial || canViewSupply || canViewPlanning || canViewPMFinal}
-            />
+            {customization.workflow_status === 'pending_pm_review' && (isPM || isAdmin) && (
+              <PMReviewForm customization={customization} />
+            )}
+            
+            {customization.workflow_status === 'approved' && (
+              <WorkflowDecisionPanel customization={customization} />
+            )}
+            
+            {customization.workflow_status === 'rejected' && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Customização Rejeitada</AlertTitle>
+                <AlertDescription>
+                  {customization.reject_reason || "Motivo não informado"}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!['pending_pm_review', 'approved', 'rejected'].includes(customization.workflow_status) && (
+              <Alert>
+                <Clock className="h-4 w-4" />
+                <AlertTitle>Aguardando Análise</AlertTitle>
+                <AlertDescription>
+                  O PM responsável está analisando esta customização.
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -8,56 +8,27 @@ import { cn } from "@/lib/utils";
 
 interface WorkflowDecisionPanelProps {
   customization: CustomizationWorkflow;
-  canEdit: boolean;
 }
 
 const CHECKLIST_ITEMS: Record<string, string[]> = {
   pending_pm_review: [
     'Escopo técnico definido',
-    'Horas de engenharia estimadas',
-    'Peças preliminares listadas',
-  ],
-  pending_supply_quote: [
-    'Itens cotados com fornecedores',
-    'Preços e prazos definidos',
-    'Lead time crítico identificado',
-  ],
-  pending_planning_validation: [
-    'Janela de inserção avaliada',
-    'Impacto no prazo calculado',
-    'Conflitos de capacidade resolvidos',
-  ],
-  pending_pm_final_approval: [
     'Preço de venda definido',
-    'Impacto final no prazo confirmado',
-    'Notas ao vendedor adicionadas',
+    'Impacto no prazo calculado',
+    'Peças necessárias listadas',
   ],
 };
 
-export function WorkflowDecisionPanel({ customization, canEdit }: WorkflowDecisionPanelProps) {
+export function WorkflowDecisionPanel({ customization }: WorkflowDecisionPanelProps) {
   const workflowStatus = customization.workflow_status;
   const checklistItems = CHECKLIST_ITEMS[workflowStatus] || [];
 
   const isComplete = (item: string): boolean => {
     if (workflowStatus === 'pending_pm_review') {
       if (item.includes('Escopo')) return !!customization.pm_scope;
-      if (item.includes('Horas')) return customization.engineering_hours > 0;
-      if (item.includes('Peças')) return customization.required_parts?.length > 0;
-    }
-    if (workflowStatus === 'pending_supply_quote') {
-      if (item.includes('Itens')) return customization.supply_items?.length > 0;
-      if (item.includes('Preços')) return customization.supply_cost > 0;
-      if (item.includes('Lead time')) return customization.supply_lead_time_days > 0;
-    }
-    if (workflowStatus === 'pending_planning_validation') {
-      if (item.includes('Janela')) return !!customization.planning_window_start;
-      if (item.includes('Impacto')) return customization.planning_delivery_impact_days >= 0;
-      if (item.includes('Conflitos')) return true;
-    }
-    if (workflowStatus === 'pending_pm_final_approval') {
       if (item.includes('Preço')) return customization.pm_final_price > 0;
       if (item.includes('Impacto')) return customization.pm_final_delivery_impact_days >= 0;
-      if (item.includes('Notas')) return true;
+      if (item.includes('Peças')) return customization.required_parts?.length > 0;
     }
     return false;
   };
@@ -149,57 +120,49 @@ export function WorkflowDecisionPanel({ customization, canEdit }: WorkflowDecisi
       </Card>
 
       {/* Checklist de Consistência */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Checklist de Consistência</CardTitle>
-          <CardDescription>
-            Verifique se todas as etapas necessárias foram completadas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {checklistItems.map((item, index) => {
-              const completed = isComplete(item);
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
-                    completed && "bg-success/5 border-success/20"
-                  )}
-                >
-                  {completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
-                  ) : (
-                    <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                  )}
-                  <span className={completed ? "text-foreground font-medium" : "text-muted-foreground"}>
-                    {item}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {checklistItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Checklist de Consistência</CardTitle>
+            <CardDescription>
+              Verifique se todas as informações necessárias foram preenchidas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {checklistItems.map((item, index) => {
+                const completed = isComplete(item);
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                      completed && "bg-success/5 border-success/20"
+                    )}
+                  >
+                    {completed ? (
+                      <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                    ) : (
+                      <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    )}
+                    <span className={completed ? "text-foreground font-medium" : "text-muted-foreground"}>
+                      {item}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alertas */}
-      {workflowStatus === 'pending_pm_final_approval' && estimatedPrice > 50000 && (
+      {workflowStatus === 'pending_pm_review' && estimatedPrice > 50000 && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Atenção</AlertTitle>
           <AlertDescription>
             Este valor pode disparar aprovação comercial automática após finalização.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!canEdit && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Aguardando outro departamento</AlertTitle>
-          <AlertDescription>
-            Esta customização está aguardando ação de outro departamento. Você será notificado quando for sua vez de atuar.
           </AlertDescription>
         </Alert>
       )}

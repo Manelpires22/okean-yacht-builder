@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface AdvanceWorkflowRequest {
   customizationId: string;
-  currentStep: 'pm_initial' | 'supply_quote' | 'planning_check' | 'pm_final';
+  currentStep: 'pm_review';
   action: 'advance' | 'reject';
   data: any;
 }
@@ -47,369 +47,177 @@ Deno.serve(async (req) => {
         quotations (
           id,
           quotation_number,
-          yacht_model_id,
-          base_discount_percentage,
-          options_discount_percentage,
+          base_price,
           final_base_price,
           final_options_price,
           base_delivery_days,
-          yacht_models (
-            id,
-            name,
-            pm_assignments:pm_yacht_model_assignments (
-              pm_user_id,
-              pm_user:users (id, full_name, email)
-            )
-          )
+          total_delivery_days,
+          total_customizations_price
         )
       `)
       .eq('id', customizationId)
       .single();
 
     if (fetchError || !customization) {
+      console.error('Customization not found:', fetchError);
       return new Response(JSON.stringify({ error: 'Customization not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Handle rejection
+    // Handle REJECT action
     if (action === 'reject') {
-      if (!data.reject_reason) {
-        return new Response(JSON.stringify({ error: 'Motivo da rejeição obrigatório' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
       await supabase
         .from('quotation_customizations')
         .update({
           workflow_status: 'rejected',
           status: 'rejected',
-          reject_reason: data.reject_reason,
-          reviewed_by: user.id,
+          reject_reason: data.reject_reason || 'Rejeitado',
           reviewed_at: new Date().toISOString(),
+          reviewed_by: user.id,
         })
         .eq('id', customizationId);
 
-      // Mark all pending steps as rejected
       await supabase
         .from('customization_workflow_steps')
-        .update({ status: 'rejected' })
-        .eq('customization_id', customizationId)
-        .eq('status', 'pending');
-
-      return new Response(JSON.stringify({ success: true, status: 'rejected' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Handle advancement based on current step
-    let nextStatus = '';
-    let nextStepType = '';
-    let updateData: any = {};
-
-    if (currentStep === 'pm_initial') {
-      // Validate PM Initial
-      if (!data.pm_scope || data.engineering_hours < 0) {
-        return new Response(JSON.stringify({ error: 'Escopo e horas de engenharia são obrigatórios' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      nextStatus = 'pending_supply_quote';
-      nextStepType = 'supply_quote';
-      updateData = {
-        workflow_status: nextStatus,
-        pm_scope: data.pm_scope,
-        engineering_hours: data.engineering_hours,
-        required_parts: data.required_parts || [],
-      };
-
-    } else if (currentStep === 'supply_quote') {
-      // Validate Supply Quote
-      if (!data.supply_items?.length || data.supply_cost < 0) {
-        return new Response(JSON.stringify({ error: 'Itens cotados são obrigatórios' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      nextStatus = 'pending_planning_validation';
-      nextStepType = 'planning_check';
-      updateData = {
-        workflow_status: nextStatus,
-        supply_items: data.supply_items,
-        supply_cost: data.supply_cost,
-        supply_lead_time_days: data.supply_lead_time_days,
-        supply_notes: data.supply_notes,
-      };
-
-    } else if (currentStep === 'planning_check') {
-      // Validate Planning
-      if (data.planning_delivery_impact_days < 0) {
-        return new Response(JSON.stringify({ error: 'Impacto no prazo inválido' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      nextStatus = 'pending_pm_final_approval';
-      nextStepType = 'pm_final';
-      updateData = {
-        workflow_status: nextStatus,
-        planning_window_start: data.planning_window_start,
-        planning_delivery_impact_days: data.planning_delivery_impact_days,
-        planning_notes: data.planning_notes,
-      };
-
-    } else if (currentStep === 'pm_final') {
-      // Validate PM Final
-      if (!data.pm_final_price || data.pm_final_price < 0) {
-        return new Response(JSON.stringify({ error: 'Preço de venda obrigatório' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Calculate technical cost
-      const { data: config } = await supabase
-        .from('workflow_config')
-        .select('config_value')
-        .eq('config_key', 'engineering_rate')
-        .single();
-
-      const { data: contingencyConfig } = await supabase
-        .from('workflow_config')
-        .select('config_value')
-        .eq('config_key', 'contingency_percent')
-        .single();
-
-      const engineeringRate = config?.config_value?.rate_per_hour || 150;
-      const contingencyPercent = (contingencyConfig?.config_value?.percent || 10) / 100;
-
-      const engineeringCost = customization.engineering_hours * engineeringRate;
-      const technicalCost = customization.supply_cost + engineeringCost;
-      const costWithContingency = technicalCost * (1 + contingencyPercent);
-
-      nextStatus = 'approved';
-      updateData = {
-        workflow_status: nextStatus,
-        status: 'approved', // ✅ SEMPRE marcar como aprovado após PM Final
-        pm_final_price: data.pm_final_price,
-        pm_final_delivery_impact_days: data.pm_final_delivery_impact_days,
-        pm_final_notes: data.pm_final_notes,
-        additional_cost: data.pm_final_price,
-        delivery_impact_days: data.pm_final_delivery_impact_days,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-      };
-
-      // ✅ ATUALIZAR A CUSTOMIZAÇÃO IMEDIATAMENTE ANTES DE VERIFICAR APROVAÇÃO COMERCIAL
-      await supabase
-        .from('quotation_customizations')
-        .update(updateData)
-        .eq('id', customizationId);
-
-      // Update quotation totals
-      const { data: allCustomizations } = await supabase
-        .from('quotation_customizations')
-        .select('additional_cost, delivery_impact_days')
-        .eq('quotation_id', customization.quotations.id)
-        .in('status', ['approved', 'pending']);
-
-      const totalCustomizationsCost = (allCustomizations || []).reduce(
-        (sum, c) => sum + (c.additional_cost || 0),
-        0
-      ) - (customization.additional_cost || 0) + data.pm_final_price;
-
-      const maxDeliveryImpact = Math.max(
-        ...(allCustomizations || []).map(c => c.delivery_impact_days || 0),
-        data.pm_final_delivery_impact_days
-      );
-
-      const newFinalPrice =
-        customization.quotations.final_base_price +
-        customization.quotations.final_options_price +
-        totalCustomizationsCost;
-
-      await supabase
-        .from('quotations')
         .update({
-          total_customizations_price: totalCustomizationsCost,
-          total_delivery_days: customization.quotations.base_delivery_days + maxDeliveryImpact,
-          final_price: newFinalPrice,
+          status: 'rejected',
+          completed_at: new Date().toISOString(),
+          notes: data.reject_reason,
         })
-        .eq('id', customization.quotations.id);
+        .eq('customization_id', customizationId)
+        .eq('step_type', 'pm_review');
 
-      // Check if commercial approval is needed
-      const baseDiscount = customization.quotations.base_discount_percentage || 0;
-      const optionsDiscount = customization.quotations.options_discount_percentage || 0;
-
-      // Import discount limits logic
-      const { data: baseLimits } = await supabase
-        .from('discount_limits_config')
-        .select('*')
-        .eq('limit_type', 'base')
-        .single();
-
-      const noApprovalMax = baseLimits?.no_approval_max || 10;
-      const maxDiscount = Math.max(baseDiscount, optionsDiscount);
-
-      if (maxDiscount > noApprovalMax) {
-        // Create commercial approval
-        await supabase
-          .from('approvals')
-          .insert({
-            quotation_id: customization.quotations.id,
-            approval_type: 'commercial',
-            request_details: {
-              discount_type: 'combined',
-              reason: 'Gerado automaticamente após aprovação de customização',
-              customization_triggered: true,
-            },
-            requested_by: user.id,
-            status: 'pending',
-          });
-
-        await supabase
-          .from('quotations')
-          .update({ status: 'pending_commercial_approval' })
-          .eq('id', customization.quotations.id);
-
-        // ✅ Marcar step como concluído e retornar
-        await supabase
-          .from('customization_workflow_steps')
-          .update({
-            status: 'completed',
-            response_data: data,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('customization_id', customizationId)
-          .eq('step_type', currentStep);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            status: 'approved',
-            needsCommercialApproval: true,
-            message: 'Customização aprovada. Aprovação comercial criada automaticamente.',
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        // No commercial approval needed
-        await supabase
-          .from('quotations')
-          .update({ status: 'ready_to_send' })
-          .eq('id', customization.quotations.id);
-
-        // ✅ Marcar step como concluído
-        await supabase
-          .from('customization_workflow_steps')
-          .update({
-            status: 'completed',
-            response_data: data,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('customization_id', customizationId)
-          .eq('step_type', currentStep);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            status: 'approved',
-            message: 'Customização aprovada com sucesso!',
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      return new Response(
+        JSON.stringify({ message: 'Customização rejeitada' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Update customization
+    // Handle ADVANCE action - PM Review único
+    if (currentStep !== 'pm_review') {
+      throw new Error('Step inválido. Apenas pm_review é suportado.');
+    }
+
+    // Validar dados completos do PM
+    if (!data.pm_scope || data.pm_final_price === undefined || data.pm_final_delivery_impact_days === undefined) {
+      return new Response(
+        JSON.stringify({ error: 'Dados incompletos: escopo, preço e impacto no prazo são obrigatórios' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const updateData = {
+      pm_scope: data.pm_scope,
+      pm_final_price: data.pm_final_price,
+      pm_final_delivery_impact_days: data.pm_final_delivery_impact_days,
+      required_parts: data.required_parts || [],
+      pm_final_notes: data.pm_final_notes,
+      workflow_status: 'approved',
+      status: 'approved',
+      additional_cost: data.pm_final_price,
+      delivery_impact_days: data.pm_final_delivery_impact_days,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.id,
+    };
+
+    // Atualizar customization
     await supabase
       .from('quotation_customizations')
       .update(updateData)
       .eq('id', customizationId);
 
-    // Mark current step as completed
+    // Marcar step como completo
     await supabase
       .from('customization_workflow_steps')
       .update({
         status: 'completed',
-        response_data: data,
         completed_at: new Date().toISOString(),
+        response_data: data,
       })
       .eq('customization_id', customizationId)
-      .eq('step_type', currentStep);
+      .eq('step_type', 'pm_review');
 
-    // Create next step (if not final)
-    if (nextStepType) {
-      let assignedTo = null;
+    // Atualizar totais da cotação
+    const newCustomizationPrice = data.pm_final_price;
+    const newDeliveryImpact = data.pm_final_delivery_impact_days;
 
-      if (nextStepType === 'supply_quote') {
-        // Assign to first buyer
-        const { data: buyer } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'comprador')
-          .limit(1)
-          .single();
-        assignedTo = buyer?.user_id;
-      } else if (nextStepType === 'planning_check') {
-        // Assign to first planner
-        const { data: planner } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'planejador')
-          .limit(1)
-          .single();
-        assignedTo = planner?.user_id;
-      } else if (nextStepType === 'pm_final') {
-        // Assign to PM of the yacht model
-        const pmAssignments = customization.quotations.yacht_models?.pm_assignments || [];
-        if (pmAssignments.length > 0) {
-          assignedTo = pmAssignments[0].pm_user_id;
-        }
-      }
+    const { data: quotation } = await supabase
+      .from('quotations')
+      .select('*')
+      .eq('id', customization.quotation_id)
+      .single();
+
+    if (quotation) {
+      const currentCustomizationsTotal = quotation.total_customizations_price || 0;
+      const updatedCustomizationsTotal = currentCustomizationsTotal + newCustomizationPrice;
+      
+      const currentTotalDeliveryDays = quotation.total_delivery_days || quotation.base_delivery_days;
+      const updatedTotalDeliveryDays = currentTotalDeliveryDays + newDeliveryImpact;
+
+      const updatedFinalPrice = quotation.final_base_price + (quotation.final_options_price || 0) + updatedCustomizationsTotal;
 
       await supabase
-        .from('customization_workflow_steps')
+        .from('quotations')
+        .update({
+          total_customizations_price: updatedCustomizationsTotal,
+          total_delivery_days: updatedTotalDeliveryDays,
+          final_price: updatedFinalPrice,
+        })
+        .eq('id', customization.quotation_id);
+    }
+
+    // Verificar se precisa aprovação comercial
+    const { data: discountLimits } = await supabase
+      .from('discount_limits_config')
+      .select('*')
+      .eq('limit_type', 'customization');
+
+    const needsCommercialApproval = discountLimits && discountLimits.length > 0 && 
+      newCustomizationPrice > (discountLimits[0].admin_approval_required_above || 50000);
+
+    if (needsCommercialApproval) {
+      await supabase
+        .from('approvals')
         .insert({
-          customization_id: customizationId,
-          step_type: nextStepType,
-          assigned_to: assignedTo,
+          quotation_id: customization.quotation_id,
+          approval_type: 'commercial',
+          requested_by: user.id,
           status: 'pending',
+          request_details: {
+            customization_id: customizationId,
+            customization_price: newCustomizationPrice,
+            reason: 'Customização com preço elevado requer aprovação comercial',
+          },
+          notes: `Customização: ${customization.item_name} - ${data.pm_final_notes || ''}`,
         });
 
-      // Send notification (call notification function)
-      if (assignedTo) {
-        await supabase.functions.invoke('send-workflow-notification', {
-          body: {
-            assignedTo,
-            customizationId,
-            stepType: nextStepType,
-          },
-        });
-      }
+      return new Response(
+        JSON.stringify({ 
+          message: 'Customização aprovada! Aprovação comercial criada.',
+          needsCommercialApproval: true,
+          workflowCompleted: true,
+          customizationId: customizationId,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        nextStatus,
-        message: nextStatus === 'approved' ? 'Customização aprovada com sucesso!' : 'Workflow avançado com sucesso!',
+      JSON.stringify({ 
+        message: 'Customização aprovada com sucesso!',
+        workflowCompleted: true,
+        customizationId: customizationId,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } catch (error) {
-    console.error('Error advancing workflow:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+
+  } catch (error: any) {
+    console.error('Error in advance-customization-workflow:', error);
+    return new Response(
+      JSON.stringify({ error: error.message || 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });
