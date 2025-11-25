@@ -15,6 +15,7 @@ export interface Customization {
   quantity?: number;
   image_url?: string;
   is_free_customization?: boolean; // true for user-created customizations
+  workflow_status?: string; // Status do workflow (pending_pm_review, approved, etc)
 }
 
 export interface ConfigurationState {
@@ -181,6 +182,7 @@ export function useConfigurationState() {
         notes: qc.notes || '',
         quantity: qc.quantity,
         is_free_customization: !qc.memorial_item_id,
+        workflow_status: qc.workflow_status,
       })) || [],
     });
   };

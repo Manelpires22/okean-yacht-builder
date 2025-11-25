@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { getDiscountLimitsSync } from "@/lib/approval-utils";
-import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil } from "lucide-react";
+import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil, CheckCircle, Clock } from "lucide-react";
 import { Customization } from "@/hooks/useConfigurationState";
 import { MessageSquare, Package } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -171,51 +171,68 @@ export function ConfigurationSummary({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
-                  {customizations.map((customization) => (
-                    <div
-                      key={customization.memorial_item_id}
-                      className="p-2 bg-accent/50 rounded-md group relative"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium mb-1">
-                            <Edit className="h-3 w-3 inline mr-1" />
-                            {customization.item_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground line-clamp-2">
-                            {customization.notes}
-                          </p>
-                          {customization.quantity && customization.quantity > 1 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Qtd: {customization.quantity}
+                  {customizations.map((customization) => {
+                    const isApproved = customization.workflow_status === 'approved';
+                    const isPending = customization.workflow_status && customization.workflow_status !== 'approved';
+                    
+                    return (
+                      <div
+                        key={customization.memorial_item_id}
+                        className="p-2 bg-accent/50 rounded-md group relative"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 mb-1">
+                              <Edit className="h-3 w-3 inline" />
+                              <p className="text-xs font-medium">
+                                {customization.item_name}
+                              </p>
+                              {isApproved && (
+                                <span title="Aprovado">
+                                  <CheckCircle className="h-3 w-3 text-success ml-1 shrink-0" />
+                                </span>
+                              )}
+                              {isPending && (
+                                <span title="Pendente aprovação">
+                                  <Clock className="h-3 w-3 text-warning ml-1 shrink-0" />
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {customization.notes}
                             </p>
-                          )}
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {onEditCustomization && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => onEditCustomization(customization)}
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          )}
-                          {onRemoveCustomization && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => onRemoveCustomization(customization.memorial_item_id)}
-                            >
-                              <X className="h-3 w-3 text-destructive" />
-                            </Button>
-                          )}
+                            {customization.quantity && customization.quantity > 1 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Qtd: {customization.quantity}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {onEditCustomization && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => onEditCustomization(customization)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {onRemoveCustomization && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => onRemoveCustomization(customization.memorial_item_id)}
+                              >
+                                <X className="h-3 w-3 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {selectedOptions
                     .filter(opt => opt.customization_notes)
                     .map((selected) => {
