@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useCreateATO } from "@/hooks/useATOs";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileText, Loader2 } from "lucide-react";
 
@@ -27,74 +27,7 @@ export function RequestContractRevisionDialog({
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  const createRevision = useMutation({
-    mutationFn: async () => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // Create the customization
-      const { data: customization, error: customizationError } = await supabase
-        .from("quotation_customizations")
-        .insert({
-          quotation_id: quotationId,
-          item_name: itemName,
-          notes: description,
-          quantity: quantity,
-          status: "pending",
-          workflow_status: null, // Will be set to pending_pm_review after approval
-          included_in_contract: false, // Marca como revisão pós-contrato
-        })
-        .select()
-        .single();
-
-      if (customizationError) throw customizationError;
-
-      // Create the approval request
-      const { error: approvalError } = await supabase
-        .from("approvals")
-        .insert({
-          quotation_id: quotationId,
-          approval_type: "technical",
-          requested_by: user.id,
-          status: "pending",
-          request_details: {
-            is_contract_revision: true,
-            customization_id: customization.id,
-            item_name: itemName,
-            description: description,
-            quantity: quantity,
-          },
-          notes: `Revisão de contrato: ${itemName}`,
-        });
-
-      if (approvalError) throw approvalError;
-
-      return customization;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["quotation-customizations"] });
-      queryClient.invalidateQueries({ queryKey: ["contract-revisions"] });
-      queryClient.invalidateQueries({ queryKey: ["approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["approvals-count"] });
-      
-      toast.success("Revisão de contrato criada!", {
-        description: `"${data.item_name}" entrará no workflow de aprovação.`,
-      });
-
-      // Reset form
-      setItemName("");
-      setDescription("");
-      setQuantity(1);
-      onOpenChange(false);
-    },
-    onError: (error: Error) => {
-      console.error("Error creating revision:", error);
-      toast.error("Erro ao criar revisão", {
-        description: error.message,
-      });
-    },
-  });
+  const { mutate: createATO, isPending } = useCreateATO();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +37,40 @@ export function RequestContractRevisionDialog({
       return;
     }
 
-    createRevision.mutate();
+    // Criar ATO diretamente com workflow técnico
+    createATO(
+      {
+        contract_id: contractId,
+        title: itemName,
+        description: description,
+        price_impact: 0,
+        delivery_days_impact: 0,
+        workflow_status: 'pending_pm_review',
+        notes: `Quantidade: ${quantity}`,
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["atos"] });
+          queryClient.invalidateQueries({ queryKey: ["live-contract"] });
+          
+          toast.success("Solicitação de mudança criada!", {
+            description: `"${itemName}" entrará no workflow de aprovação técnica.`,
+          });
+
+          // Reset form
+          setItemName("");
+          setDescription("");
+          setQuantity(1);
+          onOpenChange(false);
+        },
+        onError: (error: Error) => {
+          console.error("Error creating ATO:", error);
+          toast.error("Erro ao criar solicitação", {
+            description: error.message,
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -116,7 +82,7 @@ export function RequestContractRevisionDialog({
             Solicitar Revisão de Contrato
           </DialogTitle>
           <DialogDescription>
-            Crie uma solicitação de mudança que passará por aprovação técnica antes de poder ser convertida em ATO.
+            Crie uma solicitação de mudança que passará por workflow técnico completo (PM → Supply → Planning → PM Final) antes de ser aprovada como ATO.
           </DialogDescription>
         </DialogHeader>
 
@@ -172,12 +138,12 @@ export function RequestContractRevisionDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={createRevision.isPending}
+              disabled={isPending}
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={createRevision.isPending}>
-              {createRevision.isPending && (
+            <Button type="submit" disabled={isPending}>
+              {isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
               Criar Solicitação

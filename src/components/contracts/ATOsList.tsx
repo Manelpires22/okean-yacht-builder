@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CreateATODialog } from "./CreateATODialog";
 import { ATODetailDialog } from "./ATODetailDialog";
+import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 
 function ATOConfigurationBadge({ atoId }: { atoId: string }) {
   const { data: configurations, isLoading } = useATOConfigurations(atoId);
@@ -67,7 +68,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
             <div>
               <CardTitle>ATOs (Additional To Order)</CardTitle>
               <CardDescription>
-                Aditivos ao contrato original - modificações e configurações
+                Aditivos ao contrato original - todas as mudanças pós-contrato
               </CardDescription>
             </div>
             <Button onClick={() => setCreateDialogOpen(true)}>
@@ -82,7 +83,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">Nenhuma ATO criada</h3>
               <p className="text-muted-foreground mb-4">
-                ATOs são aditivos ao contrato para modificações ou configurações extras
+                ATOs são aditivos ao contrato para modificações, customizações ou configurações extras
               </p>
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -94,7 +95,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
-                  <TableHead>Título</TableHead>
+                  <TableHead>Título & Workflow</TableHead>
                   <TableHead>Itens</TableHead>
                   <TableHead>Impacto Preço</TableHead>
                   <TableHead>Impacto Prazo</TableHead>
@@ -110,12 +111,22 @@ export function ATOsList({ contractId }: ATOsListProps) {
                       <Badge variant="outline">{ato.ato_number}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <p className="font-semibold">{ato.title}</p>
-                        {ato.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">
-                            {ato.description}
-                          </p>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="font-semibold">{ato.title}</p>
+                          {ato.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-1">
+                              {ato.description}
+                            </p>
+                          )}
+                        </div>
+                        {ato.workflow_status && (
+                          <div className="pt-2">
+                            <ATOWorkflowTimeline 
+                              currentStatus={ato.workflow_status} 
+                              className="scale-75 origin-left"
+                            />
+                          </div>
                         )}
                       </div>
                     </TableCell>

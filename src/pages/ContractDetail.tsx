@@ -10,7 +10,6 @@ import { ATOsList } from "@/components/contracts/ATOsList";
 import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
-import { ContractRevisionsTab } from "@/components/contracts/ContractRevisionsTab";
 import { FileText, Plus, TrendingUp, Clock, ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
@@ -86,18 +85,14 @@ export default function ContractDetail() {
           onDelete={() => setShowDeleteDialog(true)}
         />
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="gap-2">
               <FileText className="h-4 w-4" />
               Visão Geral
             </TabsTrigger>
             <TabsTrigger value="atos" className="gap-2">
               <Plus className="h-4 w-4" />
-              ATOs
-            </TabsTrigger>
-            <TabsTrigger value="revisions" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Revisões
+              Aditivos (ATOs)
             </TabsTrigger>
             <TabsTrigger value="consolidated" className="gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -119,13 +114,6 @@ export default function ContractDetail() {
 
           <TabsContent value="atos">
             <ATOsList contractId={contract.id} />
-          </TabsContent>
-
-          <TabsContent value="revisions">
-            <ContractRevisionsTab 
-              contractId={contract.id} 
-              quotationId={contract.quotation_id} 
-            />
           </TabsContent>
 
           <TabsContent value="consolidated">

@@ -36,6 +36,7 @@ export type Database = {
           technical_approval_status: string | null
           title: string
           updated_at: string | null
+          workflow_status: string | null
         }
         Insert: {
           approved_at?: string | null
@@ -58,6 +59,7 @@ export type Database = {
           technical_approval_status?: string | null
           title: string
           updated_at?: string | null
+          workflow_status?: string | null
         }
         Update: {
           approved_at?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           technical_approval_status?: string | null
           title?: string
           updated_at?: string | null
+          workflow_status?: string | null
         }
         Relationships: [
           {
@@ -191,6 +194,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ato_configurations_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "additional_to_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ato_workflow_steps: {
+        Row: {
+          assigned_to: string | null
+          ato_id: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          response_data: Json | null
+          status: string | null
+          step_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          ato_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          response_data?: Json | null
+          status?: string | null
+          step_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          ato_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          response_data?: Json | null
+          status?: string | null
+          step_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ato_workflow_steps_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ato_workflow_steps_ato_id_fkey"
             columns: ["ato_id"]
             isOneToOne: false
             referencedRelation: "additional_to_orders"
