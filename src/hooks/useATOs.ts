@@ -117,7 +117,7 @@ export function useCreateATO() {
         ? existingATOs[0].sequence_number + 1 
         : 1;
 
-      const atoNumber = `ATO-${nextSequence.toString().padStart(3, "0")}`;
+      const atoNumber = `ATO ${nextSequence}`;
 
       // 2. Determinar se precisa aprovação (similar a cotações)
       const requiresApproval = Math.abs(input.price_impact) > 0 || input.delivery_days_impact > 7;
