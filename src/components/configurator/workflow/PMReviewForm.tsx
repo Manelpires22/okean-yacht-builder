@@ -10,6 +10,7 @@ import { CheckCircle2, AlertCircle, Plus, Trash2, Package, Wrench } from "lucide
 import { formatCurrency } from "@/lib/formatters";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { CurrencyInput } from "@/components/ui/numeric-input";
 
 interface PMReviewFormProps {
   customization: CustomizationWorkflow;
@@ -349,15 +350,12 @@ export function PMReviewForm({ customization }: PMReviewFormProps) {
 
         {/* Preço Final (editável) */}
         <div className="space-y-2">
-          <Label htmlFor="final-price">Preço de Venda Final (R$) *</Label>
-          <Input
+          <Label htmlFor="final-price">Preço de Venda Final *</Label>
+          <CurrencyInput
             id="final-price"
-            type="number"
-            min="0"
-            step="0.01"
-            value={finalPrice}
-            onChange={(e) => {
-              const value = parseFloat(e.target.value) || 0;
+            value={finalPrice.toString()}
+            onChange={(valueStr) => {
+              const value = parseFloat(valueStr) || 0;
               // Arredondar para 2 casas decimais
               setFinalPrice(Math.round(value * 100) / 100);
             }}
