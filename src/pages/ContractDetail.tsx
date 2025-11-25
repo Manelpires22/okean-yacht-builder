@@ -9,6 +9,7 @@ import { ContractOverview } from "@/components/contracts/ContractOverview";
 import { ATOsList } from "@/components/contracts/ATOsList";
 import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
+import { ATODetailDialog } from "@/components/contracts/ATODetailDialog";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
 import { FileText, Plus, TrendingUp, Clock, ArrowLeft } from "lucide-react";
 import {
@@ -29,6 +30,7 @@ export default function ContractDetail() {
   const { data: contract, isLoading } = useContract(id);
   const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedATOFromTimeline, setSelectedATOFromTimeline] = useState<string | null>(null);
 
   const handleDelete = () => {
     if (!id) return;
@@ -121,9 +123,19 @@ export default function ContractDetail() {
           </TabsContent>
 
           <TabsContent value="timeline">
-            <ContractTimeline contractId={contract.id} />
+            <ContractTimeline 
+              contractId={contract.id}
+              onATOClick={(atoId) => setSelectedATOFromTimeline(atoId)}
+            />
           </TabsContent>
         </Tabs>
+
+        {/* Dialog para ATOs clicadas na timeline */}
+        <ATODetailDialog
+          open={!!selectedATOFromTimeline}
+          onOpenChange={(open) => !open && setSelectedATOFromTimeline(null)}
+          atoId={selectedATOFromTimeline}
+        />
 
         <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

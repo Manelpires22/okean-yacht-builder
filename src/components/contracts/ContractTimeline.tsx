@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 
 interface ContractTimelineProps {
   contractId: string;
+  onATOClick?: (atoId: string) => void;
 }
 
 const EVENT_ICONS = {
@@ -53,7 +54,7 @@ const EVENT_COLORS = {
   ato_workflow_client_approval: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/20",
 };
 
-export function ContractTimeline({ contractId }: ContractTimelineProps) {
+export function ContractTimeline({ contractId, onATOClick }: ContractTimelineProps) {
   const { data: timeline, isLoading } = useContractTimeline(contractId);
 
   if (isLoading) {
@@ -122,6 +123,8 @@ export function ContractTimeline({ contractId }: ContractTimelineProps) {
               {timeline.map((event, index) => {
                 const Icon = EVENT_ICONS[event.event_type] || FileText;
                 const colorClass = EVENT_COLORS[event.event_type] || EVENT_COLORS.contract_updated;
+                const isATOEvent = event.event_type.startsWith('ato_');
+                const atoId = event.metadata?.atoId;
 
                 return (
                   <div key={event.id} className="relative flex gap-4">
@@ -132,7 +135,18 @@ export function ContractTimeline({ contractId }: ContractTimelineProps) {
 
                     {/* Content */}
                     <div className="flex-1 pb-6">
-                      <div className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div 
+                        className={`bg-card border rounded-lg p-4 transition-all ${
+                          isATOEvent && atoId && onATOClick 
+                            ? 'cursor-pointer hover:shadow-md hover:border-primary' 
+                            : 'hover:shadow-md'
+                        }`}
+                        onClick={() => {
+                          if (isATOEvent && atoId && onATOClick) {
+                            onATOClick(atoId);
+                          }
+                        }}
+                      >
                         <div className="flex items-start justify-between mb-2">
                           <h3 className="font-semibold">{event.title}</h3>
                           <Badge variant="outline" className="text-xs">
