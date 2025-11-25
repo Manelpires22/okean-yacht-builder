@@ -74,21 +74,56 @@ export function SimplifiedTechnicalApprovalDialog({
 
       if (approvalError) throw approvalError;
 
-      // 2. Atualizar a customização
-      const { error: customizationError } = await supabase
+      // 2. Atualizar a customização (com fallback por nome)
+      // Primeiro verifica se a customização existe pelo ID
+      const { data: existingById } = await supabase
+        .from('quotation_customizations')
+        .select('id')
+        .eq('id', params.customizationId)
+        .maybeSingle();
+
+      let targetId = params.customizationId;
+
+      // Se não encontrou por ID, busca pelo nome na mesma cotação
+      if (!existingById) {
+        console.log(`Customização ${params.customizationId} não encontrada, buscando por nome...`);
+        const { data: byName } = await supabase
+          .from('quotation_customizations')
+          .select('id')
+          .eq('quotation_id', approval.quotation_id)
+          .eq('item_name', approval.request_details.item_name)
+          .eq('status', 'pending')
+          .maybeSingle();
+        
+        if (byName) {
+          console.log(`Customização encontrada por nome com ID: ${byName.id}`);
+          targetId = byName.id;
+        } else {
+          throw new Error(`Customização "${approval.request_details.item_name}" não encontrada. Pode ter sido removida.`);
+        }
+      }
+
+      // Atualiza usando o targetId correto
+      const { error: customizationError, data: updatedData } = await supabase
         .from('quotation_customizations')
         .update({
           status: params.action === 'approve' ? 'approved' : 'rejected',
+          workflow_status: params.action === 'approve' ? 'approved' : 'rejected',
           reviewed_by: user.id,
           reviewed_at: new Date().toISOString(),
-          additional_cost: params.action === 'approve' ? params.additionalCost : 0,
-          delivery_impact_days: params.action === 'approve' ? params.deliveryImpact : 0,
+          pm_final_price: params.action === 'approve' ? params.additionalCost : 0,
+          pm_final_delivery_impact_days: params.action === 'approve' ? params.deliveryImpact : 0,
           engineering_notes: params.engineeringNotes,
           reject_reason: params.action === 'reject' ? params.engineeringNotes : null,
         })
-        .eq('id', params.customizationId);
+        .eq('id', targetId)
+        .select();
 
       if (customizationError) throw customizationError;
+      
+      if (!updatedData || updatedData.length === 0) {
+        throw new Error('Nenhuma customização foi atualizada. Verifique se o registro ainda existe.');
+      }
 
       // 3. Se aprovado, recalcular totais da cotação
       if (params.action === 'approve' && (params.additionalCost > 0 || params.deliveryImpact > 0)) {
