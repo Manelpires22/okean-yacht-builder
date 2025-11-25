@@ -398,7 +398,7 @@ export default function Configurator() {
         isLoading={saveQuotation.isPending}
         baseDiscountPercentage={state.base_discount_percentage}
         optionsDiscountPercentage={state.options_discount_percentage}
-        customizationsCount={state.customizations?.length || 0}
+        customizationsCount={state.customizations?.filter(c => c.workflow_status !== 'approved').length || 0}
         existingClientData={existingQuotation ? {
           client_id: existingQuotation.client_id || undefined,
           client_name: existingQuotation.client_name,
