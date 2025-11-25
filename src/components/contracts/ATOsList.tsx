@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useATOs } from "@/hooks/useATOs";
-import { useATOConfigurations } from "@/hooks/useATOConfigurations";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,32 +13,6 @@ import { ptBR } from "date-fns/locale";
 import { CreateATODialog } from "./CreateATODialog";
 import { ATODetailDialog } from "./ATODetailDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
-
-function ATOConfigurationBadge({ atoId }: { atoId: string }) {
-  const { data: configurations, isLoading } = useATOConfigurations(atoId);
-
-  if (isLoading) {
-    return <Badge variant="outline" className="animate-pulse">...</Badge>;
-  }
-
-  const count = configurations?.length || 0;
-
-  if (count === 0) {
-    return (
-      <Badge variant="outline" className="text-orange-600 border-orange-300 dark:border-orange-700">
-        <Package className="h-3 w-3 mr-1" />
-        Sem itens
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-      <Package className="h-3 w-3 mr-1" />
-      {count} {count === 1 ? "item" : "itens"}
-    </Badge>
-  );
-}
 
 interface ATOsListProps {
   contractId: string;
@@ -131,7 +104,23 @@ export function ATOsList({ contractId }: ATOsListProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <ATOConfigurationBadge atoId={ato.id} />
+                      {(() => {
+                        const count = ato.configurations?.length || 0;
+                        if (count === 0) {
+                          return (
+                            <Badge variant="outline" className="text-orange-600 border-orange-300 dark:border-orange-700">
+                              <Package className="h-3 w-3 mr-1" />
+                              Sem itens
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            <Package className="h-3 w-3 mr-1" />
+                            {count} {count === 1 ? "item" : "itens"}
+                          </Badge>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -193,11 +182,13 @@ export function ATOsList({ contractId }: ATOsListProps) {
         </CardContent>
       </Card>
 
-      <CreateATODialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        contractId={contractId}
-      />
+      {createDialogOpen && (
+        <CreateATODialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          contractId={contractId}
+        />
+      )}
 
       <ATODetailDialog
         open={!!selectedATO}

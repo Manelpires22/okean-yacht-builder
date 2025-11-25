@@ -28,6 +28,7 @@ export interface ATO {
   // Relacionamentos
   contract?: any;
   requested_by_user?: any;
+  configurations?: Array<{ id: string }>;
 }
 
 export interface CreateATOInput {
@@ -58,7 +59,8 @@ export function useATOs(contractId: string | undefined) {
         .select(`
           *,
           contract:contracts(contract_number, status),
-          requested_by_user:users!additional_to_orders_requested_by_fkey(full_name, email)
+          requested_by_user:users!additional_to_orders_requested_by_fkey(full_name, email),
+          configurations:ato_configurations(id)
         `)
         .eq("contract_id", contractId)
         .order("sequence_number", { ascending: true });
