@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -58,12 +58,14 @@ interface ATODetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   atoId: string | null;
+  defaultTab?: string;
 }
 
 export function ATODetailDialog({
   open,
   onOpenChange,
   atoId,
+  defaultTab = "details",
 }: ATODetailDialogProps) {
   const { data: ato, isLoading } = useATO(atoId || undefined);
   const { data: configurations, isLoading: loadingConfigurations } = useATOConfigurations(atoId || undefined);
@@ -74,6 +76,7 @@ export function ATODetailDialog({
   const { data: userRoleData } = useUserRole();
   const { user } = useAuth();
 
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -95,6 +98,13 @@ export function ATODetailDialog({
   );
   const canActOnWorkflow = currentStep?.assigned_to === user?.id;
   const hasActiveWorkflow = ato?.workflow_status && ato.workflow_status !== "completed" && ato.workflow_status !== "rejected";
+
+  // Sincronizar activeTab com defaultTab quando dialog abre
+  useEffect(() => {
+    if (open && defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [open, defaultTab]);
 
   const handleApprove = () => {
     if (!atoId) return;
@@ -154,7 +164,7 @@ export function ATODetailDialog({
                 </div>
               </DialogHeader>
 
-              <Tabs defaultValue="details" className="space-y-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="details">Detalhes</TabsTrigger>
                   <TabsTrigger value="items">

@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useATOs } from "@/hooks/useATOs";
 import { useSendATO } from "@/hooks/useSendATO";
+import { useATOWorkflowTasks } from "@/hooks/useATOWorkflow";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send, AlertCircle, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -23,10 +26,13 @@ interface ATOsListProps {
 }
 
 export function ATOsList({ contractId }: ATOsListProps) {
+  const { user } = useAuth();
   const { data: atos, isLoading } = useATOs(contractId);
+  const { data: userTasks } = useATOWorkflowTasks(user?.id);
   const { mutateAsync: sendATO } = useSendATO();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
+  const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined);
   const [sendATODialog, setSendATODialog] = useState<{
     open: boolean;
     ato?: any;
@@ -52,6 +58,16 @@ export function ATOsList({ contractId }: ATOsListProps) {
     return true;
   }) || [];
 
+  // ATOs deste contrato que o usuário precisa revisar
+  const userPendingATOs = userTasks?.filter(task => 
+    atos?.some(ato => ato.id === task.ato_id)
+  ) || [];
+
+  const openATOForReview = (atoId: string) => {
+    setSelectedATO(atoId);
+    setDetailsTab("workflow");
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -66,6 +82,41 @@ export function ATOsList({ contractId }: ATOsListProps) {
     <div className="space-y-6">
       {/* Dashboard com Métricas */}
       <ATOsDashboard atos={atos || []} isLoading={isLoading} />
+
+      {/* Card de Pendências do Usuário */}
+      {userPendingATOs.length > 0 && (
+        <Alert className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/20">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertTitle className="text-orange-900 dark:text-orange-200">
+            Você tem {userPendingATOs.length} {userPendingATOs.length === 1 ? 'ATO aguardando' : 'ATOs aguardando'} sua revisão
+          </AlertTitle>
+          <AlertDescription className="mt-3 space-y-2">
+            {userPendingATOs.map((task) => (
+              <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded-md">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium">
+                    {task.ato?.ato_number} - {task.ato?.title}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {task.step_type === 'pm_review' && 'Revisão PM'}
+                    {task.step_type === 'supply_quote' && 'Cotação Supply'}
+                    {task.step_type === 'planning_validation' && 'Validação Planning'}
+                    {task.step_type === 'pm_final' && 'Revisão Final PM'}
+                  </Badge>
+                </div>
+                <Button 
+                  size="sm" 
+                  onClick={() => openATOForReview(task.ato_id)}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  Revisar Agora
+                </Button>
+              </div>
+            ))}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -218,6 +269,20 @@ export function ATOsList({ contractId }: ATOsListProps) {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* Botão "Revisar Workflow" se usuário é responsável */}
+                        {userPendingATOs.some(task => task.ato_id === ato.id) && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => openATOForReview(ato.id)}
+                            className="bg-orange-600 hover:bg-orange-700"
+                          >
+                            <Wrench className="mr-1 h-3 w-3" />
+                            Revisar Workflow
+                          </Button>
+                        )}
+                        
+                        {/* Botão "Enviar Cliente" quando workflow completo */}
                         {ato.workflow_status === 'completed' && ato.status === 'draft' && (
                           <Button
                             variant="outline"
@@ -228,6 +293,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
                             Enviar Cliente
                           </Button>
                         )}
+                        
                         <Button
                           variant="ghost"
                           size="sm"
@@ -258,8 +324,14 @@ export function ATOsList({ contractId }: ATOsListProps) {
 
       <ATODetailDialog
         open={!!selectedATO}
-        onOpenChange={(open) => !open && setSelectedATO(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedATO(null);
+            setDetailsTab(undefined);
+          }
+        }}
         atoId={selectedATO}
+        defaultTab={detailsTab}
       />
 
       {sendATODialog.ato && (
