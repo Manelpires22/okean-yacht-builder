@@ -59,7 +59,7 @@ export function CreateATODialog({
   const [currentDialog, setCurrentDialog] = useState<string | null>(null);
 
   const { mutate: createATO, isPending } = useCreateATO();
-  const { data: contractData } = useContractItems(contractId);
+  const { data: contractData } = useContractItems(open ? contractId : undefined);
 
   const form = useForm<ATOFormData>({
     resolver: zodResolver(atoSchema),
