@@ -106,7 +106,9 @@ export function useQuotation(id: string) {
             file_paths,
             customization_code,
             memorial_item_id,
-            option_id
+            option_id,
+            pm_final_price,
+            pm_final_delivery_impact_days
           ),
           approvals (
             approval_type,
