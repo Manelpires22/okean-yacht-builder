@@ -98,7 +98,7 @@ export function CreateATODialog({
     // Criar configurações para os itens
     const configurations = pendingItems.map((item) => ({
       item_type: item.type === "add_optional" ? "option" : "memorial_item",
-      item_id: item.item_id || "",
+      item_id: item.item_id || null,
       configuration_details: {
         type: item.type,
         notes: item.notes,

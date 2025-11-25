@@ -164,7 +164,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
-          item_id: string
+          item_id: string | null
           item_type: string
           notes: string | null
           sub_items: Json | null
@@ -175,7 +175,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
-          item_id: string
+          item_id?: string | null
           item_type: string
           notes?: string | null
           sub_items?: Json | null
@@ -186,7 +186,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
-          item_id?: string
+          item_id?: string | null
           item_type?: string
           notes?: string | null
           sub_items?: Json | null
