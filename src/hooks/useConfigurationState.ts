@@ -165,6 +165,11 @@ export function useConfigurationState() {
   };
 
   const loadFromQuotation = (quotation: any) => {
+    // Mapear customizações de opcionais para customization_notes
+    const optionCustomizations = quotation.quotation_customizations?.filter(
+      (qc: any) => qc.option_id
+    ) || [];
+    
     // Carregar dados da cotação existente
     setState({
       yacht_model_id: quotation.yacht_model_id,
@@ -172,13 +177,23 @@ export function useConfigurationState() {
       base_delivery_days: quotation.base_delivery_days || 0,
       base_discount_percentage: quotation.base_discount_percentage || 0,
       options_discount_percentage: quotation.options_discount_percentage || 0,
-      selected_options: quotation.quotation_options?.map((qo: any) => ({
-        option_id: qo.option_id,
-        quantity: qo.quantity,
-        unit_price: qo.unit_price,
-        delivery_days_impact: qo.delivery_days_impact || 0,
-      })) || [],
-      customizations: quotation.quotation_customizations?.map((qc: any) => ({
+      selected_options: quotation.quotation_options?.map((qo: any) => {
+        // Buscar customização correspondente ao opcional
+        const customization = optionCustomizations.find(
+          (c: any) => c.option_id === qo.option_id
+        );
+        return {
+          option_id: qo.option_id,
+          quantity: qo.quantity,
+          unit_price: qo.unit_price,
+          delivery_days_impact: qo.delivery_days_impact || 0,
+          customization_notes: customization?.notes || '', // ✅ Carregar notas da customização
+        };
+      }) || [],
+      // Filtrar para não incluir customizações de opcionais na lista de customizations
+      customizations: quotation.quotation_customizations?.filter(
+        (qc: any) => !qc.option_id // ✅ Excluir customizações de opcionais
+      ).map((qc: any) => ({
         memorial_item_id: qc.memorial_item_id || `free-${qc.id}`,
         item_name: qc.item_name,
         notes: qc.notes || '',
