@@ -18,12 +18,13 @@ export const useCreateRetroactiveApprovals = () => {
           additional_cost,
           delivery_impact_days,
           status,
+          customization_code,
           reviewed_by,
           reviewed_at,
           created_at,
           quotations!inner(sales_representative_id, quotation_number)
         `)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'pending'])
         .not('option_id', 'is', null);
 
       if (fetchError) throw fetchError;
@@ -58,17 +59,22 @@ export const useCreateRetroactiveApprovals = () => {
       const approvalsToCreate = missingApprovals.map(c => ({
         quotation_id: c.quotation_id,
         approval_type: 'technical' as const,
-        status: 'approved' as const,
+        status: c.status as 'approved' | 'pending',
         requested_by: (c.quotations as any).sales_representative_id,
         requested_at: c.created_at,
-        reviewed_by: c.reviewed_by || (c.quotations as any).sales_representative_id,
-        reviewed_at: c.reviewed_at || c.created_at,
+        reviewed_by: c.status === 'approved' ? (c.reviewed_by || (c.quotations as any).sales_representative_id) : null,
+        reviewed_at: c.status === 'approved' ? (c.reviewed_at || c.created_at) : null,
         request_details: {
+          customization_id: c.id,
+          customization_code: c.customization_code,
           customization_item_name: c.item_name,
+          option_id: c.option_id,
           additional_cost: c.additional_cost || 0,
           delivery_impact_days: c.delivery_impact_days || 0
         },
-        review_notes: 'Aprovação retroativa criada automaticamente pelo sistema'
+        review_notes: c.status === 'approved' 
+          ? 'Aprovação retroativa criada automaticamente pelo sistema'
+          : null
       }));
 
       const { error: insertError } = await supabase
