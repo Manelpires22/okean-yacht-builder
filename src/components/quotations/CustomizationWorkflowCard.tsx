@@ -15,9 +15,6 @@ interface CustomizationWorkflowCardProps {
 
 const WORKFLOW_STATUS_LABELS: Record<string, { label: string; variant: any; icon: any }> = {
   pending_pm_review: { label: 'Aguardando PM', variant: 'secondary', icon: Clock },
-  pending_supply_quote: { label: 'Aguardando Supply', variant: 'secondary', icon: Clock },
-  pending_planning_validation: { label: 'Aguardando Planejamento', variant: 'secondary', icon: Clock },
-  pending_pm_final_approval: { label: 'Aguardando PM Final', variant: 'secondary', icon: Clock },
   approved: { label: 'Aprovado', variant: 'default', icon: CheckCircle2 },
   rejected: { label: 'Rejeitado', variant: 'destructive', icon: XCircle },
 };
@@ -100,10 +97,9 @@ export function CustomizationWorkflowCard({ quotationId }: CustomizationWorkflow
               };
               const Icon = statusInfo.icon;
 
-              const completedSteps = (customization.workflow_steps || []).filter(
-                (s: any) => s.status === 'completed'
-              ).length;
-              const totalSteps = 4; // pm_initial, supply_quote, planning_check, pm_final
+              // Workflow simplificado: 2 etapas (solicitação + aprovação PM)
+              const totalSteps = 2;
+              const completedSteps = customization.workflow_status === 'approved' || customization.workflow_status === 'rejected' ? 2 : 1;
 
               return (
                 <div
