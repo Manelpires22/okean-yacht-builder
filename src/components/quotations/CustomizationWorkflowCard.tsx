@@ -37,6 +37,8 @@ export function CustomizationWorkflowCard({ quotationId }: CustomizationWorkflow
           pm_final_price,
           pm_final_delivery_impact_days,
           created_at,
+          reviewed_at,
+          customization_code,
           workflow_steps:customization_workflow_steps (
             id,
             step_type,
@@ -110,6 +112,11 @@ export function CustomizationWorkflowCard({ quotationId }: CustomizationWorkflow
                     <div className="space-y-2 flex-1">
                       <div className="flex items-center gap-2">
                         <h4 className="font-semibold">{customization.item_name}</h4>
+                        {customization.customization_code && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {customization.customization_code}
+                          </span>
+                        )}
                         <Badge variant={statusInfo.variant} className="flex items-center gap-1">
                           <Icon className="h-3 w-3" />
                           {statusInfo.label}
@@ -147,9 +154,16 @@ export function CustomizationWorkflowCard({ quotationId }: CustomizationWorkflow
                         )}
                       </div>
 
-                      <p className="text-xs text-muted-foreground">
-                        Criado em {format(new Date(customization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>
+                          Criado em {format(new Date(customization.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                        {customization.reviewed_at && (
+                          <span>
+                            Aprovado em {format(new Date(customization.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <Button
