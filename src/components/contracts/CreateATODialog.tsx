@@ -11,16 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Form,
   FormControl,
   FormDescription,
@@ -33,15 +23,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronLeft, ChevronRight, Check, Package } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
 import { useCreateATO } from "@/hooks/useATOs";
-import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
+import { useContractItems } from "@/hooks/useContractItems";
+import { ATOItemSelector } from "./ato-creation/ATOItemSelector";
+import { ATOItemsList, PendingATOItem } from "./ato-creation/ATOItemsList";
+import { SelectContractItemDialog } from "./ato-creation/SelectContractItemDialog";
+import { SelectAvailableOptionDialog } from "./ato-creation/SelectAvailableOptionDialog";
+import { NewCustomizationForm } from "./ato-creation/NewCustomizationForm";
+import { SelectDefinableItemDialog } from "./ato-creation/SelectDefinableItemDialog";
 
 const atoSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   description: z.string().optional(),
-  price_impact: z.number().default(0),
-  delivery_days_impact: z.number().int().min(0).default(0),
   notes: z.string().optional(),
 });
 
@@ -59,46 +53,86 @@ export function CreateATODialog({
   contractId,
 }: CreateATODialogProps) {
   const [step, setStep] = useState(1);
-  const [createdATOId, setCreatedATOId] = useState<string | null>(null);
-  const [showConfigPrompt, setShowConfigPrompt] = useState(false);
-  const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [pendingItems, setPendingItems] = useState<PendingATOItem[]>([]);
   const [requiresWorkflow, setRequiresWorkflow] = useState(true);
+  const [showItemSelector, setShowItemSelector] = useState(false);
+  const [currentDialog, setCurrentDialog] = useState<string | null>(null);
+
   const { mutate: createATO, isPending } = useCreateATO();
+  const { data: contractData } = useContractItems(contractId);
 
   const form = useForm<ATOFormData>({
     resolver: zodResolver(atoSchema),
     defaultValues: {
       title: "",
       description: "",
-      price_impact: 0,
-      delivery_days_impact: 0,
       notes: "",
     },
   });
 
+  const handleAddItem = (item: PendingATOItem) => {
+    setPendingItems([...pendingItems, item]);
+    setShowItemSelector(false);
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setPendingItems(pendingItems.filter((item) => item.id !== id));
+  };
+
+  const handleSelectType = (type: PendingATOItem["type"]) => {
+    setShowItemSelector(false);
+    setCurrentDialog(type);
+  };
+
   const onSubmit = (data: ATOFormData) => {
+    // Calcular impactos totais dos itens
+    const totalEstimatedPrice = pendingItems.reduce(
+      (sum, item) => sum + (item.estimated_price || 0),
+      0
+    );
+    const maxEstimatedDays = Math.max(
+      ...pendingItems.map((item) => item.estimated_days || 0),
+      0
+    );
+
+    // Criar configurações para os itens
+    const configurations = pendingItems.map((item) => ({
+      item_type: item.type === "add_optional" ? "option" : "memorial_item",
+      item_id: item.item_id || "",
+      configuration_details: {
+        type: item.type,
+        notes: item.notes,
+        quantity: item.quantity,
+      },
+      sub_items: [],
+      notes: item.notes,
+    }));
+
     const payload: any = {
       contract_id: contractId,
       title: data.title,
       description: data.description,
-      price_impact: data.price_impact,
-      delivery_days_impact: data.delivery_days_impact,
+      price_impact: totalEstimatedPrice,
+      delivery_days_impact: maxEstimatedDays,
       notes: data.notes,
-      workflow_status: requiresWorkflow ? 'pending_pm_review' : null,
+      workflow_status: requiresWorkflow ? "pending_pm_review" : null,
+      configurations,
     };
 
     createATO(payload, {
-      onSuccess: (data) => {
-        setCreatedATOId(data.id);
-        setShowConfigPrompt(true);
+      onSuccess: () => {
+        handleCloseDialog();
       },
     });
   };
 
   const handleNext = async () => {
-    const fields = step === 1 ? ["title", "description"] : ["price_impact", "delivery_days_impact"];
-    const isValid = await form.trigger(fields as any);
-    if (isValid) setStep(step + 1);
+    if (step === 1) {
+      const isValid = await form.trigger(["title", "description"]);
+      if (isValid) setStep(2);
+    } else if (step === 2) {
+      setStep(3);
+    }
   };
 
   const handleBack = () => {
@@ -108,329 +142,304 @@ export function CreateATODialog({
   const handleCloseDialog = () => {
     form.reset();
     setStep(1);
-    setCreatedATOId(null);
-    setShowConfigPrompt(false);
-    setShowConfigDialog(false);
+    setPendingItems([]);
+    setShowItemSelector(false);
+    setCurrentDialog(null);
     onOpenChange(false);
-  };
-
-  const handleAddItemsNow = () => {
-    setShowConfigPrompt(false);
-    setShowConfigDialog(true);
-  };
-
-  const handleSkipItems = () => {
-    handleCloseDialog();
   };
 
   const steps = [
     { number: 1, title: "Informações Básicas" },
-    { number: 2, title: "Impacto Financeiro" },
+    { number: 2, title: "Adicionar Itens" },
     { number: 3, title: "Revisão e Confirmação" },
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova ATO (Additional To Order)</DialogTitle>
-          <DialogDescription>
-            Crie um aditivo ao contrato para modificações ou configurações extras
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova ATO (Additional To Order)</DialogTitle>
+            <DialogDescription>
+              Crie um aditivo ao contrato com múltiplos itens
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-6">
-          {steps.map((s, idx) => (
-            <div key={s.number} className="flex items-center flex-1">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                    step >= s.number
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background border-border"
-                  }`}
-                >
-                  {step > s.number ? (
-                    <Check className="h-5 w-5" />
-                  ) : (
-                    <span>{s.number}</span>
-                  )}
-                </div>
-                <span className="text-xs mt-1 text-center">{s.title}</span>
-              </div>
-              {idx < steps.length - 1 && (
-                <div
-                  className={`h-0.5 flex-1 mx-2 ${
-                    step > s.number ? "bg-primary" : "bg-border"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Step 1: Basic Info */}
-            {step === 1 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Título da ATO *</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Ex: Definição de Acabamentos Internos"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Título descritivo do aditivo ao contrato
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descrição</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Descreva as modificações ou configurações deste ATO"
-                          rows={5}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
-                  <input
-                    type="checkbox"
-                    id="requires-workflow"
-                    checked={requiresWorkflow}
-                    onChange={(e) => setRequiresWorkflow(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                  <label
-                    htmlFor="requires-workflow"
-                    className="text-sm font-medium leading-none cursor-pointer"
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between mb-6">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center flex-1">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                      step >= s.number
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border"
+                    }`}
                   >
-                    Requer workflow técnico completo (PM → Supply → Planning → PM Final)
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Financial Impact */}
-            {step === 2 && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="price_impact"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Impacto no Preço (R$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Valor positivo (acréscimo) ou negativo (redução). Zero se não houver custo.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="delivery_days_impact"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Impacto no Prazo (dias)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="0"
-                          placeholder="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Dias adicionais necessários para concluir esta modificação
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observações Internas</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Notas adicionais para equipe interna"
-                          rows={3}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 3: Review */}
-            {step === 3 && (
-              <div className="space-y-4">
-                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                  <h3 className="font-semibold">Revisar ATO</h3>
-
-                  <div>
-                    <p className="text-sm text-muted-foreground">Título</p>
-                    <p className="font-semibold">{form.watch("title")}</p>
+                    {step > s.number ? (
+                      <Check className="h-5 w-5" />
+                    ) : (
+                      <span>{s.number}</span>
+                    )}
                   </div>
-
-                  {form.watch("description") && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Descrição</p>
-                      <p className="text-sm">{form.watch("description")}</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Impacto Preço</p>
-                      <p className="font-semibold">
-                        <Badge variant={form.watch("price_impact") > 0 ? "default" : "secondary"}>
-                          {form.watch("price_impact") > 0 ? "+" : ""}
-                          R$ {form.watch("price_impact").toFixed(2)}
-                        </Badge>
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-muted-foreground">Impacto Prazo</p>
-                      <p className="font-semibold">
-                        <Badge variant="outline">
-                          +{form.watch("delivery_days_impact")} dias
-                        </Badge>
-                      </p>
-                    </div>
-                  </div>
-
-                  {form.watch("notes") && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Observações</p>
-                      <p className="text-sm">{form.watch("notes")}</p>
-                    </div>
-                  )}
+                  <span className="text-xs mt-1 text-center">{s.title}</span>
                 </div>
-
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <p className="text-sm">
-                    <strong>Atenção:</strong> Se o impacto financeiro ou de prazo ultrapassar limites,
-                    esta ATO será enviada para aprovação antes de ser aplicada ao contrato.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <DialogFooter className="flex items-center justify-between">
-              <div>
-                {step > 1 && (
-                  <Button type="button" variant="outline" onClick={handleBack}>
-                    <ChevronLeft className="mr-2 h-4 w-4" />
-                    Voltar
-                  </Button>
+                {idx < steps.length - 1 && (
+                  <div
+                    className={`h-0.5 flex-1 mx-2 ${
+                      step > s.number ? "bg-primary" : "bg-border"
+                    }`}
+                  />
                 )}
               </div>
+            ))}
+          </div>
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseDialog}
-                >
-                  Cancelar
-                </Button>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Step 1: Basic Info */}
+              {step === 1 && (
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Título da ATO *</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ex: Definição de Acabamentos e Adicionais"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Título descritivo do aditivo ao contrato
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {step < 3 ? (
-                  <Button type="button" onClick={handleNext}>
-                    Próximo
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Descreva o objetivo geral deste ATO"
+                            rows={4}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
+                    <input
+                      type="checkbox"
+                      id="requires-workflow"
+                      checked={requiresWorkflow}
+                      onChange={(e) => setRequiresWorkflow(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <label
+                      htmlFor="requires-workflow"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Requer workflow técnico completo (PM → Supply → Planning → PM Final)
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Add Items */}
+              {step === 2 && (
+                <div className="space-y-6">
+                  {!showItemSelector ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold">Itens da ATO</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Adicione todos os itens que farão parte deste aditivo
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => setShowItemSelector(true)}
+                          size="sm"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Adicionar Item
+                        </Button>
+                      </div>
+
+                      <ATOItemsList items={pendingItems} onRemove={handleRemoveItem} />
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Escolha o Tipo de Item</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowItemSelector(false)}
+                        >
+                          Voltar para Lista
+                        </Button>
+                      </div>
+                      <ATOItemSelector onSelectType={handleSelectType} />
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3: Review */}
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                    <h3 className="font-semibold">Revisar ATO</h3>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">Título</p>
+                      <p className="font-semibold">{form.watch("title")}</p>
+                    </div>
+
+                    {form.watch("description") && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Descrição</p>
+                        <p className="text-sm">{form.watch("description")}</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">Itens</p>
+                      <Badge variant="outline">
+                        {pendingItems.length} {pendingItems.length === 1 ? "item" : "itens"}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Impacto Estimado</p>
+                        <p className="font-semibold">
+                          <Badge variant="default">
+                            R${" "}
+                            {pendingItems
+                              .reduce((sum, item) => sum + (item.estimated_price || 0), 0)
+                              .toFixed(2)}
+                          </Badge>
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-muted-foreground">Prazo Estimado</p>
+                        <p className="font-semibold">
+                          <Badge variant="outline">
+                            +
+                            {Math.max(
+                              ...pendingItems.map((item) => item.estimated_days || 0),
+                              0
+                            )}{" "}
+                            dias
+                          </Badge>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {pendingItems.length > 0 && (
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold mb-3">Resumo dos Itens:</h4>
+                      <ATOItemsList items={pendingItems} onRemove={() => {}} />
+                    </div>
+                  )}
+
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <p className="text-sm">
+                      <strong>Nota:</strong> {requiresWorkflow ? 
+                        "Esta ATO será enviada para workflow técnico completo (PM → Supply → Planning → PM Final) antes de ser aplicada ao contrato." :
+                        "Esta ATO será criada diretamente sem workflow técnico."
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <DialogFooter className="flex items-center justify-between">
+                <div>
+                  {step > 1 && (
+                    <Button type="button" variant="outline" onClick={handleBack}>
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Voltar
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseDialog}
+                  >
+                    Cancelar
                   </Button>
-                ) : (
-                  <Button type="submit" disabled={isPending}>
-                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Criar ATO
-                  </Button>
-                )}
-              </div>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
 
-      {/* Prompt após criação de ATO */}
-      <AlertDialog open={showConfigPrompt} onOpenChange={setShowConfigPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-600" />
-              ATO Criada com Sucesso!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>A ATO foi criada e está aguardando configuração.</p>
-              <p className="font-medium">Deseja adicionar itens (opcionais ou memorial descritivo) agora?</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleSkipItems}>
-              Adicionar Depois
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleAddItemsNow}>
-              <Package className="mr-2 h-4 w-4" />
-              Adicionar Itens Agora
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                  {step < 3 ? (
+                    <Button type="button" onClick={handleNext}>
+                      Próximo
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button type="submit" disabled={isPending || pendingItems.length === 0}>
+                      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Criar ATO
+                    </Button>
+                  )}
+                </div>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Dialog de configuração de itens */}
-      {createdATOId && (
-        <ATOConfigurationDialog
-          open={showConfigDialog}
-          onOpenChange={(open) => {
-            setShowConfigDialog(open);
-            if (!open) {
-              handleCloseDialog();
-            }
-          }}
-          atoId={createdATOId}
-          contractId={contractId}
-        />
+      {/* Dialogs de Seleção */}
+      {contractData?.contract && (
+        <>
+          <SelectContractItemDialog
+            open={currentDialog === "edit_existing"}
+            onOpenChange={(open) => !open && setCurrentDialog(null)}
+            contractId={contractId}
+            onAdd={handleAddItem}
+          />
+
+          <SelectAvailableOptionDialog
+            open={currentDialog === "add_optional"}
+            onOpenChange={(open) => !open && setCurrentDialog(null)}
+            yachtModelId={contractData.contract.yacht_model_id}
+            onAdd={handleAddItem}
+          />
+
+          <NewCustomizationForm
+            open={currentDialog === "new_customization"}
+            onOpenChange={(open) => !open && setCurrentDialog(null)}
+            onAdd={handleAddItem}
+          />
+
+          <SelectDefinableItemDialog
+            open={currentDialog === "define_finishing"}
+            onOpenChange={(open) => !open && setCurrentDialog(null)}
+            yachtModelId={contractData.contract.yacht_model_id}
+            onAdd={handleAddItem}
+          />
+        </>
       )}
-    </Dialog>
+    </>
   );
 }
