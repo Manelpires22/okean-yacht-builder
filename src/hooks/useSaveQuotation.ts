@@ -211,6 +211,7 @@ export function useSaveQuotation() {
                 delivery_impact_days: existingApproved?.delivery_impact_days || 0,
                 reviewed_by: existingApproved?.reviewed_by || null,
                 reviewed_at: existingApproved?.reviewed_at || null,
+                created_at: existingApproved?.created_at || new Date().toISOString(),
                 workflow_audit: existingApproved?.workflow_audit || [],
                 option_id: null
               };
@@ -264,6 +265,7 @@ export function useSaveQuotation() {
                 delivery_impact_days: existingApproved?.delivery_impact_days || 0,
                 reviewed_by: existingApproved?.reviewed_by || null,
                 reviewed_at: existingApproved?.reviewed_at || null,
+                created_at: existingApproved?.created_at || new Date().toISOString(),
                 workflow_audit: existingApproved?.workflow_audit || []
               };
             });
