@@ -142,6 +142,17 @@ export function useSaveQuotation() {
             console.warn('Customizações aprovadas removidas:', removedApprovedCustomizations);
           }
 
+          // ✅ NOVO: Gerar próxima sequência baseada nos códigos existentes (antes de deletar)
+          const existingCodes = existingCustomizations?.map(c => c.customization_code).filter(Boolean) || [];
+          let maxSequence = 0;
+          existingCodes.forEach(code => {
+            const match = code?.match(/-CUS-(\d+)$/);
+            if (match) {
+              maxSequence = Math.max(maxSequence, parseInt(match[1]));
+            }
+          });
+          let nextSequence = maxSequence + 1;
+
           // 2. Deletar customizações antigas
           await supabase
             .from("quotation_customizations")
@@ -150,8 +161,7 @@ export function useSaveQuotation() {
 
           // 3. Inserir novas customizações preservando status das aprovadas
           // 3a. Customizações de memorial
-          const memorialCustomizationsData = await Promise.all(
-            (data.customizations || []).map(async (customization) => {
+          const memorialCustomizationsData = (data.customizations || []).map((customization) => {
               // Verificar se é uma customização que já estava aprovada
               const existingApproved = existingCustomizations?.find(c => {
                 // Para customizações de memorial
@@ -165,8 +175,14 @@ export function useSaveQuotation() {
               const status = existingApproved ? 'approved' : 'pending';
               const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
 
-              const code = existingApproved?.customization_code 
-                || await generateCustomizationCode(quotationNumber, supabase);
+              // ✅ Usar código existente OU gerar novo baseado na sequência em memória
+              let code: string;
+              if (existingApproved?.customization_code) {
+                code = existingApproved.customization_code;
+              } else {
+                code = `${quotationNumber}-CUS-${String(nextSequence).padStart(3, '0')}`;
+                nextSequence++;
+              }
 
               return {
                 quotation_id: data.quotationId,
@@ -198,16 +214,14 @@ export function useSaveQuotation() {
                 workflow_audit: existingApproved?.workflow_audit || [],
                 option_id: null
               };
-            })
-          );
+            });
 
           // 3b. Customizações de opcionais
           const optionsWithCustomization = data.selected_options.filter(
             opt => opt.customization_notes && opt.customization_notes.trim()
           );
 
-          const optionCustomizationsData = await Promise.all(
-            optionsWithCustomization.map(async (opt) => {
+          const optionCustomizationsData = optionsWithCustomization.map((opt) => {
               const optionName = optionsMap.get(opt.option_id) || 'Opcional';
               // Verificar se é uma customização que já estava aprovada
               const existingApproved = existingCustomizations?.find(
@@ -217,8 +231,14 @@ export function useSaveQuotation() {
               const status = existingApproved ? 'approved' : 'pending';
               const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
 
-              const code = existingApproved?.customization_code 
-                || await generateCustomizationCode(quotationNumber, supabase);
+              // ✅ Usar código existente OU gerar novo baseado na sequência em memória
+              let code: string;
+              if (existingApproved?.customization_code) {
+                code = existingApproved.customization_code;
+              } else {
+                code = `${quotationNumber}-CUS-${String(nextSequence).padStart(3, '0')}`;
+                nextSequence++;
+              }
 
               return {
                 quotation_id: data.quotationId,
@@ -248,8 +268,7 @@ export function useSaveQuotation() {
                 reviewed_at: existingApproved?.reviewed_at || null,
                 workflow_audit: existingApproved?.workflow_audit || []
               };
-            })
-          );
+            });
 
           // Combinar ambos os tipos de customizações
           const customizationsDataWithCodes = [...memorialCustomizationsData, ...optionCustomizationsData];
@@ -460,22 +479,22 @@ export function useSaveQuotation() {
         );
 
         if (optionsWithCustomization.length > 0) {
-          // Gerar código para cada customização
-          const optionCustomizationsWithCodes = await Promise.all(
-            optionsWithCustomization.map(async (opt) => {
-              const code = await generateCustomizationCode(quotationNumber, supabase);
-              return {
-                quotation_id: quotation.id,
-                option_id: opt.option_id,
-                memorial_item_id: null,
-                item_name: `Customização de Opcional`,
-                customization_code: code,
-                notes: opt.customization_notes,
-                status: 'pending',
-                workflow_status: 'pending_pm_review'
-              };
-            })
-          );
+          // ✅ Gerar códigos sequenciais em memória
+          let sequence = 1;
+          const optionCustomizationsWithCodes = optionsWithCustomization.map((opt) => {
+            const code = `${quotationNumber}-CUS-${String(sequence).padStart(3, '0')}`;
+            sequence++;
+            return {
+              quotation_id: quotation.id,
+              option_id: opt.option_id,
+              memorial_item_id: null,
+              item_name: `Customização de Opcional`,
+              customization_code: code,
+              notes: opt.customization_notes,
+              status: 'pending',
+              workflow_status: 'pending_pm_review'
+            };
+          });
 
           const { data: insertedOptionCustomizations, error: optionCustomizationsError } = await supabase
             .from("quotation_customizations")
@@ -489,28 +508,49 @@ export function useSaveQuotation() {
 
           // Adicionar ao array de customizações criadas para criar approvals depois
           createdCustomizations.push(...(insertedOptionCustomizations || []));
+          
+          // ✅ Atualizar sequência para próximas customizações (de memorial)
+          if (data.customizations.length > 0) {
+            // Continue a sequência para customizações de memorial
+          }
         }
       }
 
       // 4. Create customizations if any and store their IDs
       if (data.customizations.length > 0) {
-        // Gerar código para cada customização
-        const customizationsDataWithCodes = await Promise.all(
-          data.customizations.map(async (customization) => {
-            const code = await generateCustomizationCode(quotationNumber, supabase);
-            return {
-              quotation_id: quotation.id,
-              memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
-                ? null 
-                : customization.memorial_item_id,
-              item_name: customization.item_name,
-              customization_code: code,
-              notes: customization.notes,
-              quantity: customization.quantity || null,
-              file_paths: customization.image_url ? [customization.image_url] : [],
-            };
-          })
-        );
+        // ✅ Buscar última sequência se já existirem customizações de opcionais
+        const { data: existingCodes } = await supabase
+          .from('quotation_customizations')
+          .select('customization_code')
+          .eq('quotation_id', quotation.id)
+          .like('customization_code', `${quotationNumber}-CUS-%`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        let sequence = 1;
+        if (existingCodes && existingCodes.length > 0 && existingCodes[0].customization_code) {
+          const match = existingCodes[0].customization_code.match(/-CUS-(\d+)$/);
+          if (match) {
+            sequence = parseInt(match[1]) + 1;
+          }
+        }
+
+        // Gerar códigos sequenciais em memória
+        const customizationsDataWithCodes = data.customizations.map((customization) => {
+          const code = `${quotationNumber}-CUS-${String(sequence).padStart(3, '0')}`;
+          sequence++;
+          return {
+            quotation_id: quotation.id,
+            memorial_item_id: customization.memorial_item_id?.startsWith('free-') 
+              ? null 
+              : customization.memorial_item_id,
+            item_name: customization.item_name,
+            customization_code: code,
+            notes: customization.notes,
+            quantity: customization.quantity || null,
+            file_paths: customization.image_url ? [customization.image_url] : [],
+          };
+        });
 
         const { data: insertedCustomizations, error: customizationsError } = await supabase
           .from("quotation_customizations")
