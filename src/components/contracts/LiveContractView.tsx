@@ -36,19 +36,20 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="border-2 border-primary/20">
+      {/* Card Principal: Contrato Consolidado */}
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Contrato Consolidado (Ao Vivo)
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <TrendingUp className="h-6 w-6 text-primary" />
+                Contrato Consolidado
               </CardTitle>
-              <CardDescription>
-                Valores e prazos atualizados com todas as ATOs aprovadas
+              <CardDescription className="text-base">
+                Valores e prazos atualizados em tempo real com todas as ATOs aprovadas
               </CardDescription>
             </div>
-            <Badge variant="default" className="text-base px-4 py-2">
+            <Badge variant="default" className="text-lg px-6 py-3">
               {liveContract.approved_atos_count} ATO(s) aplicada(s)
             </Badge>
           </div>
