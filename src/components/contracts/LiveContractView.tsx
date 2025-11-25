@@ -1,16 +1,25 @@
 import { useLiveContract } from "@/hooks/useContracts";
+import { useConsolidatedContractScope } from "@/hooks/useConsolidatedContractScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, Calendar, FileText, TrendingUp } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DollarSign, Calendar, FileText, TrendingUp, BookOpen, Package, Wrench, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
+import { ContractMemorialView } from "./scope/ContractMemorialView";
+import { ContractOptionsView } from "./scope/ContractOptionsView";
+import { ContractCustomizationsView } from "./scope/ContractCustomizationsView";
+import { ContractATODefinitionsView } from "./scope/ContractATODefinitionsView";
 
 interface LiveContractViewProps {
   contractId: string;
 }
 
 export function LiveContractView({ contractId }: LiveContractViewProps) {
-  const { data: liveContract, isLoading } = useLiveContract(contractId);
+  const { data: liveContract, isLoading: liveLoading } = useLiveContract(contractId);
+  const { data: scopeData, isLoading: scopeLoading } = useConsolidatedContractScope(contractId);
+
+  const isLoading = liveLoading || scopeLoading;
 
   if (isLoading) {
     return (
@@ -35,8 +44,33 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
   const daysVariation = liveContract.current_total_delivery_days - liveContract.base_delivery_days;
 
   return (
-    <div className="space-y-6">
-      {/* Card Principal: Contrato Consolidado */}
+    <Tabs defaultValue="resumo" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-5">
+        <TabsTrigger value="resumo" className="gap-2">
+          <TrendingUp className="h-4 w-4" />
+          Resumo
+        </TabsTrigger>
+        <TabsTrigger value="memorial" className="gap-2">
+          <BookOpen className="h-4 w-4" />
+          Memorial
+        </TabsTrigger>
+        <TabsTrigger value="opcionais" className="gap-2">
+          <Package className="h-4 w-4" />
+          Opcionais
+        </TabsTrigger>
+        <TabsTrigger value="customizacoes" className="gap-2">
+          <Wrench className="h-4 w-4" />
+          Customizações
+        </TabsTrigger>
+        <TabsTrigger value="atos" className="gap-2">
+          <Settings className="h-4 w-4" />
+          ATOs
+        </TabsTrigger>
+      </TabsList>
+
+      {/* Tab: Resumo Financeiro */}
+      <TabsContent value="resumo" className="space-y-6">
+        {/* Card Principal: Contrato Consolidado */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -172,6 +206,31 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </TabsContent>
+
+      {/* Tab: Memorial Base */}
+      <TabsContent value="memorial">
+        <ContractMemorialView items={scopeData?.memorialItems || []} />
+      </TabsContent>
+
+      {/* Tab: Opcionais Contratados */}
+      <TabsContent value="opcionais">
+        <ContractOptionsView options={scopeData?.selectedOptions || []} />
+      </TabsContent>
+
+      {/* Tab: Customizações Aprovadas */}
+      <TabsContent value="customizacoes">
+        <ContractCustomizationsView
+          customizations={scopeData?.customizations || []}
+        />
+      </TabsContent>
+
+      {/* Tab: Definições via ATOs */}
+      <TabsContent value="atos">
+        <ContractATODefinitionsView
+          configurations={scopeData?.atoConfigurations || []}
+        />
+      </TabsContent>
+    </Tabs>
   );
 }
