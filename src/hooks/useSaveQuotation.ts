@@ -123,7 +123,7 @@ export function useSaveQuotation() {
           // 1. Buscar customizações existentes ANTES de deletar
           const { data: existingCustomizations } = await supabase
             .from('quotation_customizations')
-            .select('id, customization_code, status, item_name')
+            .select('*')
             .eq('quotation_id', data.quotationId);
 
           const approvedCustomizations = existingCustomizations?.filter(
@@ -152,10 +152,15 @@ export function useSaveQuotation() {
           // 3a. Customizações de memorial
           const memorialCustomizationsData = await Promise.all(
             (data.customizations || []).map(async (customization) => {
-              const customKey = `${customization.memorial_item_id || 'free'}-${customization.item_name}`;
-              const existingApproved = existingCustomizations?.find(
-                c => `${c.id || 'free'}-${c.item_name}` === customKey && c.status === 'approved'
-              );
+              // Verificar se é uma customização que já estava aprovada
+              const existingApproved = existingCustomizations?.find(c => {
+                // Para customizações de memorial
+                if (customization.memorial_item_id && c.memorial_item_id) {
+                  return c.memorial_item_id === customization.memorial_item_id && c.status === 'approved';
+                }
+                // Para customizações livres ou sem memorial_item_id
+                return c.item_name === customization.item_name && c.status === 'approved';
+              });
 
               const status = existingApproved ? 'approved' : 'pending';
               const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
@@ -172,9 +177,25 @@ export function useSaveQuotation() {
                 customization_code: code,
                 notes: customization.notes,
                 quantity: customization.quantity || null,
-                file_paths: customization.image_url ? [customization.image_url] : [],
+                file_paths: customization.image_url ? [customization.image_url] : (existingApproved?.file_paths || []),
                 status,
                 workflow_status,
+                // ✅ PRESERVAR TODOS OS CAMPOS TÉCNICOS SE APROVADO
+                pm_final_price: existingApproved?.pm_final_price || 0,
+                pm_final_delivery_impact_days: existingApproved?.pm_final_delivery_impact_days || 0,
+                pm_final_notes: existingApproved?.pm_final_notes || null,
+                pm_scope: existingApproved?.pm_scope || null,
+                engineering_hours: existingApproved?.engineering_hours || 0,
+                engineering_notes: existingApproved?.engineering_notes || null,
+                supply_cost: existingApproved?.supply_cost || 0,
+                supply_lead_time_days: existingApproved?.supply_lead_time_days || 0,
+                supply_notes: existingApproved?.supply_notes || null,
+                supply_items: existingApproved?.supply_items || [],
+                additional_cost: existingApproved?.additional_cost || 0,
+                delivery_impact_days: existingApproved?.delivery_impact_days || 0,
+                reviewed_by: existingApproved?.reviewed_by || null,
+                reviewed_at: existingApproved?.reviewed_at || null,
+                workflow_audit: existingApproved?.workflow_audit || [],
                 option_id: null
               };
             })
@@ -188,9 +209,9 @@ export function useSaveQuotation() {
           const optionCustomizationsData = await Promise.all(
             optionsWithCustomization.map(async (opt) => {
               const optionName = optionsMap.get(opt.option_id) || 'Opcional';
-              const customKey = `option-${opt.option_id}`;
+              // Verificar se é uma customização que já estava aprovada
               const existingApproved = existingCustomizations?.find(
-                c => c.item_name.includes(optionName) && c.status === 'approved'
+                c => c.option_id === opt.option_id && c.status === 'approved'
               );
 
               const status = existingApproved ? 'approved' : 'pending';
@@ -203,13 +224,29 @@ export function useSaveQuotation() {
                 quotation_id: data.quotationId,
                 option_id: opt.option_id,
                 memorial_item_id: null,
-                item_name: `Customização: ${optionName}`, // ✅ Nome do opcional
+                item_name: `Customização: ${optionName}`,
                 customization_code: code,
                 notes: opt.customization_notes,
                 status,
                 workflow_status,
                 quantity: null,
-                file_paths: []
+                file_paths: existingApproved?.file_paths || [],
+                // ✅ PRESERVAR TODOS OS CAMPOS TÉCNICOS SE APROVADO
+                pm_final_price: existingApproved?.pm_final_price || 0,
+                pm_final_delivery_impact_days: existingApproved?.pm_final_delivery_impact_days || 0,
+                pm_final_notes: existingApproved?.pm_final_notes || null,
+                pm_scope: existingApproved?.pm_scope || null,
+                engineering_hours: existingApproved?.engineering_hours || 0,
+                engineering_notes: existingApproved?.engineering_notes || null,
+                supply_cost: existingApproved?.supply_cost || 0,
+                supply_lead_time_days: existingApproved?.supply_lead_time_days || 0,
+                supply_notes: existingApproved?.supply_notes || null,
+                supply_items: existingApproved?.supply_items || [],
+                additional_cost: existingApproved?.additional_cost || 0,
+                delivery_impact_days: existingApproved?.delivery_impact_days || 0,
+                reviewed_by: existingApproved?.reviewed_by || null,
+                reviewed_at: existingApproved?.reviewed_at || null,
+                workflow_audit: existingApproved?.workflow_audit || []
               };
             })
           );
