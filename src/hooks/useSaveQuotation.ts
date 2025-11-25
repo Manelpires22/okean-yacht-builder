@@ -108,43 +108,18 @@ export function useSaveQuotation() {
             .insert(quotationOptions);
 
           if (optionsError) throw optionsError;
-
-          // ✅ NOVO: Criar customizações para opcionais que têm notas (modo UPDATE)
-          const optionsWithCustomization = data.selected_options.filter(
-            opt => opt.customization_notes && opt.customization_notes.trim()
-          );
-
-          if (optionsWithCustomization.length > 0) {
-            // Gerar código para cada customização
-            const optionCustomizationsWithCodes = await Promise.all(
-              optionsWithCustomization.map(async (opt) => {
-                const code = await generateCustomizationCode(quotationNumber, supabase);
-                return {
-                  quotation_id: data.quotationId,
-                  option_id: opt.option_id,
-                  memorial_item_id: null,
-                  item_name: `Customização de Opcional`,
-                  customization_code: code,
-                  notes: opt.customization_notes,
-                  status: 'pending',
-                  workflow_status: 'pending_pm_review'
-                };
-              })
-            );
-
-            const { error: optionCustomizationsError } = await supabase
-              .from("quotation_customizations")
-              .insert(optionCustomizationsWithCodes);
-
-            if (optionCustomizationsError) {
-              console.error('Erro ao criar customizações de opcionais:', optionCustomizationsError);
-              throw optionCustomizationsError;
-            }
-          }
         }
 
-        // ✅ NOVO: Processar customizações em modo EDIÇÃO
-        if (data.customizations && data.customizations.length > 0) {
+        // ✅ NOVO: Processar customizações em modo EDIÇÃO (memorial + opcionais)
+        // Buscar dados dos opcionais para obter nomes
+        const { data: optionsData } = await supabase
+          .from('options')
+          .select('id, name')
+          .in('id', data.selected_options.map(o => o.option_id));
+
+        const optionsMap = new Map(optionsData?.map(o => [o.id, o.name]) || []);
+
+        if ((data.customizations && data.customizations.length > 0) || data.selected_options.some(opt => opt.customization_notes?.trim())) {
           // 1. Buscar customizações existentes ANTES de deletar
           const { data: existingCustomizations } = await supabase
             .from('quotation_customizations')
@@ -174,8 +149,9 @@ export function useSaveQuotation() {
             .eq('quotation_id', data.quotationId);
 
           // 3. Inserir novas customizações preservando status das aprovadas
-          const customizationsDataWithCodes = await Promise.all(
-            data.customizations.map(async (customization) => {
+          // 3a. Customizações de memorial
+          const memorialCustomizationsData = await Promise.all(
+            (data.customizations || []).map(async (customization) => {
               const customKey = `${customization.memorial_item_id || 'free'}-${customization.item_name}`;
               const existingApproved = existingCustomizations?.find(
                 c => `${c.id || 'free'}-${c.item_name}` === customKey && c.status === 'approved'
@@ -198,15 +174,53 @@ export function useSaveQuotation() {
                 quantity: customization.quantity || null,
                 file_paths: customization.image_url ? [customization.image_url] : [],
                 status,
-                workflow_status
+                workflow_status,
+                option_id: null
               };
             })
           );
 
+          // 3b. Customizações de opcionais
+          const optionsWithCustomization = data.selected_options.filter(
+            opt => opt.customization_notes && opt.customization_notes.trim()
+          );
+
+          const optionCustomizationsData = await Promise.all(
+            optionsWithCustomization.map(async (opt) => {
+              const optionName = optionsMap.get(opt.option_id) || 'Opcional';
+              const customKey = `option-${opt.option_id}`;
+              const existingApproved = existingCustomizations?.find(
+                c => c.item_name.includes(optionName) && c.status === 'approved'
+              );
+
+              const status = existingApproved ? 'approved' : 'pending';
+              const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
+
+              const code = existingApproved?.customization_code 
+                || await generateCustomizationCode(quotationNumber, supabase);
+
+              return {
+                quotation_id: data.quotationId,
+                option_id: opt.option_id,
+                memorial_item_id: null,
+                item_name: `Customização: ${optionName}`, // ✅ Nome do opcional
+                customization_code: code,
+                notes: opt.customization_notes,
+                status,
+                workflow_status,
+                quantity: null,
+                file_paths: []
+              };
+            })
+          );
+
+          // Combinar ambos os tipos de customizações
+          const customizationsDataWithCodes = [...memorialCustomizationsData, ...optionCustomizationsData];
+
           const { data: insertedCustomizations, error: customizationsError } = await supabase
             .from("quotation_customizations")
             .insert(customizationsDataWithCodes)
-            .select('id, item_name, memorial_item_id, quantity, notes, customization_code');
+            .select('id, item_name, memorial_item_id, option_id, quantity, notes, customization_code'); // ✅ Incluir option_id
 
           if (customizationsError) {
             console.error('Erro ao inserir customizações:', customizationsError);
@@ -246,13 +260,16 @@ export function useSaveQuotation() {
                   customization_code: customization.customization_code,
                   customization_item_name: customization.item_name,
                   memorial_item_id: customization.memorial_item_id,
+                  option_id: customization.option_id || null, // ✅ Incluir option_id
                   quantity: customization.quantity || 1,
                   notes: customization.notes || '',
-                  is_free_customization: !customization.memorial_item_id
+                  is_free_customization: !customization.memorial_item_id && !customization.option_id
                 },
-                notes: !customization.memorial_item_id
-                  ? `Customização livre adicionada: ${customization.item_name}`
-                  : `Customização solicitada: ${customization.item_name}`
+                notes: customization.option_id
+                  ? `Customização de opcional: ${customization.item_name}` // ✅ Mensagem específica para opcionais
+                  : (!customization.memorial_item_id
+                    ? `Customização livre adicionada: ${customization.item_name}`
+                    : `Customização solicitada: ${customization.item_name}`)
               }));
 
               const { error: technicalApprovalError } = await supabase
