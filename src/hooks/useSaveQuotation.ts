@@ -224,32 +224,13 @@ export function useSaveQuotation() {
           const optionCustomizationsData = optionsWithCustomization.map((opt) => {
               const optionName = optionsMap.get(opt.option_id) || 'Opcional';
               
-              // ✅ LOG: Ver o que está sendo comparado
-              console.log('🔍 Processing optional customization:', {
-                option_id: opt.option_id,
-                optionName,
-                customization_notes: opt.customization_notes,
-                existingCustomizations: existingCustomizations?.map(c => ({
-                  id: c.id,
-                  option_id: c.option_id,
-                  item_name: c.item_name,
-                  status: c.status
-                }))
-              });
-              
-              // Verificar se é uma customização que já estava aprovada
               const existingApproved = existingCustomizations?.find(
                 c => c.option_id === opt.option_id && c.status === 'approved'
               );
-              
-              console.log('existingApproved found:', existingApproved ? 'YES' : 'NO', existingApproved);
 
               const status = existingApproved ? 'approved' : 'pending';
               const workflow_status = existingApproved ? 'approved' : 'pending_pm_review';
-              
-              console.log('Setting status:', status, 'workflow_status:', workflow_status);
 
-              // ✅ Usar código existente OU gerar novo baseado na sequência em memória
               let code: string;
               if (existingApproved?.customization_code) {
                 code = existingApproved.customization_code;
@@ -269,7 +250,6 @@ export function useSaveQuotation() {
                 workflow_status,
                 quantity: null,
                 file_paths: existingApproved?.file_paths || [],
-                // ✅ PRESERVAR TODOS OS CAMPOS TÉCNICOS SE APROVADO
                 pm_final_price: existingApproved?.pm_final_price || 0,
                 pm_final_delivery_impact_days: existingApproved?.pm_final_delivery_impact_days || 0,
                 pm_final_notes: existingApproved?.pm_final_notes || null,
@@ -294,17 +274,7 @@ export function useSaveQuotation() {
           const { data: insertedCustomizations, error: customizationsError } = await supabase
             .from("quotation_customizations")
             .insert(customizationsDataWithCodes)
-            .select('id, item_name, memorial_item_id, option_id, quantity, notes, customization_code, status, workflow_status'); // ✅ Incluir option_id e status
-
-          console.log('✅ Inserted customizations:', insertedCustomizations?.map(c => ({
-            id: c.id,
-            item_name: c.item_name,
-            option_id: c.option_id,
-            memorial_item_id: c.memorial_item_id,
-            customization_code: c.customization_code,
-            status: c.status,
-            workflow_status: c.workflow_status
-          })));
+            .select('id, item_name, memorial_item_id, option_id, quantity, notes, customization_code, status, workflow_status');
 
           if (customizationsError) {
             console.error('Erro ao inserir customizações:', customizationsError);
@@ -314,62 +284,25 @@ export function useSaveQuotation() {
           // 4. Determinar novo status baseado nas mudanças
           let newQuotationStatus = quotation.status;
           
-          console.log('🔍 Checking for new pending customizations...');
-          console.log('Existing customizations:', existingCustomizations?.map(c => ({
-            id: c.id,
-            option_id: c.option_id,
-            memorial_item_id: c.memorial_item_id,
-            item_name: c.item_name,
-            status: c.status
-          })));
-          
-          // Detectar novas customizações baseado no tipo correto de ID
           const hasNewPendingCustomizations = insertedCustomizations?.some((c: any) => {
-            console.log('Checking if customization is new:', {
-              id: c.id,
-              item_name: c.item_name,
-              option_id: c.option_id,
-              memorial_item_id: c.memorial_item_id,
-              status: c.status
-            });
-            
             const wasApproved = existingCustomizations?.find((ec: any) => {
-              // Customização de opcional
               if (c.option_id && ec.option_id) {
-                const match = ec.option_id === c.option_id && ec.status === 'approved';
-                console.log(`  Comparing option_id: ${c.option_id} === ${ec.option_id} && ${ec.status} === 'approved' => ${match}`);
-                return match;
+                return ec.option_id === c.option_id && ec.status === 'approved';
               }
-              // Customização de memorial
               if (c.memorial_item_id && ec.memorial_item_id) {
-                const match = ec.memorial_item_id === c.memorial_item_id && ec.status === 'approved';
-                console.log(`  Comparing memorial_item_id: ${c.memorial_item_id} === ${ec.memorial_item_id} && ${ec.status} === 'approved' => ${match}`);
-                return match;
+                return ec.memorial_item_id === c.memorial_item_id && ec.status === 'approved';
               }
-              // Customização livre
-              const match = ec.item_name === c.item_name && ec.status === 'approved';
-              console.log(`  Comparing item_name: ${c.item_name} === ${ec.item_name} && ${ec.status} === 'approved' => ${match}`);
-              return match;
+              return ec.item_name === c.item_name && ec.status === 'approved';
             });
             
-            console.log('wasApproved:', wasApproved ? 'YES' : 'NO', wasApproved);
-            const isNew = !wasApproved;
-            console.log('Result: isNew =', isNew);
-            
-            // É nova se NÃO foi encontrada como aprovada anteriormente
-            return isNew;
+            return !wasApproved;
           }) || false;
-          
-          console.log('hasNewPendingCustomizations:', hasNewPendingCustomizations);
 
           if (removedApprovedCustomizations.length > 0) {
             newQuotationStatus = 'draft';
-            console.log('Status alterado para draft: customizações aprovadas foram removidas');
           } else if (hasNewPendingCustomizations) {
             newQuotationStatus = 'pending_technical_approval';
-            console.log('Status alterado para pending_technical_approval: novas customizações adicionadas');
             
-            // Criar approval requests apenas para as NOVAS customizações pendentes
             const newCustomizations = insertedCustomizations?.filter((c: any) => {
               const wasApproved = existingCustomizations?.find((ec: any) => {
                 if (c.option_id && ec.option_id) {
@@ -384,15 +317,7 @@ export function useSaveQuotation() {
               return !wasApproved;
             });
             
-            console.log('🔔 New customizations to create approvals for:', newCustomizations?.map(c => ({
-              id: c.id,
-              item_name: c.item_name,
-              option_id: c.option_id,
-              memorial_item_id: c.memorial_item_id,
-              customization_code: c.customization_code,
-              status: c.status
-            })));
-
+            
             if (newCustomizations && newCustomizations.length > 0) {
               const technicalApprovals = newCustomizations.map((customization: any) => ({
                 quotation_id: data.quotationId,
@@ -404,33 +329,26 @@ export function useSaveQuotation() {
                   customization_code: customization.customization_code,
                   customization_item_name: customization.item_name,
                   memorial_item_id: customization.memorial_item_id,
-                  option_id: customization.option_id || null, // ✅ Incluir option_id
+                  option_id: customization.option_id || null,
                   quantity: customization.quantity || 1,
                   notes: customization.notes || '',
                   is_free_customization: !customization.memorial_item_id && !customization.option_id
                 },
                 notes: customization.option_id
-                  ? `Customização de opcional: ${customization.item_name}` // ✅ Mensagem específica para opcionais
+                  ? `Customização de opcional: ${customization.item_name}`
                   : (!customization.memorial_item_id
                     ? `Customização livre adicionada: ${customization.item_name}`
                     : `Customização solicitada: ${customization.item_name}`)
               }));
-              
-              console.log('Approvals to insert:', technicalApprovals);
 
               const { error: technicalApprovalError } = await supabase
                 .from("approvals")
                 .insert(technicalApprovals);
 
               if (technicalApprovalError) {
-                console.error('❌ Erro ao criar aprovações técnicas:', technicalApprovalError);
                 throw technicalApprovalError;
-              } else {
-                console.log('✅ Aprovações técnicas criadas com sucesso!');
               }
             }
-          } else {
-            console.log('Mantém status atual: apenas customizações pendentes foram editadas/removidas');
           }
 
           // 5. Atualizar status da cotação (se necessário)
