@@ -3,6 +3,7 @@ import { useATOs } from "@/hooks/useATOs";
 import { useSendATO } from "@/hooks/useSendATO";
 import { useATOWorkflowTasks } from "@/hooks/useATOWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +28,10 @@ interface ATOsListProps {
 
 export function ATOsList({ contractId }: ATOsListProps) {
   const { user } = useAuth();
+  const { data: userRoleData } = useUserRole();
+  const isAdmin = userRoleData?.roles?.includes('administrador');
   const { data: atos, isLoading } = useATOs(contractId);
-  const { data: userTasks } = useATOWorkflowTasks(user?.id);
+  const { data: userTasks } = useATOWorkflowTasks(user?.id, isAdmin);
   const { mutateAsync: sendATO } = useSendATO();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
@@ -88,12 +91,15 @@ export function ATOsList({ contractId }: ATOsListProps) {
         <Alert className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/20">
           <AlertCircle className="h-4 w-4 text-orange-600" />
           <AlertTitle className="text-orange-900 dark:text-orange-200">
-            Você tem {userPendingATOs.length} {userPendingATOs.length === 1 ? 'ATO aguardando' : 'ATOs aguardando'} sua revisão
+            {isAdmin 
+              ? `${userPendingATOs.length} ${userPendingATOs.length === 1 ? 'ATO pendente' : 'ATOs pendentes'} de revisão`
+              : `Você tem ${userPendingATOs.length} ${userPendingATOs.length === 1 ? 'ATO aguardando' : 'ATOs aguardando'} sua revisão`
+            }
           </AlertTitle>
           <AlertDescription className="mt-3 space-y-2">
             {userPendingATOs.map((task) => (
               <div key={task.id} className="flex items-center justify-between p-2 bg-background rounded-md">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1">
                   <Wrench className="h-4 w-4 text-orange-600" />
                   <span className="text-sm font-medium">
                     {task.ato?.ato_number} - {task.ato?.title}
@@ -104,6 +110,11 @@ export function ATOsList({ contractId }: ATOsListProps) {
                     {task.step_type === 'planning_validation' && 'Validação Planning'}
                     {task.step_type === 'pm_final' && 'Revisão Final PM'}
                   </Badge>
+                  {isAdmin && task.assigned_to !== user?.id && task.assigned_user && (
+                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                      👤 {task.assigned_user.full_name}
+                    </Badge>
+                  )}
                 </div>
                 <Button 
                   size="sm" 
