@@ -351,3 +351,54 @@ export function useCancelATO() {
     },
   });
 }
+
+export function useDeleteATO() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (atoId: string) => {
+      // Buscar contract_id antes de deletar
+      const { data: ato } = await supabase
+        .from("additional_to_orders")
+        .select("contract_id")
+        .eq("id", atoId)
+        .single();
+      
+      const contractId = ato?.contract_id;
+
+      // Deletar configurações primeiro (cascade deveria fazer, mas garantir)
+      await supabase
+        .from("ato_configurations")
+        .delete()
+        .eq("ato_id", atoId);
+
+      // Deletar workflow steps
+      await supabase
+        .from("ato_workflow_steps")
+        .delete()
+        .eq("ato_id", atoId);
+
+      // Deletar ATO
+      const { error } = await supabase
+        .from("additional_to_orders")
+        .delete()
+        .eq("id", atoId);
+
+      if (error) throw error;
+      return { contractId };
+    },
+    onSuccess: (data) => {
+      if (data.contractId) {
+        queryClient.invalidateQueries({ queryKey: ["atos", data.contractId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["atos"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["live-contract"] });
+      toast.success("ATO excluída permanentemente");
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting ATO:", error);
+      toast.error("Erro ao excluir ATO: " + error.message);
+    },
+  });
+}

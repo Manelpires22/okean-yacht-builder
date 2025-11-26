@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useATO, useApproveATO, useCancelATO } from "@/hooks/useATOs";
+import { useATO, useApproveATO, useCancelATO, useDeleteATO } from "@/hooks/useATOs";
 import { useATOConfigurations, useRemoveATOConfiguration } from "@/hooks/useATOConfigurations";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -43,6 +43,7 @@ import {
   Package,
   Wrench,
   Clock,
+  Pencil,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,6 +54,7 @@ import { ATOPMReviewForm } from "./ATOPMReviewForm";
 import { ATOSupplyQuoteForm } from "./ATOSupplyQuoteForm";
 import { ATOPlanningValidationForm } from "./ATOPlanningValidationForm";
 import { ATOPMFinalForm } from "./ATOPMFinalForm";
+import { EditATODialog } from "./EditATODialog";
 
 interface ATODetailDialogProps {
   open: boolean;
@@ -72,6 +74,7 @@ export function ATODetailDialog({
   const { data: workflowData, isLoading: loadingWorkflow } = useATOWorkflow(atoId || undefined);
   const { mutate: approveATO, isPending: isApproving } = useApproveATO();
   const { mutate: cancelATO, isPending: isCanceling } = useCancelATO();
+  const { mutate: deleteATO, isPending: isDeleting } = useDeleteATO();
   const { mutate: removeConfiguration, isPending: isRemoving } = useRemoveATOConfiguration();
   const { data: userRoleData } = useUserRole();
   const { user } = useAuth();
@@ -81,6 +84,8 @@ export function ATODetailDialog({
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const isAdmin = userRoleData?.roles?.includes('administrador');
   
@@ -93,6 +98,11 @@ export function ATODetailDialog({
     userRoleData?.roles?.some((r: string) =>
       ["administrador", "gerente_comercial"].includes(r)
     ) && ato?.status !== "cancelled";
+
+  // Permissões de edição e exclusão
+  const isNotApproved = ato?.status !== 'approved';
+  const canEdit = isNotApproved && (isAdmin || ato?.requested_by === user?.id);
+  const canDelete = isNotApproved && isAdmin;
 
   // Workflow logic
   const currentStep = workflowData?.workflow_steps?.find(
@@ -127,6 +137,16 @@ export function ATODetailDialog({
     cancelATO(atoId, {
       onSuccess: () => {
         setShowCancelDialog(false);
+        onOpenChange(false);
+      },
+    });
+  };
+
+  const handleDelete = () => {
+    if (!atoId) return;
+    deleteATO(atoId, {
+      onSuccess: () => {
+        setShowDeleteDialog(false);
         onOpenChange(false);
       },
     });
@@ -510,7 +530,18 @@ export function ATODetailDialog({
               </Tabs>
 
               <DialogFooter className="flex items-center justify-between">
-                <div>
+                <div className="flex gap-2">
+                  {canDelete && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir
+                    </Button>
+                  )}
                   {canCancel && ato.status !== "cancelled" && (
                     <Button
                       variant="destructive"
@@ -525,6 +556,16 @@ export function ATODetailDialog({
                 </div>
 
                 <div className="flex gap-2">
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEditDialog(true)}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                  )}
+                  
                   <Button variant="outline" onClick={() => onOpenChange(false)}>
                     Fechar
                   </Button>
@@ -624,6 +665,40 @@ export function ATODetailDialog({
           contractId={ato?.contract_id || ""}
         />
       )}
+
+      {/* Edit ATO Dialog */}
+      {ato && (
+        <EditATODialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          ato={ato}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir ATO {ato?.ato_number}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A ATO será permanentemente excluída do sistema,
+              incluindo todas as suas configurações e histórico de workflow.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Excluir Permanentemente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -40,7 +40,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
     open: boolean;
     ato?: any;
   }>({ open: false });
-  const [filterTab, setFilterTab] = useState<string>("all");
+  const [filterTab, setFilterTab] = useState<string>("workflow");
 
   const handleSendATO = async (data: SendATOData) => {
     if (!sendATODialog.ato) return;
@@ -54,10 +54,17 @@ export function ATOsList({ contractId }: ATOsListProps) {
   // Filtrar ATOs baseado na tab selecionada
   const filteredATOs = atos?.filter((ato) => {
     if (filterTab === "all") return true;
-    if (filterTab === "workflow") return ato.workflow_status && ato.workflow_status !== 'completed';
-    if (filterTab === "ready") return ato.workflow_status === 'completed' && ato.status === 'draft';
+    if (filterTab === "pending") return ato.status === 'draft' && !ato.workflow_status;
+    if (filterTab === "workflow") {
+      return ato.workflow_status && 
+             ato.workflow_status !== 'completed' && 
+             !['rejected', 'cancelled'].includes(ato.status);
+    }
     if (filterTab === "sent") return ato.status === 'pending_approval';
-    if (filterTab === "approved") return ato.status === 'approved';
+    if (filterTab === "finished") {
+      return ['approved', 'rejected', 'cancelled'].includes(ato.status) ||
+             (ato.workflow_status === 'completed' && ato.status === 'draft');
+    }
     return true;
   }) || [];
 
@@ -163,17 +170,24 @@ export function ATOsList({ contractId }: ATOsListProps) {
                 <TabsTrigger value="all">
                   Todas ({atos.length})
                 </TabsTrigger>
-                <TabsTrigger value="workflow">
-                  Em Workflow ({atos.filter(a => a.workflow_status && a.workflow_status !== 'completed').length})
+                <TabsTrigger value="pending">
+                  Pendentes ({atos.filter(a => a.status === 'draft' && !a.workflow_status).length})
                 </TabsTrigger>
-                <TabsTrigger value="ready">
-                  Prontas ({atos.filter(a => a.workflow_status === 'completed' && a.status === 'draft').length})
+                <TabsTrigger value="workflow">
+                  Em Workflow ({atos.filter(a => 
+                    a.workflow_status && 
+                    a.workflow_status !== 'completed' && 
+                    !['rejected', 'cancelled'].includes(a.status)
+                  ).length})
                 </TabsTrigger>
                 <TabsTrigger value="sent">
                   Enviadas ({atos.filter(a => a.status === 'pending_approval').length})
                 </TabsTrigger>
-                <TabsTrigger value="approved">
-                  Aprovadas ({atos.filter(a => a.status === 'approved').length})
+                <TabsTrigger value="finished">
+                  Finalizadas ({atos.filter(a => 
+                    ['approved', 'rejected', 'cancelled'].includes(a.status) ||
+                    (a.workflow_status === 'completed' && a.status === 'draft')
+                  ).length})
                 </TabsTrigger>
               </TabsList>
 
