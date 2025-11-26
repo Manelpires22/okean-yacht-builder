@@ -113,9 +113,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
                   </span>
                   <Badge variant="outline" className="text-xs">
                     {task.step_type === 'pm_review' && 'Revisão PM'}
-                    {task.step_type === 'supply_quote' && 'Cotação Supply'}
-                    {task.step_type === 'planning_validation' && 'Validação Planning'}
-                    {task.step_type === 'pm_final' && 'Revisão Final PM'}
+                    {task.step_type === 'commercial_approval' && 'Validação Comercial'}
                   </Badge>
                   {isAdmin && task.assigned_to !== user?.id && task.assigned_user && (
                     <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
