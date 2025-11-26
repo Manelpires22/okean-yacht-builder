@@ -26,7 +26,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
   ).length;
 
   const pendingClientApproval = atos.filter(
-    ato => ato.status === 'pending_approval'
+    ato => ato.status === 'pending_approval' && ato.workflow_status === 'completed'
   ).length;
 
   const approved = atos.filter(
