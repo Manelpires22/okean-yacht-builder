@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, XCircle, Package, Calendar, DollarSign } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ATOWorkflowTimelineProps {
@@ -8,10 +8,8 @@ interface ATOWorkflowTimelineProps {
 
 const WORKFLOW_STEPS = [
   { key: 'pending_pm_review', label: 'Análise PM', icon: Clock },
-  { key: 'pending_supply_quote', label: 'Cotação Supply', icon: Package },
-  { key: 'pending_planning_validation', label: 'Validação Planning', icon: Calendar },
-  { key: 'pending_pm_final', label: 'Aprovação Final PM', icon: DollarSign },
-  { key: 'completed', label: 'Concluído', icon: CheckCircle2 },
+  { key: 'pending_commercial', label: 'Validação Comercial', icon: DollarSign },
+  { key: 'completed', label: 'Aprovado', icon: CheckCircle2 },
 ];
 
 export function ATOWorkflowTimeline({ currentStatus, className }: ATOWorkflowTimelineProps) {
