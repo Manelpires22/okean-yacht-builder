@@ -33,3 +33,9 @@ verify_jwt = true
 [functions.create-contract-from-quotation]
 verify_jwt = true
 
+[functions.advance-customization-workflow]
+verify_jwt = true
+
+[functions.advance-ato-workflow]
+verify_jwt = true
+
