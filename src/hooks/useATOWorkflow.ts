@@ -215,13 +215,13 @@ export function useAdvanceATOWorkflow() {
   });
 }
 
-export function useATOWorkflowTasks(userId: string | undefined) {
+export function useATOWorkflowTasks(userId: string | undefined, showAll = false) {
   return useQuery({
-    queryKey: ['ato-workflow-tasks', userId],
+    queryKey: ['ato-workflow-tasks', userId, showAll],
     queryFn: async () => {
-      if (!userId) return [];
+      if (!userId && !showAll) return [];
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('ato_workflow_steps')
         .select(`
           *,
@@ -230,15 +230,22 @@ export function useATOWorkflowTasks(userId: string | undefined) {
             ato_number,
             title,
             contract:contracts(contract_number, client_id)
-          )
+          ),
+          assigned_user:users(full_name, email)
         `)
-        .eq('assigned_to', userId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true });
+
+      // Se não for showAll, filtra por usuário específico
+      if (!showAll && userId) {
+        query = query.eq('assigned_to', userId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data;
     },
-    enabled: !!userId,
+    enabled: !!userId || showAll,
   });
 }

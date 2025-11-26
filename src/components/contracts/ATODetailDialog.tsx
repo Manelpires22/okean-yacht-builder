@@ -82,6 +82,8 @@ export function ATODetailDialog({
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
 
+  const isAdmin = userRoleData?.roles?.includes('administrador');
+  
   const canApprove =
     userRoleData?.roles?.some((r: string) =>
       ["administrador", "gerente_comercial"].includes(r)
@@ -96,7 +98,7 @@ export function ATODetailDialog({
   const currentStep = workflowData?.workflow_steps?.find(
     (step) => step.status === "pending"
   );
-  const canActOnWorkflow = currentStep?.assigned_to === user?.id;
+  const canActOnWorkflow = currentStep?.assigned_to === user?.id || isAdmin;
   const hasActiveWorkflow = ato?.workflow_status && ato.workflow_status !== "completed" && ato.workflow_status !== "rejected";
 
   // Sincronizar activeTab com defaultTab quando dialog abre
