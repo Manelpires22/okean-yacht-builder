@@ -54,7 +54,6 @@ export function CreateATODialog({
 }: CreateATODialogProps) {
   const [step, setStep] = useState(1);
   const [pendingItems, setPendingItems] = useState<PendingATOItem[]>([]);
-  const [requiresWorkflow, setRequiresWorkflow] = useState(true);
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [currentDialog, setCurrentDialog] = useState<string | null>(null);
 
@@ -115,7 +114,7 @@ export function CreateATODialog({
       price_impact: totalEstimatedPrice,
       delivery_days_impact: maxEstimatedDays,
       notes: data.notes,
-      workflow_status: requiresWorkflow ? "pending_pm_review" : null,
+      workflow_status: "pending_pm_review", // Sempre usar workflow simplificado
       configurations,
     };
 
@@ -239,20 +238,10 @@ export function CreateATODialog({
                     )}
                   />
 
-                  <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
-                    <input
-                      type="checkbox"
-                      id="requires-workflow"
-                      checked={requiresWorkflow}
-                      onChange={(e) => setRequiresWorkflow(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <label
-                      htmlFor="requires-workflow"
-                      className="text-sm font-medium leading-none cursor-pointer"
-                    >
-                      Requer workflow técnico completo (PM → Supply → Planning → PM Final)
-                    </label>
+                  <div className="p-4 border rounded-lg bg-primary/10">
+                    <p className="text-sm">
+                      <strong>Workflow:</strong> Esta ATO será enviada para análise do PM, que retornará com preço e prazo finais.
+                    </p>
                   </div>
                 </div>
               )}
@@ -363,10 +352,7 @@ export function CreateATODialog({
 
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                     <p className="text-sm">
-                      <strong>Nota:</strong> {requiresWorkflow ? 
-                        "Esta ATO será enviada para workflow técnico completo (PM → Supply → Planning → PM Final) antes de ser aplicada ao contrato." :
-                        "Esta ATO será criada diretamente sem workflow técnico."
-                      }
+                      <strong>Nota:</strong> Esta ATO será enviada para análise do PM, que retornará com preço e prazo finais.
                     </p>
                   </div>
                 </div>

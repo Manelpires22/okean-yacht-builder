@@ -51,9 +51,6 @@ import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOPMReviewForm } from "./ATOPMReviewForm";
-import { ATOSupplyQuoteForm } from "./ATOSupplyQuoteForm";
-import { ATOPlanningValidationForm } from "./ATOPlanningValidationForm";
-import { ATOPMFinalForm } from "./ATOPMFinalForm";
 import { EditATODialog } from "./EditATODialog";
 
 interface ATODetailDialogProps {
@@ -417,24 +414,6 @@ export function ATODetailDialog({
                         <h3 className="font-semibold mb-4">Sua Ação Requerida</h3>
                         {currentStep.step_type === "pm_review" && (
                           <ATOPMReviewForm
-                            atoWorkflow={workflowData}
-                            currentStep={currentStep}
-                          />
-                        )}
-                        {currentStep.step_type === "supply_quote" && (
-                          <ATOSupplyQuoteForm
-                            atoWorkflow={workflowData}
-                            currentStep={currentStep}
-                          />
-                        )}
-                        {currentStep.step_type === "planning_validation" && (
-                          <ATOPlanningValidationForm
-                            atoWorkflow={workflowData}
-                            currentStep={currentStep}
-                          />
-                        )}
-                        {currentStep.step_type === "pm_final" && (
-                          <ATOPMFinalForm
                             atoWorkflow={workflowData}
                             currentStep={currentStep}
                           />

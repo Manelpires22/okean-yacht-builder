@@ -5,9 +5,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOPMReviewForm } from "./ATOPMReviewForm";
-import { ATOSupplyQuoteForm } from "./ATOSupplyQuoteForm";
-import { ATOPlanningValidationForm } from "./ATOPlanningValidationForm";
-import { ATOPMFinalForm } from "./ATOPMFinalForm";
 
 interface ATOWorkflowModalProps {
   atoId: string | null;
@@ -98,15 +95,6 @@ export function ATOWorkflowModal({ atoId, open, onOpenChange }: ATOWorkflowModal
             <>
               {currentStep.step_type === 'pm_review' && (
                 <ATOPMReviewForm atoWorkflow={atoWorkflow} currentStep={currentStep} />
-              )}
-              {currentStep.step_type === 'supply_quote' && (
-                <ATOSupplyQuoteForm atoWorkflow={atoWorkflow} currentStep={currentStep} />
-              )}
-              {currentStep.step_type === 'planning_validation' && (
-                <ATOPlanningValidationForm atoWorkflow={atoWorkflow} currentStep={currentStep} />
-              )}
-              {currentStep.step_type === 'pm_final' && (
-                <ATOPMFinalForm atoWorkflow={atoWorkflow} currentStep={currentStep} />
               )}
             </>
           )}
