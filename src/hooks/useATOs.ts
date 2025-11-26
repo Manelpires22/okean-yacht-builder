@@ -59,7 +59,6 @@ export function useATOs(contractId: string | undefined) {
         .select(`
           *,
           contract:contracts(contract_number, status),
-          requested_by_user:users!additional_to_orders_requested_by_fkey(full_name, email),
           configurations:ato_configurations(id)
         `)
         .eq("contract_id", contractId)
@@ -83,7 +82,6 @@ export function useATO(atoId: string | undefined) {
         .select(`
           *,
           contract:contracts(*),
-          requested_by_user:users!additional_to_orders_requested_by_fkey(full_name, email),
           configurations:ato_configurations(*)
         `)
         .eq("id", atoId)
