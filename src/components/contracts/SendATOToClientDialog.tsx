@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,17 @@ export function SendATOToClientDialog({
   const [sendEmail, setSendEmail] = useState(true);
   const [generatePDF, setGeneratePDF] = useState(true);
   const [recipientEmail, setRecipientEmail] = useState(clientEmail || "");
-  
-  const defaultSubject = `Aditivo ${atoNumber} - ${atoTitle}`;
-  const [emailSubject, setEmailSubject] = useState(defaultSubject);
-  
-  const defaultMessage = `Prezado(a) ${clientName},
+  const [emailSubject, setEmailSubject] = useState(`Aditivo ${atoNumber} - ${atoTitle}`);
+  const [emailMessage, setEmailMessage] = useState("");
+
+  // Reset all states when dialog opens or client/ATO data changes
+  useEffect(() => {
+    if (open) {
+      setRecipientEmail(clientEmail || "");
+      setSendEmail(true);
+      setGeneratePDF(true);
+      setEmailSubject(`Aditivo ${atoNumber} - ${atoTitle}`);
+      setEmailMessage(`Prezado(a) ${clientName || "Cliente"},
 
 Segue em anexo o Aditivo ao Contrato (ATO) ${atoNumber} - ${atoTitle}.
 
@@ -53,9 +59,9 @@ Por favor, revise e retorne com sua aprovação para prosseguirmos com a execuç
 Ficamos à disposição para quaisquer esclarecimentos.
 
 Atenciosamente,
-Equipe OKEAN Yachts`;
-  
-  const [emailMessage, setEmailMessage] = useState(defaultMessage);
+Equipe OKEAN Yachts`);
+    }
+  }, [open, clientEmail, clientName, atoNumber, atoTitle]);
 
   const handleSend = async () => {
     if (sendEmail && !recipientEmail) {

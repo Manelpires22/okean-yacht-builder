@@ -777,8 +777,8 @@ export function ATODetailDialog({
           onOpenChange={setShowSendDialog}
           atoNumber={ato.ato_number}
           atoTitle={ato.title}
-          clientName={undefined}
-          clientEmail={undefined}
+          clientName={ato.contract?.client?.name}
+          clientEmail={ato.contract?.client?.email}
           onSend={handleSendToClient}
         />
       )}

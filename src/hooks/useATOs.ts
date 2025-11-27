@@ -82,15 +82,18 @@ export function useATO(atoId: string | undefined) {
     queryFn: async () => {
       if (!atoId) throw new Error("ATO ID is required");
 
-      const { data, error } = await supabase
-        .from("additional_to_orders")
-        .select(`
+    const { data, error } = await supabase
+      .from("additional_to_orders")
+      .select(`
+        *,
+        contract:contracts(
           *,
-          contract:contracts(*),
-          configurations:ato_configurations(*)
-        `)
-        .eq("id", atoId)
-        .single();
+          client:clients(id, name, email, phone)
+        ),
+        configurations:ato_configurations(*)
+      `)
+      .eq("id", atoId)
+      .single();
 
       if (error) throw error;
       return data;
