@@ -1283,6 +1283,36 @@ export type Database = {
           },
         ]
       }
+      workflow_settings: {
+        Row: {
+          config_data: Json | null
+          created_at: string | null
+          enabled: boolean
+          id: string
+          setting_key: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          config_data?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          setting_key: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          config_data?: Json | null
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          setting_key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       yacht_models: {
         Row: {
           base_delivery_days: number
