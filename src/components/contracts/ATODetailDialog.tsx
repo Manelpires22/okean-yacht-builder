@@ -46,6 +46,7 @@ import {
   Clock,
   Pencil,
   Send,
+  MinusCircle,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,6 +56,7 @@ import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOPMReviewForm } from "./ATOPMReviewForm";
 import { EditATODialog } from "./EditATODialog";
 import { SendATOToClientDialog } from "./SendATOToClientDialog";
+import { CreateATODialog } from "./CreateATODialog";
 
 interface ATODetailDialogProps {
   open: boolean;
@@ -88,6 +90,7 @@ export function ATODetailDialog({
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
+  const [showCreateReversalDialog, setShowCreateReversalDialog] = useState(false);
 
   const isAdmin = userRoleData?.roles?.includes('administrador');
   
@@ -105,6 +108,9 @@ export function ATODetailDialog({
   const isNotApproved = ato?.status !== 'approved';
   const canEdit = isNotApproved && (isAdmin || ato?.requested_by === user?.id);
   const canDelete = isNotApproved && isAdmin;
+  
+  // Pode criar ATO de estorno apenas para ATOs aprovadas
+  const canCreateReversal = ato?.status === 'approved' && (isAdmin || userRoleData?.roles?.includes('gerente_comercial'));
   
   // ✅ Pode enviar ao cliente quando workflow completo e desconto ≤ 10%
   // Aceita tanto 'draft' quanto 'pending_approval' (caso sistema tenha marcado errado)
@@ -568,6 +574,16 @@ export function ATODetailDialog({
 
               <DialogFooter className="flex items-center justify-between">
                 <div className="flex gap-2">
+                  {canCreateReversal && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCreateReversalDialog(true)}
+                      className="border-orange-500 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                    >
+                      <MinusCircle className="mr-2 h-4 w-4" />
+                      Criar ATO de Estorno
+                    </Button>
+                  )}
                   {canDelete && (
                     <Button
                       variant="destructive"
@@ -780,6 +796,21 @@ export function ATODetailDialog({
           clientName={ato.contract?.client?.name}
           clientEmail={ato.contract?.client?.email}
           onSend={handleSendToClient}
+        />
+      )}
+
+      {/* Create Reversal ATO Dialog */}
+      {ato && showCreateReversalDialog && (
+        <CreateATODialog
+          open={showCreateReversalDialog}
+          onOpenChange={setShowCreateReversalDialog}
+          contractId={ato.contract_id}
+          reversalOf={{
+            atoNumber: ato.ato_number,
+            title: ato.title,
+            priceImpact: ato.price_impact,
+            deliveryDaysImpact: ato.delivery_days_impact,
+          }}
         />
       )}
     </>

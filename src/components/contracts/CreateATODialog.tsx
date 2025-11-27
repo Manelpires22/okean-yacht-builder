@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,12 +45,19 @@ interface CreateATODialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contractId: string;
+  reversalOf?: {
+    atoNumber: string;
+    title: string;
+    priceImpact: number;
+    deliveryDaysImpact: number;
+  };
 }
 
 export function CreateATODialog({
   open,
   onOpenChange,
   contractId,
+  reversalOf,
 }: CreateATODialogProps) {
   const [step, setStep] = useState(1);
   const [pendingItems, setPendingItems] = useState<PendingATOItem[]>([]);
@@ -63,11 +70,28 @@ export function CreateATODialog({
   const form = useForm<ATOFormData>({
     resolver: zodResolver(atoSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      notes: "",
+      title: reversalOf ? `Estorno - ${reversalOf.title}` : "",
+      description: reversalOf 
+        ? `Estorno da ${reversalOf.atoNumber}. Esta ATO cancela os itens previamente aprovados.`
+        : "",
+      notes: reversalOf ? `Referência: ${reversalOf.atoNumber}` : "",
     },
   });
+
+  // Reset form quando dialog abrir ou reversalOf mudar
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        title: reversalOf ? `Estorno - ${reversalOf.title}` : "",
+        description: reversalOf 
+          ? `Estorno da ${reversalOf.atoNumber}. Esta ATO cancela os itens previamente aprovados.`
+          : "",
+        notes: reversalOf ? `Referência: ${reversalOf.atoNumber}` : "",
+      });
+      setStep(1);
+      setPendingItems([]);
+    }
+  }, [open, reversalOf, form]);
 
   const handleAddItem = (item: PendingATOItem) => {
     setPendingItems([...pendingItems, item]);

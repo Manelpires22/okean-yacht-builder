@@ -18,10 +18,12 @@ interface ApprovedATO {
 
 interface ContractATODefinitionsViewProps {
   approvedATOs: ApprovedATO[];
+  onATOClick?: (atoId: string) => void;
 }
 
 export function ContractATODefinitionsView({
   approvedATOs,
+  onATOClick,
 }: ContractATODefinitionsViewProps) {
   if (approvedATOs.length === 0) {
     return (
@@ -63,7 +65,11 @@ export function ContractATODefinitionsView({
           const finalPrice = priceImpact * (1 - discount / 100);
 
           return (
-            <Card key={ato.id}>
+            <Card 
+              key={ato.id}
+              className={onATOClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
+              onClick={() => onATOClick?.(ato.id)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1 flex-1">
