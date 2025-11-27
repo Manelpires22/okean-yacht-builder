@@ -353,6 +353,39 @@ export function useCancelATO() {
   });
 }
 
+export function useReopenATOForCommercialReview() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (atoId: string) => {
+      const { data, error } = await supabase
+        .from("additional_to_orders")
+        .update({
+          workflow_status: 'completed',
+          status: 'draft',
+          approved_at: null,
+          approved_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", atoId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["atos", data.contract_id] });
+      queryClient.invalidateQueries({ queryKey: ["ato", data.id] });
+      toast.success("ATO reaberta para validação comercial");
+    },
+    onError: (error: Error) => {
+      console.error("Error reopening ATO:", error);
+      toast.error("Erro ao reabrir ATO: " + error.message);
+    },
+  });
+}
+
 export function useDeleteATO() {
   const queryClient = useQueryClient();
 
