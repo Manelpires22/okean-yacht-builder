@@ -74,16 +74,13 @@ export function ATOsList({ contractId }: ATOsListProps) {
   // Filtrar ATOs baseado na tab selecionada
   const filteredATOs = atos?.filter((ato) => {
     if (filterTab === "all") return true;
-    if (filterTab === "pending") return ato.status === 'draft' && !ato.workflow_status;
+    if (filterTab === "pending") return ato.workflow_status === 'pending_pm_review';
     if (filterTab === "workflow") {
-      return ato.workflow_status && 
-             ato.workflow_status !== 'completed' && 
-             !['rejected', 'cancelled'].includes(ato.status);
+      return ato.workflow_status === 'completed' && ato.status === 'draft';
     }
     if (filterTab === "sent") return ato.status === 'pending_approval';
     if (filterTab === "finished") {
-      return ['approved', 'rejected', 'cancelled'].includes(ato.status) ||
-             (ato.workflow_status === 'completed' && ato.status === 'draft');
+      return ['approved', 'rejected', 'cancelled'].includes(ato.status);
     }
     return true;
   }) || [];
@@ -189,22 +186,19 @@ export function ATOsList({ contractId }: ATOsListProps) {
                   Todas ({atos.length})
                 </TabsTrigger>
                 <TabsTrigger value="pending">
-                  Pendentes ({atos.filter(a => a.status === 'draft' && !a.workflow_status).length})
+                  Pendentes PM ({atos.filter(a => a.workflow_status === 'pending_pm_review').length})
                 </TabsTrigger>
                 <TabsTrigger value="workflow">
-                  Em Workflow ({atos.filter(a => 
-                    a.workflow_status && 
-                    a.workflow_status !== 'completed' && 
-                    !['rejected', 'cancelled'].includes(a.status)
+                  Validação Comercial ({atos.filter(a => 
+                    a.workflow_status === 'completed' && a.status === 'draft'
                   ).length})
                 </TabsTrigger>
                 <TabsTrigger value="sent">
-                  Enviadas ({atos.filter(a => a.status === 'pending_approval').length})
+                  Enviadas Cliente ({atos.filter(a => a.status === 'pending_approval').length})
                 </TabsTrigger>
                 <TabsTrigger value="finished">
                   Finalizadas ({atos.filter(a => 
-                    ['approved', 'rejected', 'cancelled'].includes(a.status) ||
-                    (a.workflow_status === 'completed' && a.status === 'draft')
+                    ['approved', 'rejected', 'cancelled'].includes(a.status)
                   ).length})
                 </TabsTrigger>
               </TabsList>
@@ -239,10 +233,11 @@ export function ATOsList({ contractId }: ATOsListProps) {
                             </p>
                           )}
                         </div>
-                        {ato.workflow_status && (
+                         {ato.workflow_status && (
                           <div className="pt-2">
                             <ATOWorkflowTimeline 
-                              currentStatus={ato.workflow_status} 
+                              status={ato.status}
+                              workflowStatus={ato.workflow_status}
                               className="scale-75 origin-left"
                             />
                           </div>
