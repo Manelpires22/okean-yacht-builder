@@ -257,6 +257,7 @@ export function useApproveATO() {
         queryClient.invalidateQueries({ queryKey: ["live-contract", data.contract_id] });
         queryClient.invalidateQueries({ queryKey: ["contracts"] });
         queryClient.invalidateQueries({ queryKey: ["approvals"] });
+        queryClient.invalidateQueries({ queryKey: ["ato-workflow-tasks"] });
       }
       toast.success("ATO processada com sucesso");
     },

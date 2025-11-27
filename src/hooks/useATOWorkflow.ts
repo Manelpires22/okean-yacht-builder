@@ -108,7 +108,7 @@ export function useAdvanceATOWorkflow() {
       queryClient.invalidateQueries({ queryKey: ['ato-workflow', variables.atoId] });
       queryClient.invalidateQueries({ queryKey: ['atos'] });
       queryClient.invalidateQueries({ queryKey: ['ato', variables.atoId] });
-      queryClient.invalidateQueries({ queryKey: ['workflow-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['ato-workflow-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       
       if (data?.workflowCompleted) {
