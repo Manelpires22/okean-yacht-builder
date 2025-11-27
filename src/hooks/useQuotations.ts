@@ -45,6 +45,10 @@ export function useQuotations() {
           users!quotations_sales_representative_id_fkey (
             full_name,
             email
+          ),
+          contracts!contracts_quotation_id_fkey (
+            id,
+            contract_number
           )
         `)
         .order("created_at", { ascending: false });

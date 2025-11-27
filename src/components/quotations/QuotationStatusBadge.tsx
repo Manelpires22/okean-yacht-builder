@@ -6,7 +6,8 @@ import {
   ThumbsUp, 
   XCircle, 
   AlertCircle,
-  FileText
+  FileText,
+  FileCheck
 } from "lucide-react";
 
 type QuotationStatus = 
@@ -18,7 +19,8 @@ type QuotationStatus =
   | 'approved'
   | 'accepted'
   | 'rejected'
-  | 'expired';
+  | 'expired'
+  | 'converted_to_contract';
 
 interface QuotationStatusBadgeProps {
   status: QuotationStatus;
@@ -79,6 +81,12 @@ const STATUS_CONFIG = {
     variant: "secondary" as const,
     icon: AlertCircle,
     color: "text-muted-foreground"
+  },
+  converted_to_contract: {
+    label: "Contratada",
+    variant: "default" as const,
+    icon: FileCheck,
+    color: "text-emerald-600"
   }
 };
 
