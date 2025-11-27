@@ -9,6 +9,7 @@ import { generateCustomizationCode } from "@/lib/customization-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
 import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
 import { validateQuotation } from "./quotations/useQuotationValidation";
+import { saveQuotationOptions } from "./quotations/useQuotationOptions";
 import { useUserRole } from "./useUserRole";
 
 interface SaveQuotationData {
@@ -115,29 +116,12 @@ export function useSaveQuotation() {
         // ✅ Extrair quotation_number para uso posterior
         const quotationNumber = quotation.quotation_number;
 
-        // Delete old options
-        await supabase
-          .from("quotation_options")
-          .delete()
-          .eq('quotation_id', data.quotationId);
-        
-        // Insert new options
-        if (data.selected_options.length > 0) {
-          const quotationOptions = data.selected_options.map((opt) => ({
-            quotation_id: data.quotationId,
-            option_id: opt.option_id, // option_id sempre existe no SelectedOption
-            quantity: opt.quantity,
-            unit_price: opt.unit_price,
-            total_price: opt.unit_price * opt.quantity,
-            delivery_days_impact: opt.delivery_days_impact || 0,
-          }));
-
-          const { error: optionsError } = await supabase
-            .from("quotation_options")
-            .insert(quotationOptions);
-
-          if (optionsError) throw optionsError;
-        }
+        // Salvar opções usando hook dedicado (modo edição)
+        await saveQuotationOptions({
+          quotationId: data.quotationId,
+          selectedOptions: data.selected_options,
+          isEditMode: true,
+        });
 
         // ✅ NOVO: Processar customizações em modo EDIÇÃO (memorial + opcionais)
         // Buscar dados dos opcionais para obter nomes
@@ -496,22 +480,14 @@ export function useSaveQuotation() {
       // Array para armazenar todas as customizações criadas (memorial + opcionais)
       let createdCustomizations: any[] = [];
 
-      // 3. Create quotation options
+      // 3. Create quotation options using dedicated hook
+      await saveQuotationOptions({
+        quotationId: quotation.id,
+        selectedOptions: data.selected_options,
+        isEditMode: false,
+      });
+
       if (data.selected_options.length > 0) {
-        const quotationOptions = data.selected_options.map((opt) => ({
-          quotation_id: quotation.id,
-          option_id: opt.option_id,
-          quantity: opt.quantity,
-          unit_price: opt.unit_price,
-          total_price: opt.unit_price * opt.quantity,
-          delivery_days_impact: opt.delivery_days_impact || 0,
-        }));
-
-        const { error: optionsError } = await supabase
-          .from("quotation_options")
-          .insert(quotationOptions);
-
-        if (optionsError) throw optionsError;
 
         // ✅ NOVO: Criar customizações para opcionais que têm notas
         const optionsWithCustomization = data.selected_options.filter(
