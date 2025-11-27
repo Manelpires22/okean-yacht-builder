@@ -9,8 +9,8 @@ import { generateCustomizationCode } from "@/lib/customization-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
 import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
 import { validateQuotation } from "./quotations/useQuotationValidation";
-import { saveQuotationOptions } from "./quotations/useQuotationOptions";
-import { saveQuotationCustomizations } from "./quotations/useQuotationCustomizations";
+import { useQuotationOptions } from "./quotations/useQuotationOptions";
+import { useQuotationCustomizations } from "./quotations/useQuotationCustomizations";
 import { useUserRole } from "./useUserRole";
 
 interface SaveQuotationData {
@@ -30,10 +30,24 @@ interface SaveQuotationData {
   notes?: string;
 }
 
+// Funções auxiliares
+function extractOptionsWithCustomization(selectedOptions: SelectedOption[]) {
+  return selectedOptions
+    .filter(opt => opt.customization_notes?.trim())
+    .map(opt => ({
+      option_id: opt.option_id,
+      customization_notes: opt.customization_notes,
+    }));
+}
+
 export function useSaveQuotation() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: userRoleData } = useUserRole();
+  
+  // Hooks de mutation
+  const optionsMutation = useQuotationOptions();
+  const customizationsMutation = useQuotationCustomizations();
 
   return useMutation({
     mutationFn: async (data: SaveQuotationData) => {
@@ -117,23 +131,18 @@ export function useSaveQuotation() {
         // ✅ Extrair quotation_number para uso posterior
         const quotationNumber = quotation.quotation_number;
 
-        // Salvar opções usando hook dedicado (modo edição)
-        await saveQuotationOptions({
+        // Salvar opções usando hook mutation (modo edição)
+        await optionsMutation.mutateAsync({
           quotationId: data.quotationId,
           selectedOptions: data.selected_options,
           isEditMode: true,
         });
 
-        // ✅ Processar customizações (memorial + opcionais) usando hook dedicado
-        const optionsWithCustomization = data.selected_options
-          .filter(opt => opt.customization_notes?.trim())
-          .map(opt => ({
-            option_id: opt.option_id,
-            customization_notes: opt.customization_notes,
-          }));
+        // ✅ Processar customizações (memorial + opcionais) usando hook mutation
+        const optionsWithCustomization = extractOptionsWithCustomization(data.selected_options);
 
         if (data.customizations.length > 0 || optionsWithCustomization.length > 0) {
-          const customizationsResult = await saveQuotationCustomizations({
+          const customizationsResult = await customizationsMutation.mutateAsync({
             quotationId: data.quotationId!,
             quotationNumber: quotation.quotation_number,
             customizations: data.customizations,
@@ -261,23 +270,18 @@ export function useSaveQuotation() {
 
       if (quotationError) throw quotationError;
 
-      // 3. Create quotation options using dedicated hook
-      await saveQuotationOptions({
+      // 3. Create quotation options using mutation hook
+      await optionsMutation.mutateAsync({
         quotationId: quotation.id,
         selectedOptions: data.selected_options,
         isEditMode: false,
       });
 
-      // 4. Create customizations (memorial + opcionais) usando hook dedicado
-      const optionsWithCustomization = data.selected_options
-        .filter(opt => opt.customization_notes?.trim())
-        .map(opt => ({
-          option_id: opt.option_id,
-          customization_notes: opt.customization_notes,
-        }));
+      // 4. Create customizations (memorial + opcionais) using mutation hook
+      const optionsWithCustomization = extractOptionsWithCustomization(data.selected_options);
 
       if (data.customizations.length > 0 || optionsWithCustomization.length > 0) {
-        await saveQuotationCustomizations({
+        await customizationsMutation.mutateAsync({
           quotationId: quotation.id,
           quotationNumber: quotationNumber,
           customizations: data.customizations,
