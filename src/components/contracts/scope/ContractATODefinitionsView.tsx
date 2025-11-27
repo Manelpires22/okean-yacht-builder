@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { FileText, Calendar, TrendingUp, Percent, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
@@ -76,9 +77,6 @@ export function ContractATODefinitionsView({
                     <CardTitle className="text-base flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       {ato.ato_number} - {ato.title}
-                      {onATOClick && (
-                        <Eye className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ml-2" />
-                      )}
                     </CardTitle>
                     {ato.description && (
                       <p className="text-sm text-muted-foreground">
@@ -140,6 +138,23 @@ export function ContractATODefinitionsView({
                     </div>
                   )}
                 </div>
+
+                {onATOClick && (
+                  <div className="flex justify-end mt-4 pt-3 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-muted-foreground group-hover:text-primary transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onATOClick(ato.id);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver detalhes
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
