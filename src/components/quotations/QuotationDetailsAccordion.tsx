@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Accordion,
   AccordionContent,
@@ -31,11 +31,24 @@ export function QuotationDetailsAccordion({
 }: QuotationDetailsAccordionProps) {
   const [expanded, setExpanded] = useState<string[]>(defaultExpanded);
   
-  const optionsCount = quotation.quotation_options?.length || 0;
-  const customizationsCount = quotation.quotation_customizations?.length || 0;
-  const pendingCustomizations = quotation.quotation_customizations?.filter(
-    (c: any) => c.status === 'pending'
-  ).length || 0;
+  // Memoizar contadores (evita recálculos a cada render)
+  const { optionsCount, customizationsCount, pendingCustomizationsCount } = useMemo(() => ({
+    optionsCount: quotation.quotation_options?.length || 0,
+    customizationsCount: quotation.quotation_customizations?.length || 0,
+    pendingCustomizationsCount: quotation.quotation_customizations?.filter(
+      (c: any) => c.status === 'pending'
+    ).length || 0,
+  }), [quotation.quotation_options, quotation.quotation_customizations]);
+
+  // Criar mapa para customizações por option_id (O(1) lookup)
+  const customizationsByOptionId = useMemo(() => {
+    if (!quotation.quotation_customizations) return new Map();
+    return new Map(
+      quotation.quotation_customizations
+        .filter((c: any) => c.option_id)
+        .map((c: any) => [c.option_id, c])
+    );
+  }, [quotation.quotation_customizations]);
 
   return (
     <Accordion 
@@ -89,10 +102,8 @@ export function QuotationDetailsAccordion({
           </AccordionTrigger>
           <AccordionContent className="pt-4 space-y-3">
             {quotation.quotation_options.map((opt: any) => {
-              // Buscar customização relacionada a este opcional
-              const optionCustomization = quotation.quotation_customizations?.find(
-                (c: any) => c.option_id === opt.option_id
-              );
+              // Buscar customização usando Map (O(1) em vez de O(n))
+              const optionCustomization = customizationsByOptionId.get(opt.option_id);
 
               return (
                 <div
@@ -155,9 +166,9 @@ export function QuotationDetailsAccordion({
               </div>
               <span className="font-semibold">Customizações</span>
               <div className="flex gap-2 ml-auto mr-4">
-                {pendingCustomizations > 0 && (
+                {pendingCustomizationsCount > 0 && (
                   <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                    {pendingCustomizations} pendente{pendingCustomizations > 1 ? 's' : ''}
+                    {pendingCustomizationsCount} pendente{pendingCustomizationsCount > 1 ? 's' : ''}
                   </Badge>
                 )}
                 <Badge variant="secondary">

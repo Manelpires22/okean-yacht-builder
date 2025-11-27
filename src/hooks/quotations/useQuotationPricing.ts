@@ -3,6 +3,8 @@
  * Centraliza toda a lógica de preços, descontos e prazos
  */
 
+import { useMemo } from 'react';
+
 interface PricingInput {
   basePrice: number;
   baseDeliveryDays: number;
@@ -102,7 +104,16 @@ export function calculateQuotationPricing(input: PricingInput): PricingResult {
   };
 }
 
-// Hook wrapper para uso com React (se necessário estado reativo)
+// Hook wrapper para uso com React (memoizado para evitar recálculos desnecessários)
 export function useQuotationPricing(input: PricingInput): PricingResult {
-  return calculateQuotationPricing(input);
+  return useMemo(() => {
+    return calculateQuotationPricing(input);
+  }, [
+    input.basePrice,
+    input.baseDeliveryDays,
+    input.baseDiscountPercentage,
+    input.optionsDiscountPercentage,
+    // Usar JSON.stringify para arrays/objetos complexos
+    JSON.stringify(input.selectedOptions),
+  ]);
 }

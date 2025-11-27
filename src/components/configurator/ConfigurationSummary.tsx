@@ -11,7 +11,7 @@ import { getDiscountLimitsSync } from "@/lib/approval-utils";
 import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil, CheckCircle, Clock } from "lucide-react";
 import { Customization } from "@/hooks/useConfigurationState";
 import { MessageSquare, Package } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 interface ConfigurationSummaryProps {
   modelName: string;
@@ -87,9 +87,33 @@ export function ConfigurationSummary({
     }
   }, [baseDiscountPercentage, optionsDiscountPercentage, requiresApproval]);
 
-  // Count total customizations (base/free + option customizations)
-  const optionCustomizationsCount = selectedOptions.filter(opt => opt.customization_notes).length;
-  const totalCustomizations = customizations.length + optionCustomizationsCount;
+  // Memoizar filtragens de customizações (evita múltiplos .filter() iguais)
+  const { approvedCustomizations, pendingCustomizations } = useMemo(() => {
+    const approved = customizations.filter(
+      c => c.workflow_status === 'approved' && c.pm_final_price
+    );
+    const pending = customizations.filter(
+      c => c.workflow_status !== 'approved' || !c.pm_final_price
+    );
+    return { approvedCustomizations: approved, pendingCustomizations: pending };
+  }, [customizations]);
+
+  // Criar mapa de opções para O(1) lookup (em vez de .find() O(n))
+  const optionsMap = useMemo(() => {
+    if (!optionsData) return new Map<string, string>();
+    return new Map(optionsData.map(o => [o.id, o.name]));
+  }, [optionsData]);
+
+  // Memoizar contadores derivados
+  const optionCustomizationsCount = useMemo(() => 
+    selectedOptions.filter(opt => opt.customization_notes).length,
+    [selectedOptions]
+  );
+
+  const totalCustomizations = useMemo(() => 
+    customizations.length + optionCustomizationsCount,
+    [customizations.length, optionCustomizationsCount]
+  );
 
   return (
     <Card className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
@@ -114,19 +138,17 @@ export function ConfigurationSummary({
         <Separator />
 
         {/* Customizações Aprovadas - Mostrar como opcionais */}
-        {customizations.filter(c => c.workflow_status === 'approved' && c.pm_final_price).length > 0 && (
+        {approvedCustomizations.length > 0 && (
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium text-muted-foreground">Customizações Aprovadas</p>
                 <Badge variant="secondary" className="text-xs bg-success/10 text-success border-success/20">
-                  {customizations.filter(c => c.workflow_status === 'approved' && c.pm_final_price).length}
+                  {approvedCustomizations.length}
                 </Badge>
               </div>
               <div className="space-y-2">
-                {customizations
-                  .filter(c => c.workflow_status === 'approved' && c.pm_final_price)
-                  .map((customization) => (
+                {approvedCustomizations.map((customization) => (
                     <div
                       key={customization.memorial_item_id}
                       className="flex items-start justify-between gap-2 p-3 rounded-md border border-success/20 bg-success/5 transition-colors group"
@@ -190,9 +212,7 @@ export function ConfigurationSummary({
           {selectedOptions.length > 0 ? (
             <div className="space-y-2">
               {selectedOptions.map((selected) => {
-                const optionName = optionsData?.find(
-                  (o) => o.id === selected.option_id
-                )?.name || "Opcional";
+                const optionName = optionsMap.get(selected.option_id) || "Opcional";
                 return (
                   <div 
                     key={selected.option_id} 
@@ -228,13 +248,13 @@ export function ConfigurationSummary({
         <Separator />
 
         {/* Customizações Pendentes/Outras - Manter no collapsible */}
-        {customizations.filter(c => c.workflow_status !== 'approved' || !c.pm_final_price).length > 0 && (
+        {pendingCustomizations.length > 0 && (
           <>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium text-muted-foreground">Outras Customizações</p>
                 <Badge variant="secondary" className="text-xs bg-warning/10 text-warning border-warning/20">
-                  {customizations.filter(c => c.workflow_status !== 'approved' || !c.pm_final_price).length}
+                  {pendingCustomizations.length}
                 </Badge>
               </div>
               <Collapsible open={expandedCustomizations} onOpenChange={setExpandedCustomizations}>
@@ -245,9 +265,7 @@ export function ConfigurationSummary({
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2 mt-2">
-                  {customizations
-                    .filter(c => c.workflow_status !== 'approved' || !c.pm_final_price)
-                    .map((customization) => {
+                  {pendingCustomizations.map((customization) => {
                       const isPending = customization.workflow_status && customization.workflow_status !== 'approved';
                       
                       return (
@@ -306,9 +324,7 @@ export function ConfigurationSummary({
                   {selectedOptions
                     .filter(opt => opt.customization_notes)
                     .map((selected) => {
-                      const optionName = optionsData?.find(
-                        (o) => o.id === selected.option_id
-                      )?.name || "Opcional";
+                      const optionName = optionsMap.get(selected.option_id) || "Opcional";
                       return (
                         <div
                           key={`customization-${selected.option_id}`}
