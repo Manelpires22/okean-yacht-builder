@@ -22,14 +22,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUpdateATO } from "@/hooks/useATOs";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { CurrencyInput } from "@/components/ui/numeric-input";
+import { formatCurrency } from "@/lib/formatters";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const editATOSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
   description: z.string().optional(),
   price_impact: z.number().default(0),
   delivery_days_impact: z.number().int().default(0),
+  discount_percentage: z.number().min(0, "Desconto não pode ser negativo").max(100, "Desconto máximo é 100%").default(0),
   notes: z.string().optional(),
 });
 
@@ -44,6 +47,7 @@ interface EditATODialogProps {
     description?: string | null;
     price_impact: number;
     delivery_days_impact: number;
+    discount_percentage: number;
     notes?: string | null;
   };
 }
@@ -58,9 +62,15 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
       description: ato.description || "",
       price_impact: ato.price_impact,
       delivery_days_impact: ato.delivery_days_impact,
+      discount_percentage: ato.discount_percentage || 0,
       notes: ato.notes || "",
     },
   });
+
+  const priceImpact = form.watch("price_impact");
+  const discountPercentage = form.watch("discount_percentage");
+  
+  const finalPrice = priceImpact * (1 - discountPercentage / 100);
 
   const onSubmit = (data: EditATOFormData) => {
     updateATO(
@@ -71,6 +81,7 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
           description: data.description || null,
           price_impact: data.price_impact,
           delivery_days_impact: data.delivery_days_impact,
+          discount_percentage: data.discount_percentage,
           notes: data.notes || null,
         },
       },
@@ -163,6 +174,45 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
                 )}
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="discount_percentage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Desconto (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={String(field.value)}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <FormLabel>Preço Final</FormLabel>
+                <div className="flex h-10 items-center rounded-md border border-input bg-muted px-3 text-sm font-semibold">
+                  {formatCurrency(finalPrice)}
+                </div>
+              </div>
+            </div>
+
+            {discountPercentage > 10 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Desconto acima de 10% requer aprovação comercial
+                </AlertDescription>
+              </Alert>
+            )}
 
             <FormField
               control={form.control}
