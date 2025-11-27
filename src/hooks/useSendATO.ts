@@ -25,16 +25,12 @@ export function useSendATO() {
         .from('additional_to_orders')
         .select(`
           *,
-          contracts (
+          contract:contracts (
             *,
-            clients (*),
-            yacht_models (*)
+            client:clients (*),
+            yacht_model:yacht_models (*)
           ),
-          ato_configurations (
-            *,
-            options (*),
-            memorial_items (*)
-          )
+          configurations:ato_configurations (*)
         `)
         .eq('id', atoId)
         .single();
@@ -70,7 +66,7 @@ export function useSendATO() {
         const { error: approvalError } = await supabase
           .from('approvals')
           .insert({
-            quotation_id: ato.contracts.quotation_id, // Link ao quotation original
+            quotation_id: ato.contract.quotation_id, // Link ao quotation original
             approval_type: 'commercial',
             status: 'pending',
             requested_by: userId!,
