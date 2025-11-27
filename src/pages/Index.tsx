@@ -1,166 +1,94 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Package, CheckCircle } from "lucide-react";
-import { useStats } from "@/hooks/useStats";
-import { useContractStats } from "@/hooks/useContractStats";
-import { useWorkflowPendingCount } from "@/hooks/useWorkflowPendingCount";
-import { useQuotations } from "@/hooks/useQuotations";
-import { Skeleton } from "@/components/ui/skeleton";
-import { MainLayout } from "@/components/MainLayout";
+import { Card } from "@/components/ui/card";
+import { FileText, FileSignature, Users, ListChecks, Settings, Ship } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatCurrency } from "@/lib/formatters";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
+import { UserMenu } from "@/components/admin/UserMenu";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { data: stats, isLoading: statsLoading } = useStats();
-  const { data: contractStats, isLoading: contractsLoading } = useContractStats();
-  const { data: pendingCount, isLoading: pendingLoading } = useWorkflowPendingCount();
-  const { data: quotations, isLoading: quotationsLoading } = useQuotations();
+  const { user } = useAuth();
 
-  const latestQuotations = quotations?.slice(0, 5) || [];
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      draft: "secondary",
-      sent: "default",
-      accepted: "default",
-      rejected: "destructive",
-      expired: "outline",
-    };
-    return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
-  };
+  const navigationCards = [
+    {
+      icon: Ship,
+      title: "Configurador",
+      path: "/configurador",
+    },
+    {
+      icon: FileText,
+      title: "Cotações",
+      path: "/cotacoes",
+    },
+    {
+      icon: FileSignature,
+      title: "Contratos",
+      path: "/contratos",
+    },
+    {
+      icon: Users,
+      title: "Clientes",
+      path: "/clientes",
+    },
+    {
+      icon: ListChecks,
+      title: "Aprovações",
+      path: "/aprovacoes",
+    },
+    {
+      icon: Settings,
+      title: "Administração",
+      path: "/admin",
+    },
+  ];
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h1>
-          <p className="text-muted-foreground">
-            Visão geral das operações do sistema OKEAN Yachts CPQ
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">OKEAN Yachts</h1>
+              <p className="text-sm text-gray-500">Sistema CPQ</p>
+            </div>
+            {user && <UserMenu />}
+          </div>
         </div>
+      </header>
 
-        {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Cotações</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {statsLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold">{stats?.quotationsCount || 0}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Cotações registradas no sistema
-              </p>
-            </CardContent>
-          </Card>
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-12">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-semibold text-gray-900 mb-2">
+              Bem-vindo
+            </h2>
+            <p className="text-gray-600">
+              Selecione uma opção para começar
+            </p>
+          </div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contratos Ativos</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {contractsLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold">{contractStats?.activeContracts || 0}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Contratos em andamento
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tarefas Pendentes</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {pendingLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <div className="text-2xl font-bold">{pendingCount || 0}</div>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Workflows aguardando ação
-              </p>
-            </CardContent>
-          </Card>
+          {/* Navigation Cards Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {navigationCards.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card
+                  key={item.path}
+                  className="bg-white hover:shadow-md transition-all duration-200 cursor-pointer border border-gray-200 p-8 flex flex-col items-center justify-center gap-3"
+                  onClick={() => navigate(item.path)}
+                >
+                  <Icon className="h-8 w-8 text-gray-700" strokeWidth={1.5} />
+                  <span className="text-sm font-medium text-gray-900">
+                    {item.title}
+                  </span>
+                </Card>
+              );
+            })}
+          </div>
         </div>
-
-        {/* Últimas Cotações */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Últimas Cotações</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {quotationsLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : latestQuotations.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhuma cotação encontrada
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Modelo</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {latestQuotations.map((quotation: any) => (
-                    <TableRow
-                      key={quotation.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/cotacoes/${quotation.id}`)}
-                    >
-                      <TableCell className="font-medium">
-                        {quotation.quotation_number}
-                      </TableCell>
-                      <TableCell>{quotation.client_name}</TableCell>
-                      <TableCell>{quotation.yacht_models?.name || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(quotation.final_price)}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(quotation.status)}</TableCell>
-                      <TableCell>
-                        {format(new Date(quotation.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+      </main>
+    </div>
   );
 };
 
