@@ -7,6 +7,7 @@ import { needsApproval } from "@/lib/approval-utils";
 import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { generateCustomizationCode } from "@/lib/customization-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
+import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
 
 interface SaveQuotationData {
   quotationId?: string; // ✅ NOVO: ID da cotação sendo editada
@@ -35,29 +36,34 @@ export function useSaveQuotation() {
 
       // ✅ MODO EDIÇÃO: Atualizar cotação existente
       if (data.quotationId) {
-        // Calculate totals
-        const totalOptionsPrice = data.selected_options.reduce(
-          (sum, opt) => sum + opt.unit_price * opt.quantity,
-          0
-        );
-        
-        const maxDeliveryImpact = data.selected_options.reduce(
-          (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
-          0
-        );
+        // Calcular pricing usando o hook extraído
+        const pricing = calculateQuotationPricing({
+          basePrice: data.base_price,
+          baseDeliveryDays: data.base_delivery_days,
+          selectedOptions: data.selected_options,
+          baseDiscountPercentage: data.base_discount_percentage,
+          optionsDiscountPercentage: data.options_discount_percentage,
+        });
 
-        // Calculate discounted prices
+        // Validar se há erro de desconto
+        if (pricing.error) {
+          throw new Error(pricing.error);
+        }
+
+        // Usar os valores calculados
+        const {
+          totalOptionsPrice,
+          baseDiscountAmount,
+          finalBasePrice,
+          optionsDiscountAmount,
+          finalOptionsPrice,
+          finalPrice,
+          totalDeliveryDays,
+          maxDeliveryImpact,
+        } = pricing;
+
         const baseDiscountPercentage = data.base_discount_percentage || 0;
         const optionsDiscountPercentage = data.options_discount_percentage || 0;
-        
-        const baseDiscountAmount = data.base_price * (baseDiscountPercentage / 100);
-        const finalBasePrice = data.base_price - baseDiscountAmount;
-        
-        const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
-        const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
-
-        const finalPrice = finalBasePrice + finalOptionsPrice;
-        const totalDeliveryDays = data.base_delivery_days + maxDeliveryImpact;
 
         // Update quotation
         const { data: quotation, error } = await supabase
@@ -388,29 +394,34 @@ export function useSaveQuotation() {
 
       const quotationNumber = generateQuotationNumberWithVersion(1);
       
-      // Calculate totals
-      const totalOptionsPrice = data.selected_options.reduce(
-        (sum, opt) => sum + opt.unit_price * opt.quantity,
-        0
-      );
-      
-      const maxDeliveryImpact = data.selected_options.reduce(
-        (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
-        0
-      );
+      // Calcular pricing usando o hook extraído
+      const pricing = calculateQuotationPricing({
+        basePrice: data.base_price,
+        baseDeliveryDays: data.base_delivery_days,
+        selectedOptions: data.selected_options,
+        baseDiscountPercentage: data.base_discount_percentage,
+        optionsDiscountPercentage: data.options_discount_percentage,
+      });
 
-      // Calculate discounted prices
+      // Validar se há erro de desconto
+      if (pricing.error) {
+        throw new Error(pricing.error);
+      }
+
+      // Usar os valores calculados
+      const {
+        totalOptionsPrice,
+        baseDiscountAmount,
+        finalBasePrice,
+        optionsDiscountAmount,
+        finalOptionsPrice,
+        finalPrice,
+        totalDeliveryDays,
+        maxDeliveryImpact,
+      } = pricing;
+
       const baseDiscountPercentage = data.base_discount_percentage || 0;
       const optionsDiscountPercentage = data.options_discount_percentage || 0;
-      
-      const baseDiscountAmount = data.base_price * (baseDiscountPercentage / 100);
-      const finalBasePrice = data.base_price - baseDiscountAmount;
-      
-      const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
-      const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
-
-      const finalPrice = finalBasePrice + finalOptionsPrice;
-      const totalDeliveryDays = data.base_delivery_days + maxDeliveryImpact;
 
       // Determine if approval is needed
       const requiresApproval = needsApproval(baseDiscountPercentage, optionsDiscountPercentage);
