@@ -104,61 +104,53 @@ export type Database = {
           },
         ]
       }
-      approvals: {
+      approvals_backup: {
         Row: {
-          approval_type: Database["public"]["Enums"]["approval_type"]
+          approval_type: Database["public"]["Enums"]["approval_type"] | null
           created_at: string | null
-          id: string
+          id: string | null
           notes: string | null
-          quotation_id: string
+          quotation_id: string | null
           request_details: Json | null
-          requested_at: string
-          requested_by: string
+          requested_at: string | null
+          requested_by: string | null
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
-          status: Database["public"]["Enums"]["approval_status"]
+          status: Database["public"]["Enums"]["approval_status"] | null
           updated_at: string | null
         }
         Insert: {
-          approval_type: Database["public"]["Enums"]["approval_type"]
+          approval_type?: Database["public"]["Enums"]["approval_type"] | null
           created_at?: string | null
-          id?: string
+          id?: string | null
           notes?: string | null
-          quotation_id: string
+          quotation_id?: string | null
           request_details?: Json | null
-          requested_at?: string
-          requested_by: string
+          requested_at?: string | null
+          requested_by?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["approval_status"]
+          status?: Database["public"]["Enums"]["approval_status"] | null
           updated_at?: string | null
         }
         Update: {
-          approval_type?: Database["public"]["Enums"]["approval_type"]
+          approval_type?: Database["public"]["Enums"]["approval_type"] | null
           created_at?: string | null
-          id?: string
+          id?: string | null
           notes?: string | null
-          quotation_id?: string
+          quotation_id?: string | null
           request_details?: Json | null
-          requested_at?: string
-          requested_by?: string
+          requested_at?: string | null
+          requested_by?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
-          status?: Database["public"]["Enums"]["approval_status"]
+          status?: Database["public"]["Enums"]["approval_status"] | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "approvals_quotation_id_fkey"
-            columns: ["quotation_id"]
-            isOneToOne: false
-            referencedRelation: "quotations"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       ato_configurations: {
         Row: {
@@ -871,7 +863,7 @@ export type Database = {
           supply_lead_time_days: number | null
           supply_notes: string | null
           workflow_audit: Json | null
-          workflow_status: string | null
+          workflow_status: string
         }
         Insert: {
           additional_cost?: number | null
@@ -908,7 +900,7 @@ export type Database = {
           supply_lead_time_days?: number | null
           supply_notes?: string | null
           workflow_audit?: Json | null
-          workflow_status?: string | null
+          workflow_status?: string
         }
         Update: {
           additional_cost?: number | null
@@ -945,7 +937,7 @@ export type Database = {
           supply_lead_time_days?: number | null
           supply_notes?: string | null
           workflow_audit?: Json | null
-          workflow_status?: string | null
+          workflow_status?: string
         }
         Relationships: [
           {

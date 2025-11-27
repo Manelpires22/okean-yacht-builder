@@ -24,10 +24,6 @@ interface QuotationApprovalInput {
     status: string;
     workflow_status?: string | null;
   }>;
-  approvals?: Array<{
-    approval_type: string;
-    status: string;
-  }>;
 }
 
 export function useQuotationApprovalStatus(

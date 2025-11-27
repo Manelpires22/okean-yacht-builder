@@ -339,17 +339,11 @@ export function useSaveQuotation() {
                 notes: customization.option_id
                   ? `Customização de opcional: ${customization.item_name}`
                   : (!customization.memorial_item_id
-                    ? `Customização livre adicionada: ${customization.item_name}`
-                    : `Customização solicitada: ${customization.item_name}`)
+                     ? `Customização livre adicionada: ${customization.item_name}`
+                     : `Customização solicitada: ${customization.item_name}`)
               }));
 
-              const { error: technicalApprovalError } = await supabase
-                .from("approvals")
-                .insert(technicalApprovals);
-
-              if (technicalApprovalError) {
-                throw technicalApprovalError;
-              }
+              // Customizações agora usam workflow simplificado via customization_workflow_steps
             }
           }
 
@@ -573,89 +567,12 @@ export function useSaveQuotation() {
         createdCustomizations = insertedCustomizations || [];
       }
 
-      // 5. Create individual commercial approval requests
-      // Base discount approval (if > 10%)
-      if (baseDiscountPercentage > 10) {
-        const { error: baseApprovalError } = await supabase
-          .from("approvals")
-          .insert({
-            quotation_id: quotation.id,
-            approval_type: 'commercial',
-            requested_by: user.id,
-            status: 'pending',
-            request_details: {
-              discount_type: 'base',
-              discount_percentage: baseDiscountPercentage,
-              discount_amount: baseDiscountAmount,
-              original_price: data.base_price,
-              final_price: finalBasePrice
-            },
-            notes: `Desconto de ${baseDiscountPercentage}% sobre o valor base do iate`
-          });
-
-        if (baseApprovalError) throw baseApprovalError;
-      }
-
-      // Options discount approval (if > 8%)
-      if (optionsDiscountPercentage > 8) {
-        const { error: optionsApprovalError } = await supabase
-          .from("approvals")
-          .insert({
-            quotation_id: quotation.id,
-            approval_type: 'commercial',
-            requested_by: user.id,
-            status: 'pending',
-            request_details: {
-              discount_type: 'options',
-              discount_percentage: optionsDiscountPercentage,
-              discount_amount: optionsDiscountAmount,
-              original_price: totalOptionsPrice,
-              final_price: finalOptionsPrice
-            },
-            notes: `Desconto de ${optionsDiscountPercentage}% sobre os opcionais`
-          });
-
-        if (optionsApprovalError) throw optionsApprovalError;
-      }
-
-      // 6. Create individual technical approval for EACH customization (including option customizations)
-      if (createdCustomizations.length > 0) {
-        const technicalApprovals = createdCustomizations.map((customization: any) => ({
-          quotation_id: quotation.id,
-          approval_type: 'technical' as const,
-          requested_by: user.id,
-          status: 'pending' as const,
-          request_details: {
-            customization_id: customization.id,
-            customization_code: customization.customization_code,
-            customization_item_name: customization.item_name,
-            memorial_item_id: customization.memorial_item_id,
-            option_id: customization.option_id || null,
-            quantity: customization.quantity || 1,
-            notes: customization.notes || '',
-            is_optional: false,
-            is_free_customization: !customization.memorial_item_id && !customization.option_id
-          },
-          notes: customization.option_id
-            ? `Customização de opcional: ${customization.notes?.substring(0, 100)}...`
-            : (!customization.memorial_item_id
-              ? `Customização livre: ${customization.item_name}`
-              : `Customização solicitada: ${customization.item_name}`)
-        }));
-
-        const { error: technicalApprovalError } = await supabase
-          .from("approvals")
-          .insert(technicalApprovals);
-
-        if (technicalApprovalError) throw technicalApprovalError;
-      }
+      // Descontos e customizações agora são gerenciados via workflow simplificado
 
       return quotation;
     },
     onSuccess: (quotation) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
-      queryClient.invalidateQueries({ queryKey: ["approvals"] });
-      queryClient.invalidateQueries({ queryKey: ["approvals-count"] });
       
       const statusMessages = {
         'pending_commercial_approval': 'criada e enviada para aprovação comercial',

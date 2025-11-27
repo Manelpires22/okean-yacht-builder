@@ -218,20 +218,7 @@ export function useApproveATO() {
 
       if (error) throw error;
 
-      // 2. Atualizar approval request relacionada
-      const { error: approvalError } = await supabase
-        .from("approvals")
-        .update({
-          status: approved ? "approved" : "rejected",
-          reviewed_by: userId,
-          reviewed_at: new Date().toISOString(),
-          review_notes: notes,
-        })
-        .eq("request_details->>ato_id", atoId);
-
-      if (approvalError) throw approvalError;
-
-      // 3. Se aprovado, atualizar totais do contrato (manualmente)
+      // Se aprovado, atualizar totais do contrato
       if (approved && data) {
         // Recalcular totais do contrato
         const { data: contract } = await supabase

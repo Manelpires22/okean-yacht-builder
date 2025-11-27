@@ -109,10 +109,6 @@ export function useQuotation(id: string) {
             option_id,
             pm_final_price,
             pm_final_delivery_impact_days
-          ),
-          approvals (
-            approval_type,
-            status
           )
         `)
         .eq("id", id)

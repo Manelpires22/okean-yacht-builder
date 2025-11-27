@@ -110,27 +110,7 @@ export function useAdvanceCustomizationWorkflow() {
 
       if (error) throw error;
 
-      // ✅ CORREÇÃO: Sincronizar status da approval quando workflow é concluído
-      if (data.workflowCompleted && data.customizationId) {
-        const finalStatus = params.action === 'reject' ? 'rejected' : 'approved';
-        
-        // Buscar o user atual
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          // Atualizar approval request associada
-          await supabase
-            .from('approvals')
-            .update({
-              status: finalStatus,
-              reviewed_by: user.id,
-              reviewed_at: new Date().toISOString(),
-              review_notes: params.data?.pm_final_notes || params.data?.notes || null
-            })
-            .eq('approval_type', 'technical')
-            .contains('request_details', { customization_id: data.customizationId });
-        }
-      }
+      // Workflow simplificado não precisa sincronizar approvals
 
       return data;
     },
