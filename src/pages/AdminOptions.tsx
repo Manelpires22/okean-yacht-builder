@@ -3,17 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit2, Trash2, Plus, Check } from "lucide-react";
 import { useState } from "react";
+import { VirtualizedTable } from "@/components/VirtualizedTable";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useOptionCategories } from "@/hooks/useOptions";
 import {
@@ -302,115 +299,127 @@ const AdminOptions = () => {
           </div>
         )}
 
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
+{isLoading ? (
+          <div className="border rounded-lg">
+            <VirtualizedTable
+              data={[]}
+              columns={[
+                { header: '', className: 'w-12' },
+                { header: 'Código' },
+                { header: 'Nome' },
+                { header: 'Categoria' },
+                { header: 'Disponível em' },
+                { header: 'Preço Base' },
+                { header: 'Prazo (dias)' },
+                { header: 'Status' },
+                { header: 'Ações', className: 'text-right' },
+              ]}
+              renderRow={() => (
+                <TableRow>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                </TableRow>
+              )}
+              emptyMessage="Carregando..."
+            />
+          </div>
+        ) : (
+          <VirtualizedTable
+            data={options || []}
+            columns={[
+              { 
+                header: (
                   <Checkbox
                     checked={options?.length > 0 && selectedOptions.size === options?.length}
                     onCheckedChange={toggleSelectAll}
                   />
-                </TableHead>
-                <TableHead>Código</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Disponível em</TableHead>
-                <TableHead>Preço Base</TableHead>
-                <TableHead>Prazo (dias)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                ), 
+                className: 'w-12' 
+              },
+              { header: 'Código' },
+              { header: 'Nome' },
+              { header: 'Categoria' },
+              { header: 'Disponível em' },
+              { header: 'Preço Base' },
+              { header: 'Prazo (dias)' },
+              { header: 'Status' },
+              { header: 'Ações', className: 'text-right' },
+            ]}
+            renderRow={(option) => (
+              <TableRow 
+                key={option.id}
+                className={selectedOptions.has(option.id) ? "bg-muted/50" : ""}
+              >
+                <TableCell>
+                  <Checkbox
+                    checked={selectedOptions.has(option.id)}
+                    onCheckedChange={() => toggleSelectOption(option.id)}
+                  />
+                </TableCell>
+                <TableCell className="font-mono text-xs">{option.code}</TableCell>
+                <TableCell className="font-medium">{option.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {option.category?.name || "Sem categoria"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {option.yacht_model_id ? (
+                    <Badge variant="secondary">
+                      {option.yacht_model?.name}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Todos os Modelos</Badge>
+                  )}
+                  {!option.is_active && (
+                    <Badge variant="destructive" className="ml-2">
+                      Inativo
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  R${option.base_price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0,00"}
+                </TableCell>
+                <TableCell>
+                  {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
+                </TableCell>
+                <TableCell>
+                  <Badge variant={option.is_active ? "default" : "secondary"}>
+                    {option.is_active ? "Ativo" : "Inativo"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditClick(option)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeletingOptionId(option.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array(5).fill(0).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  </TableRow>
-                ))
-              ) : options?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    Nenhum opcional encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                options?.map((option) => (
-                  <TableRow 
-                    key={option.id}
-                    className={selectedOptions.has(option.id) ? "bg-muted/50" : ""}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedOptions.has(option.id)}
-                        onCheckedChange={() => toggleSelectOption(option.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{option.code}</TableCell>
-                    <TableCell className="font-medium">{option.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {option.category?.name || "Sem categoria"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {option.yacht_model_id ? (
-                        <Badge variant="secondary">
-                          {option.yacht_model?.name}
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline">Todos os Modelos</Badge>
-                      )}
-                      {!option.is_active && (
-                        <Badge variant="destructive" className="ml-2">
-                          Inativo
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      R${option.base_price?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || "0,00"}
-                    </TableCell>
-                    <TableCell>
-                      {option.delivery_days_impact > 0 ? `+${option.delivery_days_impact}` : '0'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={option.is_active ? "default" : "secondary"}>
-                        {option.is_active ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(option)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingOptionId(option.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+            )}
+            emptyMessage="Nenhum opcional encontrado"
+            maxHeight={600}
+            virtualizationThreshold={50}
+          />
+        )}
       </div>
 
       {isCreating && (
