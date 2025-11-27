@@ -59,7 +59,11 @@ export function useATOs(contractId: string | undefined) {
         .from("additional_to_orders")
         .select(`
           *,
-          contract:contracts(contract_number, status),
+          contract:contracts(
+            contract_number, 
+            status,
+            client:clients(id, name, email, phone)
+          ),
           configurations:ato_configurations(id)
         `)
         .eq("contract_id", contractId)
