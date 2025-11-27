@@ -26,6 +26,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { CurrencyInput } from "@/components/ui/numeric-input";
 import { formatCurrency } from "@/lib/formatters";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const editATOSchema = z.object({
   title: z.string().min(1, "Título é obrigatório"),
@@ -49,6 +50,9 @@ interface EditATODialogProps {
     delivery_days_impact: number;
     discount_percentage: number;
     notes?: string | null;
+    // Campos para detecção de mudanças
+    workflow_status?: string | null;
+    status?: string;
   };
 }
 
@@ -72,7 +76,41 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
   
   const finalPrice = priceImpact * (1 - discountPercentage / 100);
 
+  // Detectar mudanças no escopo
+  const hasScopeChanged = (data: EditATOFormData): boolean => {
+    return (
+      (data.description || "") !== (ato.description || "") ||
+      data.price_impact !== ato.price_impact ||
+      data.delivery_days_impact !== ato.delivery_days_impact
+    );
+  };
+
   const onSubmit = (data: EditATOFormData) => {
+    const scopeChanged = hasScopeChanged(data);
+    const needsDiscountApproval = data.discount_percentage > 10;
+    
+    let newWorkflowStatus = ato.workflow_status;
+    let newStatus: "draft" | "pending_approval" | "approved" | "rejected" | "cancelled" = 
+      (ato.status as any) || 'draft';
+    let requiresApproval = ato.status === 'pending_approval' || ato.status === 'draft';
+    let toastMessage = "ATO atualizada com sucesso";
+    
+    if (scopeChanged) {
+      // Mudou escopo → volta para PM
+      newWorkflowStatus = 'pending_pm_review';
+      newStatus = 'draft';
+      toastMessage = "Escopo alterado. ATO voltou para análise do PM.";
+    } else if (needsDiscountApproval) {
+      // Desconto alto → precisa aprovação
+      requiresApproval = true;
+      newWorkflowStatus = 'pending_approval';
+      newStatus = 'pending_approval';
+      toastMessage = "Desconto > 10% requer aprovação comercial.";
+    } else if (ato.workflow_status === 'completed' || ato.status === 'approved') {
+      // Se estava completo/aprovado e não mudou escopo nem desconto → pronto para cliente
+      toastMessage = "ATO atualizada. Pronta para enviar ao cliente.";
+    }
+    
     updateATO(
       {
         atoId: ato.id,
@@ -83,11 +121,26 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
           delivery_days_impact: data.delivery_days_impact,
           discount_percentage: data.discount_percentage,
           notes: data.notes || null,
+          workflow_status: newWorkflowStatus,
+          status: newStatus,
+          requires_approval: requiresApproval,
         },
       },
       {
         onSuccess: () => {
           onOpenChange(false);
+          // Toast customizado baseado na lógica
+          if (scopeChanged) {
+            toast.info(toastMessage, {
+              description: "O PM precisará revisar as alterações antes de prosseguir."
+            });
+          } else if (needsDiscountApproval) {
+            toast.warning(toastMessage, {
+              description: "Aguardando aprovação do gerente comercial."
+            });
+          } else {
+            toast.success(toastMessage);
+          }
         },
       }
     );
