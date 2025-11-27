@@ -55,21 +55,9 @@ export function useQuotationApprovalStatus(
       workflowStatus: c.workflow_status || 'pending'
     }));
 
-    // Verificar desconto comercial pendente
-    const maxDiscount = Math.max(
-      quotation.base_discount_percentage || 0,
-      quotation.options_discount_percentage || 0
-    );
-
-    const needsCommercialApproval = maxDiscount > 10;
-    
-    const commercialApproval = quotation.approvals?.find(
-      a => a.approval_type === 'commercial'
-    );
-    
-    const hasPendingCommercialApproval = 
-      needsCommercialApproval && 
-      (!commercialApproval || commercialApproval.status !== 'approved');
+    // Aprovação comercial não é mais rastreada via tabela approvals
+    // No novo workflow, descontos são validados diretamente no momento da criação
+    const hasPendingCommercialApproval = false;
 
     // Status consolidado
     const hasPendingWorkflows = pendingWorkflows.length > 0;
