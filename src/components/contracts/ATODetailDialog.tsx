@@ -399,7 +399,10 @@ export function ATODetailDialog({
                     {/* Workflow Timeline */}
                     <div>
                       <h3 className="font-semibold mb-4">Progresso do Workflow</h3>
-                      <ATOWorkflowTimeline currentStatus={ato.workflow_status} />
+                      <ATOWorkflowTimeline 
+                        status={ato.status}
+                        workflowStatus={ato.workflow_status}
+                      />
                     </div>
 
                     <Separator />

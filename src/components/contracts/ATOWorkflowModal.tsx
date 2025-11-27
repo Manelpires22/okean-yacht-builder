@@ -67,7 +67,8 @@ export function ATOWorkflowModal({ atoId, open, onOpenChange }: ATOWorkflowModal
         <div className="space-y-6 py-4">
           {/* Timeline */}
           <ATOWorkflowTimeline
-            currentStatus={atoWorkflow.workflow_status}
+            status={atoWorkflow.status}
+            workflowStatus={atoWorkflow.workflow_status}
             className="mb-6"
           />
 

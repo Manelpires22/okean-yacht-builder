@@ -1,28 +1,41 @@
-import { CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, DollarSign, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ATOWorkflowTimelineProps {
-  currentStatus: string | null;
+  status: string;
+  workflowStatus: string | null;
   className?: string;
 }
 
 const WORKFLOW_STEPS = [
-  { key: 'pending_pm_review', label: 'Análise PM', icon: Clock },
-  { key: 'pending_commercial', label: 'Validação Comercial', icon: DollarSign },
-  { key: 'completed', label: 'Aprovado', icon: CheckCircle2 },
+  { key: 'pm_review', label: 'Análise PM', icon: Clock },
+  { key: 'commercial_review', label: 'Validação Comercial', icon: DollarSign },
+  { key: 'sent_to_client', label: 'Enviada ao Cliente', icon: Send },
+  { key: 'approved', label: 'Aprovada', icon: CheckCircle2 },
 ];
 
-export function ATOWorkflowTimeline({ currentStatus, className }: ATOWorkflowTimelineProps) {
-  if (!currentStatus) {
+// Determina qual etapa está ativa baseado em status + workflow_status
+function getCurrentStepKey(status: string, workflowStatus: string | null): string {
+  if (status === 'rejected' || status === 'cancelled') return 'rejected';
+  if (status === 'approved') return 'approved';
+  if (status === 'pending_approval') return 'sent_to_client';
+  if (workflowStatus === 'completed' && status === 'draft') return 'commercial_review';
+  if (workflowStatus === 'pending_pm_review') return 'pm_review';
+  return 'pm_review'; // fallback
+}
+
+export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWorkflowTimelineProps) {
+  if (!workflowStatus && status === 'draft') {
     return (
       <div className={cn("text-center py-4", className)}>
-        <p className="text-sm text-muted-foreground">Sem workflow técnico</p>
+        <p className="text-sm text-muted-foreground">Workflow não iniciado</p>
       </div>
     );
   }
 
-  const currentIndex = WORKFLOW_STEPS.findIndex(step => step.key === currentStatus);
-  const isRejected = currentStatus === 'rejected';
+  const currentStepKey = getCurrentStepKey(status, workflowStatus);
+  const currentIndex = WORKFLOW_STEPS.findIndex(step => step.key === currentStepKey);
+  const isRejected = status === 'rejected' || status === 'cancelled';
 
   return (
     <div className={cn("relative", className)}>
@@ -45,7 +58,7 @@ export function ATOWorkflowTimeline({ currentStatus, className }: ATOWorkflowTim
           const Icon = step.icon;
           const isPast = index < currentIndex;
           const isCurrent = index === currentIndex;
-          const isComplete = currentStatus === 'completed' && step.key === 'completed';
+          const isComplete = status === 'approved' && step.key === 'approved';
           
           return (
             <div key={step.key} className="flex flex-col items-center gap-2">

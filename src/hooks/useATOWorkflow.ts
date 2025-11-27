@@ -23,6 +23,7 @@ export interface ATOWorkflow {
   ato_number: string;
   title: string;
   description: string | null;
+  status: string;
   workflow_status: string | null;
   price_impact: number;
   delivery_days_impact: number;
