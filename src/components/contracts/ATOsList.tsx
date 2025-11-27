@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useATOs } from "@/hooks/useATOs";
+import { useATOs, useReopenATOForCommercialReview } from "@/hooks/useATOs";
 import { useSendATO } from "@/hooks/useSendATO";
 import { useATOWorkflowTasks } from "@/hooks/useATOWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,6 +35,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
   const { data: atos, isLoading } = useATOs(contractId);
   const { data: userTasks } = useATOWorkflowTasks(user?.id, isAdmin);
   const { mutateAsync: sendATO } = useSendATO();
+  const { mutateAsync: reopenATO } = useReopenATOForCommercialReview();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined);
@@ -334,6 +335,22 @@ export function ATOsList({ contractId }: ATOsListProps) {
                           >
                             <DollarSign className="mr-1 h-3 w-3" />
                             Revisar e Enviar
+                          </Button>
+                        )}
+
+                        {/* Botão "Aplicar Desconto / Enviar" para ATOs aprovadas legadas (sem validação comercial) */}
+                        {ato.status === 'approved' && ato.workflow_status === 'approved' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              await reopenATO(ato.id);
+                              setCommercialReviewDialog({ open: true, ato });
+                            }}
+                            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                          >
+                            <DollarSign className="mr-1 h-3 w-3" />
+                            Aplicar Desconto / Enviar
                           </Button>
                         )}
                         
