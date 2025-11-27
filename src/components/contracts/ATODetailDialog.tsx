@@ -31,6 +31,8 @@ import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   CheckCircle2,
   XCircle,
@@ -47,6 +49,7 @@ import {
   Pencil,
   Send,
   MinusCircle,
+  Download,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -91,6 +94,7 @@ export function ATODetailDialog({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [showCreateReversalDialog, setShowCreateReversalDialog] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   const isAdmin = userRoleData?.roles?.includes('administrador');
   
@@ -186,6 +190,49 @@ export function ATODetailDialog({
     });
   };
 
+  const base64ToBlob = (base64: string, type: string) => {
+    const binaryString = window.atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new Blob([bytes], { type });
+  };
+
+  const handleExportATOPDF = async () => {
+    if (!atoId || !ato) return;
+    
+    setIsDownloadingPDF(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-ato-pdf', {
+        body: { ato_id: atoId }
+      });
+
+      if (error) throw error;
+
+      if (data.format === 'pdf') {
+        const pdfBlob = base64ToBlob(data.data, 'application/pdf');
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${ato.ato_number}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success('PDF da ATO gerado com sucesso!');
+      } else {
+        toast.error('Erro ao gerar PDF. Por favor, tente novamente.');
+      }
+    } catch (error: any) {
+      console.error('Error generating ATO PDF:', error);
+      toast.error('Erro ao gerar PDF: ' + error.message);
+    } finally {
+      setIsDownloadingPDF(false);
+    }
+  };
+
   if (!open || !atoId) return null;
 
   return (
@@ -207,16 +254,31 @@ export function ATODetailDialog({
             <>
               <DialogHeader>
                 <div className="flex items-start justify-between">
-                  <div>
-                    <DialogTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      {ato.ato_number}
-                    </DialogTitle>
-                    <DialogDescription>{ato.title}</DialogDescription>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <DialogTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          {ato.ato_number}
+                        </DialogTitle>
+                        <DialogDescription>{ato.title}</DialogDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleExportATOPDF}
+                          disabled={isDownloadingPDF}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          {isDownloadingPDF ? 'Gerando...' : 'Exportar PDF'}
+                        </Button>
+                        <Badge className={getATOStatusColor(ato.status as any)}>
+                          {getATOStatusLabel(ato.status as any)}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                  <Badge className={getATOStatusColor(ato.status as any)}>
-                    {getATOStatusLabel(ato.status as any)}
-                  </Badge>
                 </div>
               </DialogHeader>
 

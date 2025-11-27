@@ -54,9 +54,36 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
       link.download = data.filename;
       link.click();
 
-      toast.success("PDF gerado com sucesso!");
+      toast.success("PDF do resumo gerado com sucesso!");
     } catch (error: any) {
       console.error("Error generating PDF:", error);
+      toast.error("Erro ao gerar PDF: " + error.message);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleExportOriginalPDF = async () => {
+    try {
+      setIsDownloading(true);
+      const { data, error } = await supabase.functions.invoke(
+        "generate-original-contract-pdf",
+        {
+          body: { contract_id: contract.id },
+        }
+      );
+
+      if (error) throw error;
+
+      // Download the file
+      const link = document.createElement("a");
+      link.href = `data:application/${data.format};base64,${data.data}`;
+      link.download = `contrato-original-${contract.contract_number}.pdf`;
+      link.click();
+
+      toast.success("PDF do contrato original gerado com sucesso!");
+    } catch (error: any) {
+      console.error("Error generating original contract PDF:", error);
       toast.error("Erro ao gerar PDF: " + error.message);
     } finally {
       setIsDownloading(false);
@@ -109,10 +136,15 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Ações</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleExportPDF}>
+                  <DropdownMenuItem onClick={handleExportPDF} disabled={isDownloading}>
                     <Download className="mr-2 h-4 w-4" />
-                    Exportar PDF
+                    {isDownloading ? 'Gerando...' : 'Exportar Resumo Atual (PDF)'}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportOriginalPDF} disabled={isDownloading}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    {isDownloading ? 'Gerando...' : 'Exportar Contrato Original (PDF)'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSendEmail}>
                     <Mail className="mr-2 h-4 w-4" />
                     Enviar por Email
