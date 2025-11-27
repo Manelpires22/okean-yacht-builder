@@ -92,22 +92,26 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
     let newWorkflowStatus = ato.workflow_status;
     let newStatus: "draft" | "pending_approval" | "approved" | "rejected" | "cancelled" = 
       (ato.status as any) || 'draft';
-    let requiresApproval = ato.status === 'pending_approval' || ato.status === 'draft';
+    let requiresApproval = false; // ✅ Começa FALSE - só muda se desconto > 10%
     let toastMessage = "ATO atualizada com sucesso";
     
     if (scopeChanged) {
       // Mudou escopo → volta para PM
       newWorkflowStatus = 'pending_pm_review';
       newStatus = 'draft';
+      requiresApproval = false; // Não precisa aprovação comercial ainda
       toastMessage = "Escopo alterado. ATO voltou para análise do PM.";
     } else if (needsDiscountApproval) {
       // Desconto alto → precisa aprovação
-      requiresApproval = true;
+      requiresApproval = true; // ✅ APENAS aqui vira true
       newWorkflowStatus = 'pending_approval';
       newStatus = 'pending_approval';
       toastMessage = "Desconto > 10% requer aprovação comercial.";
-    } else if (ato.workflow_status === 'completed' || ato.status === 'approved') {
-      // Se estava completo/aprovado e não mudou escopo nem desconto → pronto para cliente
+    } else {
+      // Desconto ≤ 10% e sem mudança de escopo → pronto para enviar
+      requiresApproval = false;
+      newStatus = 'draft'; // Mantém draft para poder "Enviar ao Cliente"
+      // workflow_status mantém o valor atual (provavelmente 'completed')
       toastMessage = "ATO atualizada. Pronta para enviar ao cliente.";
     }
     
