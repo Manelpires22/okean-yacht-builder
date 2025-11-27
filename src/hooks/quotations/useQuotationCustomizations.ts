@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -325,4 +326,28 @@ export async function saveQuotationCustomizations(
       workflow_status: c.workflow_status,
     })),
   };
+}
+
+/**
+ * Hook React Query para salvar customizações de cotações
+ * Usado em componentes que precisam de invalidação automática de cache
+ */
+export function useQuotationCustomizations() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: SaveCustomizationsInput): Promise<SaveCustomizationsResult> => {
+      return saveQuotationCustomizations(input);
+    },
+
+    onSuccess: () => {
+      // Invalidar cache de customizações e cotações
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      queryClient.invalidateQueries({ queryKey: ["quotation-customizations"] });
+    },
+
+    onError: (error) => {
+      console.error("Erro ao salvar customizações:", error);
+    },
+  });
 }
