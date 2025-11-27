@@ -6,25 +6,60 @@
 import { AppRole } from "@/hooks/useUserRole";
 import { getDiscountLimitsSync } from "@/lib/approval-utils";
 
+/**
+ * Dados de entrada para validação de cotação
+ * @interface ValidationInput
+ */
 interface ValidationInput {
+  /** ID do modelo de iate selecionado (UUID) */
   yacht_model_id?: string;
+  /** Nome do cliente */
   client_name?: string;
+  /** E-mail do cliente */
   client_email?: string;
+  /** Percentual de desconto no preço base */
   baseDiscountPercentage?: number;
+  /** Percentual de desconto nos opcionais */
   optionsDiscountPercentage?: number;
+  /** Roles do usuário criando a cotação */
   userRoles: AppRole[];
 }
 
+/**
+ * Resultado da validação de cotação
+ * @interface ValidationResult
+ */
 interface ValidationResult {
+  /** Indica se a cotação passou em todas as validações obrigatórias */
   isValid: boolean;
+  /** Lista de erros bloqueantes (impedem salvamento) */
   errors: string[];
+  /** Lista de avisos não-bloqueantes (ex: desconto requer aprovação) */
   warnings: string[];
 }
 
 const MAX_ABSOLUTE_DISCOUNT = 30;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Mapeamento de papéis para limite máximo de desconto
+/**
+ * Determina o limite máximo de desconto baseado nas roles do usuário
+ * 
+ * @description
+ * Consulta os limites configurados no banco e retorna o maior desconto
+ * que o usuário pode aplicar sem necessidade de aprovação adicional.
+ * 
+ * @param {AppRole[]} roles - Lista de roles do usuário
+ * @returns {number} Percentual máximo de desconto permitido (0-30)
+ * 
+ * @example
+ * ```typescript
+ * const maxDiscount = getMaxDiscountForRoles(['comercial']);
+ * console.log(maxDiscount); // 5 (limite sem aprovação)
+ * 
+ * const adminDiscount = getMaxDiscountForRoles(['administrador']);
+ * console.log(adminDiscount); // 30 (limite absoluto)
+ * ```
+ */
 function getMaxDiscountForRoles(roles: AppRole[]): number {
   // Admin sempre pode aplicar até o máximo absoluto
   if (roles.includes('administrador')) {
@@ -57,6 +92,41 @@ function getMaxDiscountForRoles(roles: AppRole[]): number {
   );
 }
 
+/**
+ * Valida todos os dados de uma cotação
+ * 
+ * @description
+ * Centraliza todas as validações de negócio para cotações:
+ * - Campos obrigatórios (modelo, cliente)
+ * - Formato de e-mail
+ * - Limites de desconto (absoluto: 30%, por role: variável)
+ * - Validações de valores negativos
+ * 
+ * @param {ValidationInput} input - Dados da cotação para validar
+ * @returns {ValidationResult} Resultado com isValid, errors e warnings
+ * 
+ * @example
+ * ```typescript
+ * const result = validateQuotation({
+ *   yacht_model_id: 'uuid-123',
+ *   client_name: 'João Silva',
+ *   client_email: 'joao@email.com',
+ *   baseDiscountPercentage: 15,
+ *   userRoles: ['comercial']
+ * });
+ * 
+ * if (!result.isValid) {
+ *   console.error('Erros:', result.errors);
+ * }
+ * 
+ * if (result.warnings.length > 0) {
+ *   console.warn('Avisos:', result.warnings);
+ *   // Ex: "Desconto de 15% requer aprovação. Seu limite é 5%"
+ * }
+ * ```
+ * 
+ * @see {@link useQuotationValidation} - Hook React para uso em componentes
+ */
 export function validateQuotation(input: ValidationInput): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -119,7 +189,40 @@ export function validateQuotation(input: ValidationInput): ValidationResult {
   };
 }
 
-// Hook wrapper para uso reativo em componentes
+/**
+ * Hook React para validação de cotações
+ * 
+ * @description
+ * Wrapper de validateQuotation para uso reativo em componentes React.
+ * Reavalia automaticamente quando os dados de entrada mudam.
+ * 
+ * @param {ValidationInput} input - Dados da cotação para validar
+ * @returns {ValidationResult} Resultado da validação
+ * 
+ * @example
+ * ```typescript
+ * function QuotationForm({ formData }) {
+ *   const validation = useQuotationValidation({
+ *     yacht_model_id: formData.modelId,
+ *     client_name: formData.clientName,
+ *     client_email: formData.clientEmail,
+ *     baseDiscountPercentage: formData.discount,
+ *     userRoles: ['comercial']
+ *   });
+ * 
+ *   return (
+ *     <form>
+ *       {validation.errors.map(err => (
+ *         <Alert variant="destructive">{err}</Alert>
+ *       ))}
+ *       <Button disabled={!validation.isValid}>Salvar</Button>
+ *     </form>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link validateQuotation} - Função de validação pura
+ */
 export function useQuotationValidation(input: ValidationInput): ValidationResult {
   return validateQuotation(input);
 }
