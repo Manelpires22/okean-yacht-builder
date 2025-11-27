@@ -1,14 +1,12 @@
-import { useState, useMemo } from "react";
-import { useApprovals } from "@/hooks/useApprovals";
-import { ApprovalStats } from "@/components/approvals/ApprovalStats";
-import { ApprovalDialog } from "@/components/approvals/ApprovalDialog";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { SimplifiedTechnicalApprovalDialog } from "@/components/approvals/SimplifiedTechnicalApprovalDialog";
 import { CustomizationWorkflowModal } from "@/components/configurator/CustomizationWorkflowModal";
-import { useSimplifiedWorkflow } from "@/hooks/useSimplifiedWorkflow";
-import { useCreateRetroactiveApprovals } from "@/hooks/useCreateRetroactiveApprovals";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -18,305 +16,290 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Workflow, RotateCcw } from "lucide-react";
+import { Eye, Workflow } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type TabValue = 'all' | 'pending' | 'approved' | 'rejected';
+type TabValue = 'pending' | 'approved' | 'rejected' | 'all';
+
+interface CustomizationWithDetails {
+  id: string;
+  item_name: string;
+  customization_code: string | null;
+  workflow_status: string | null;
+  engineering_notes: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  quotation: {
+    quotation_number: string;
+    client_name: string;
+    yacht_model_id: string;
+    yacht_models: {
+      name: string;
+      pm_assignments: {
+        pm_user: {
+          full_name: string;
+        };
+      }[] | null;
+    } | null;
+    sales_representative: {
+      full_name: string;
+    } | null;
+  } | null;
+}
 
 export default function Approvals() {
   const [activeTab, setActiveTab] = useState<TabValue>('pending');
-  const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null);
-  const [selectedCustomizationId, setSelectedCustomizationId] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedCustomization, setSelectedCustomization] = useState<CustomizationWithDetails | null>(null);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
 
-  // Feature toggle: verificar se deve usar workflow simplificado
-  const { data: isSimplifiedWorkflowEnabled, isLoading: isLoadingFlag } = useSimplifiedWorkflow();
+  // Buscar customizações no workflow simplificado
+  const { data: customizations = [], isLoading } = useQuery({
+    queryKey: ['workflow-customizations'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quotation_customizations')
+        .select(`
+          id,
+          item_name,
+          customization_code,
+          workflow_status,
+          engineering_notes,
+          reviewed_by,
+          reviewed_at,
+          created_at,
+          quotation:quotations!inner (
+            quotation_number,
+            client_name,
+            yacht_model_id,
+            yacht_models (
+              name,
+              pm_assignments:pm_yacht_model_assignments (
+                pm_user:users!pm_yacht_model_assignments_pm_user_id_fkey (
+                  full_name
+                )
+              )
+            ),
+            sales_representative:users!quotations_sales_representative_id_fkey (
+              full_name
+            )
+          )
+        `)
+        .not('workflow_status', 'is', null)
+        .order('created_at', { ascending: false });
 
-  // Hook para criar aprovações retroativas
-  const { mutate: createRetroactiveApprovals, isPending: isCreatingRetroactive } = useCreateRetroactiveApprovals();
+      if (error) throw error;
+      return (data || []) as unknown as CustomizationWithDetails[];
+    },
+  });
 
-  const { data: allApprovals = [] } = useApprovals();
-  const { data: pendingApprovals = [] } = useApprovals({ status: 'pending' });
-  const { data: approvedApprovals = [] } = useApprovals({ status: 'approved' });
-  const { data: rejectedApprovals = [] } = useApprovals({ status: 'rejected' });
+  // Filtrar por status
+  const pendingCustomizations = customizations.filter(c => 
+    c.workflow_status?.includes('pending')
+  );
+  const approvedCustomizations = customizations.filter(c => 
+    c.workflow_status?.includes('approved')
+  );
+  const rejectedCustomizations = customizations.filter(c => 
+    c.workflow_status === 'rejected'
+  );
 
-  const getDisplayedApprovals = () => {
+  const getDisplayedCustomizations = () => {
     switch (activeTab) {
       case 'pending':
-        return pendingApprovals;
+        return pendingCustomizations;
       case 'approved':
-        return approvedApprovals;
+        return approvedCustomizations;
       case 'rejected':
-        return rejectedApprovals;
+        return rejectedCustomizations;
       default:
-        return allApprovals;
+        return customizations;
     }
   };
 
-  const handleViewDetails = (id: string) => {
-    setSelectedApprovalId(id);
-    setDialogOpen(true);
+  const handleViewDetails = (customization: CustomizationWithDetails) => {
+    setSelectedCustomization(customization);
+    setApprovalDialogOpen(true);
   };
 
-  const handleViewWorkflow = (customizationId: string) => {
-    setSelectedCustomizationId(customizationId);
+  const handleViewWorkflow = (customization: CustomizationWithDetails) => {
+    setSelectedCustomization(customization);
     setWorkflowDialogOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: { variant: "secondary" as const, label: "Pendente" },
-      approved: { variant: "default" as const, label: "Aprovada" },
-      rejected: { variant: "destructive" as const, label: "Rejeitada" }
+  const getStatusBadge = (workflowStatus: string) => {
+    const statusMap = {
+      pending_pm_review: { variant: "secondary" as const, label: "Pendente PM" },
+      pending_commercial: { variant: "secondary" as const, label: "Pendente Comercial" },
+      pending_technical: { variant: "secondary" as const, label: "Pendente Técnico" },
+      approved_commercial: { variant: "default" as const, label: "Aprovado Comercial" },
+      approved_technical: { variant: "default" as const, label: "Aprovado Técnico" },
+      rejected: { variant: "destructive" as const, label: "Rejeitado" },
     };
-    return variants[status as keyof typeof variants] || variants.pending;
-  };
-
-  const getTypeBadge = (type: string, requestDetails?: any) => {
-    if (type === 'commercial') return 'Desconto';
-    if (type === 'technical') {
-      // Check if it's a contract revision
-      if (requestDetails?.is_contract_revision) {
-        return 'Revisão de Contrato';
-      }
-      return 'Customização';
-    }
-    return type === 'discount' ? 'Desconto' : 'Customização';
-  };
-
-  // Determinar aprovador baseado no tipo e dados da aprovação
-  const getApproverInfo = (approval: any) => {
-    if (approval.approval_type === 'technical' || approval.approval_type === 'customization') {
-      // Para customizações técnicas, buscar PM do modelo
-      const yachtModel = approval.quotations?.yacht_models;
-      
-      if (!yachtModel) {
-        return {
-          name: 'PM não atribuído',
-          role: 'PM Engenharia'
-        };
-      }
-
-      // pm_assignments pode ser um array ou objeto único dependendo da query
-      const pmAssignments = Array.isArray(yachtModel.pm_assignments) 
-        ? yachtModel.pm_assignments 
-        : yachtModel.pm_assignments 
-          ? [yachtModel.pm_assignments]
-          : [];
-
-      if (pmAssignments.length > 0) {
-        const pmUser = pmAssignments[0].pm_user;
-        if (pmUser && pmUser.full_name) {
-          return {
-            name: pmUser.full_name,
-            role: 'PM Engenharia'
-          };
-        }
-      }
-
-      return {
-        name: 'PM não atribuído',
-        role: 'PM Engenharia'
-      };
-    }
-
-    // Para descontos comerciais, determinar baseado no percentual
-    if (approval.approval_type === 'commercial' || approval.approval_type === 'discount') {
-      const discountPercentage = approval.request_details?.discount_percentage || 0;
-      
-      // Limites configuráveis (devem vir de discount_limits_config idealmente)
-      // Mas por ora usamos valores padrão que correspondem ao sistema atual
-      if (discountPercentage > 15) {
-        return {
-          name: 'Administrador',
-          role: 'Administrador'
-        };
-      }
-      return {
-        name: 'Diretor Comercial',
-        role: 'Diretor Comercial'
-      };
-    }
-
-    return {
-      name: '-',
-      role: '-'
+    return statusMap[workflowStatus as keyof typeof statusMap] || { 
+      variant: "secondary" as const, 
+      label: workflowStatus 
     };
   };
 
-  const displayedApprovals = getDisplayedApprovals();
+  const getPMName = (customization: CustomizationWithDetails) => {
+    const pmAssignments = customization.quotation?.yacht_models?.pm_assignments;
+    if (pmAssignments && pmAssignments.length > 0) {
+      return pmAssignments[0].pm_user.full_name;
+    }
+    return 'PM não atribuído';
+  };
 
-  // Encontrar a approval selecionada para o diálogo simplificado
-  const selectedApproval = useMemo(() => {
-    return displayedApprovals.find(a => a.id === selectedApprovalId) || null;
-  }, [displayedApprovals, selectedApprovalId]);
+  const displayed = getDisplayedCustomizations();
 
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Aprovações</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie solicitações de aprovação de descontos e customizações
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => createRetroactiveApprovals()}
-            disabled={isCreatingRetroactive}
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            {isCreatingRetroactive ? 'Criando...' : 'Criar Aprovações Retroativas'}
-          </Button>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Aprovações (Workflow Simplificado)</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie customizações e aprovações pelo novo workflow
+          </p>
         </div>
 
-        <ApprovalStats
-          totalPending={pendingApprovals.length}
-          totalApproved={approvedApprovals.length}
-          totalRejected={rejectedApprovals.length}
-          totalAll={allApprovals.length}
-        />
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingCustomizations.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Aprovadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{approvedCustomizations.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Rejeitadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{rejectedCustomizations.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{customizations.length}</div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
           <TabsList>
             <TabsTrigger value="pending">
-              Pendentes {pendingApprovals.length > 0 && `(${pendingApprovals.length})`}
+              Pendentes {pendingCustomizations.length > 0 && `(${pendingCustomizations.length})`}
             </TabsTrigger>
             <TabsTrigger value="approved">
-              Aprovadas {approvedApprovals.length > 0 && `(${approvedApprovals.length})`}
+              Aprovadas {approvedCustomizations.length > 0 && `(${approvedCustomizations.length})`}
             </TabsTrigger>
             <TabsTrigger value="rejected">
-              Rejeitadas {rejectedApprovals.length > 0 && `(${rejectedApprovals.length})`}
+              Rejeitadas {rejectedCustomizations.length > 0 && `(${rejectedCustomizations.length})`}
             </TabsTrigger>
             <TabsTrigger value="all">
-              Todas {allApprovals.length > 0 && `(${allApprovals.length})`}
+              Todas {customizations.length > 0 && `(${customizations.length})`}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value={activeTab} className="mt-4 md:mt-6">
-            {displayedApprovals.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                Carregando...
+              </div>
+            ) : displayed.length === 0 ? (
               <div className="text-center py-8 md:py-12 text-sm text-muted-foreground">
-                Nenhuma solicitação encontrada
+                Nenhuma customização encontrada
               </div>
             ) : (
               <div className="border rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
                   <Table className="min-w-[1000px]">
                     <TableHeader>
-                    <TableRow>
-                      <TableHead>Cotação</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Vendedor</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Código</TableHead>
-                      <TableHead>Aprovador</TableHead>
-                      <TableHead>Status Workflow</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {displayedApprovals.map((approval) => {
-                      const statusBadge = getStatusBadge(approval.status);
-                      const approverInfo = getApproverInfo(approval);
-                      return (
-                        <TableRow key={approval.id}>
-                          <TableCell className="font-medium">
-                            {approval.quotations?.quotation_number}
-                          </TableCell>
-                          <TableCell>{approval.quotations?.client_name}</TableCell>
-                          <TableCell>
-                            {approval.quotations?.sales_representative?.full_name || '-'}
-                          </TableCell>
-                          <TableCell>
-                            {(approval.approval_type === 'discount' || approval.approval_type === 'commercial') && approval.request_details?.discount_type && (
-                              <Badge variant="outline">
-                                {approval.request_details.discount_type === 'base' ? 'Desconto Base' : 'Desconto Opcionais'}
-                              </Badge>
-                            )}
-                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && (
-                              <Badge variant={approval.request_details?.is_contract_revision ? "secondary" : "outline"}>
-                                {approval.request_details?.is_contract_revision ? '🔄 Revisão de Contrato' : 'Customização'}
-                                {approval.request_details?.item_name && `: ${approval.request_details.item_name}`}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {approval.approval_type === 'discount' && approval.request_details && (
+                      <TableRow>
+                        <TableHead>Cotação</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Vendedor</TableHead>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Código</TableHead>
+                        <TableHead>PM Responsável</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {displayed.map((customization) => {
+                        const statusBadge = getStatusBadge(customization.workflow_status || 'pending');
+                        return (
+                          <TableRow key={customization.id}>
+                            <TableCell className="font-medium">
+                              {customization.quotation?.quotation_number}
+                            </TableCell>
+                            <TableCell>{customization.quotation?.client_name}</TableCell>
+                            <TableCell>
+                              {customization.quotation?.sales_representative?.full_name || '-'}
+                            </TableCell>
+                            <TableCell>{customization.item_name}</TableCell>
+                            <TableCell>
+                              {customization.customization_code ? (
+                                <span className="font-mono text-xs">{customization.customization_code}</span>
+                              ) : (
+                                <span className="text-muted-foreground text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
                               <div className="space-y-1">
-                                <div className="font-semibold text-destructive">
-                                  {approval.request_details.discount_percentage}%
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  -{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-                                    .format(approval.request_details.discount_amount || 0)}
-                                </div>
+                                <p className="font-medium text-sm">{getPMName(customization)}</p>
+                                <Badge variant="outline" className="text-xs">
+                                  PM Engenharia
+                                </Badge>
                               </div>
-                            )}
-                            {approval.request_details?.customization_code ? (
-                              <span className="font-mono text-xs">{approval.request_details.customization_code}</span>
-                            ) : approval.approval_type !== 'discount' ? (
-                              <span className="text-muted-foreground text-xs">-</span>
-                            ) : null}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <p className="font-medium text-sm">{approverInfo.name}</p>
-                              <Badge variant="outline" className="text-xs">
-                                {approverInfo.role}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
-                             approval.request_details?.customization_id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
-                              >
-                                <Workflow className="h-4 w-4 mr-2" />
-                                Ver Workflow
-                              </Button>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(approval.requested_at), 'dd/MM/yyyy', { locale: ptBR })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleViewDetails(approval.id)}
-                              >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Detalhes
-                              </Button>
-                              {(approval.approval_type === 'technical' || approval.approval_type === 'customization') && 
-                               approval.request_details?.customization_id && (
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={statusBadge.variant}>{statusBadge.label}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(customization.created_at), 'dd/MM/yyyy', { locale: ptBR })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleViewDetails(customization)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Detalhes
+                                </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleViewWorkflow(approval.request_details.customization_id)}
+                                  onClick={() => handleViewWorkflow(customization)}
                                 >
                                   <Workflow className="h-4 w-4 mr-2" />
                                   Workflow
                                 </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
                   </Table>
                 </div>
               </div>
@@ -324,27 +307,32 @@ export default function Approvals() {
           </TabsContent>
         </Tabs>
 
-        {/* Approval Dialogs - Condicional baseado na flag */}
-        {!isLoadingFlag && isSimplifiedWorkflowEnabled && selectedApproval?.approval_type === 'technical' && selectedApproval.quotations ? (
-          // Novo fluxo simplificado para aprovações técnicas
+        {/* Simplified Technical Approval Dialog */}
+        {selectedCustomization && (
           <SimplifiedTechnicalApprovalDialog
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-            approval={selectedApproval as any}
-          />
-        ) : (
-          // Fluxo antigo (para aprovações de desconto e quando flag está desativada)
-          <ApprovalDialog
-            approvalId={selectedApprovalId}
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
+            open={approvalDialogOpen}
+            onOpenChange={setApprovalDialogOpen}
+            approval={{
+              id: selectedCustomization.id,
+              quotation_id: '', // não usado no componente simplificado
+              approval_type: 'technical',
+              status: selectedCustomization.workflow_status?.includes('approved') ? 'approved' : 
+                      selectedCustomization.workflow_status === 'rejected' ? 'rejected' : 'pending',
+              notes: selectedCustomization.engineering_notes,
+              request_details: {
+                customization_id: selectedCustomization.id,
+                customization_code: selectedCustomization.customization_code,
+                item_name: selectedCustomization.item_name,
+              },
+              quotations: selectedCustomization.quotation as any,
+            } as any}
           />
         )}
 
-        {/* Customization Workflow Modal - Apenas para workflow antigo */}
-        {!isSimplifiedWorkflowEnabled && (
+        {/* Customization Workflow Modal */}
+        {selectedCustomization && (
           <CustomizationWorkflowModal
-            customizationId={selectedCustomizationId}
+            customizationId={selectedCustomization.id}
             open={workflowDialogOpen}
             onOpenChange={setWorkflowDialogOpen}
           />
