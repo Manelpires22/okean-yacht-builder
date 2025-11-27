@@ -343,6 +343,69 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_delivery_checklist: {
+        Row: {
+          contract_id: string
+          created_at: string | null
+          id: string
+          is_verified: boolean | null
+          item_code: string | null
+          item_id: string
+          item_name: string
+          item_type: string
+          photo_urls: Json | null
+          updated_at: string | null
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          item_code?: string | null
+          item_id: string
+          item_name: string
+          item_type: string
+          photo_urls?: Json | null
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          is_verified?: boolean | null
+          item_code?: string | null
+          item_id?: string
+          item_name?: string
+          item_type?: string
+          photo_urls?: Json | null
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_delivery_checklist_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_delivery_checklist_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["contract_id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           base_delivery_days: number
@@ -354,6 +417,10 @@ export type Database = {
           created_by: string | null
           current_total_delivery_days: number
           current_total_price: number
+          delivered_at: string | null
+          delivered_by: string | null
+          delivery_notes: string | null
+          delivery_status: string | null
           id: string
           quotation_id: string
           signed_at: string | null
@@ -373,6 +440,10 @@ export type Database = {
           created_by?: string | null
           current_total_delivery_days: number
           current_total_price: number
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivery_notes?: string | null
+          delivery_status?: string | null
           id?: string
           quotation_id: string
           signed_at?: string | null
@@ -392,6 +463,10 @@ export type Database = {
           created_by?: string | null
           current_total_delivery_days?: number
           current_total_price?: number
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivery_notes?: string | null
+          delivery_status?: string | null
           id?: string
           quotation_id?: string
           signed_at?: string | null

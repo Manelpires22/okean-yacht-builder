@@ -11,7 +11,11 @@ import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { ATODetailDialog } from "@/components/contracts/ATODetailDialog";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
-import { FileText, Plus, TrendingUp, Clock, ArrowLeft } from "lucide-react";
+import { FileText, Plus, TrendingUp, Clock, ArrowLeft, Package } from "lucide-react";
+import { DeliveryProgress } from "@/components/contracts/delivery/DeliveryProgress";
+import { DeliveryChecklist } from "@/components/contracts/delivery/DeliveryChecklist";
+import { FinalizeDeliveryDialog } from "@/components/contracts/delivery/FinalizeDeliveryDialog";
+import { useContractDeliveryChecklist, calculateProgress } from "@/hooks/useContractDeliveryChecklist";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +35,10 @@ export default function ContractDetail() {
   const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedATOFromTimeline, setSelectedATOFromTimeline] = useState<string | null>(null);
+  
+  // Delivery checklist
+  const { data: checklistItems, isLoading: isLoadingChecklist } = useContractDeliveryChecklist(id);
+  const progress = checklistItems ? calculateProgress(checklistItems) : { total: 0, verified: 0, percentage: 0 };
 
   const handleDelete = () => {
     if (!id) return;
@@ -87,7 +95,7 @@ export default function ContractDetail() {
           onDelete={() => setShowDeleteDialog(true)}
         />
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <FileText className="h-4 w-4" />
               Visão Geral
@@ -99,6 +107,10 @@ export default function ContractDetail() {
             <TabsTrigger value="consolidated" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Consolidado
+            </TabsTrigger>
+            <TabsTrigger value="delivery" className="gap-2">
+              <Package className="h-4 w-4" />
+              Entrega
             </TabsTrigger>
             <TabsTrigger value="timeline" className="gap-2">
               <Clock className="h-4 w-4" />
@@ -120,6 +132,17 @@ export default function ContractDetail() {
 
           <TabsContent value="consolidated">
             <LiveContractView contractId={contract.id} />
+          </TabsContent>
+
+          <TabsContent value="delivery" className="space-y-6">
+            <DeliveryProgress progress={progress} />
+            <DeliveryChecklist items={checklistItems || []} isLoading={isLoadingChecklist} />
+            {checklistItems && (
+              <FinalizeDeliveryDialog 
+                contractId={contract.id}
+                isAllVerified={progress.percentage === 100}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="timeline">
