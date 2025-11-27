@@ -24,6 +24,7 @@ export type Database = {
           created_at: string | null
           delivery_days_impact: number | null
           description: string | null
+          discount_percentage: number | null
           id: string
           notes: string | null
           price_impact: number | null
@@ -47,6 +48,7 @@ export type Database = {
           created_at?: string | null
           delivery_days_impact?: number | null
           description?: string | null
+          discount_percentage?: number | null
           id?: string
           notes?: string | null
           price_impact?: number | null
@@ -70,6 +72,7 @@ export type Database = {
           created_at?: string | null
           delivery_days_impact?: number | null
           description?: string | null
+          discount_percentage?: number | null
           id?: string
           notes?: string | null
           price_impact?: number | null
