@@ -15,60 +15,28 @@ export function QuotationsDashboard() {
   const { data: stats } = useQuery({
     queryKey: ['quotations-dashboard-stats'],
     queryFn: async () => {
-      const { data: quotations } = await supabase
-        .from('quotations')
-        .select('status, final_price, created_at, valid_until');
-
-      if (!quotations) return null;
-
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(now.getDate() - 30);
-
-      const total = quotations.length;
-      const pendingApproval = quotations.filter(q => 
-        q.status === 'pending_commercial_approval' || 
-        q.status === 'pending_technical_approval'
-      ).length;
+      const { data, error } = await supabase
+        .from('quotation_stats')
+        .select('*')
+        .single();
       
-      const readyToSend = quotations.filter(q => q.status === 'ready_to_send').length;
-      const sent = quotations.filter(q => q.status === 'sent').length;
-      const accepted = quotations.filter(q => q.status === 'accepted').length;
+      if (error) throw error;
+      if (!data) return null;
       
-      const expiringSoon = quotations.filter(q => {
-        if (q.status !== 'sent') return false;
-        const validUntil = new Date(q.valid_until);
-        const daysRemaining = Math.ceil((validUntil.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        return daysRemaining <= 7 && daysRemaining >= 0;
-      }).length;
-
-      const totalValue = quotations
-        .filter(q => q.status !== 'rejected' && q.status !== 'expired')
-        .reduce((sum, q) => sum + q.final_price, 0);
-
-      const acceptedValue = quotations
-        .filter(q => q.status === 'accepted')
-        .reduce((sum, q) => sum + q.final_price, 0);
-
-      const conversionRate = sent > 0 ? (accepted / sent) * 100 : 0;
-
-      const recentQuotations = quotations.filter(q => 
-        new Date(q.created_at) >= thirtyDaysAgo
-      ).length;
-
       return {
-        total,
-        pendingApproval,
-        readyToSend,
-        sent,
-        accepted,
-        expiringSoon,
-        totalValue,
-        acceptedValue,
-        conversionRate,
-        recentQuotations
+        total: data.total || 0,
+        pendingApproval: data.pending_approval || 0,
+        readyToSend: data.ready_to_send || 0,
+        sent: data.sent || 0,
+        accepted: data.accepted || 0,
+        expiringSoon: data.expiring_soon || 0,
+        totalValue: data.total_value || 0,
+        acceptedValue: data.accepted_value || 0,
+        conversionRate: data.sent > 0 ? (data.accepted / data.sent) * 100 : 0,
+        recentQuotations: data.recent_quotations || 0
       };
-    }
+    },
+    staleTime: 30000, // Cache por 30 segundos
   });
 
   if (!stats) {
