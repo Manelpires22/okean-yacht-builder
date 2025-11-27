@@ -9,38 +9,73 @@ import { supabase } from "@/integrations/supabase/client";
  * - Determinação de workflow_status inicial
  */
 
-// Interface para customização vinda do memorial
+/**
+ * Dados de uma customização de memorial
+ * @interface CustomizationInput
+ */
 interface CustomizationInput {
+  /** Nome/descrição do item customizado */
   item_name: string;
+  /** Notas/observações da customização */
   notes?: string;
+  /** Quantidade (se aplicável) */
   quantity?: number;
+  /** Custo adicional estimado em BRL */
   additional_cost?: number;
+  /** Impacto estimado no prazo em dias */
   delivery_impact_days?: number;
+  /** UUID do item de memorial (se vier do memorial) */
   memorial_item_id?: string;
+  /** UUID do opcional (se customização de opcional) */
   option_id?: string;
+  /** URL da imagem de referência */
   image_url?: string;
 }
 
-// Interface para opcionais que têm notas de customização
+/**
+ * Opcional que possui notas de customização
+ * @interface OptionWithCustomization
+ */
 interface OptionWithCustomization {
+  /** UUID do opcional */
   option_id: string;
+  /** Notas de customização do opcional */
   customization_notes?: string;
 }
 
+/**
+ * Dados de entrada para salvar customizações
+ * @interface SaveCustomizationsInput
+ */
 interface SaveCustomizationsInput {
+  /** UUID da cotação */
   quotationId: string;
+  /** Número da cotação (ex: QT-2025-001-V1) para gerar códigos */
   quotationNumber: string;
+  /** Lista de customizações de memorial */
   customizations: CustomizationInput[];
+  /** Opcionais com notas de customização */
   optionsWithCustomization?: OptionWithCustomization[];
+  /** Se true, preserva customizações aprovadas */
   isEditMode?: boolean;
 }
 
+/**
+ * Resultado detalhado do salvamento de customizações
+ * @interface SaveCustomizationsResult
+ */
 interface SaveCustomizationsResult {
+  /** Indica se a operação foi bem-sucedida */
   success: boolean;
+  /** Total de customizações inseridas */
   insertedCount: number;
+  /** Se há novas customizações pendentes de aprovação */
   hasNewPendingCustomizations: boolean;
+  /** Quantidade de customizações aprovadas que foram removidas */
   removedApprovedCount: number;
+  /** Novo status sugerido para a cotação */
   newQuotationStatus?: string;
+  /** Lista das customizações criadas com códigos */
   createdCustomizations: Array<{
     id: string;
     item_name: string;
@@ -51,14 +86,37 @@ interface SaveCustomizationsResult {
 }
 
 /**
- * Gera o próximo código de customização baseado na sequência
+ * Gera código sequencial para customização
+ * 
+ * @description
+ * Formato: `{QUOTATION_NUMBER}-CUS-{SEQUENCE}`
+ * Exemplo: `QT-2025-001-V1-CUS-001`
+ * 
+ * @param {string} quotationNumber - Número da cotação base
+ * @param {number} sequence - Número sequencial (será padded com zeros)
+ * @returns {string} Código formatado
+ * 
+ * @example
+ * ```typescript
+ * generateCode('QT-2025-001-V1', 1);  // 'QT-2025-001-V1-CUS-001'
+ * generateCode('QT-2025-001-V1', 42); // 'QT-2025-001-V1-CUS-042'
+ * ```
  */
 function generateCode(quotationNumber: string, sequence: number): string {
   return `${quotationNumber}-CUS-${String(sequence).padStart(3, "0")}`;
 }
 
 /**
- * Extrai a sequência de um código de customização
+ * Extrai número sequencial de um código de customização
+ * 
+ * @param {string} code - Código completo da customização
+ * @returns {number} Número sequencial extraído (0 se inválido)
+ * 
+ * @example
+ * ```typescript
+ * extractSequence('QT-2025-001-V1-CUS-042'); // 42
+ * extractSequence('invalid-code');           // 0
+ * ```
  */
 function extractSequence(code: string): number {
   const match = code?.match(/-CUS-(\d+)$/);
@@ -66,8 +124,59 @@ function extractSequence(code: string): number {
 }
 
 /**
- * Salva customizações de uma cotação (memorial + opcionais)
- * Em modo edição, preserva dados de customizações já aprovadas
+ * Salva customizações de memorial e opcionais de uma cotação
+ * 
+ * @description
+ * Função complexa que gerencia o ciclo de vida de customizações:
+ * 
+ * **Em modo criação:**
+ * - Gera códigos sequenciais para cada customização
+ * - Define workflow_status inicial como 'pending_pm_review'
+ * 
+ * **Em modo edição:**
+ * - Preserva dados técnicos de customizações já aprovadas
+ * - Mantém códigos existentes de customizações aprovadas
+ * - Detecta se customizações aprovadas foram removidas
+ * - Recalcula status da cotação baseado nas mudanças
+ * 
+ * **Campos preservados de aprovadas:**
+ * - pm_final_price, pm_final_delivery_impact_days, pm_final_notes
+ * - engineering_hours, engineering_notes
+ * - supply_cost, supply_lead_time_days, supply_notes, supply_items
+ * - reviewed_by, reviewed_at, workflow_audit
+ * 
+ * @param {SaveCustomizationsInput} input - Dados de entrada
+ * @returns {Promise<SaveCustomizationsResult>} Resultado detalhado
+ * @throws {Error} Se ocorrer erro ao interagir com Supabase
+ * 
+ * @example
+ * ```typescript
+ * // Criar customizações em nova cotação
+ * const result = await saveQuotationCustomizations({
+ *   quotationId: 'uuid',
+ *   quotationNumber: 'QT-2025-001-V1',
+ *   customizations: [
+ *     { item_name: 'Layout cabine', notes: 'Converter em escritório' }
+ *   ],
+ *   optionsWithCustomization: [
+ *     { option_id: 'uuid-opt', customization_notes: 'Cor personalizada' }
+ *   ]
+ * });
+ * 
+ * // Editar cotação preservando aprovadas
+ * const editResult = await saveQuotationCustomizations({
+ *   quotationId: 'uuid',
+ *   quotationNumber: 'QT-2025-001-V1',
+ *   customizations: [...updatedCustomizations],
+ *   isEditMode: true
+ * });
+ * 
+ * if (editResult.removedApprovedCount > 0) {
+ *   console.warn('Customizações aprovadas foram removidas!');
+ * }
+ * ```
+ * 
+ * @see {@link useQuotationCustomizations} - Hook React Query
  */
 export async function saveQuotationCustomizations(
   input: SaveCustomizationsInput
@@ -330,7 +439,51 @@ export async function saveQuotationCustomizations(
 
 /**
  * Hook React Query para salvar customizações de cotações
- * Usado em componentes que precisam de invalidação automática de cache
+ * 
+ * @description
+ * Wrapper de saveQuotationCustomizations com benefícios do React Query:
+ * - Invalidação automática de cache após sucesso
+ * - Estados de loading/error/success
+ * - Integração com React Query DevTools
+ * 
+ * **Queries invalidadas:**
+ * - `quotations` - Lista de cotações
+ * - `quotation-customizations` - Customizações específicas
+ * 
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function CustomizationEditor({ quotationId, quotationNumber }) {
+ *   const { mutateAsync: saveCustomizations, isPending } = useQuotationCustomizations();
+ *   const [customizations, setCustomizations] = useState([]);
+ * 
+ *   const handleSave = async () => {
+ *     try {
+ *       const result = await saveCustomizations({
+ *         quotationId,
+ *         quotationNumber,
+ *         customizations,
+ *         isEditMode: true
+ *       });
+ * 
+ *       if (result.hasNewPendingCustomizations) {
+ *         toast.info('Customizações enviadas para aprovação');
+ *       }
+ *     } catch (error) {
+ *       toast.error('Erro ao salvar customizações');
+ *     }
+ *   };
+ * 
+ *   return (
+ *     <Button onClick={handleSave} disabled={isPending}>
+ *       {isPending ? 'Salvando...' : 'Salvar'}
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link saveQuotationCustomizations} - Função de salvamento
  */
 export function useQuotationCustomizations() {
   const queryClient = useQueryClient();
