@@ -106,11 +106,12 @@ export function ATODetailDialog({
   const canEdit = isNotApproved && (isAdmin || ato?.requested_by === user?.id);
   const canDelete = isNotApproved && isAdmin;
   
-  // ✅ Pode enviar ao cliente quando workflow completo, status draft e desconto ≤ 10%
+  // ✅ Pode enviar ao cliente quando workflow completo e desconto ≤ 10%
+  // Aceita tanto 'draft' quanto 'pending_approval' (caso sistema tenha marcado errado)
   const canSendToClient = 
     ato?.workflow_status === 'completed' && 
-    ato?.status === 'draft' && 
-    (ato?.discount_percentage || 0) <= 10;
+    (ato?.discount_percentage || 0) <= 10 &&
+    (ato?.status === 'draft' || ato?.status === 'pending_approval');
 
   // Workflow logic
   const currentStep = workflowData?.workflow_steps?.find(

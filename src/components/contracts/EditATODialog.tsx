@@ -132,6 +132,12 @@ export function EditATODialog({ open, onOpenChange, ato }: EditATODialogProps) {
       },
       {
         onSuccess: () => {
+          console.log('✅ ATO atualizada:', { 
+            newStatus, 
+            newWorkflowStatus, 
+            requiresApproval,
+            discount: data.discount_percentage 
+          });
           onOpenChange(false);
           // Toast customizado baseado na lógica
           if (scopeChanged) {
