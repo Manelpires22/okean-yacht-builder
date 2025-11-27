@@ -74,7 +74,7 @@ export default function QuotationDetail() {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && (quotation?.status === 'accepted' || quotation?.status === 'approved')
+    enabled: !!id && !!quotation
   });
 
   // Workflow simplificado não usa approvals separadas
@@ -377,20 +377,20 @@ export default function QuotationDetail() {
               </Button>
             )}
 
-            {/* Botões de Envio - ready_to_send ou sent */}
-            {(quotation.status === 'ready_to_send' || quotation.status === 'sent') && (
+            {/* Botão de Enviar/Reenviar Proposta - qualquer status exceto draft */}
+            {quotation.status !== 'draft' && (
               <Button 
                 onClick={handleSendToClient} 
                 size="lg"
                 className="flex-1 sm:flex-none"
               >
                 <Send className="mr-2 h-4 w-4" />
-                {quotation.status === 'sent' ? 'Reenviar Proposta' : 'Enviar Proposta'}
+                {quotation.status === 'ready_to_send' ? 'Enviar Proposta' : 'Reenviar Proposta'}
               </Button>
             )}
 
-            {/* Botão Aprovar Cotação - só se enviada e usuário pode aprovar */}
-            {quotation.status === 'sent' && canApprove && (
+            {/* Botão Aprovar Cotação - só se enviada, usuário pode aprovar e NÃO tem contrato */}
+            {quotation.status === 'sent' && canApprove && !contract && (
               <Button 
                 onClick={() => setApproveDialogOpen(true)} 
                 size="lg"
@@ -402,8 +402,8 @@ export default function QuotationDetail() {
               </Button>
             )}
 
-            {/* Botão Ver Contrato - se aprovada e contrato existe */}
-            {quotation.status === 'approved' && contract && (
+            {/* Botão Ver Contrato - se aprovada/contratada e contrato existe */}
+            {(quotation.status === 'approved' || quotation.status === 'converted_to_contract') && contract && (
               <Button 
                 onClick={() => navigate(`/contracts/${contract.id}`)} 
                 size="lg"
@@ -414,8 +414,8 @@ export default function QuotationDetail() {
               </Button>
             )}
 
-            {/* Botão Criar Revisão - se enviada ou expirada */}
-            {(quotation.status === 'sent' || quotation.status === 'expired') && (
+            {/* Botão Criar Revisão - se enviada ou expirada e NÃO tem contrato */}
+            {(quotation.status === 'sent' || quotation.status === 'expired') && !contract && (
               <Button 
                 variant="outline" 
                 onClick={handleCreateRevision}
