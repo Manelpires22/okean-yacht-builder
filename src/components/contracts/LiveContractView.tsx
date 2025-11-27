@@ -228,7 +228,7 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
       {/* Tab: Definições via ATOs */}
       <TabsContent value="atos">
         <ContractATODefinitionsView
-          configurations={scopeData?.atoConfigurations || []}
+          approvedATOs={scopeData?.approvedATOs || []}
         />
       </TabsContent>
     </Tabs>
