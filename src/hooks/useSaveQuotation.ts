@@ -8,6 +8,8 @@ import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { generateCustomizationCode } from "@/lib/customization-utils";
 import { SelectedOption, Customization } from "./useConfigurationState";
 import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
+import { validateQuotation } from "./quotations/useQuotationValidation";
+import { useUserRole } from "./useUserRole";
 
 interface SaveQuotationData {
   quotationId?: string; // ✅ NOVO: ID da cotação sendo editada
@@ -29,10 +31,31 @@ interface SaveQuotationData {
 export function useSaveQuotation() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { data: userRoleData } = useUserRole();
 
   return useMutation({
     mutationFn: async (data: SaveQuotationData) => {
       if (!user) throw new Error("Usuário não autenticado");
+
+      // ✅ VALIDAÇÃO: Validar dados antes de processar
+      const validation = validateQuotation({
+        yacht_model_id: data.yacht_model_id,
+        client_name: data.client_name,
+        client_email: data.client_email,
+        baseDiscountPercentage: data.base_discount_percentage,
+        optionsDiscountPercentage: data.options_discount_percentage,
+        userRoles: userRoleData?.roles || [],
+      });
+
+      // Bloquear se houver erros de validação
+      if (!validation.isValid) {
+        throw new Error(validation.errors.join(". "));
+      }
+
+      // Avisos não bloqueiam mas são logados
+      if (validation.warnings.length > 0) {
+        console.log('⚠️ Avisos de validação:', validation.warnings);
+      }
 
       // ✅ MODO EDIÇÃO: Atualizar cotação existente
       if (data.quotationId) {
