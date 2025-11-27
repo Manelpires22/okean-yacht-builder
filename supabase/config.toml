@@ -27,6 +27,12 @@ verify_jwt = true
 [functions.generate-contract-pdf]
 verify_jwt = true
 
+[functions.generate-original-contract-pdf]
+verify_jwt = true
+
+[functions.generate-ato-pdf]
+verify_jwt = true
+
 [functions.convert-customization-to-ato]
 verify_jwt = true
 
