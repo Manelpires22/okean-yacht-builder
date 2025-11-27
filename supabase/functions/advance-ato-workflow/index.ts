@@ -104,15 +104,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Atualizar ATO com valores finais
+    // Atualizar ATO: workflow completo, mas aguardando validação comercial do vendedor
     const updateData = {
       price_impact: data.final_price,
       delivery_days_impact: data.delivery_impact_days,
       notes: `${ato.notes || ''}\n\nAvaliação PM:\n${data.pm_scope}\n\nNotas: ${data.notes || ''}`,
-      workflow_status: 'approved',
-      status: 'approved',
-      approved_at: new Date().toISOString(),
-      approved_by: user.id,
+      workflow_status: 'completed',  // ✅ Workflow PM completo
+      status: 'draft',               // ✅ Aguardando ação do vendedor
+      // NÃO setar approved_at/approved_by aqui - só quando cliente aprovar
     };
 
     console.log('Updating ATO with data:', updateData);
@@ -142,39 +141,11 @@ Deno.serve(async (req) => {
       })
       .eq('id', stepId);
 
-    // Atualizar totais do contrato
-    const contract = ato.contracts;
-    if (contract) {
-      const newTotalPrice = contract.current_total_price + data.final_price;
-      const newTotalDeliveryDays = contract.current_total_delivery_days + data.delivery_impact_days;
-
-      await supabase
-        .from('contracts')
-        .update({
-          current_total_price: newTotalPrice,
-          current_total_delivery_days: newTotalDeliveryDays,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', contract.id);
-    }
-
-    // Verificar se precisa aprovação comercial
-    const { data: discountLimits } = await supabase
-      .from('discount_limits_config')
-      .select('*')
-      .eq('limit_type', 'customization');
-
-    const needsCommercialApproval = discountLimits && discountLimits.length > 0 && 
-      data.final_price > (discountLimits[0].admin_approval_required_above || 50000);
-
-    if (needsCommercialApproval) {
-      // Criar aprovação comercial (se necessário no futuro)
-      console.log('ATO com preço elevado, pode requerer aprovação comercial adicional');
-    }
+    // NÃO atualizar totais do contrato aqui - só quando cliente aprovar
 
     return new Response(
       JSON.stringify({ 
-        message: 'ATO aprovada com sucesso!',
+        message: 'Análise PM concluída! ATO aguardando validação comercial.',
         workflowCompleted: true,
         atoId: atoId,
       }),

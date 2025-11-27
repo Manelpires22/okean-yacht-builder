@@ -21,6 +21,8 @@ import { ATODetailDialog } from "./ATODetailDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOsDashboard } from "./ATOsDashboard";
 import { SendATOToClientDialog, SendATOData } from "./SendATOToClientDialog";
+import { ATOCommercialReviewDialog } from "./ATOCommercialReviewDialog";
+import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 
 interface ATOsListProps {
   contractId: string;
@@ -40,15 +42,32 @@ export function ATOsList({ contractId }: ATOsListProps) {
     open: boolean;
     ato?: any;
   }>({ open: false });
+  const [commercialReviewDialog, setCommercialReviewDialog] = useState<{
+    open: boolean;
+    ato?: any;
+  }>({ open: false });
+  const [pendingDiscount, setPendingDiscount] = useState(0);
   const [filterTab, setFilterTab] = useState<string>("workflow");
+
+  // Buscar dados do workflow quando abrindo revisão comercial
+  const { data: workflowData } = useATOWorkflow(commercialReviewDialog.ato?.id);
+
+  const handleCommercialReview = (discountPercentage: number) => {
+    setPendingDiscount(discountPercentage);
+    setCommercialReviewDialog({ open: false });
+    setSendATODialog({ open: true, ato: commercialReviewDialog.ato });
+  };
 
   const handleSendATO = async (data: SendATOData) => {
     if (!sendATODialog.ato) return;
     
     await sendATO({
       atoId: sendATODialog.ato.id,
+      discountPercentage: pendingDiscount,
       ...data
     });
+    
+    setPendingDiscount(0);
   };
 
   // Filtrar ATOs baseado na tab selecionada
@@ -305,15 +324,16 @@ export function ATOsList({ contractId }: ATOsListProps) {
                           </Button>
                         )}
                         
-                        {/* Botão "Enviar Cliente" quando workflow completo */}
+                        {/* Botão "Revisar e Enviar" quando workflow completo */}
                         {ato.workflow_status === 'completed' && ato.status === 'draft' && (
                           <Button
-                            variant="outline"
+                            variant="default"
                             size="sm"
-                            onClick={() => setSendATODialog({ open: true, ato })}
+                            onClick={() => setCommercialReviewDialog({ open: true, ato })}
+                            className="bg-blue-600 hover:bg-blue-700"
                           >
-                            <Send className="mr-1 h-3 w-3" />
-                            Enviar Cliente
+                            <DollarSign className="mr-1 h-3 w-3" />
+                            Revisar e Enviar
                           </Button>
                         )}
                         
@@ -357,10 +377,32 @@ export function ATOsList({ contractId }: ATOsListProps) {
         defaultTab={detailsTab}
       />
 
+      {commercialReviewDialog.ato && workflowData && (
+        <ATOCommercialReviewDialog
+          open={commercialReviewDialog.open}
+          onOpenChange={(open) => setCommercialReviewDialog({ open, ato: undefined })}
+          ato={commercialReviewDialog.ato}
+          pmAnalysis={workflowData.workflow_steps?.find((s: any) => s.step_type === 'pm_review')?.response_data || {
+            materials: [],
+            total_materials_cost: 0,
+            labor_hours: 0,
+            labor_cost_per_hour: 55,
+            total_labor_cost: 0,
+            total_cost: 0,
+            suggested_price: 0,
+            final_price: commercialReviewDialog.ato.price_impact || 0,
+          }}
+          onProceedToSend={handleCommercialReview}
+        />
+      )}
+
       {sendATODialog.ato && (
         <SendATOToClientDialog
           open={sendATODialog.open}
-          onOpenChange={(open) => setSendATODialog({ open, ato: undefined })}
+          onOpenChange={(open) => {
+            setSendATODialog({ open, ato: undefined });
+            if (!open) setPendingDiscount(0);
+          }}
           atoNumber={sendATODialog.ato.ato_number}
           atoTitle={sendATODialog.ato.title}
           clientName={sendATODialog.ato.contracts?.clients?.name}

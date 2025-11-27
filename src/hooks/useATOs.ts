@@ -11,6 +11,7 @@ export interface ATO {
   description: string | null;
   price_impact: number;
   delivery_days_impact: number;
+  discount_percentage: number;
   status: "draft" | "pending_approval" | "approved" | "rejected" | "cancelled";
   workflow_status: string | null;
   requested_by: string;

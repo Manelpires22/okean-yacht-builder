@@ -25,6 +25,10 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
     ato => ato.workflow_status === 'completed' && ato.commercial_approval_status === 'pending'
   ).length;
 
+  const pendingCommercialValidation = atos.filter(
+    ato => ato.workflow_status === 'completed' && ato.status === 'draft'
+  ).length;
+
   const pendingClientApproval = atos.filter(
     ato => ato.status === 'pending_approval' && ato.workflow_status === 'completed'
   ).length;
@@ -61,21 +65,21 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
       </Card>
 
       {/* Validação Comercial */}
-      <Card>
+      <Card className="border-blue-200 dark:border-blue-900">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Validação Comercial
           </CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{pendingCommercialApproval}</div>
+          <div className="text-2xl font-bold text-blue-600">{pendingCommercialValidation}</div>
           <p className="text-xs text-muted-foreground">
-            Aguardando aprovação
+            PM concluído, aguardando vendedor
           </p>
-          {pendingCommercialApproval > 0 && (
+          {pendingCommercialValidation > 0 && (
             <Badge variant="outline" className="mt-2 text-blue-600 border-blue-300 dark:border-blue-700">
-              Alto valor
+              Requer validação
             </Badge>
           )}
         </CardContent>

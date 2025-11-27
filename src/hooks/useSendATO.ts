@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 interface SendATOInput {
   atoId: string;
+  discountPercentage: number;
   sendEmail: boolean;
   generatePDF: boolean;
   recipientEmail?: string;
@@ -16,7 +17,8 @@ export function useSendATO() {
 
   return useMutation({
     mutationFn: async (input: SendATOInput) => {
-      const { atoId, sendEmail, generatePDF, recipientEmail, emailSubject, emailMessage } = input;
+      const { atoId, discountPercentage, sendEmail, generatePDF, recipientEmail, emailSubject, emailMessage } = input;
+      const userId = (await supabase.auth.getUser()).data.user?.id;
 
       // 1. Buscar dados da ATO com contrato e cliente
       const { data: ato, error: fetchError } = await supabase
@@ -45,18 +47,47 @@ export function useSendATO() {
         throw new Error('O workflow da ATO deve estar completo antes do envio ao cliente');
       }
 
-      // 3. Atualizar status para 'pending_approval'
+      // 3. Calcular preço final com desconto
+      const originalPrice = ato.price_impact || 0;
+      const discountAmount = (originalPrice * discountPercentage) / 100;
+      const finalPrice = originalPrice - discountAmount;
+
+      // 4. Atualizar status para 'pending_approval' e salvar desconto
       const { error: updateError } = await supabase
         .from('additional_to_orders')
         .update({
           status: 'pending_approval',
+          discount_percentage: discountPercentage,
+          price_impact: finalPrice, // Atualizar com preço final
           requested_at: new Date().toISOString()
         })
         .eq('id', atoId);
 
       if (updateError) throw updateError;
 
-      // 4. Se deve enviar email, chamar edge function (a ser criada)
+      // 5. Se desconto > 10%, criar approval request
+      if (discountPercentage > 10) {
+        const { error: approvalError } = await supabase
+          .from('approvals')
+          .insert({
+            quotation_id: ato.contracts.quotation_id, // Link ao quotation original
+            approval_type: 'commercial',
+            status: 'pending',
+            requested_by: userId!,
+            request_details: {
+              ato_id: atoId,
+              contract_id: ato.contract_id,
+              discount_percentage: discountPercentage,
+              original_price: originalPrice,
+              final_price: finalPrice,
+            },
+            notes: `Desconto de ${discountPercentage.toFixed(1)}% aplicado na ATO ${ato.ato_number}`,
+          });
+
+        if (approvalError) throw approvalError;
+      }
+
+      // 6. Se deve enviar email, chamar edge function (a ser criada)
       if (sendEmail && recipientEmail) {
         // TODO: Criar edge function send-ato-email
         console.log('Enviando email da ATO:', {
@@ -71,20 +102,29 @@ export function useSendATO() {
         toast.info('Funcionalidade de envio de email será implementada em breve');
       }
 
-      // 5. Se gerou PDF mas não enviou email (a ser implementado)
+      // 7. Se gerou PDF mas não enviou email (a ser implementado)
       if (generatePDF && !sendEmail) {
         // TODO: Gerar PDF da ATO
         console.log('Gerando PDF da ATO:', atoId);
         toast.info('Funcionalidade de geração de PDF será implementada em breve');
       }
 
-      return { ato, emailSent: sendEmail, pdfGenerated: generatePDF };
+      return { 
+        ato, 
+        emailSent: sendEmail, 
+        pdfGenerated: generatePDF,
+        discountApplied: discountPercentage,
+        needsApproval: discountPercentage > 10 
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['atos'] });
       queryClient.invalidateQueries({ queryKey: ['ato', data.ato.id] });
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       
-      if (data.emailSent) {
+      if (data.needsApproval) {
+        toast.info(`ATO enviada! Desconto de ${data.discountApplied.toFixed(1)}% aguarda aprovação comercial.`);
+      } else if (data.emailSent) {
         toast.success('ATO enviada ao cliente com sucesso!');
       } else {
         toast.success('ATO marcada como pendente de aprovação!');
