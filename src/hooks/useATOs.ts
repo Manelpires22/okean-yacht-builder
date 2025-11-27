@@ -366,13 +366,20 @@ export function useDeleteATO() {
 
   return useMutation({
     mutationFn: async (atoId: string) => {
-      // Buscar contract_id antes de deletar
-      const { data: ato } = await supabase
+      // Buscar contract_id e status antes de deletar
+      const { data: ato, error: fetchError } = await supabase
         .from("additional_to_orders")
-        .select("contract_id")
+        .select("contract_id, status")
         .eq("id", atoId)
         .single();
       
+      if (fetchError) throw fetchError;
+
+      // ⚠️ CRÍTICO: Impedir exclusão de ATOs aprovadas ou enviadas ao cliente
+      if (['approved', 'pending_approval', 'sent'].includes(ato?.status)) {
+        throw new Error("ATOs aprovadas ou enviadas não podem ser excluídas. Crie uma nova ATO com crédito/estorno para reverter itens.");
+      }
+
       const contractId = ato?.contract_id;
 
       // Deletar configurações primeiro (cascade deveria fazer, mas garantir)

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLiveContract } from "@/hooks/useContracts";
 import { useConsolidatedContractScope } from "@/hooks/useConsolidatedContractScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { ContractMemorialView } from "./scope/ContractMemorialView";
 import { ContractOptionsView } from "./scope/ContractOptionsView";
 import { ContractCustomizationsView } from "./scope/ContractCustomizationsView";
 import { ContractATODefinitionsView } from "./scope/ContractATODefinitionsView";
+import { ATODetailDialog } from "./ATODetailDialog";
 
 interface LiveContractViewProps {
   contractId: string;
@@ -18,8 +20,15 @@ interface LiveContractViewProps {
 export function LiveContractView({ contractId }: LiveContractViewProps) {
   const { data: liveContract, isLoading: liveLoading } = useLiveContract(contractId);
   const { data: scopeData, isLoading: scopeLoading } = useConsolidatedContractScope(contractId);
+  const [selectedATOId, setSelectedATOId] = useState<string | null>(null);
+  const [showATODialog, setShowATODialog] = useState(false);
 
   const isLoading = liveLoading || scopeLoading;
+
+  const handleATOClick = (atoId: string) => {
+    setSelectedATOId(atoId);
+    setShowATODialog(true);
+  };
 
   if (isLoading) {
     return (
@@ -44,6 +53,7 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
   const daysVariation = liveContract.current_total_delivery_days - liveContract.base_delivery_days;
 
   return (
+    <>
     <Tabs defaultValue="resumo" className="space-y-6">
       <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="resumo" className="gap-2">
@@ -229,8 +239,18 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
       <TabsContent value="atos">
         <ContractATODefinitionsView
           approvedATOs={scopeData?.approvedATOs || []}
+          onATOClick={handleATOClick}
         />
       </TabsContent>
     </Tabs>
+
+    {/* Dialog para visualizar detalhes da ATO */}
+    <ATODetailDialog
+      open={showATODialog}
+      onOpenChange={setShowATODialog}
+      atoId={selectedATOId}
+      defaultTab="details"
+    />
+  </>
   );
 }
