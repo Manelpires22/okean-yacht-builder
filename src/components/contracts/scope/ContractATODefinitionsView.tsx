@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Calendar, TrendingUp, Percent } from "lucide-react";
+import { FileText, Calendar, TrendingUp, Percent, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -67,7 +67,7 @@ export function ContractATODefinitionsView({
           return (
             <Card 
               key={ato.id}
-              className={onATOClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
+              className={onATOClick ? "cursor-pointer hover:shadow-md transition-shadow group" : ""}
               onClick={() => onATOClick?.(ato.id)}
             >
               <CardHeader className="pb-3">
@@ -76,6 +76,9 @@ export function ContractATODefinitionsView({
                     <CardTitle className="text-base flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       {ato.ato_number} - {ato.title}
+                      {onATOClick && (
+                        <Eye className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ml-2" />
+                      )}
                     </CardTitle>
                     {ato.description && (
                       <p className="text-sm text-muted-foreground">
