@@ -1,9 +1,26 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function setupFont(doc: jsPDF, style: "normal" | "bold" = "normal") {
+  doc.setFont("helvetica", style);
+}
+
+const COLORS = {
+  primary: [16, 24, 48],
+  accent: [245, 158, 11],
+  light: [247, 248, 250],
+  textDark: [30, 30, 30],
+  textLight: [255, 255, 255],
+  gray: [180, 180, 180],
+  grayDark: [100, 100, 100],
+  success: [34, 197, 94],
+  warning: [245, 158, 11],
 };
 
 interface ContractPDFRequest {
@@ -16,31 +33,25 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    console.log("=== Generate Contract Summary PDF Started ===");
 
-    // Authenticate user
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing Authorization header");
-    }
+    if (!authHeader) throw new Error("Missing Authorization header");
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace("Bearer ", "")
     );
-
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    if (authError || !user) throw new Error("Unauthorized");
 
     const { contract_id }: ContractPDFRequest = await req.json();
+    if (!contract_id) throw new Error("contract_id is required");
 
-    if (!contract_id) {
-      throw new Error("contract_id is required");
-    }
-
-    // Fetch contract data
+    // Fetch contract data with ATOs
     const { data: contract, error: contractError } = await supabase
       .from("contracts")
       .select(`
@@ -56,245 +67,343 @@ serve(async (req) => {
       throw new Error("Contract not found");
     }
 
-    // Generate simple HTML for PDF
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      font-family: 'Helvetica', 'Arial', sans-serif;
-      padding: 40px;
-      color: #333;
-    }
-    .header {
-      text-align: center;
-      border-bottom: 3px solid #1e40af;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
-    }
-    .header h1 {
-      color: #1e40af;
-      margin: 0;
-      font-size: 32px;
-    }
-    .header p {
-      margin: 5px 0;
-      color: #666;
-    }
-    .section {
-      margin: 30px 0;
-    }
-    .section-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #1e40af;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 10px;
-      margin-bottom: 15px;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-    .info-item {
-      margin: 10px 0;
-    }
-    .info-label {
-      font-weight: bold;
-      color: #666;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    .info-value {
-      font-size: 16px;
-      margin-top: 5px;
-    }
-    .ato-item {
-      border: 1px solid #e5e7eb;
-      padding: 15px;
-      margin: 10px 0;
-      border-radius: 5px;
-    }
-    .ato-title {
-      font-weight: bold;
-      font-size: 14px;
-    }
-    .ato-status {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 3px;
-      font-size: 11px;
-      margin-left: 10px;
-    }
-    .status-approved {
-      background-color: #dcfce7;
-      color: #166534;
-    }
-    .total-box {
-      background-color: #f3f4f6;
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 30px;
-    }
-    .total-item {
-      display: flex;
-      justify-content: space-between;
-      margin: 10px 0;
-      font-size: 16px;
-    }
-    .total-final {
-      font-size: 24px;
-      font-weight: bold;
-      color: #1e40af;
-      border-top: 2px solid #1e40af;
-      padding-top: 15px;
-      margin-top: 15px;
-    }
-    .footer {
-      margin-top: 50px;
-      text-align: center;
-      font-size: 12px;
-      color: #999;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>OKEAN YACHTS</h1>
-    <p>Contrato de Construção Naval</p>
-    <p style="font-size: 20px; font-weight: bold; margin-top: 15px;">${contract.contract_number}</p>
-  </div>
+    console.log("Contract found:", contract.contract_number);
 
-  <div class="section">
-    <div class="section-title">Informações do Contrato</div>
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="info-label">Cliente</div>
-        <div class="info-value">${contract.client?.name || "N/A"}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Modelo</div>
-        <div class="info-value">${contract.yacht_model?.name || "N/A"}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Data de Assinatura</div>
-        <div class="info-value">${new Date(contract.signed_at).toLocaleDateString("pt-BR")}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">Status</div>
-        <div class="info-value">${contract.status === "active" ? "Ativo" : contract.status === "completed" ? "Concluído" : "Cancelado"}</div>
-      </div>
-    </div>
-  </div>
+    // Setup PDF
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    setupFont(doc);
 
-  <div class="section">
-    <div class="section-title">Valores Contratuais</div>
-    <div class="total-box">
-      <div class="total-item">
-        <span>Preço Base:</span>
-        <span>R$ ${contract.base_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-      </div>
-      <div class="total-item">
-        <span>Prazo Base:</span>
-        <span>${contract.base_delivery_days} dias</span>
-      </div>
-    </div>
-  </div>
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 20;
 
-  ${contract.atos && contract.atos.length > 0 ? `
-  <div class="section">
-    <div class="section-title">ATOs (Additional To Order)</div>
-    ${contract.atos.map((ato: any) => `
-      <div class="ato-item">
-        <div>
-          <span class="ato-title">${ato.ato_number} - ${ato.title}</span>
-          <span class="ato-status status-approved">${ato.status === "approved" ? "Aprovado" : ato.status}</span>
-        </div>
-        ${ato.description ? `<p style="margin: 10px 0; color: #666;">${ato.description}</p>` : ""}
-        <div style="margin-top: 10px;">
-          <span style="color: #16a34a; font-weight: bold;">+R$ ${ato.price_impact.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-          <span style="margin-left: 20px; color: #ea580c; font-weight: bold;">+${ato.delivery_days_impact} dias</span>
-        </div>
-      </div>
-    `).join("")}
-  </div>
-  ` : ""}
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 2
+      }).format(value);
+    };
 
-  <div class="section">
-    <div class="section-title">Totais Atualizados</div>
-    <div class="total-box">
-      <div class="total-item">
-        <span>Preço Base:</span>
-        <span>R$ ${contract.base_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-      </div>
-      ${contract.atos && contract.atos.filter((a: any) => a.status === "approved").length > 0 ? `
-      <div class="total-item">
-        <span>ATOs Aprovadas:</span>
-        <span>R$ ${contract.atos.filter((a: any) => a.status === "approved").reduce((sum: number, a: any) => sum + Number(a.price_impact), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-      </div>
-      ` : ""}
-      <div class="total-item total-final">
-        <span>VALOR TOTAL:</span>
-        <span>R$ ${contract.current_total_price.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-      </div>
-      <div class="total-item">
-        <span>Prazo Total de Entrega:</span>
-        <span style="font-size: 20px; font-weight: bold;">${contract.current_total_delivery_days} dias</span>
-      </div>
-    </div>
-  </div>
+    const formatDate = (date: string) => {
+      return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+    };
 
-  <div class="footer">
-    <p>Este documento foi gerado eletronicamente pelo sistema CPQ da OKEAN Yachts</p>
-    <p>Data de geração: ${new Date().toLocaleString("pt-BR")}</p>
-  </div>
-</body>
-</html>
-    `;
+    // ===== COVER PAGE =====
+    function addCoverPage() {
+      // Navy background
+      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.rect(0, 0, pageW, pageH, "F");
 
-    // Convert HTML to PDF using external API (using htmltopdf.io or similar)
-    // For now, return the HTML (can be enhanced with actual PDF generation)
-    const pdfResponse = await fetch("https://api.html2pdf.app/v1/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        html: html,
-        options: {
-          format: "A4",
-          margin: {
-            top: "20mm",
-            right: "15mm",
-            bottom: "20mm",
-            left: "15mm",
-          },
-        },
-      }),
-    });
+      // Company name
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      doc.setFontSize(36);
+      setupFont(doc, "bold");
+      doc.text("OKEAN YACHTS", pageW / 2, 80, { align: "center" });
 
-    if (!pdfResponse.ok) {
-      // Fallback: return HTML as base64
-      const base64Html = btoa(unescape(encodeURIComponent(html)));
-      return new Response(
-        JSON.stringify({
-          success: true,
-          format: "html",
-          data: base64Html,
-          filename: `${contract.contract_number}.html`,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+      // Document title
+      doc.setFontSize(22);
+      setupFont(doc);
+      doc.text("Resumo do Contrato", pageW / 2, 100, { align: "center" });
+
+      // Contract number
+      doc.setFontSize(18);
+      setupFont(doc, "bold");
+      doc.text(contract.contract_number, pageW / 2, 120, { align: "center" });
+
+      // Client info
+      doc.setFontSize(14);
+      setupFont(doc);
+      doc.text(
+        `${contract.client?.name || "N/A"}`,
+        pageW / 2,
+        135,
+        { align: "center" }
       );
+
+      // Model
+      doc.setFontSize(16);
+      doc.text(
+        contract.yacht_model?.name || "N/A",
+        pageW / 2,
+        150,
+        { align: "center" }
+      );
+
+      // Total value (accent color)
+      doc.setFontSize(28);
+      doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      setupFont(doc, "bold");
+      doc.text(
+        formatCurrency(contract.current_total_price),
+        pageW / 2,
+        175,
+        { align: "center" }
+      );
+
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      setupFont(doc);
+      doc.text("Documento de Resumo Contratual", pageW / 2, pageH - 20, { align: "center" });
     }
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    // ===== CONTRACT INFO PAGE =====
+    function addContractInfo() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Informações do Contrato", margin, 40);
+
+      // Divider
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 65;
+      doc.setFontSize(12);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+      setupFont(doc);
+
+      const infoItems = [
+        { label: "Número do Contrato", value: contract.contract_number },
+        { label: "Cliente", value: contract.client?.name || "N/A" },
+        { label: "Modelo do Iate", value: contract.yacht_model?.name || "N/A" },
+        { label: "Data de Assinatura", value: contract.signed_at ? formatDate(contract.signed_at) : "N/A" },
+        { label: "Assinado por", value: contract.signed_by_name || "N/A" },
+        { label: "Email", value: contract.signed_by_email || "N/A" },
+        { label: "Status", value: contract.status === "active" ? "Ativo" : contract.status === "completed" ? "Concluído" : "Cancelado" },
+      ];
+
+      infoItems.forEach((item) => {
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        doc.text(item.label + ":", margin, yPos);
+
+        setupFont(doc);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(item.value, margin + 60, yPos);
+
+        yPos += 12;
+      });
+    }
+
+    // ===== BASE VALUES PAGE =====
+    function addBaseValues() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Valores Contratuais Base", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      // Box with base values
+      let yPos = 70;
+      doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+      doc.roundedRect(margin, yPos, pageW - 2 * margin, 50, 3, 3, "F");
+
+      yPos += 15;
+      doc.setFontSize(14);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+      setupFont(doc);
+
+      doc.text("Preço Base:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(formatCurrency(contract.base_price), pageW - margin - 10, yPos, { align: "right" });
+
+      yPos += 15;
+      setupFont(doc);
+      doc.text("Prazo Base:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(`${contract.base_delivery_days} dias`, pageW - margin - 10, yPos, { align: "right" });
+    }
+
+    // ===== ATOs PAGE =====
+    function addATOs() {
+      const approvedATOs = contract.atos?.filter((ato: any) => ato.status === "approved") || [];
+
+      if (approvedATOs.length === 0) return;
+
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("ATOs Aprovadas", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 60;
+      doc.setFontSize(11);
+
+      approvedATOs.forEach((ato: any, index: number) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 30;
+        }
+
+        // ATO box
+        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+        doc.roundedRect(margin, yPos, pageW - 2 * margin, 35, 2, 2, "F");
+
+        // ATO number and title
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+        doc.text(`${ato.ato_number} - ${ato.title}`, margin + 5, yPos + 8);
+
+        // Status badge
+        doc.setFillColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
+        doc.roundedRect(pageW - margin - 25, yPos + 3, 20, 6, 1, 1, "F");
+        doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+        doc.setFontSize(8);
+        doc.text("Aprovado", pageW - margin - 15, yPos + 7, { align: "center" });
+
+        // Description
+        yPos += 15;
+        doc.setFontSize(9);
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        setupFont(doc);
+        if (ato.description) {
+          const lines = doc.splitTextToSize(ato.description, pageW - 2 * margin - 10);
+          doc.text(lines[0], margin + 5, yPos);
+        }
+
+        // Price and days impact
+        yPos += 8;
+        doc.setFontSize(10);
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
+        doc.text(`+${formatCurrency(ato.price_impact || 0)}`, margin + 5, yPos);
+
+        doc.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
+        doc.text(`+${ato.delivery_days_impact || 0} dias`, margin + 60, yPos);
+
+        yPos += 15;
+        doc.setFontSize(11);
+      });
+    }
+
+    // ===== TOTALS PAGE =====
+    function addTotals() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Totais Atualizados", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      // Calculate ATOs totals
+      const approvedATOs = contract.atos?.filter((ato: any) => ato.status === "approved") || [];
+      const totalATOsPrice = approvedATOs.reduce((sum: number, ato: any) => sum + (ato.price_impact || 0), 0);
+      const totalATOsDays = approvedATOs.reduce((sum: number, ato: any) => sum + (ato.delivery_days_impact || 0), 0);
+
+      let yPos = 70;
+      doc.setFillColor(232, 244, 253);
+      doc.roundedRect(margin, yPos, pageW - 2 * margin, 100, 3, 3, "F");
+
+      yPos += 15;
+      doc.setFontSize(14);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+      setupFont(doc);
+
+      // Base price
+      doc.text("Preço Base:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(formatCurrency(contract.base_price), pageW - margin - 10, yPos, { align: "right" });
+
+      // ATOs price
+      if (totalATOsPrice > 0) {
+        yPos += 12;
+        setupFont(doc);
+        doc.text("ATOs Aprovadas:", margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
+        doc.text(`+${formatCurrency(totalATOsPrice)}`, pageW - margin - 10, yPos, { align: "right" });
+      }
+
+      // Divider
+      yPos += 15;
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.setLineWidth(0.5);
+      doc.line(margin + 10, yPos, pageW - margin - 10, yPos);
+
+      // Total price
+      yPos += 12;
+      doc.setFontSize(18);
+      doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      setupFont(doc, "bold");
+      doc.text("VALOR TOTAL:", margin + 10, yPos);
+      doc.text(formatCurrency(contract.current_total_price), pageW - margin - 10, yPos, { align: "right" });
+
+      // Delivery days
+      yPos += 20;
+      doc.setFontSize(14);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+      setupFont(doc);
+      doc.text("Prazo Base:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(`${contract.base_delivery_days} dias`, pageW - margin - 10, yPos, { align: "right" });
+
+      if (totalATOsDays > 0) {
+        yPos += 12;
+        setupFont(doc);
+        doc.text("Impacto ATOs:", margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
+        doc.text(`+${totalATOsDays} dias`, pageW - margin - 10, yPos, { align: "right" });
+      }
+
+      yPos += 15;
+      doc.setFontSize(16);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("PRAZO TOTAL:", margin + 10, yPos);
+      doc.text(`${contract.current_total_delivery_days} dias`, pageW - margin - 10, yPos, { align: "right" });
+    }
+
+    // ===== FOOTER PAGE =====
+    function addFooter() {
+      const currentPage = doc.internal.pages.length - 1;
+      for (let i = 1; i <= currentPage; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(COLORS.gray[0], COLORS.gray[1], COLORS.gray[2]);
+        setupFont(doc);
+        doc.text(
+          `Gerado em ${formatDate(new Date().toISOString())}`,
+          pageW / 2,
+          pageH - 10,
+          { align: "center" }
+        );
+        doc.text(`Página ${i} de ${currentPage}`, pageW - margin, pageH - 10, { align: "right" });
+      }
+    }
+
+    // Build PDF
+    addCoverPage();
+    addContractInfo();
+    addBaseValues();
+    addATOs();
+    addTotals();
+    addFooter();
+
+    // Output PDF
+    const pdfData = doc.output("arraybuffer");
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+
+    console.log("✓ Contract PDF generated successfully");
 
     return new Response(
       JSON.stringify({

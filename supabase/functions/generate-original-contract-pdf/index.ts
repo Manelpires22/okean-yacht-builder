@@ -1,375 +1,398 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function setupFont(doc: jsPDF, style: "normal" | "bold" = "normal") {
+  doc.setFont("helvetica", style);
+}
+
+const COLORS = {
+  primary: [16, 24, 48],
+  accent: [245, 158, 11],
+  light: [247, 248, 250],
+  textDark: [30, 30, 30],
+  textLight: [255, 255, 255],
+  gray: [180, 180, 180],
+  grayDark: [100, 100, 100],
 };
 
 interface OriginalContractPDFRequest {
   contract_id: string;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("=== Generate Original Contract PDF Started ===");
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization header");
 
-    const { contract_id } = await req.json() as OriginalContractPDFRequest;
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !user) throw new Error("Unauthorized");
 
-    if (!contract_id) {
-      throw new Error('contract_id is required');
-    }
-
-    console.log('Fetching contract for original PDF:', contract_id);
+    const { contract_id }: OriginalContractPDFRequest = await req.json();
+    if (!contract_id) throw new Error("contract_id is required");
 
     const { data: contract, error: contractError } = await supabase
-      .from('contracts')
+      .from("contracts")
       .select(`
         *,
         client:clients(*),
         yacht_model:yacht_models(*),
         quotation:quotations(*)
       `)
-      .eq('id', contract_id)
+      .eq("id", contract_id)
       .single();
 
     if (contractError || !contract) {
-      throw new Error('Contract not found');
+      throw new Error("Contract not found");
     }
 
     const baseSnapshot = contract.base_snapshot as any;
-    
     if (!baseSnapshot) {
-      throw new Error('No base snapshot available for this contract');
+      throw new Error("No base snapshot available");
     }
 
-    // HTML template for original contract
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              margin: 0;
-              padding: 40px;
-              color: #1a1a1a;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 3px solid #0066cc;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            .company-name {
-              font-size: 32px;
-              font-weight: bold;
-              color: #0066cc;
-              margin-bottom: 5px;
-            }
-            .document-title {
-              font-size: 24px;
-              color: #333;
-              margin-top: 10px;
-            }
-            .subtitle {
-              font-size: 14px;
-              color: #666;
-              margin-top: 5px;
-            }
-            .section {
-              margin: 30px 0;
-            }
-            .section-title {
-              font-size: 18px;
-              font-weight: bold;
-              color: #0066cc;
-              margin-bottom: 15px;
-              border-bottom: 2px solid #e0e0e0;
-              padding-bottom: 5px;
-            }
-            .info-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 15px;
-              margin: 20px 0;
-            }
-            .info-item {
-              background: #f8f9fa;
-              padding: 12px;
-              border-radius: 6px;
-            }
-            .info-label {
-              font-size: 12px;
-              color: #666;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .info-value {
-              font-size: 16px;
-              color: #1a1a1a;
-              font-weight: 600;
-              margin-top: 4px;
-            }
-            .item-list {
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 6px;
-              margin: 10px 0;
-            }
-            .item {
-              padding: 10px;
-              border-bottom: 1px solid #e0e0e0;
-            }
-            .item:last-child {
-              border-bottom: none;
-            }
-            .item-name {
-              font-weight: 600;
-              color: #1a1a1a;
-            }
-            .item-details {
-              font-size: 14px;
-              color: #666;
-              margin-top: 5px;
-            }
-            .financial-summary {
-              background: #e8f4fd;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
-            }
-            .price-row {
-              display: flex;
-              justify-content: space-between;
-              padding: 8px 0;
-              font-size: 16px;
-            }
-            .price-row.total {
-              border-top: 2px solid #0066cc;
-              margin-top: 10px;
-              padding-top: 15px;
-              font-size: 20px;
-              font-weight: bold;
-              color: #0066cc;
-            }
-            .signature-section {
-              margin-top: 50px;
-              padding-top: 30px;
-              border-top: 2px solid #e0e0e0;
-            }
-            .signature-box {
-              margin-top: 20px;
-              text-align: center;
-            }
-            .signature-line {
-              border-top: 1px solid #333;
-              width: 300px;
-              margin: 40px auto 10px;
-            }
-            .footer {
-              text-align: center;
-              font-size: 12px;
-              color: #999;
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 1px solid #e0e0e0;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company-name">OKEAN YACHTS</div>
-            <div class="document-title">Contrato Original</div>
-            <div class="subtitle">Como Aprovado pelo Cliente</div>
-          </div>
+    console.log("Contract found:", contract.contract_number);
 
-          <div class="section">
-            <div class="section-title">Informações do Contrato</div>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">Número do Contrato</div>
-                <div class="info-value">${contract.contract_number}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Data de Assinatura</div>
-                <div class="info-value">${contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('pt-BR') : 'N/A'}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Cliente</div>
-                <div class="info-value">${contract.client?.name || 'N/A'}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Modelo do Iate</div>
-                <div class="info-value">${contract.yacht_model?.name || 'N/A'}</div>
-              </div>
-            </div>
-          </div>
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    setupFont(doc);
 
-          <div class="section">
-            <div class="section-title">Configuração Original</div>
-            ${baseSnapshot.selectedOptions?.length > 0 ? `
-              <div class="item-list">
-                <h4 style="margin-top: 0; color: #666;">Opcionais Selecionados:</h4>
-                ${baseSnapshot.selectedOptions.map((opt: any) => `
-                  <div class="item">
-                    <div class="item-name">${opt.name || 'N/A'}</div>
-                    <div class="item-details">
-                      Quantidade: ${opt.quantity || 1} | 
-                      Preço unitário: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(opt.unit_price || 0)}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : '<p style="color: #666;">Nenhum opcional selecionado</p>'}
-          </div>
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 20;
 
-          <div class="section">
-            <div class="section-title">Memorial Descritivo Original</div>
-            ${baseSnapshot.memorialItems?.length > 0 ? `
-              <div class="item-list">
-                ${baseSnapshot.memorialItems.map((item: any) => `
-                  <div class="item">
-                    <div class="item-name">${item.item_name || 'N/A'}</div>
-                    <div class="item-details">
-                      ${item.brand ? `Marca: ${item.brand}` : ''} 
-                      ${item.model ? `| Modelo: ${item.model}` : ''}
-                      ${item.quantity ? `| Quantidade: ${item.quantity}` : ''}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            ` : '<p style="color: #666;">Nenhum item de memorial disponível</p>'}
-          </div>
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(value);
+    };
 
-          <div class="section">
-            <div class="section-title">Resumo Financeiro Original</div>
-            <div class="financial-summary">
-              <div class="price-row">
-                <span>Preço Base:</span>
-                <span>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.base_price)}</span>
-              </div>
-              ${baseSnapshot.totalOptionsPrice ? `
-                <div class="price-row">
-                  <span>Opcionais:</span>
-                  <span>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(baseSnapshot.totalOptionsPrice)}</span>
-                </div>
-              ` : ''}
-              <div class="price-row total">
-                <span>VALOR TOTAL:</span>
-                <span>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(contract.base_price)}</span>
-              </div>
-            </div>
-            <div class="info-grid" style="margin-top: 20px;">
-              <div class="info-item">
-                <div class="info-label">Prazo de Entrega Original</div>
-                <div class="info-value">${contract.base_delivery_days} dias</div>
-              </div>
-            </div>
-          </div>
+    const formatDate = (date: string) => {
+      return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+    };
 
-          ${contract.signed_by_name ? `
-            <div class="signature-section">
-              <div class="section-title">Assinatura do Cliente</div>
-              <div class="signature-box">
-                <div class="signature-line"></div>
-                <p><strong>${contract.signed_by_name}</strong></p>
-                <p style="color: #666; font-size: 14px;">${contract.signed_by_email}</p>
-                <p style="color: #666; font-size: 14px;">Assinado em: ${new Date(contract.signed_at).toLocaleDateString('pt-BR')}</p>
-              </div>
-            </div>
-          ` : ''}
+    // ===== COVER PAGE =====
+    function addCoverPage() {
+      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.rect(0, 0, pageW, pageH, "F");
 
-          <div class="footer">
-            <p>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-            <p>OKEAN Yachts - Excelência em Embarcações de Luxo</p>
-          </div>
-        </body>
-      </html>
-    `;
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      doc.setFontSize(36);
+      setupFont(doc, "bold");
+      doc.text("OKEAN YACHTS", pageW / 2, 80, { align: "center" });
 
-    console.log('Generating PDF from HTML for original contract');
+      doc.setFontSize(24);
+      setupFont(doc);
+      doc.text("Contrato Original", pageW / 2, 105, { align: "center" });
 
-    const html2pdfApiKey = Deno.env.get('LOVABLE_API_KEY');
-    
-    if (!html2pdfApiKey) {
-      console.warn('LOVABLE_API_KEY not found, returning HTML as fallback');
-      return new Response(JSON.stringify({
-        success: true,
-        format: 'html',
-        data: btoa(html)
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      // Badge
+      doc.setFillColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.roundedRect(pageW / 2 - 40, 115, 80, 12, 2, 2, "F");
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      doc.setFontSize(10);
+      setupFont(doc, "bold");
+      doc.text("COMO APROVADO PELO CLIENTE", pageW / 2, 123, { align: "center" });
+
+      doc.setFontSize(18);
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      setupFont(doc, "bold");
+      doc.text(contract.contract_number, pageW / 2, 145, { align: "center" });
+
+      doc.setFontSize(14);
+      setupFont(doc);
+      doc.text(contract.client?.name || "N/A", pageW / 2, 160, { align: "center" });
+      doc.text(contract.yacht_model?.name || "N/A", pageW / 2, 172, { align: "center" });
+
+      doc.setFontSize(10);
+      doc.text("Documento de Registro Original", pageW / 2, pageH - 20, { align: "center" });
+    }
+
+    // ===== CONTRACT INFO =====
+    function addContractInfo() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Informações do Contrato Original", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 65;
+      doc.setFontSize(12);
+      setupFont(doc);
+
+      const info = [
+        { label: "Contrato", value: contract.contract_number },
+        { label: "Data de Assinatura", value: contract.signed_at ? formatDate(contract.signed_at) : "N/A" },
+        { label: "Cliente", value: contract.client?.name || "N/A" },
+        { label: "Email", value: contract.signed_by_email || "N/A" },
+        { label: "Modelo", value: contract.yacht_model?.name || "N/A" },
+        { label: "Código", value: contract.yacht_model?.code || "N/A" },
+      ];
+
+      info.forEach((item) => {
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        doc.text(item.label + ":", margin, yPos);
+
+        setupFont(doc);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(item.value, margin + 55, yPos);
+        yPos += 12;
       });
     }
 
-    const pdfResponse = await fetch('https://api.html2pdf.app/v1/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': html2pdfApiKey
-      },
-      body: JSON.stringify({
-        html: html,
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          bottom: '20px',
-          left: '20px',
-          right: '20px'
+    // ===== SELECTED OPTIONS =====
+    function addSelectedOptions() {
+      const options = baseSnapshot.selectedOptions || [];
+      if (options.length === 0) return;
+
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Opcionais Selecionados (Original)", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 60;
+      doc.setFontSize(10);
+
+      options.forEach((opt: any) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 30;
         }
-      })
-    });
 
-    if (!pdfResponse.ok) {
-      console.error('PDF generation failed:', await pdfResponse.text());
-      return new Response(JSON.stringify({
-        success: true,
-        format: 'html',
-        data: btoa(html)
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(`• ${opt.name || "N/A"}`, margin, yPos);
+        yPos += 6;
+
+        setupFont(doc);
+        doc.setFontSize(9);
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        
+        const details = [];
+        if (opt.quantity && opt.quantity > 1) details.push(`Qtd: ${opt.quantity}`);
+        if (opt.unit_price) details.push(`Unit: ${formatCurrency(opt.unit_price)}`);
+        if (opt.total_price) details.push(`Total: ${formatCurrency(opt.total_price)}`);
+        
+        if (details.length > 0) {
+          doc.text(details.join(" | "), margin + 5, yPos);
+          yPos += 6;
+        }
+
+        yPos += 4;
+        doc.setFontSize(10);
       });
     }
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    // ===== MEMORIAL ITEMS =====
+    function addMemorialItems() {
+      const memorial = baseSnapshot.memorialItems || [];
+      if (memorial.length === 0) return;
 
-    return new Response(JSON.stringify({
-      success: true,
-      format: 'pdf',
-      data: base64Pdf
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      doc.addPage();
 
-  } catch (error) {
-    console.error('Error generating original contract PDF:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Memorial Descritivo Original", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 60;
+      doc.setFontSize(9);
+
+      memorial.forEach((item: any) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 30;
+        }
+
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(`• ${item.item_name || "N/A"}`, margin, yPos);
+        yPos += 5;
+
+        setupFont(doc);
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        
+        const details = [];
+        if (item.brand) details.push(`Marca: ${item.brand}`);
+        if (item.model) details.push(`Modelo: ${item.model}`);
+        if (item.quantity) details.push(`Qtd: ${item.quantity}`);
+        
+        if (details.length > 0) {
+          doc.text(details.join(" | "), margin + 5, yPos);
+          yPos += 5;
+        }
+
+        yPos += 3;
+      });
+    }
+
+    // ===== FINANCIAL SUMMARY =====
+    function addFinancialSummary() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Resumo Financeiro Original", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 70;
+      doc.setFillColor(232, 244, 253);
+      doc.roundedRect(margin, yPos, pageW - 2 * margin, 80, 3, 3, "F");
+
+      yPos += 15;
+      doc.setFontSize(14);
+      setupFont(doc);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+
+      doc.text("Preço Base:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(formatCurrency(contract.base_price), pageW - margin - 10, yPos, { align: "right" });
+
+      if (baseSnapshot.totalOptionsPrice) {
+        yPos += 12;
+        setupFont(doc);
+        doc.text("Opcionais:", margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.text(formatCurrency(baseSnapshot.totalOptionsPrice), pageW - margin - 10, yPos, { align: "right" });
+      }
+
+      yPos += 15;
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.line(margin + 10, yPos, pageW - margin - 10, yPos);
+
+      yPos += 12;
+      doc.setFontSize(18);
+      doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.text("TOTAL:", margin + 10, yPos);
+      doc.text(formatCurrency(contract.base_price), pageW - margin - 10, yPos, { align: "right" });
+
+      yPos += 20;
+      doc.setFontSize(14);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+      setupFont(doc);
+      doc.text("Prazo de Entrega:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(`${contract.base_delivery_days} dias`, pageW - margin - 10, yPos, { align: "right" });
+    }
+
+    // ===== SIGNATURE =====
+    function addSignature() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Assinatura do Cliente", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 100;
+
+      if (contract.signed_by_name) {
+        doc.setDrawColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        doc.setLineWidth(0.5);
+        doc.line(pageW / 2 - 50, yPos, pageW / 2 + 50, yPos);
+
+        yPos += 8;
+        doc.setFontSize(14);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        setupFont(doc, "bold");
+        doc.text(contract.signed_by_name, pageW / 2, yPos, { align: "center" });
+
+        yPos += 8;
+        doc.setFontSize(11);
+        setupFont(doc);
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        doc.text(contract.signed_by_email || "", pageW / 2, yPos, { align: "center" });
+
+        yPos += 10;
+        doc.text(`Assinado em: ${formatDate(contract.signed_at)}`, pageW / 2, yPos, { align: "center" });
+      }
+    }
+
+    // ===== FOOTER =====
+    function addFooter() {
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(COLORS.gray[0], COLORS.gray[1], COLORS.gray[2]);
+        setupFont(doc);
+        doc.text(`Documento Original - Gerado em ${formatDate(new Date().toISOString())}`, pageW / 2, pageH - 10, { align: "center" });
+      }
+    }
+
+    // Build PDF
+    addCoverPage();
+    addContractInfo();
+    addSelectedOptions();
+    addMemorialItems();
+    addFinancialSummary();
+    addSignature();
+    addFooter();
+
+    const pdfData = doc.output("arraybuffer");
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+
+    console.log("✓ Original contract PDF generated successfully");
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        format: "pdf",
+        data: base64Pdf,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error generating original contract PDF:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });

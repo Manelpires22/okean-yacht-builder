@@ -1,47 +1,59 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.76.1';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function setupFont(doc: jsPDF, style: "normal" | "bold" = "normal") {
+  doc.setFont("helvetica", style);
+}
+
+const COLORS = {
+  primary: [16, 24, 48],
+  accent: [245, 158, 11],
+  light: [247, 248, 250],
+  textDark: [30, 30, 30],
+  textLight: [255, 255, 255],
+  gray: [180, 180, 180],
+  grayDark: [100, 100, 100],
+  success: [34, 197, 94],
+  warning: [245, 158, 11],
+  error: [239, 68, 68],
 };
 
 interface ATOPDFRequest {
   ato_id: string;
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log("=== Generate ATO PDF Started ===");
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) throw new Error("Missing authorization header");
 
-    const { ato_id } = await req.json() as ATOPDFRequest;
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (authError || !user) throw new Error("Unauthorized");
 
-    if (!ato_id) {
-      throw new Error('ato_id is required');
-    }
-
-    console.log('Fetching ATO for PDF:', ato_id);
+    const { ato_id }: ATOPDFRequest = await req.json();
+    if (!ato_id) throw new Error("ato_id is required");
 
     const { data: ato, error: atoError } = await supabase
-      .from('additional_to_orders')
+      .from("additional_to_orders")
       .select(`
         *,
         contract:contracts(
@@ -50,384 +62,396 @@ Deno.serve(async (req) => {
           yacht_model:yacht_models(*)
         )
       `)
-      .eq('id', ato_id)
+      .eq("id", ato_id)
       .single();
 
-    if (atoError || !ato) {
-      throw new Error('ATO not found');
-    }
+    if (atoError || !ato) throw new Error("ATO not found");
 
-    // Fetch ATO configurations
     const { data: configurations } = await supabase
-      .from('ato_configurations')
-      .select('*')
-      .eq('ato_id', ato_id);
+      .from("ato_configurations")
+      .select("*")
+      .eq("ato_id", ato_id);
 
-    const statusBadge = ato.status === 'approved' ? 
-      '<span style="background: #22c55e; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px;">✓ Aprovado</span>' :
-      ato.status === 'pending' ?
-      '<span style="background: #f59e0b; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px;">⏳ Pendente</span>' :
-      '<span style="background: #ef4444; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px;">✗ Rejeitado</span>';
+    console.log("ATO found:", ato.ato_number);
 
-    // HTML template for ATO
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              margin: 0;
-              padding: 40px;
-              color: #1a1a1a;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 3px solid #0066cc;
-              padding-bottom: 20px;
-              margin-bottom: 30px;
-            }
-            .company-name {
-              font-size: 32px;
-              font-weight: bold;
-              color: #0066cc;
-              margin-bottom: 5px;
-            }
-            .document-title {
-              font-size: 24px;
-              color: #333;
-              margin-top: 10px;
-            }
-            .subtitle {
-              font-size: 14px;
-              color: #666;
-              margin-top: 5px;
-            }
-            .reference {
-              background: #f0f7ff;
-              padding: 15px;
-              border-radius: 6px;
-              margin: 20px 0;
-              border-left: 4px solid #0066cc;
-            }
-            .section {
-              margin: 30px 0;
-            }
-            .section-title {
-              font-size: 18px;
-              font-weight: bold;
-              color: #0066cc;
-              margin-bottom: 15px;
-              border-bottom: 2px solid #e0e0e0;
-              padding-bottom: 5px;
-            }
-            .info-grid {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 15px;
-              margin: 20px 0;
-            }
-            .info-item {
-              background: #f8f9fa;
-              padding: 12px;
-              border-radius: 6px;
-            }
-            .info-label {
-              font-size: 12px;
-              color: #666;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            .info-value {
-              font-size: 16px;
-              color: #1a1a1a;
-              font-weight: 600;
-              margin-top: 4px;
-            }
-            .description-box {
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 6px;
-              margin: 15px 0;
-              line-height: 1.6;
-            }
-            .item-list {
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 6px;
-              margin: 10px 0;
-            }
-            .config-item {
-              padding: 12px;
-              border-bottom: 1px solid #e0e0e0;
-              margin-bottom: 10px;
-            }
-            .config-item:last-child {
-              border-bottom: none;
-              margin-bottom: 0;
-            }
-            .config-type {
-              background: #0066cc;
-              color: white;
-              padding: 2px 8px;
-              border-radius: 3px;
-              font-size: 12px;
-              font-weight: 600;
-              display: inline-block;
-              margin-bottom: 8px;
-            }
-            .config-name {
-              font-weight: 600;
-              color: #1a1a1a;
-              font-size: 15px;
-            }
-            .sub-items {
-              margin-top: 8px;
-              padding-left: 20px;
-              font-size: 14px;
-              color: #666;
-            }
-            .sub-item {
-              padding: 4px 0;
-            }
-            .financial-impact {
-              background: #e8f4fd;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
-            }
-            .impact-row {
-              display: flex;
-              justify-content: space-between;
-              padding: 8px 0;
-              font-size: 16px;
-            }
-            .impact-row.highlight {
-              color: #0066cc;
-              font-weight: 600;
-            }
-            .impact-row.total {
-              border-top: 2px solid #0066cc;
-              margin-top: 10px;
-              padding-top: 15px;
-              font-size: 20px;
-              font-weight: bold;
-              color: #0066cc;
-            }
-            .status-section {
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
-              text-align: center;
-            }
-            .approval-info {
-              margin-top: 15px;
-              font-size: 14px;
-              color: #666;
-            }
-            .footer {
-              text-align: center;
-              font-size: 12px;
-              color: #999;
-              margin-top: 50px;
-              padding-top: 20px;
-              border-top: 1px solid #e0e0e0;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company-name">OKEAN YACHTS</div>
-            <div class="document-title">Aditivo ao Contrato</div>
-            <div class="subtitle">${ato.ato_number}</div>
-          </div>
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    setupFont(doc);
 
-          <div class="reference">
-            <strong>Referência:</strong> Contrato ${ato.contract?.contract_number} | 
-            Cliente: ${ato.contract?.client?.name} | 
-            Modelo: ${ato.contract?.yacht_model?.name}
-          </div>
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 20;
 
-          <div class="section">
-            <div class="section-title">Informações da ATO</div>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">Número da ATO</div>
-                <div class="info-value">${ato.ato_number}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Data de Solicitação</div>
-                <div class="info-value">${ato.requested_at ? new Date(ato.requested_at).toLocaleDateString('pt-BR') : 'N/A'}</div>
-              </div>
-            </div>
-          </div>
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(value);
+    };
 
-          <div class="section">
-            <div class="section-title">${ato.title}</div>
-            ${ato.description ? `
-              <div class="description-box">
-                ${ato.description}
-              </div>
-            ` : ''}
-          </div>
+    const formatDate = (date: string) => {
+      return new Intl.DateTimeFormat("pt-BR").format(new Date(date));
+    };
 
-          ${configurations && configurations.length > 0 ? `
-            <div class="section">
-              <div class="section-title">Itens Configurados</div>
-              <div class="item-list">
-                ${configurations.map((config: any) => {
-                  const subItems = config.sub_items ? JSON.parse(config.sub_items) : null;
-                  return `
-                    <div class="config-item">
-                      <div class="config-type">${config.item_type === 'option' ? 'OPCIONAL' : config.item_type === 'memorial' ? 'MEMORIAL' : 'CUSTOMIZAÇÃO'}</div>
-                      <div class="config-name">
-                        ${config.configuration_details?.name || config.configuration_details?.item_name || 'Item não especificado'}
-                      </div>
-                      ${subItems && subItems.length > 0 ? `
-                        <div class="sub-items">
-                          <strong>Sub-itens configurados:</strong>
-                          ${subItems.map((sub: any) => `
-                            <div class="sub-item">→ ${sub.label || sub.name}: ${sub.value || sub.selectedValue || 'N/A'}</div>
-                          `).join('')}
-                        </div>
-                      ` : ''}
-                      ${config.notes ? `
-                        <div class="sub-items" style="margin-top: 8px;">
-                          <strong>Observações:</strong> ${config.notes}
-                        </div>
-                      ` : ''}
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            </div>
-          ` : ''}
+    // ===== COVER PAGE =====
+    function addCoverPage() {
+      doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.rect(0, 0, pageW, pageH, "F");
 
-          <div class="section">
-            <div class="section-title">Impacto Financeiro e Prazo</div>
-            <div class="financial-impact">
-              ${ato.price_impact ? `
-                <div class="impact-row">
-                  <span>Valor Base da ATO:</span>
-                  <span>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ato.price_impact)}</span>
-                </div>
-              ` : ''}
-              ${ato.discount_percentage && ato.discount_percentage > 0 ? `
-                <div class="impact-row highlight">
-                  <span>Desconto Aplicado (${ato.discount_percentage}%):</span>
-                  <span>-${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((ato.price_impact || 0) * (ato.discount_percentage / 100))}</span>
-                </div>
-              ` : ''}
-              ${ato.price_impact ? `
-                <div class="impact-row total">
-                  <span>VALOR FINAL DA ATO:</span>
-                  <span>${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((ato.price_impact || 0) * (1 - (ato.discount_percentage || 0) / 100))}</span>
-                </div>
-              ` : ''}
-            </div>
-            ${ato.delivery_days_impact ? `
-              <div class="info-item" style="margin-top: 15px;">
-                <div class="info-label">Impacto no Prazo de Entrega</div>
-                <div class="info-value">+${ato.delivery_days_impact} dias</div>
-              </div>
-            ` : ''}
-          </div>
+      doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+      doc.setFontSize(36);
+      setupFont(doc, "bold");
+      doc.text("OKEAN YACHTS", pageW / 2, 80, { align: "center" });
 
-          <div class="section">
-            <div class="section-title">Status de Aprovação</div>
-            <div class="status-section">
-              <div>${statusBadge}</div>
-              ${ato.status === 'approved' && ato.approved_at ? `
-                <div class="approval-info">
-                  <p><strong>Aprovado em:</strong> ${new Date(ato.approved_at).toLocaleDateString('pt-BR')}</p>
-                </div>
-              ` : ''}
-              ${ato.status === 'rejected' && ato.rejection_reason ? `
-                <div class="approval-info">
-                  <p><strong>Motivo da Rejeição:</strong> ${ato.rejection_reason}</p>
-                </div>
-              ` : ''}
-              ${ato.notes ? `
-                <div class="approval-info">
-                  <p><strong>Observações:</strong> ${ato.notes}</p>
-                </div>
-              ` : ''}
-            </div>
-          </div>
+      doc.setFontSize(20);
+      setupFont(doc);
+      doc.text("Aditivo ao Contrato", pageW / 2, 105, { align: "center" });
 
-          <div class="footer">
-            <p>Documento gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-            <p>OKEAN Yachts - Excelência em Embarcações de Luxo</p>
-          </div>
-        </body>
-      </html>
-    `;
+      doc.setFontSize(24);
+      setupFont(doc, "bold");
+      doc.text(ato.ato_number, pageW / 2, 125, { align: "center" });
 
-    console.log('Generating PDF from HTML for ATO');
+      // Status badge
+      let statusColor = COLORS.gray;
+      let statusText = "Pendente";
+      
+      if (ato.status === "approved") {
+        statusColor = COLORS.success;
+        statusText = "Aprovado";
+      } else if (ato.status === "rejected") {
+        statusColor = COLORS.error;
+        statusText = "Rejeitado";
+      }
 
-    const html2pdfApiKey = Deno.env.get('LOVABLE_API_KEY');
-    
-    if (!html2pdfApiKey) {
-      console.warn('LOVABLE_API_KEY not found, returning HTML as fallback');
-      return new Response(JSON.stringify({
-        success: true,
-        format: 'html',
-        data: btoa(html)
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+      doc.roundedRect(pageW / 2 - 25, 135, 50, 10, 2, 2, "F");
+      doc.setFontSize(12);
+      setupFont(doc, "bold");
+      doc.text(statusText, pageW / 2, 142, { align: "center" });
+
+      // Contract reference
+      doc.setFontSize(12);
+      setupFont(doc);
+      doc.text(
+        `Referência: ${ato.contract?.contract_number}`,
+        pageW / 2,
+        160,
+        { align: "center" }
+      );
+
+      doc.setFontSize(10);
+      doc.text("Documento de Aditivo Contratual", pageW / 2, pageH - 20, { align: "center" });
     }
 
-    const pdfResponse = await fetch('https://api.html2pdf.app/v1/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': html2pdfApiKey
-      },
-      body: JSON.stringify({
-        html: html,
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '20px',
-          bottom: '20px',
-          left: '20px',
-          right: '20px'
+    // ===== REFERENCE INFO =====
+    function addReferenceInfo() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Referência ao Contrato", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 65;
+      doc.setFillColor(240, 247, 255);
+      doc.roundedRect(margin, yPos, pageW - 2 * margin, 45, 3, 3, "F");
+
+      yPos += 12;
+      doc.setFontSize(12);
+      setupFont(doc);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+
+      doc.text("Contrato:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(ato.contract?.contract_number || "N/A", margin + 50, yPos);
+
+      yPos += 10;
+      setupFont(doc);
+      doc.text("Cliente:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(ato.contract?.client?.name || "N/A", margin + 50, yPos);
+
+      yPos += 10;
+      setupFont(doc);
+      doc.text("Modelo:", margin + 10, yPos);
+      setupFont(doc, "bold");
+      doc.text(ato.contract?.yacht_model?.name || "N/A", margin + 50, yPos);
+    }
+
+    // ===== ATO INFO =====
+    function addATOInfo() {
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Informações da ATO", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 65;
+      doc.setFontSize(12);
+      setupFont(doc);
+
+      const info = [
+        { label: "Número", value: ato.ato_number },
+        { label: "Data de Solicitação", value: ato.requested_at ? formatDate(ato.requested_at) : "N/A" },
+        { label: "Status", value: ato.status === "approved" ? "Aprovado" : ato.status === "rejected" ? "Rejeitado" : "Pendente" },
+      ];
+
+      if (ato.approved_at) {
+        info.push({ label: "Data de Aprovação", value: formatDate(ato.approved_at) });
+      }
+
+      info.forEach((item) => {
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+        doc.text(item.label + ":", margin, yPos);
+
+        setupFont(doc);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        doc.text(item.value, margin + 60, yPos);
+        yPos += 12;
+      });
+
+      // Title and description
+      yPos += 10;
+      doc.setFontSize(16);
+      setupFont(doc, "bold");
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.text(ato.title, margin, yPos);
+
+      if (ato.description) {
+        yPos += 10;
+        doc.setFontSize(11);
+        setupFont(doc);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        const lines = doc.splitTextToSize(ato.description, pageW - 2 * margin);
+        lines.forEach((line: string) => {
+          doc.text(line, margin, yPos);
+          yPos += 6;
+        });
+      }
+    }
+
+    // ===== CONFIGURATIONS =====
+    function addConfigurations() {
+      if (!configurations || configurations.length === 0) return;
+
+      doc.addPage();
+
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Itens Configurados", margin, 40);
+
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 60;
+      doc.setFontSize(10);
+
+      configurations.forEach((config: any) => {
+        if (yPos > 260) {
+          doc.addPage();
+          yPos = 30;
         }
-      })
-    });
 
-    if (!pdfResponse.ok) {
-      console.error('PDF generation failed:', await pdfResponse.text());
-      return new Response(JSON.stringify({
-        success: true,
-        format: 'html',
-        data: btoa(html)
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        // Type badge
+        let typeColor = COLORS.primary;
+        let typeName = "Item";
+        
+        if (config.item_type === "option") {
+          typeColor = COLORS.accent;
+          typeName = "OPCIONAL";
+        } else if (config.item_type === "memorial") {
+          typeColor = [100, 100, 200];
+          typeName = "MEMORIAL";
+        } else if (config.item_type === "customization") {
+          typeColor = COLORS.success;
+          typeName = "CUSTOMIZAÇÃO";
+        }
+
+        doc.setFillColor(typeColor[0], typeColor[1], typeColor[2]);
+        doc.roundedRect(margin, yPos, 25, 5, 1, 1, "F");
+        doc.setTextColor(COLORS.textLight[0], COLORS.textLight[1], COLORS.textLight[2]);
+        doc.setFontSize(7);
+        setupFont(doc, "bold");
+        doc.text(typeName, margin + 12.5, yPos + 3.5, { align: "center" });
+
+        // Item name
+        yPos += 8;
+        doc.setFontSize(11);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        const itemName = config.configuration_details?.name || 
+                        config.configuration_details?.item_name || 
+                        "Item não especificado";
+        doc.text(`• ${itemName}`, margin, yPos);
+        yPos += 6;
+
+        // Sub-items
+        if (config.sub_items) {
+          try {
+            const subItems = typeof config.sub_items === 'string' 
+              ? JSON.parse(config.sub_items) 
+              : config.sub_items;
+            
+            if (Array.isArray(subItems) && subItems.length > 0) {
+              doc.setFontSize(9);
+              setupFont(doc);
+              doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+              
+              subItems.forEach((sub: any) => {
+                if (yPos > 270) {
+                  doc.addPage();
+                  yPos = 30;
+                }
+                const label = sub.label || sub.name || "";
+                const value = sub.value || sub.selectedValue || "N/A";
+                doc.text(`  → ${label}: ${value}`, margin + 5, yPos);
+                yPos += 5;
+              });
+            }
+          } catch (e) {
+            console.error("Error parsing sub_items:", e);
+          }
+        }
+
+        // Notes
+        if (config.notes) {
+          doc.setFontSize(9);
+          doc.setTextColor(COLORS.grayDark[0], COLORS.grayDark[1], COLORS.grayDark[2]);
+          setupFont(doc);
+          const notesLines = doc.splitTextToSize(`Obs: ${config.notes}`, pageW - 2 * margin - 10);
+          notesLines.forEach((line: string) => {
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 30;
+            }
+            doc.text(line, margin + 5, yPos);
+            yPos += 5;
+          });
+        }
+
+        yPos += 8;
       });
     }
 
-    const pdfBuffer = await pdfResponse.arrayBuffer();
-    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfBuffer)));
+    // ===== FINANCIAL IMPACT =====
+    function addFinancialImpact() {
+      doc.addPage();
 
-    return new Response(JSON.stringify({
-      success: true,
-      format: 'pdf',
-      data: base64Pdf
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      doc.setFontSize(22);
+      doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      setupFont(doc, "bold");
+      doc.text("Impacto Financeiro e Prazo", margin, 40);
 
-  } catch (error) {
-    console.error('Error generating ATO PDF:', error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+      doc.setDrawColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      doc.setLineWidth(1);
+      doc.line(margin, 45, pageW - margin, 45);
+
+      let yPos = 70;
+      doc.setFillColor(232, 244, 253);
+      doc.roundedRect(margin, yPos, pageW - 2 * margin, 70, 3, 3, "F");
+
+      yPos += 15;
+      doc.setFontSize(14);
+      setupFont(doc);
+      doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+
+      if (ato.price_impact) {
+        doc.text("Valor Base da ATO:", margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.text(formatCurrency(ato.price_impact), pageW - margin - 10, yPos, { align: "right" });
+      }
+
+      if (ato.discount_percentage && ato.discount_percentage > 0) {
+        yPos += 12;
+        setupFont(doc);
+        doc.text(`Desconto (${ato.discount_percentage}%):`, margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.success[0], COLORS.success[1], COLORS.success[2]);
+        const discount = (ato.price_impact || 0) * (ato.discount_percentage / 100);
+        doc.text(`-${formatCurrency(discount)}`, pageW - margin - 10, yPos, { align: "right" });
+      }
+
+      yPos += 15;
+      doc.setDrawColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
+      doc.line(margin + 10, yPos, pageW - margin - 10, yPos);
+
+      yPos += 12;
+      doc.setFontSize(18);
+      doc.setTextColor(COLORS.accent[0], COLORS.accent[1], COLORS.accent[2]);
+      setupFont(doc, "bold");
+      doc.text("VALOR FINAL:", margin + 10, yPos);
+      const finalPrice = (ato.price_impact || 0) * (1 - (ato.discount_percentage || 0) / 100);
+      doc.text(formatCurrency(finalPrice), pageW - margin - 10, yPos, { align: "right" });
+
+      if (ato.delivery_days_impact) {
+        yPos += 25;
+        doc.setFillColor(COLORS.light[0], COLORS.light[1], COLORS.light[2]);
+        doc.roundedRect(margin, yPos, pageW - 2 * margin, 20, 2, 2, "F");
+        
+        yPos += 13;
+        doc.setFontSize(14);
+        doc.setTextColor(COLORS.textDark[0], COLORS.textDark[1], COLORS.textDark[2]);
+        setupFont(doc);
+        doc.text("Impacto no Prazo:", margin + 10, yPos);
+        setupFont(doc, "bold");
+        doc.setTextColor(COLORS.warning[0], COLORS.warning[1], COLORS.warning[2]);
+        doc.text(`+${ato.delivery_days_impact} dias`, pageW - margin - 10, yPos, { align: "right" });
+      }
+    }
+
+    // ===== FOOTER =====
+    function addFooter() {
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.setTextColor(COLORS.gray[0], COLORS.gray[1], COLORS.gray[2]);
+        setupFont(doc);
+        doc.text(`Gerado em ${formatDate(new Date().toISOString())}`, pageW / 2, pageH - 10, { align: "center" });
+      }
+    }
+
+    // Build PDF
+    addCoverPage();
+    addReferenceInfo();
+    addATOInfo();
+    addConfigurations();
+    addFinancialImpact();
+    addFooter();
+
+    const pdfData = doc.output("arraybuffer");
+    const base64Pdf = btoa(String.fromCharCode(...new Uint8Array(pdfData)));
+
+    console.log("✓ ATO PDF generated successfully");
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        format: "pdf",
+        data: base64Pdf,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error generating ATO PDF:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
