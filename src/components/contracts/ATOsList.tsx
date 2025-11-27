@@ -422,8 +422,8 @@ export function ATOsList({ contractId }: ATOsListProps) {
           }}
           atoNumber={sendATODialog.ato.ato_number}
           atoTitle={sendATODialog.ato.title}
-          clientName={sendATODialog.ato.contracts?.clients?.name}
-          clientEmail={sendATODialog.ato.contracts?.clients?.email}
+          clientName={sendATODialog.ato.contract?.client?.name}
+          clientEmail={sendATODialog.ato.contract?.client?.email}
           onSend={handleSendATO}
         />
       )}
