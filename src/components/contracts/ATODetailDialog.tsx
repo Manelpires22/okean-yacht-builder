@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useATO, useApproveATO, useCancelATO, useDeleteATO } from "@/hooks/useATOs";
 import { useATOConfigurations, useRemoveATOConfiguration } from "@/hooks/useATOConfigurations";
+import { useSendATO } from "@/hooks/useSendATO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
@@ -44,6 +45,7 @@ import {
   Wrench,
   Clock,
   Pencil,
+  Send,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +54,7 @@ import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOPMReviewForm } from "./ATOPMReviewForm";
 import { EditATODialog } from "./EditATODialog";
+import { SendATOToClientDialog } from "./SendATOToClientDialog";
 
 interface ATODetailDialogProps {
   open: boolean;
@@ -73,6 +76,7 @@ export function ATODetailDialog({
   const { mutate: cancelATO, isPending: isCanceling } = useCancelATO();
   const { mutate: deleteATO, isPending: isDeleting } = useDeleteATO();
   const { mutate: removeConfiguration, isPending: isRemoving } = useRemoveATOConfiguration();
+  const { mutate: sendATO, isPending: isSending } = useSendATO();
   const { data: userRoleData } = useUserRole();
   const { user } = useAuth();
 
@@ -83,6 +87,7 @@ export function ATODetailDialog({
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSendDialog, setShowSendDialog] = useState(false);
 
   const isAdmin = userRoleData?.roles?.includes('administrador');
   
@@ -100,6 +105,12 @@ export function ATODetailDialog({
   const isNotApproved = ato?.status !== 'approved';
   const canEdit = isNotApproved && (isAdmin || ato?.requested_by === user?.id);
   const canDelete = isNotApproved && isAdmin;
+  
+  // ✅ Pode enviar ao cliente quando workflow completo, status draft e desconto ≤ 10%
+  const canSendToClient = 
+    ato?.workflow_status === 'completed' && 
+    ato?.status === 'draft' && 
+    (ato?.discount_percentage || 0) <= 10;
 
   // Workflow logic
   const currentStep = workflowData?.workflow_steps?.find(
@@ -144,6 +155,25 @@ export function ATODetailDialog({
     deleteATO(atoId, {
       onSuccess: () => {
         setShowDeleteDialog(false);
+        onOpenChange(false);
+      },
+    });
+  };
+
+  const handleSendToClient = async (sendData: any) => {
+    if (!atoId || !ato) return;
+    
+    sendATO({
+      atoId,
+      discountPercentage: ato.discount_percentage || 0,
+      sendEmail: sendData.sendEmail,
+      generatePDF: sendData.generatePDF,
+      recipientEmail: sendData.recipientEmail,
+      emailSubject: sendData.emailSubject,
+      emailMessage: sendData.emailMessage,
+    }, {
+      onSuccess: () => {
+        setShowSendDialog(false);
         onOpenChange(false);
       },
     });
@@ -255,6 +285,30 @@ export function ATODetailDialog({
                       </p>
                     </div>
                   </div>
+
+                  {/* Desconto e Preço Final (se houver desconto) */}
+                  {ato.discount_percentage > 0 && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="h-4 w-4 text-orange-600" />
+                          <span className="text-sm font-medium">Desconto Aplicado</span>
+                        </div>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {ato.discount_percentage.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">Preço Final</span>
+                        </div>
+                        <p className="text-2xl font-bold text-green-700">
+                          {formatCurrency(ato.price_impact * (1 - (ato.discount_percentage || 0) / 100))}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Timeline */}
                   <div className="space-y-2">
@@ -548,6 +602,20 @@ export function ATODetailDialog({
                     </Button>
                   )}
                   
+                  {canSendToClient && (
+                    <Button
+                      onClick={() => setShowSendDialog(true)}
+                      disabled={isSending}
+                    >
+                      {isSending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="mr-2 h-4 w-4" />
+                      )}
+                      Enviar ao Cliente
+                    </Button>
+                  )}
+                  
                   <Button variant="outline" onClick={() => onOpenChange(false)}>
                     Fechar
                   </Button>
@@ -681,6 +749,38 @@ export function ATODetailDialog({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Configuration Dialog */}
+      {showConfigDialog && ato && (
+        <ATOConfigurationDialog
+          open={showConfigDialog}
+          onOpenChange={setShowConfigDialog}
+          atoId={atoId!}
+          contractId={ato.contract_id}
+        />
+      )}
+
+      {/* Edit Dialog */}
+      {ato && showEditDialog && (
+        <EditATODialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          ato={ato}
+        />
+      )}
+
+      {/* Send to Client Dialog */}
+      {ato && showSendDialog && (
+        <SendATOToClientDialog
+          open={showSendDialog}
+          onOpenChange={setShowSendDialog}
+          atoNumber={ato.ato_number}
+          atoTitle={ato.title}
+          clientName={undefined}
+          clientEmail={undefined}
+          onSend={handleSendToClient}
+        />
+      )}
     </>
   );
 }
