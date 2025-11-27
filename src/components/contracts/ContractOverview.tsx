@@ -61,7 +61,8 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
           <CardTitle>Valores e Prazos</CardTitle>
           <CardDescription>Consolidação de preços e prazos de entrega</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Layout vertical: Base → Total em cada coluna */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Coluna VALORES */}
             <div className="space-y-6">
