@@ -10,53 +10,79 @@ export function useQuotationsGroupedByVersion() {
     // 1. Criar mapa de todas as cotações por ID
     const quotationsMap = new Map(quotations.map(q => [q.id, q]));
     
-    // 2. Encontrar cotações raiz (sem parent_quotation_id)
-    const rootQuotations = quotations.filter(q => !q.parent_quotation_id);
+    // 2. Função para encontrar a raiz real percorrendo toda a cadeia
+    const findRealRoot = (quotation: any): any => {
+      let current = quotation;
+      const visited = new Set<string>();
+      
+      while (current.parent_quotation_id && !visited.has(current.id)) {
+        visited.add(current.id);
+        const parent = quotationsMap.get(current.parent_quotation_id);
+        if (!parent) break;
+        current = parent;
+      }
+      
+      return current;
+    };
     
-    // 3. Para cada raiz, construir a árvore de versões
-    const grouped = rootQuotations.map(root => {
-      // Buscar todas as versões que pertencem a esta raiz
-      const versions = quotations.filter(q => 
-        q.id === root.id || q.parent_quotation_id === root.id
+    // 3. Agrupar todas as cotações pela raiz real
+    const groupsByRoot = new Map<string, any[]>();
+    
+    for (const quotation of quotations) {
+      const root = findRealRoot(quotation);
+      const rootId = root.id;
+      
+      if (!groupsByRoot.has(rootId)) {
+        groupsByRoot.set(rootId, []);
+      }
+      groupsByRoot.get(rootId)!.push(quotation);
+    }
+    
+    // 4. Processar cada grupo
+    const grouped = Array.from(groupsByRoot.entries()).map(([rootId, versions]) => {
+      // Verificar se alguma versão tem contrato
+      const contractedVersion = versions.find(v => 
+        v.contracts && Array.isArray(v.contracts) && v.contracts.length > 0
       );
       
-      // Ordenar por versão (decrescente - mais recente primeiro)
-      versions.sort((a, b) => (b.version || 1) - (a.version || 1));
+      // Se tem contrato, essa é a versão principal
+      // Senão, a mais recente (maior version number)
+      let latestVersion: any;
+      let previousVersions: any[];
       
-      const latestVersion = versions[0];
-      const previousVersions = versions.slice(1);
+      if (contractedVersion) {
+        latestVersion = contractedVersion;
+        previousVersions = versions
+          .filter(v => v.id !== contractedVersion.id)
+          .sort((a, b) => (b.version || 1) - (a.version || 1));
+      } else {
+        // Ordenar por versão decrescente
+        const sorted = [...versions].sort((a, b) => (b.version || 1) - (a.version || 1));
+        latestVersion = sorted[0];
+        previousVersions = sorted.slice(1);
+      }
       
       return {
-        rootId: root.id,
+        rootId,
         latestVersion,
         previousVersions,
         totalVersions: versions.length,
-        hasMultipleVersions: versions.length > 1
+        hasMultipleVersions: versions.length > 1,
+        hasContract: !!contractedVersion,
+        contractedVersionId: contractedVersion?.id || null,
+        contractNumber: contractedVersion?.contracts?.[0]?.contract_number || null,
       };
     });
-
-    // 4. Incluir cotações órfãs (não são raiz e não tem raiz encontrada)
-    const allVersionIds = new Set<string>();
-    grouped.forEach(g => {
-      if (g.latestVersion) {
-        allVersionIds.add(g.latestVersion.id);
-      }
-      if (Array.isArray(g.previousVersions)) {
-        g.previousVersions.forEach(v => allVersionIds.add(v.id));
-      }
-    });
     
-    const orphans = quotations
-      .filter(q => !allVersionIds.has(q.id))
-      .map(q => ({
-        rootId: q.id,
-        latestVersion: q,
-        previousVersions: [],
-        totalVersions: 1,
-        hasMultipleVersions: false
-      }));
+    // 5. Ordenar grupos: contratos primeiro, depois por data de criação
+    grouped.sort((a, b) => {
+      if (a.hasContract && !b.hasContract) return -1;
+      if (!a.hasContract && b.hasContract) return 1;
+      return new Date(b.latestVersion.created_at).getTime() - 
+             new Date(a.latestVersion.created_at).getTime();
+    });
 
-    return [...grouped, ...orphans];
+    return grouped;
   }, [quotations]);
 
   return { data: groupedQuotations, isLoading };

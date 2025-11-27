@@ -180,6 +180,8 @@ export default function Quotations() {
                     previousVersions={group.previousVersions}
                     totalVersions={group.totalVersions}
                     hasMultipleVersions={group.hasMultipleVersions}
+                    hasContract={group.hasContract}
+                    contractNumber={group.contractNumber}
                     onNavigate={(id) => navigate(`/quotations/${id}`)}
                     onEdit={(id) => navigate(`/configurator?edit=${id}`)}
                     onDelete={(id) => deleteQuotation.mutate(id)}

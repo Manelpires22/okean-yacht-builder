@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Pencil, Trash2, Copy, ChevronDown } from "lucide-react";
+import { Eye, Pencil, Trash2, Copy, ChevronDown, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -25,6 +25,8 @@ interface QuotationVersionRowProps {
   previousVersions: any[];
   totalVersions: number;
   hasMultipleVersions: boolean;
+  hasContract: boolean;
+  contractNumber: string | null;
   onNavigate: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -38,6 +40,8 @@ export function QuotationVersionRow({
   previousVersions,
   totalVersions,
   hasMultipleVersions,
+  hasContract,
+  contractNumber,
   onNavigate,
   onEdit,
   onDelete,
@@ -46,6 +50,11 @@ export function QuotationVersionRow({
   canDelete
 }: QuotationVersionRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  const isContracted = hasContract && 
+    latestVersion.contracts && 
+    Array.isArray(latestVersion.contracts) && 
+    latestVersion.contracts.length > 0;
 
   return (
     <>
@@ -78,6 +87,19 @@ export function QuotationVersionRow({
                   <Badge variant="secondary" className="text-xs">
                     {totalVersions} versões
                   </Badge>
+                )}
+                {isContracted && (
+                  <>
+                    <Badge className="bg-emerald-500 text-white text-xs">
+                      <FileCheck className="h-3 w-3 mr-1" />
+                      Contratada
+                    </Badge>
+                    {contractNumber && (
+                      <Badge variant="outline" className="text-xs">
+                        {contractNumber}
+                      </Badge>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -137,7 +159,7 @@ export function QuotationVersionRow({
               </Button>
             )}
             
-            {canDelete && (
+            {canDelete && !isContracted && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -222,14 +244,48 @@ export function QuotationVersionRow({
           </TableCell>
           
           <TableCell className="text-right">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate(version.id)}
-              title="Ver versão anterior"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate(version.id)}
+                title="Ver versão anterior"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Deletar versão"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir a versão {version.quotation_number}?
+                        Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onDelete(version.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Deletar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </TableCell>
         </TableRow>
       ))}
