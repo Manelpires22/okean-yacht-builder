@@ -20,56 +20,31 @@ export function useContractStats() {
   return useQuery({
     queryKey: ["contract-stats"],
     queryFn: async () => {
-      // Fetch all contracts
-      const { data: contracts, error: contractsError } = await supabase
-        .from("contracts")
-        .select("status, current_total_price, current_total_delivery_days");
+      const { data, error } = await supabase
+        .from('contract_stats')
+        .select('*')
+        .single();
 
-      if (contractsError) throw contractsError;
-
-      // Fetch all ATOs
-      const { data: atos, error: atosError } = await supabase
-        .from("additional_to_orders")
-        .select("status, price_impact");
-
-      if (atosError) throw atosError;
-
-      // Calculate contract stats
-      const totalContracts = contracts?.length || 0;
-      const activeContracts = contracts?.filter(c => c.status === "active").length || 0;
-      const completedContracts = contracts?.filter(c => c.status === "completed").length || 0;
-      const cancelledContracts = contracts?.filter(c => c.status === "cancelled").length || 0;
-
-      const totalRevenue = contracts?.reduce((sum, c) => sum + Number(c.current_total_price), 0) || 0;
-      const averageContractValue = totalContracts > 0 ? totalRevenue / totalContracts : 0;
-      const averageDeliveryDays = totalContracts > 0
-        ? contracts.reduce((sum, c) => sum + Number(c.current_total_delivery_days), 0) / totalContracts
-        : 0;
-
-      // Calculate ATO stats
-      const totalATOs = atos?.length || 0;
-      const pendingATOs = atos?.filter(a => a.status === "draft" || a.status === "pending_approval").length || 0;
-      const approvedATOs = atos?.filter(a => a.status === "approved").length || 0;
-      const rejectedATOs = atos?.filter(a => a.status === "rejected").length || 0;
-      const totalATORevenue = atos?.filter(a => a.status === "approved")
-        .reduce((sum, a) => sum + Number(a.price_impact), 0) || 0;
+      if (error) throw error;
 
       const stats: ContractStats = {
-        totalContracts,
-        activeContracts,
-        completedContracts,
-        cancelledContracts,
-        totalRevenue,
-        averageContractValue,
-        totalATOs,
-        pendingATOs,
-        approvedATOs,
-        rejectedATOs,
-        totalATORevenue,
-        averageDeliveryDays,
+        totalContracts: data?.total_contracts || 0,
+        activeContracts: data?.active_contracts || 0,
+        completedContracts: data?.completed_contracts || 0,
+        cancelledContracts: data?.cancelled_contracts || 0,
+        totalRevenue: data?.total_revenue || 0,
+        averageContractValue: data?.total_contracts > 0 
+          ? data.total_revenue / data.total_contracts : 0,
+        totalATOs: data?.total_atos || 0,
+        pendingATOs: data?.pending_atos || 0,
+        approvedATOs: data?.approved_atos || 0,
+        rejectedATOs: data?.rejected_atos || 0,
+        totalATORevenue: data?.total_ato_revenue || 0,
+        averageDeliveryDays: data?.avg_delivery_days || 0,
       };
 
       return stats;
     },
+    staleTime: 30000, // Cache por 30 segundos
   });
 }

@@ -1423,6 +1423,33 @@ export type Database = {
       }
     }
     Views: {
+      admin_dashboard_stats: {
+        Row: {
+          categories_count: number | null
+          contracts_count: number | null
+          models_count: number | null
+          options_count: number | null
+          quotations_count: number | null
+          users_count: number | null
+        }
+        Relationships: []
+      }
+      contract_stats: {
+        Row: {
+          active_contracts: number | null
+          approved_atos: number | null
+          avg_delivery_days: number | null
+          cancelled_contracts: number | null
+          completed_contracts: number | null
+          pending_atos: number | null
+          rejected_atos: number | null
+          total_ato_revenue: number | null
+          total_atos: number | null
+          total_contracts: number | null
+          total_revenue: number | null
+        }
+        Relationships: []
+      }
       live_contracts: {
         Row: {
           approved_atos_count: number | null
@@ -1467,6 +1494,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quotation_stats: {
+        Row: {
+          accepted: number | null
+          accepted_value: number | null
+          draft: number | null
+          expiring_soon: number | null
+          pending_approval: number | null
+          ready_to_send: number | null
+          recent_quotations: number | null
+          sent: number | null
+          total: number | null
+          total_value: number | null
+        }
+        Relationships: []
+      }
+      workflow_pending_tasks: {
+        Row: {
+          pending_commercial_tasks: number | null
+          pending_planning_tasks: number | null
+          pending_pm_tasks: number | null
+          pending_supply_tasks: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
