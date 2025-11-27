@@ -2,6 +2,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
+/**
+ * Representa uma cotação no sistema
+ * 
+ * @interface Quotation
+ * @property {string} id - UUID único da cotação
+ * @property {string} quotation_number - Número formatado (ex: QT-2025-001)
+ * @property {string} yacht_model_id - UUID do modelo de iate
+ * @property {string} [client_id] - UUID do cliente (opcional se criado inline)
+ * @property {string} client_name - Nome do cliente
+ * @property {string} [client_email] - E-mail do cliente
+ * @property {string} [client_phone] - Telefone do cliente
+ * @property {string} sales_representative_id - UUID do vendedor
+ * @property {string} status - Status (draft, sent, accepted, converted, cancelled)
+ * @property {number} base_price - Preço base do modelo em BRL
+ * @property {number} base_delivery_days - Prazo base de entrega em dias
+ * @property {number} total_options_price - Soma dos preços de opcionais
+ * @property {number} total_customizations_price - Soma dos custos de customizações
+ * @property {number} discount_amount - Valor total de desconto em BRL
+ * @property {number} discount_percentage - Percentual de desconto aplicado
+ * @property {number} final_price - Preço final total em BRL
+ * @property {number} total_delivery_days - Prazo total de entrega em dias
+ * @property {string} valid_until - Data de validade ISO (YYYY-MM-DD)
+ * @property {string} created_at - Timestamp de criação ISO
+ * @property {string} updated_at - Timestamp de última atualização ISO
+ */
 export interface Quotation {
   id: string;
   quotation_number: string;
@@ -25,6 +50,49 @@ export interface Quotation {
   updated_at: string;
 }
 
+/**
+ * Hook para buscar todas as cotações do sistema
+ * 
+ * @description
+ * Retorna lista completa de cotações com dados relacionados (modelo, cliente, 
+ * vendedor e contratos associados). Usa React Query para cache automático,
+ * revalidação e deduplicação de requests.
+ * 
+ * **Dados incluídos nos relacionamentos:**
+ * - `yacht_models`: name, code
+ * - `clients`: name, email, company
+ * - `users`: full_name, email (vendedor)
+ * - `contracts`: id, contract_number (se convertido)
+ * 
+ * @returns {UseQueryResult<Quotation[]>} Query result do React Query
+ * @returns {Quotation[]} return.data - Array de cotações ordenadas por criação (desc)
+ * @returns {boolean} return.isLoading - true durante carregamento inicial
+ * @returns {boolean} return.isFetching - true durante qualquer fetch (incluindo refetch)
+ * @returns {Error|null} return.error - Objeto de erro se query falhou
+ * 
+ * @example
+ * ```typescript
+ * function QuotationsList() {
+ *   const { data: quotations, isLoading, error } = useQuotations();
+ *   
+ *   if (isLoading) return <Skeleton count={5} />;
+ *   if (error) return <Alert variant="destructive">{error.message}</Alert>;
+ *   if (!quotations?.length) return <EmptyState />;
+ *   
+ *   return (
+ *     <div className="grid gap-4">
+ *       {quotations.map(q => (
+ *         <QuotationCard key={q.id} quotation={q} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useQuotation} - Para buscar uma cotação específica
+ * @see {@link useDeleteQuotation} - Para deletar cotação
+ * @see {@link useDuplicateQuotation} - Para duplicar cotação
+ */
 export function useQuotations() {
   return useQuery({
     queryKey: ["quotations"],
@@ -59,6 +127,47 @@ export function useQuotations() {
   });
 }
 
+/**
+ * Hook para buscar uma cotação específica por ID
+ * 
+ * @description
+ * Retorna cotação completa com todos os dados relacionados:
+ * - Modelo de iate (specs completas, imagem)
+ * - Cliente (contato completo)
+ * - Vendedor
+ * - Opcionais selecionados (com detalhes de cada opcional)
+ * - Customizações solicitadas (memorial e opcionais)
+ * 
+ * **Query desabilitada se id for undefined.**
+ * 
+ * @param {string} id - UUID da cotação
+ * @returns {UseQueryResult<Quotation>} Query result com cotação completa
+ * @returns {Quotation} return.data - Cotação com todos relacionamentos
+ * @returns {boolean} return.isLoading - true durante carregamento
+ * @returns {Error|null} return.error - Erro se houver
+ * 
+ * @example
+ * ```typescript
+ * function QuotationDetail({ quotationId }) {
+ *   const { data: quotation, isLoading } = useQuotation(quotationId);
+ *   
+ *   if (isLoading) return <LoadingSkeleton />;
+ *   if (!quotation) return <NotFound />;
+ *   
+ *   return (
+ *     <div>
+ *       <h1>Cotação {quotation.quotation_number}</h1>
+ *       <QuotationSummary quotation={quotation} />
+ *       <OptionsList options={quotation.quotation_options} />
+ *       <CustomizationsList items={quotation.quotation_customizations} />
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useQuotations} - Para listar todas as cotações
+ * @see {@link useUpdateQuotationStatus} - Para atualizar status
+ */
 export function useQuotation(id: string) {
   return useQuery({
     queryKey: ["quotations", id],
@@ -125,6 +234,42 @@ export function useQuotation(id: string) {
   });
 }
 
+/**
+ * Hook para atualizar o status de uma cotação
+ * 
+ * @description
+ * Mutation para alterar status de cotações (draft → sent → accepted, etc).
+ * Invalida cache de cotações após sucesso e exibe toast de feedback.
+ * 
+ * **Queries invalidadas:**
+ * - `quotations` - Lista de cotações recarregada
+ * 
+ * @returns {UseMutationResult} Mutation do React Query
+ * @returns {function} return.mutate - Executa atualização
+ * @returns {boolean} return.isPending - true durante execução
+ * 
+ * @example
+ * ```typescript
+ * function SendQuotationButton({ quotationId }) {
+ *   const { mutate: updateStatus, isPending } = useUpdateQuotationStatus();
+ *   
+ *   const handleSend = () => {
+ *     updateStatus({ 
+ *       id: quotationId, 
+ *       status: 'sent' 
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <Button onClick={handleSend} disabled={isPending}>
+ *       {isPending ? 'Enviando...' : 'Enviar ao Cliente'}
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useQuotation} - Para buscar cotação específica
+ */
 export function useUpdateQuotationStatus() {
   const queryClient = useQueryClient();
 
@@ -156,6 +301,61 @@ export function useUpdateQuotationStatus() {
   });
 }
 
+/**
+ * Hook para deletar uma cotação
+ * 
+ * @description
+ * Remove permanentemente uma cotação do sistema. **Validação importante:**
+ * cotações que já foram convertidas em contrato não podem ser deletadas.
+ * 
+ * **Queries invalidadas após sucesso:**
+ * - `quotations` - Lista de cotações é recarregada
+ * 
+ * @returns {UseMutationResult} Mutation do React Query
+ * @returns {function} return.mutate - Executa deleção (fire-and-forget)
+ * @returns {function} return.mutateAsync - Executa deleção com Promise
+ * @returns {boolean} return.isPending - true durante execução
+ * 
+ * @throws {Error} Se cotação já foi convertida em contrato
+ * @throws {Error} Se erro do Supabase durante deleção
+ * 
+ * @example
+ * ```typescript
+ * function DeleteQuotationButton({ quotationId }) {
+ *   const { mutate: deleteQuotation, isPending } = useDeleteQuotation();
+ *   
+ *   const handleDelete = () => {
+ *     deleteQuotation(quotationId, {
+ *       onSuccess: () => navigate('/cotacoes'),
+ *       onError: (err) => toast.error(err.message)
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <AlertDialog>
+ *       <AlertDialogTrigger asChild>
+ *         <Button variant="destructive" disabled={isPending}>
+ *           {isPending ? 'Deletando...' : 'Deletar'}
+ *         </Button>
+ *       </AlertDialogTrigger>
+ *       <AlertDialogContent>
+ *         <AlertDialogHeader>
+ *           <AlertDialogTitle>Confirmar exclusão?</AlertDialogTitle>
+ *         </AlertDialogHeader>
+ *         <AlertDialogFooter>
+ *           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+ *           <AlertDialogAction onClick={handleDelete}>
+ *             Confirmar
+ *           </AlertDialogAction>
+ *         </AlertDialogFooter>
+ *       </AlertDialogContent>
+ *     </AlertDialog>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useQuotations} - Lista de cotações
+ */
 export function useDeleteQuotation() {
   const queryClient = useQueryClient();
 
@@ -199,6 +399,55 @@ export function useDeleteQuotation() {
   });
 }
 
+/**
+ * Hook para duplicar uma cotação existente
+ * 
+ * @description
+ * Cria uma nova cotação baseada em uma existente, copiando:
+ * - Dados do cliente e modelo
+ * - Opcionais selecionados (com quantidades e preços)
+ * 
+ * **Não copia:**
+ * - Customizações (precisam ser reavaliadas)
+ * - Descontos (zerados por segurança)
+ * - Status (sempre "draft")
+ * 
+ * **Gera novo quotation_number automaticamente.**
+ * 
+ * @param {string} quotationId - UUID da cotação a duplicar
+ * @returns {UseMutationResult} Mutation do React Query
+ * @returns {Quotation} return.data - Nova cotação criada (no onSuccess)
+ * 
+ * @example
+ * ```typescript
+ * function DuplicateQuotationAction({ quotationId }) {
+ *   const { mutate: duplicate, isPending } = useDuplicateQuotation();
+ *   const navigate = useNavigate();
+ *   
+ *   const handleDuplicate = () => {
+ *     duplicate(quotationId, {
+ *       onSuccess: (newQuotation) => {
+ *         toast.success(`Nova cotação: ${newQuotation.quotation_number}`);
+ *         navigate(`/cotacoes/${newQuotation.id}`);
+ *       }
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <Button 
+ *       variant="outline" 
+ *       onClick={handleDuplicate}
+ *       disabled={isPending}
+ *     >
+ *       <Copy className="mr-2 h-4 w-4" />
+ *       {isPending ? 'Duplicando...' : 'Duplicar Cotação'}
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useQuotations} - Lista de cotações
+ */
 export function useDuplicateQuotation() {
   const queryClient = useQueryClient();
 
