@@ -4,6 +4,7 @@ import { useConsolidatedContractScope } from "@/hooks/useConsolidatedContractSco
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, Calendar, FileText, TrendingUp, BookOpen, Package, Wrench, Settings } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -80,142 +81,127 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
 
       {/* Tab: Resumo Financeiro */}
       <TabsContent value="resumo" className="space-y-6">
-        {/* Card Principal: Contrato Consolidado */}
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <TrendingUp className="h-6 w-6 text-primary" />
-                Contrato Consolidado
-              </CardTitle>
-              <CardDescription className="text-base">
-                Valores e prazos atualizados em tempo real com todas as ATOs aprovadas
-              </CardDescription>
-            </div>
-            <Badge variant="default" className="text-lg px-6 py-3">
-              {liveContract.approved_atos_count} ATO(s) aplicada(s)
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <DollarSign className="h-4 w-4" />
-                <span className="text-sm">Valor Total Consolidado</span>
-              </div>
-              <div>
-                <p className="text-4xl font-bold text-primary">
-                  {formatCurrency(liveContract.current_total_price)}
-                </p>
-                {priceVariation !== 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <span
-                      className={
-                        priceVariation > 0
-                          ? "text-green-600 font-semibold"
-                          : "text-red-600 font-semibold"
-                      }
-                    >
-                      {priceVariation > 0 ? "+" : ""}
-                      {formatCurrency(priceVariation)}
-                    </span>{" "}
-                    vs. contrato base
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span className="text-sm">Prazo Total Consolidado</span>
-              </div>
-              <div>
-                <p className="text-4xl font-bold text-primary">
-                  {liveContract.current_total_delivery_days} dias
-                </p>
-                {daysVariation !== 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <span className="text-orange-600 font-semibold">
-                      +{daysVariation} dias
-                    </span>{" "}
-                    vs. contrato base
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card: Valores e Prazos Consolidados */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Contrato Base
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Valores e Prazos
             </CardTitle>
+            <CardDescription>Consolidação de preços e prazos de entrega</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(liveContract.base_price)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {liveContract.base_delivery_days} dias
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              {/* Coluna VALORES */}
+              <div className="space-y-6">
+                {/* 1. Contrato Original */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Preço Base (Contrato Original)</p>
+                  <p className="text-3xl font-bold text-primary">
+                    {formatCurrency(liveContract.base_price)}
+                  </p>
+                </div>
+                
+                {/* 2. Valor ATOs */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Valor Total ATOs Aprovadas</p>
+                  <p className="text-2xl font-semibold text-green-600">
+                    + {formatCurrency(liveContract.total_atos_price || 0)}
+                  </p>
+                  <Badge className="mt-2" variant="secondary">
+                    {liveContract.approved_atos_count} ATO(s) aprovada(s)
+                  </Badge>
+                </div>
+                
+                {/* Separador visual */}
+                <Separator className="my-4" />
+                
+                {/* 3. Total Consolidado */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Valor Total Atual</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {formatCurrency(liveContract.current_total_price)}
+                  </p>
+                  {priceVariation !== 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Variação:{" "}
+                      <span className="text-green-600 font-semibold">
+                        +{formatCurrency(priceVariation)}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Coluna PRAZOS */}
+              <div className="space-y-6">
+                {/* 1. Prazo Original */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Prazo Base</p>
+                  <p className="text-3xl font-bold text-primary">
+                    {liveContract.base_delivery_days} dias
+                  </p>
+                </div>
+                
+                {/* 2. Impacto ATOs */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Impacto ATOs no Prazo</p>
+                  <p className="text-2xl font-semibold text-orange-600">
+                    + {liveContract.total_atos_delivery_days || 0} dias
+                  </p>
+                </div>
+                
+                {/* Separador visual */}
+                <Separator className="my-4" />
+                
+                {/* 3. Prazo Final */}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Prazo Total Atual</p>
+                  <p className="text-4xl font-bold text-primary">
+                    {liveContract.current_total_delivery_days} dias
+                  </p>
+                  {daysVariation !== 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Variação:{" "}
+                      <span className="text-orange-600 font-semibold">
+                        +{daysVariation} dias
+                      </span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Card: Status das ATOs */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Impacto ATOs
-            </CardTitle>
+          <CardHeader>
+            <CardTitle className="text-base">Status das ATOs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div>
-                <p className="text-2xl font-bold">
-                  {priceVariation > 0 ? "+" : ""}
-                  {formatCurrency(liveContract.total_atos_price || 0)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  +{liveContract.total_atos_delivery_days || 0} dias
-                </p>
+            <div className="flex flex-wrap gap-6">
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Aprovadas</span>
+                <Badge variant="default" className="text-base px-4 py-1">
+                  {liveContract.approved_atos_count}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Pendentes</span>
+                <Badge variant="secondary" className="text-base px-4 py-1">
+                  {liveContract.pending_atos_count}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <Badge variant="outline" className="text-base px-4 py-1">
+                  {liveContract.total_atos_count}
+                </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Status das ATOs</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Aprovadas</span>
-                <Badge variant="default">{liveContract.approved_atos_count}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Pendentes</span>
-                <Badge variant="secondary">{liveContract.pending_atos_count}</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Total</span>
-                <Badge variant="outline">{liveContract.total_atos_count}</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
       </TabsContent>
 
       {/* Tab: Memorial Base */}
