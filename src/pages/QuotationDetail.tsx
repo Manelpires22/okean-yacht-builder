@@ -77,9 +77,9 @@ export default function QuotationDetail() {
     enabled: !!id && (quotation?.status === 'accepted' || quotation?.status === 'approved')
   });
 
-  // Calcular status de aprovações usando approvals da query principal
-  const commercialApprovals = quotation?.approvals?.filter(a => a.approval_type === 'commercial') || [];
-  const technicalApprovals = quotation?.approvals?.filter(a => a.approval_type === 'technical') || [];
+  // Workflow simplificado não usa approvals separadas
+  const commercialApprovals: any[] = [];
+  const technicalApprovals: any[] = [];
   
   const commercialApprovalStatus = commercialApprovals.length === 0 
     ? undefined 

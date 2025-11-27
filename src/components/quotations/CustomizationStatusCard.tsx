@@ -2,9 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, CheckCircle2, XCircle, FileText, RefreshCw } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
-import { useSyncCustomizations } from "@/hooks/useSyncCustomizations";
 
 interface Customization {
   id: string;
@@ -24,8 +23,7 @@ interface CustomizationStatusCardProps {
   quotationId: string;
 }
 
-export function CustomizationStatusCard({ customizations, quotationId }: CustomizationStatusCardProps) {
-  const syncMutation = useSyncCustomizations();
+export function CustomizationStatusCard({ customizations }: CustomizationStatusCardProps) {
   
   if (!customizations || customizations.length === 0) {
     return null;
@@ -86,17 +84,6 @@ export function CustomizationStatusCard({ customizations, quotationId }: Customi
             </Badge>
           )}
         </div>
-        {pendingCount > 0 && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => syncMutation.mutate(quotationId)}
-            disabled={syncMutation.isPending}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-            Sincronizar
-          </Button>
-        )}
       </div>
 
       {/* Lista de customizações */}

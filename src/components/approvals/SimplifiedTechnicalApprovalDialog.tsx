@@ -61,20 +61,7 @@ export function SimplifiedTechnicalApprovalDialog({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 1. Atualizar a approval
-      const { error: approvalError } = await supabase
-        .from('approvals')
-        .update({
-          status: params.action === 'approve' ? 'approved' : 'rejected',
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-          review_notes: params.engineeringNotes,
-        })
-        .eq('id', params.approvalId);
-
-      if (approvalError) throw approvalError;
-
-      // 2. Atualizar a customização (com fallback por nome)
+      // Atualizar a customização (com fallback por nome)
       // Primeiro verifica se a customização existe pelo ID
       const { data: existingById } = await supabase
         .from('quotation_customizations')

@@ -61,29 +61,9 @@ export function useSendATO() {
 
       if (updateError) throw updateError;
 
-      // 5. Se desconto > 10%, criar approval request
-      if (discountPercentage > 10) {
-        const { error: approvalError } = await supabase
-          .from('approvals')
-          .insert({
-            quotation_id: ato.contract.quotation_id, // Link ao quotation original
-            approval_type: 'commercial',
-            status: 'pending',
-            requested_by: userId!,
-            request_details: {
-              ato_id: atoId,
-              contract_id: ato.contract_id,
-              discount_percentage: discountPercentage,
-              original_price: originalPrice,
-              final_price: finalPrice,
-            },
-            notes: `Desconto de ${discountPercentage.toFixed(1)}% aplicado na ATO ${ato.ato_number}`,
-          });
+      // Descontos agora gerenciados via workflow simplificado
 
-        if (approvalError) throw approvalError;
-      }
-
-      // 6. Se deve enviar email, chamar edge function (a ser criada)
+      // 6. Se deve enviar email, chamar edge function
       if (sendEmail && recipientEmail) {
         // TODO: Criar edge function send-ato-email
         console.log('Enviando email da ATO:', {
