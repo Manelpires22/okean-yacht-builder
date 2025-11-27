@@ -172,26 +172,6 @@ export function useCreateATO() {
         if (configError) throw configError;
       }
 
-      // 5. Criar approval request se necessário
-      if (requiresApproval) {
-        const { error: approvalError } = await supabase
-          .from("approvals")
-          .insert({
-            quotation_id: null, // ATOs não usam quotation_id diretamente
-            approval_type: "commercial",
-            status: "pending",
-            requested_by: user.id,
-            request_details: {
-              ato_id: ato.id,
-              contract_id: input.contract_id,
-              price_impact: input.price_impact,
-              delivery_days_impact: input.delivery_days_impact,
-            },
-          });
-
-        if (approvalError) throw approvalError;
-      }
-
       return ato;
     },
     onSuccess: (_, variables) => {
