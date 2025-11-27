@@ -44,7 +44,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { usePendingApprovalsCount } from "@/hooks/useApprovals";
+import { useWorkflowPendingCount } from "@/hooks/useWorkflowPendingCount";
 
 // Itens principais (não agrupados) - MESMA estrutura do AdminLayout original
 const mainNavItems = [
@@ -95,7 +95,7 @@ const navGroups = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
-  const { data: pendingCount = 0 } = usePendingApprovalsCount();
+  const { data: pendingCount = 0 } = useWorkflowPendingCount();
   const isCollapsed = state === "collapsed";
 
   const isActive = (path: string) => {
