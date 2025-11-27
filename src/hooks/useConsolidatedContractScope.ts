@@ -44,7 +44,16 @@ export function useConsolidatedContractScope(contractId: string | undefined) {
       // 3. Buscar ATOs aprovadas
       const { data: approvedATOs, error: atosError } = await supabase
         .from("additional_to_orders")
-        .select("id, ato_number, title")
+        .select(`
+          id,
+          ato_number,
+          title,
+          description,
+          price_impact,
+          discount_percentage,
+          delivery_days_impact,
+          approved_at
+        `)
         .eq("contract_id", contractId)
         .eq("status", "approved")
         .order("sequence_number");
