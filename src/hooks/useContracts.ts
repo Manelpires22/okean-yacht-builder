@@ -2,6 +2,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+/**
+ * Representa um contrato gerado a partir de uma cotação aceita
+ * 
+ * @interface Contract
+ * @property {string} id - UUID único do contrato
+ * @property {string} quotation_id - UUID da cotação origem
+ * @property {string} client_id - UUID do cliente
+ * @property {string} yacht_model_id - UUID do modelo de iate
+ * @property {string} contract_number - Número formatado (ex: CTR-2025-001)
+ * @property {number} base_price - Preço base congelado no momento da conversão
+ * @property {number} base_delivery_days - Prazo base congelado
+ * @property {any} base_snapshot - Snapshot JSON da configuração original
+ * @property {number} current_total_price - Preço atual incluindo ATOs aprovadas
+ * @property {number} current_total_delivery_days - Prazo atual incluindo ATOs
+ * @property {"active"|"completed"|"cancelled"} status - Status do contrato
+ * @property {string} signed_at - Timestamp de assinatura ISO
+ * @property {string|null} signed_by_name - Nome do signatário
+ * @property {string|null} signed_by_email - E-mail do signatário
+ * @property {string} created_at - Timestamp de criação
+ * @property {string} updated_at - Timestamp de última atualização
+ * @property {string|null} created_by - UUID do usuário que criou
+ * @property {any} [quotation] - Dados da cotação (quando incluído)
+ * @property {any} [client] - Dados do cliente (quando incluído)
+ * @property {any} [yacht_model] - Dados do modelo (quando incluído)
+ */
 export interface Contract {
   id: string;
   quotation_id: string;
@@ -27,6 +52,42 @@ export interface Contract {
   yacht_model?: any;
 }
 
+/**
+ * Hook para buscar todos os contratos do sistema
+ * 
+ * @description
+ * Retorna lista de contratos com dados relacionados (cotação, cliente, modelo).
+ * Ordenados por data de criação (mais recentes primeiro).
+ * 
+ * **Dados incluídos:**
+ * - `quotation`: quotation_number, status
+ * - `client`: name, email, phone
+ * - `yacht_model`: name, code
+ * 
+ * @returns {UseQueryResult<Contract[]>} Query result do React Query
+ * @returns {Contract[]} return.data - Array de contratos
+ * @returns {boolean} return.isLoading - true durante carregamento
+ * 
+ * @example
+ * ```typescript
+ * function ContractsList() {
+ *   const { data: contracts, isLoading } = useContracts();
+ *   
+ *   if (isLoading) return <Skeleton />;
+ *   
+ *   return (
+ *     <div className="space-y-4">
+ *       {contracts?.map(contract => (
+ *         <ContractCard key={contract.id} contract={contract} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useContract} - Para buscar contrato específico
+ * @see {@link useLiveContract} - Para dados em tempo real
+ */
 export function useContracts() {
   return useQuery({
     queryKey: ["contracts"],
@@ -47,6 +108,31 @@ export function useContracts() {
   });
 }
 
+/**
+ * Hook para buscar um contrato específico por ID
+ * 
+ * @description
+ * Retorna contrato completo com todos os relacionamentos.
+ * Query desabilitada se contractId for undefined.
+ * 
+ * @param {string|undefined} contractId - UUID do contrato
+ * @returns {UseQueryResult<Contract>} Query result com contrato completo
+ * 
+ * @example
+ * ```typescript
+ * function ContractDetail({ id }) {
+ *   const { data: contract, isLoading } = useContract(id);
+ *   
+ *   if (isLoading) return <LoadingSkeleton />;
+ *   if (!contract) return <NotFound />;
+ *   
+ *   return <ContractOverview contract={contract} />;
+ * }
+ * ```
+ * 
+ * @see {@link useContracts} - Lista de contratos
+ * @see {@link useLiveContract} - Para dados calculados em tempo real
+ */
 export function useContract(contractId: string | undefined) {
   return useQuery({
     queryKey: ["contract", contractId],
@@ -71,6 +157,37 @@ export function useContract(contractId: string | undefined) {
   });
 }
 
+/**
+ * Hook para buscar dados em tempo real de um contrato
+ * 
+ * @description
+ * Usa a view otimizada `live_contracts` que calcula automaticamente:
+ * - Totais de ATOs (price_impact, delivery_impact)
+ * - Contadores de ATOs (aprovadas, pendentes, total)
+ * - Preço e prazo atualizados em tempo real
+ * 
+ * **Recomendado para dashboards e visualizações que precisam de totais.**
+ * 
+ * @param {string|undefined} contractId - UUID do contrato
+ * @returns {UseQueryResult} Query result com dados calculados
+ * 
+ * @example
+ * ```typescript
+ * function ContractSummary({ contractId }) {
+ *   const { data: liveData } = useLiveContract(contractId);
+ *   
+ *   return (
+ *     <div>
+ *       <p>Preço Total: {formatCurrency(liveData?.current_total_price)}</p>
+ *       <p>Prazo: {liveData?.current_total_delivery_days} dias</p>
+ *       <p>ATOs Aprovadas: {liveData?.approved_atos_count}</p>
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useContract} - Para dados completos do contrato
+ */
 export function useLiveContract(contractId: string | undefined) {
   return useQuery({
     queryKey: ["live-contract", contractId],
@@ -90,6 +207,41 @@ export function useLiveContract(contractId: string | undefined) {
   });
 }
 
+/**
+ * Hook para atualizar o status de um contrato
+ * 
+ * @description
+ * Mutation para alterar status do contrato (active → completed/cancelled).
+ * Invalida cache e exibe feedback ao usuário.
+ * 
+ * **Queries invalidadas:**
+ * - `contracts` - Lista geral
+ * - `contract` - Contrato específico
+ * 
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function CompleteContractButton({ contractId }) {
+ *   const { mutate: updateStatus, isPending } = useUpdateContractStatus();
+ *   
+ *   const handleComplete = () => {
+ *     updateStatus({ 
+ *       contractId, 
+ *       status: 'completed' 
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <Button onClick={handleComplete} disabled={isPending}>
+ *       Marcar como Concluído
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useContract} - Para buscar contrato
+ */
 export function useUpdateContractStatus() {
   const queryClient = useQueryClient();
 
@@ -123,6 +275,51 @@ export function useUpdateContractStatus() {
   });
 }
 
+/**
+ * Hook para criar contrato a partir de uma cotação aceita
+ * 
+ * @description
+ * Invoca Edge Function `create-contract-from-quotation` que:
+ * - Gera contract_number automático
+ * - Cria snapshot da configuração (base_snapshot)
+ * - Converte customizações aprovadas em itens do contrato
+ * - Atualiza status da cotação para "converted"
+ * 
+ * **Queries invalidadas:**
+ * - `contracts` - Lista de contratos
+ * - `quotations` - Lista de cotações (status mudou)
+ * 
+ * @param {string} quotationId - UUID da cotação a converter
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @throws {Error} Se cotação não estiver em status "accepted"
+ * @throws {Error} Se erro na Edge Function
+ * 
+ * @example
+ * ```typescript
+ * function ConvertToContractButton({ quotationId }) {
+ *   const { mutate: createContract, isPending } = useCreateContractFromQuotation();
+ *   const navigate = useNavigate();
+ *   
+ *   const handleConvert = () => {
+ *     createContract(quotationId, {
+ *       onSuccess: (data) => {
+ *         toast.success('Contrato criado!');
+ *         navigate(`/contratos/${data.contract.id}`);
+ *       }
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <Button onClick={handleConvert} disabled={isPending}>
+ *       {isPending ? 'Convertendo...' : 'Gerar Contrato'}
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useContracts} - Lista de contratos
+ */
 export function useCreateContractFromQuotation() {
   const queryClient = useQueryClient();
 
@@ -150,6 +347,73 @@ export function useCreateContractFromQuotation() {
   });
 }
 
+/**
+ * Hook para deletar um contrato
+ * 
+ * @description
+ * Remove permanentemente um contrato e reverte estado relacionado:
+ * 
+ * **Operações executadas:**
+ * 1. Reverte customizações (included_in_contract = false)
+ * 2. Reverte status da cotação para "accepted"
+ * 3. Deleta o contrato
+ * 
+ * **Queries invalidadas:**
+ * - `contracts` - Lista de contratos
+ * - `contract` - Contrato específico
+ * - `quotations` - Lista de cotações
+ * - `quotation` - Cotação específica
+ * 
+ * @param {string} contractId - UUID do contrato a deletar
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @throws {Error} Se erro ao buscar contrato
+ * @throws {Error} Se erro ao deletar
+ * 
+ * @example
+ * ```typescript
+ * function DeleteContractButton({ contractId }) {
+ *   const { mutate: deleteContract, isPending } = useDeleteContract();
+ *   const navigate = useNavigate();
+ *   
+ *   const handleDelete = () => {
+ *     deleteContract(contractId, {
+ *       onSuccess: () => {
+ *         toast.success('Contrato deletado e cotação revertida');
+ *         navigate('/contratos');
+ *       }
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <AlertDialog>
+ *       <AlertDialogTrigger asChild>
+ *         <Button variant="destructive" disabled={isPending}>
+ *           Deletar Contrato
+ *         </Button>
+ *       </AlertDialogTrigger>
+ *       <AlertDialogContent>
+ *         <AlertDialogHeader>
+ *           <AlertDialogTitle>Confirmar exclusão?</AlertDialogTitle>
+ *           <AlertDialogDescription>
+ *             O contrato será deletado e a cotação voltará para status "aceita".
+ *           </AlertDialogDescription>
+ *         </AlertDialogHeader>
+ *         <AlertDialogFooter>
+ *           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+ *           <AlertDialogAction onClick={handleDelete}>
+ *             Confirmar Exclusão
+ *           </AlertDialogAction>
+ *         </AlertDialogFooter>
+ *       </AlertDialogContent>
+ *     </AlertDialog>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useContracts} - Lista de contratos
+ * @see {@link useCreateContractFromQuotation} - Para criar contrato
+ */
 export function useDeleteContract() {
   const queryClient = useQueryClient();
 

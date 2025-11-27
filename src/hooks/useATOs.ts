@@ -2,6 +2,36 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+/**
+ * Additional To Order - Aditivo contratual
+ * 
+ * @interface ATO
+ * @property {string} id - UUID único da ATO
+ * @property {string} contract_id - UUID do contrato pai
+ * @property {string} ato_number - Número sequencial (ex: ATO 1, ATO 2)
+ * @property {number} sequence_number - Sequência numérica para ordenação
+ * @property {string} title - Título descritivo da ATO
+ * @property {string|null} description - Descrição detalhada
+ * @property {number} price_impact - Impacto no preço (positivo ou negativo)
+ * @property {number} delivery_days_impact - Impacto no prazo em dias
+ * @property {number} discount_percentage - Percentual de desconto aplicado
+ * @property {"draft"|"pending_approval"|"approved"|"rejected"|"cancelled"} status - Status da ATO
+ * @property {string|null} workflow_status - Status do workflow técnico
+ * @property {string} requested_by - UUID do usuário solicitante
+ * @property {string} requested_at - Timestamp de solicitação
+ * @property {boolean} requires_approval - Se requer aprovação comercial
+ * @property {"pending"|"approved"|"rejected"|null} commercial_approval_status - Aprovação comercial
+ * @property {"pending"|"approved"|"rejected"|null} technical_approval_status - Aprovação técnica
+ * @property {string|null} approved_by - UUID do aprovador
+ * @property {string|null} approved_at - Timestamp de aprovação
+ * @property {string|null} notes - Notas gerais
+ * @property {string|null} rejection_reason - Motivo da rejeição
+ * @property {string} created_at - Timestamp de criação
+ * @property {string} updated_at - Timestamp de atualização
+ * @property {any} [contract] - Dados do contrato (quando incluído)
+ * @property {any} [requested_by_user] - Dados do solicitante (quando incluído)
+ * @property {Array} [configurations] - Configurações de itens (quando incluído)
+ */
 export interface ATO {
   id: string;
   contract_id: string;
@@ -32,6 +62,19 @@ export interface ATO {
   configurations?: Array<{ id: string }>;
 }
 
+/**
+ * Dados de entrada para criação de ATO
+ * 
+ * @interface CreateATOInput
+ * @property {string} contract_id - UUID do contrato
+ * @property {string} title - Título da ATO
+ * @property {string} [description] - Descrição opcional
+ * @property {number} price_impact - Impacto no preço (pode ser negativo)
+ * @property {number} delivery_days_impact - Impacto no prazo
+ * @property {string} [workflow_status] - Status inicial do workflow técnico
+ * @property {Array} [configurations] - Itens configurados da ATO
+ * @property {string} [notes] - Notas adicionais
+ */
 export interface CreateATOInput {
   contract_id: string;
   title: string;
@@ -49,6 +92,38 @@ export interface CreateATOInput {
   notes?: string;
 }
 
+/**
+ * Hook para buscar ATOs de um contrato específico
+ * 
+ * @description
+ * Retorna lista de ATOs ordenadas por sequence_number (ordem de criação).
+ * Inclui dados do contrato, cliente e contagem de configurações.
+ * Query desabilitada se contractId for undefined.
+ * 
+ * @param {string|undefined} contractId - UUID do contrato
+ * @returns {UseQueryResult<ATO[]>} Query result com lista de ATOs
+ * 
+ * @example
+ * ```typescript
+ * function ContractATOs({ contractId }) {
+ *   const { data: atos, isLoading } = useATOs(contractId);
+ *   
+ *   if (isLoading) return <LoadingSkeleton />;
+ *   if (!atos?.length) return <EmptyState message="Nenhuma ATO cadastrada" />;
+ *   
+ *   return (
+ *     <div className="space-y-4">
+ *       {atos.map(ato => (
+ *         <ATOCard key={ato.id} ato={ato} />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useATO} - Para buscar ATO específica
+ * @see {@link useCreateATO} - Para criar nova ATO
+ */
 export function useATOs(contractId: string | undefined) {
   return useQuery({
     queryKey: ["atos", contractId],
@@ -76,6 +151,35 @@ export function useATOs(contractId: string | undefined) {
   });
 }
 
+/**
+ * Hook para buscar uma ATO específica por ID
+ * 
+ * @description
+ * Retorna ATO completa com contrato, cliente e todas as configurações de itens.
+ * Query desabilitada se atoId for undefined.
+ * 
+ * @param {string|undefined} atoId - UUID da ATO
+ * @returns {UseQueryResult} Query result com ATO completa
+ * 
+ * @example
+ * ```typescript
+ * function ATODetail({ atoId }) {
+ *   const { data: ato, isLoading } = useATO(atoId);
+ *   
+ *   if (isLoading) return <LoadingSkeleton />;
+ *   if (!ato) return <NotFound />;
+ *   
+ *   return (
+ *     <div>
+ *       <ATOHeader ato={ato} />
+ *       <ATOConfigurationsList items={ato.configurations} />
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useATOs} - Para listar ATOs de um contrato
+ */
 export function useATO(atoId: string | undefined) {
   return useQuery({
     queryKey: ["ato", atoId],
@@ -102,6 +206,50 @@ export function useATO(atoId: string | undefined) {
   });
 }
 
+/**
+ * Hook para criar uma nova ATO
+ * 
+ * @description
+ * Cria ATO com lógica automática de:
+ * - Geração de sequence_number e ato_number
+ * - Determinação de necessidade de aprovação (price > 0 ou delivery > 7 dias)
+ * - Status inicial (draft ou pending_approval)
+ * - Criação de configurações de itens associados
+ * 
+ * **Queries invalidadas:**
+ * - `atos` - Lista de ATOs do contrato
+ * - `live-contract` - Dados calculados
+ * - `contracts` - Lista geral
+ * 
+ * @param {CreateATOInput} input - Dados da ATO
+ * @returns {UseMutationResult<ATO>} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function CreateATODialog({ contractId }) {
+ *   const { mutate: createATO, isPending } = useCreateATO();
+ *   
+ *   const handleSubmit = (formData) => {
+ *     createATO({
+ *       contract_id: contractId,
+ *       title: formData.title,
+ *       price_impact: formData.price,
+ *       delivery_days_impact: formData.delivery,
+ *       configurations: formData.items
+ *     }, {
+ *       onSuccess: (ato) => {
+ *         toast.success(`ATO ${ato.ato_number} criada!`);
+ *         onClose();
+ *       }
+ *     });
+ *   };
+ *   
+ *   return <ATOForm onSubmit={handleSubmit} isPending={isPending} />;
+ * }
+ * ```
+ * 
+ * @see {@link useATOs} - Para listar ATOs
+ */
 export function useCreateATO() {
   const queryClient = useQueryClient();
 
@@ -187,6 +335,67 @@ export function useCreateATO() {
   });
 }
 
+/**
+ * Hook para aprovar ou rejeitar uma ATO
+ * 
+ * @description
+ * Processa aprovação comercial de ATO. **Se aprovada:**
+ * - Recalcula totais do contrato (price e delivery)
+ * - Atualiza current_total_price e current_total_delivery_days
+ * 
+ * **Queries invalidadas:**
+ * - `atos` - Lista de ATOs
+ * - `ato` - ATO específica
+ * - `live-contract` - Totais recalculados
+ * - `contracts` - Lista geral
+ * - `approvals` - Pendências de aprovação
+ * - `ato-workflow-tasks` - Tarefas de workflow
+ * 
+ * @param {Object} params - Parâmetros da aprovação
+ * @param {string} params.atoId - UUID da ATO
+ * @param {boolean} params.approved - true para aprovar, false para rejeitar
+ * @param {string} [params.notes] - Notas/motivo da decisão
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function ATOApprovalDialog({ ato }) {
+ *   const { mutate: approveATO, isPending } = useApproveATO();
+ *   
+ *   const handleApprove = () => {
+ *     approveATO({
+ *       atoId: ato.id,
+ *       approved: true
+ *     });
+ *   };
+ *   
+ *   const handleReject = (reason: string) => {
+ *     approveATO({
+ *       atoId: ato.id,
+ *       approved: false,
+ *       notes: reason
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <div className="flex gap-4">
+ *       <Button onClick={handleApprove} disabled={isPending}>
+ *         Aprovar
+ *       </Button>
+ *       <Button 
+ *         variant="destructive" 
+ *         onClick={() => handleReject('Fora do orçamento')}
+ *         disabled={isPending}
+ *       >
+ *         Rejeitar
+ *       </Button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useATOs} - Lista de ATOs
+ */
 export function useApproveATO() {
   const queryClient = useQueryClient();
 
@@ -268,6 +477,44 @@ export function useApproveATO() {
   });
 }
 
+/**
+ * Hook para atualizar dados de uma ATO existente
+ * 
+ * @description
+ * Mutation genérica para atualizar qualquer campo de uma ATO.
+ * Atualiza automaticamente `updated_at`.
+ * 
+ * **Queries invalidadas:**
+ * - `atos` - Lista de ATOs
+ * - `ato` - ATO específica
+ * 
+ * @param {Object} params - Parâmetros
+ * @param {string} params.atoId - UUID da ATO
+ * @param {Partial<ATO>} params.updates - Campos a atualizar
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function EditATOForm({ ato }) {
+ *   const { mutate: updateATO, isPending } = useUpdateATO();
+ *   
+ *   const handleSave = (formData) => {
+ *     updateATO({
+ *       atoId: ato.id,
+ *       updates: {
+ *         title: formData.title,
+ *         price_impact: formData.price,
+ *         notes: formData.notes
+ *       }
+ *     });
+ *   };
+ *   
+ *   return <ATOForm initialData={ato} onSubmit={handleSave} />;
+ * }
+ * ```
+ * 
+ * @see {@link useCreateATO} - Para criar nova ATO
+ */
 export function useUpdateATO() {
   const queryClient = useQueryClient();
 
@@ -301,6 +548,35 @@ export function useUpdateATO() {
   });
 }
 
+/**
+ * Hook para cancelar uma ATO
+ * 
+ * @description
+ * Altera status da ATO para "cancelled". Não deleta do banco.
+ * ATOs canceladas não impactam os totais do contrato.
+ * 
+ * @param {string} atoId - UUID da ATO
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function CancelATOButton({ atoId }) {
+ *   const { mutate: cancelATO, isPending } = useCancelATO();
+ *   
+ *   return (
+ *     <Button 
+ *       variant="outline"
+ *       onClick={() => cancelATO(atoId)}
+ *       disabled={isPending}
+ *     >
+ *       Cancelar ATO
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useDeleteATO} - Para deletar permanentemente
+ */
 export function useCancelATO() {
   const queryClient = useQueryClient();
 
@@ -328,6 +604,41 @@ export function useCancelATO() {
   });
 }
 
+/**
+ * Hook para reabrir ATO para validação comercial
+ * 
+ * @description
+ * Após aprovação técnica (workflow completo), reabre ATO para
+ * que comercial valide preços finais antes de enviar ao cliente.
+ * 
+ * **Mudanças aplicadas:**
+ * - workflow_status → 'completed'
+ * - status → 'draft'
+ * - Limpa approved_at e approved_by
+ * 
+ * @param {string} atoId - UUID da ATO
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function ReopenATOButton({ ato }) {
+ *   const { mutate: reopenATO, isPending } = useReopenATOForCommercialReview();
+ *   
+ *   const canReopen = ato.workflow_status === 'pending_commercial_review';
+ *   
+ *   return (
+ *     <Button 
+ *       onClick={() => reopenATO(ato.id)}
+ *       disabled={!canReopen || isPending}
+ *     >
+ *       Reabrir para Validação Comercial
+ *     </Button>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useApproveATO} - Para aprovar comercialmente
+ */
 export function useReopenATOForCommercialReview() {
   const queryClient = useQueryClient();
 
@@ -361,6 +672,77 @@ export function useReopenATOForCommercialReview() {
   });
 }
 
+/**
+ * Hook para deletar permanentemente uma ATO
+ * 
+ * @description
+ * Remove ATO do banco de dados. **CRÍTICO: Apenas permite deleção de:**
+ * - ATOs em status 'draft' ou 'cancelled'
+ * 
+ * **Bloqueia deleção de:**
+ * - ATOs aprovadas ('approved')
+ * - ATOs pendentes de aprovação ('pending_approval')
+ * - ATOs enviadas ao cliente ('sent')
+ * 
+ * **Para reverter ATOs aprovadas:** Criar nova ATO com valores negativos (crédito/estorno).
+ * 
+ * **Remove também:**
+ * - Configurações associadas (ato_configurations)
+ * - Workflow steps (ato_workflow_steps)
+ * 
+ * @param {string} atoId - UUID da ATO
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @throws {Error} Se ATO estiver aprovada, pendente ou enviada
+ * 
+ * @example
+ * ```typescript
+ * function DeleteATOButton({ ato }) {
+ *   const { mutate: deleteATO, isPending } = useDeleteATO();
+ *   
+ *   const canDelete = ['draft', 'cancelled'].includes(ato.status);
+ *   
+ *   const handleDelete = () => {
+ *     deleteATO(ato.id, {
+ *       onError: (error) => {
+ *         if (error.message.includes('aprovadas')) {
+ *           toast.error('Crie uma ATO de crédito para reverter itens');
+ *         }
+ *       }
+ *     });
+ *   };
+ *   
+ *   return (
+ *     <AlertDialog>
+ *       <AlertDialogTrigger asChild>
+ *         <Button 
+ *           variant="destructive" 
+ *           disabled={!canDelete || isPending}
+ *         >
+ *           Deletar Permanentemente
+ *         </Button>
+ *       </AlertDialogTrigger>
+ *       <AlertDialogContent>
+ *         <AlertDialogHeader>
+ *           <AlertDialogTitle>Confirmar exclusão?</AlertDialogTitle>
+ *           <AlertDialogDescription>
+ *             Esta ação é irreversível. A ATO será permanentemente deletada.
+ *           </AlertDialogDescription>
+ *         </AlertDialogHeader>
+ *         <AlertDialogFooter>
+ *           <AlertDialogCancel>Cancelar</AlertDialogCancel>
+ *           <AlertDialogAction onClick={handleDelete}>
+ *             Deletar
+ *           </AlertDialogAction>
+ *         </AlertDialogFooter>
+ *       </AlertDialogContent>
+ *     </AlertDialog>
+ *   );
+ * }
+ * ```
+ * 
+ * @see {@link useCancelATO} - Para cancelar sem deletar
+ */
 export function useDeleteATO() {
   const queryClient = useQueryClient();
 
