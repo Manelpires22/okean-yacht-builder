@@ -20,7 +20,7 @@ export function useMemorialItems(yachtModelId?: string) {
             label,
             display_order
           ),
-          job_stop:job_stops(
+          job_stop:job_stops!memorial_items_job_stop_id_fkey(
             id,
             stage,
             days_limit,
