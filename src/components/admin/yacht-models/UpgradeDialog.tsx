@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -26,12 +26,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useJobStops } from "@/hooks/useJobStops";
 import { useAllMemorialItemsForUpgrades } from "@/hooks/useMemorialUpgrades";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
@@ -74,6 +88,7 @@ export function UpgradeDialog({
 }: UpgradeDialogProps) {
   const { data: memorialItems, isLoading: memorialItemsLoading } = useAllMemorialItemsForUpgrades(yachtModelId);
   const { data: jobStops } = useJobStops();
+  const [memorialItemOpen, setMemorialItemOpen] = useState(false);
 
   const form = useForm<UpgradeFormData>({
     resolver: zodResolver(upgradeSchema),
@@ -165,43 +180,82 @@ export function UpgradeDialog({
             <FormField
               control={form.control}
               name="memorial_item_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Item do Memorial *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={memorialItemsLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o item que terá upgrade" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {memorialItems?.map((item) => (
-                        <SelectItem key={item.id} value={item.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{item.item_name}</span>
-                            {item.category && (
-                              <span className="text-muted-foreground">({item.category.label})</span>
+              render={({ field }) => {
+                const selectedItem = memorialItems?.find(item => item.id === field.value);
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Item do Memorial *</FormLabel>
+                    <Popover open={memorialItemOpen} onOpenChange={setMemorialItemOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={memorialItemOpen}
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
                             )}
-                            {item.upgrade_count > 0 && (
-                              <Badge variant="secondary" className="ml-1 text-xs">
-                                {item.upgrade_count} upgrade{item.upgrade_count > 1 ? 's' : ''}
-                              </Badge>
+                            disabled={memorialItemsLoading}
+                          >
+                            {selectedItem ? (
+                              <span className="truncate">
+                                {selectedItem.item_name}
+                                {selectedItem.category && ` (${selectedItem.category.label})`}
+                              </span>
+                            ) : (
+                              "Buscar item do memorial..."
                             )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Selecione o item do memorial que receberá este upgrade
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[500px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Digite para buscar..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {memorialItems?.map((item) => (
+                                <CommandItem
+                                  key={item.id}
+                                  value={`${item.item_name} ${item.category?.label || ''}`}
+                                  onSelect={() => {
+                                    field.onChange(item.id);
+                                    setMemorialItemOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      field.value === item.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  <span className="flex-1 truncate">{item.item_name}</span>
+                                  {item.category && (
+                                    <span className="text-muted-foreground ml-2">
+                                      ({item.category.label})
+                                    </span>
+                                  )}
+                                  {item.upgrade_count > 0 && (
+                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                      {item.upgrade_count}
+                                    </Badge>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      Digite para filtrar os itens do memorial
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <div className="grid grid-cols-2 gap-4">
