@@ -7,7 +7,11 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
     queryFn: async () => {
       let query = supabase
         .from("options")
-        .select("*, category:option_categories(id, name)")
+        .select(`
+          *,
+          category:option_categories(id, name),
+          job_stop:job_stops(id, stage, days_limit, item_name)
+        `)
         .eq("is_active", true);
       
       if (categoryId) {

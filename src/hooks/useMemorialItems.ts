@@ -19,6 +19,12 @@ export function useMemorialItems(yachtModelId?: string) {
             value,
             label,
             display_order
+          ),
+          job_stop:job_stops(
+            id,
+            stage,
+            days_limit,
+            item_name
           )
         `)
         .order('category_display_order')

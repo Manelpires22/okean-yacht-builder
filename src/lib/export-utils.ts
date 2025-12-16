@@ -14,6 +14,8 @@ export interface MemorialExportRow {
   is_customizable: boolean;
   is_configurable: boolean;
   is_active: boolean;
+  job_stop_stage: string;
+  job_stop_days_limit: number | null;
 }
 
 export interface MemorialImportRow {
@@ -40,6 +42,8 @@ export interface OptionExportRow {
   base_price: number;
   delivery_days_impact: number;
   is_active: boolean;
+  job_stop_stage: string;
+  job_stop_days_limit: number | null;
 }
 
 export interface OptionImportRow {
@@ -142,6 +146,8 @@ export function transformMemorialItemsForExport(items: any[]): MemorialExportRow
     is_customizable: item.is_customizable ?? true,
     is_configurable: item.is_configurable ?? false,
     is_active: item.is_active ?? true,
+    job_stop_stage: item.job_stop?.stage || '',
+    job_stop_days_limit: item.job_stop?.days_limit ?? null,
   }));
 }
 
@@ -198,6 +204,8 @@ export function transformOptionsForExport(options: any[]): OptionExportRow[] {
     base_price: opt.base_price || 0,
     delivery_days_impact: opt.delivery_days_impact || 0,
     is_active: opt.is_active ?? true,
+    job_stop_stage: opt.job_stop?.stage || '',
+    job_stop_days_limit: opt.job_stop?.days_limit ?? null,
   }));
 }
 
@@ -261,6 +269,8 @@ export function generateMemorialTemplate(): MemorialExportRow[] {
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      job_stop_stage: "JS1",
+      job_stop_days_limit: 300,
     },
     {
       categoria: "Sistema Elétrico",
@@ -274,6 +284,8 @@ export function generateMemorialTemplate(): MemorialExportRow[] {
       is_customizable: true,
       is_configurable: true,
       is_active: true,
+      job_stop_stage: "JS2",
+      job_stop_days_limit: 120,
     },
     {
       categoria: "Conforto",
@@ -287,6 +299,8 @@ export function generateMemorialTemplate(): MemorialExportRow[] {
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      job_stop_stage: "JS3",
+      job_stop_days_limit: 90,
     },
     {
       categoria: "Navegação",
@@ -300,6 +314,8 @@ export function generateMemorialTemplate(): MemorialExportRow[] {
       is_customizable: false,
       is_configurable: true,
       is_active: true,
+      job_stop_stage: "JS4",
+      job_stop_days_limit: 60,
     },
     {
       categoria: "Acabamento",
@@ -313,6 +329,8 @@ export function generateMemorialTemplate(): MemorialExportRow[] {
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      job_stop_stage: "",
+      job_stop_days_limit: null,
     },
   ];
 }
@@ -327,6 +345,8 @@ export function generateOptionsTemplate(): OptionExportRow[] {
       base_price: 45000,
       delivery_days_impact: 15,
       is_active: true,
+      job_stop_stage: "JS3",
+      job_stop_days_limit: 90,
     },
     {
       code: "OPT-002",
@@ -336,6 +356,8 @@ export function generateOptionsTemplate(): OptionExportRow[] {
       base_price: 32000,
       delivery_days_impact: 7,
       is_active: true,
+      job_stop_stage: "JS4",
+      job_stop_days_limit: 60,
     },
     {
       code: "OPT-003",
@@ -345,6 +367,8 @@ export function generateOptionsTemplate(): OptionExportRow[] {
       base_price: 85000,
       delivery_days_impact: 30,
       is_active: true,
+      job_stop_stage: "JS2",
+      job_stop_days_limit: 120,
     },
     {
       code: "OPT-004",
@@ -354,6 +378,8 @@ export function generateOptionsTemplate(): OptionExportRow[] {
       base_price: 58000,
       delivery_days_impact: 21,
       is_active: true,
+      job_stop_stage: "JS1",
+      job_stop_days_limit: 300,
     },
   ];
 }
