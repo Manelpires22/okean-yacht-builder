@@ -6,7 +6,8 @@ import { OptionCategorySection } from "@/components/configurator/OptionCategoryS
 import { ConfigurationSummary } from "@/components/configurator/ConfigurationSummary";
 import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDialog";
 import { FreeCustomizationDialog } from "@/components/configurator/FreeCustomizationDialog";
-import { useConfigurationState } from "@/hooks/useConfigurationState";
+import { UpgradesTab } from "@/components/configurator/UpgradesTab";
+import { useConfigurationState, SelectedUpgrade } from "@/hooks/useConfigurationState";
 import { useOptionCategories, useOptions } from "@/hooks/useOptions";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useSaveQuotation } from "@/hooks/useSaveQuotation";
@@ -34,6 +35,8 @@ export default function Configurator() {
     addOption,
     removeOption,
     updateOptionCustomization,
+    selectUpgrade,
+    removeUpgrade,
     setBaseDiscount,
     setOptionsDiscount,
     addCustomization,
@@ -131,11 +134,12 @@ export default function Configurator() {
     if (!state.yacht_model_id) return;
 
     await saveQuotation.mutateAsync({
-      quotationId: editQuotationId || undefined, // ✅ Passar ID se editando
+      quotationId: editQuotationId || undefined,
       yacht_model_id: state.yacht_model_id,
       base_price: state.base_price,
       base_delivery_days: state.base_delivery_days,
       selected_options: state.selected_options,
+      selected_upgrades: state.selected_upgrades,
       customizations: state.customizations,
       client_id: formData.client_id,
       client_name: formData.client_name,
@@ -205,10 +209,19 @@ export default function Configurator() {
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr] 2xl:grid-cols-[4fr_1fr] gap-4 md:gap-6 items-start">
           <div className="min-w-0">
             <Tabs defaultValue="base" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsList className="grid w-full grid-cols-4 h-auto">
                 <TabsTrigger value="base" className="text-xs sm:text-sm py-2 px-2">
                   <span className="hidden sm:inline">Modelo Base</span>
                   <span className="sm:hidden">Base</span>
+                </TabsTrigger>
+                <TabsTrigger value="upgrades" className="text-xs sm:text-sm py-2 px-2 relative">
+                  <span className="hidden sm:inline">Upgrades</span>
+                  <span className="sm:hidden">Upg</span>
+                  {(state.selected_upgrades?.length || 0) > 0 && (
+                    <Badge variant="secondary" className="ml-1 text-xs h-5 min-w-[20px] px-1 absolute -top-1 -right-1 sm:static">
+                      {state.selected_upgrades?.length || 0}
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="options" className="text-xs sm:text-sm py-2 px-2 relative">
                   <span className="hidden sm:inline">Opcionais</span>
@@ -238,6 +251,22 @@ export default function Configurator() {
                     customizations={memorialCustomizations}
                     onAddCustomization={addCustomization}
                     onRemoveCustomization={removeCustomization}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="upgrades" className="space-y-6 mt-6">
+                {selectedModel && (
+                  <UpgradesTab
+                    yachtModelId={selectedModel.id}
+                    selectedUpgrades={state.selected_upgrades || []}
+                    onSelectUpgrade={(upgrade, memorialItemId) => {
+                      if (upgrade) {
+                        selectUpgrade(upgrade);
+                      } else {
+                        removeUpgrade(memorialItemId);
+                      }
+                    }}
                   />
                 )}
               </TabsContent>
@@ -365,6 +394,7 @@ export default function Configurator() {
               modelName={selectedModel?.name || ""}
               basePrice={state.base_price}
               optionsPrice={totals.optionsPrice}
+              upgradesPrice={totals.upgradesPrice}
               customizationsPrice={totals.customizationsPrice}
               totalPrice={totals.totalPrice}
               baseDeliveryDays={state.base_delivery_days}
@@ -374,6 +404,7 @@ export default function Configurator() {
               finalBasePrice={totals.finalBasePrice}
               finalOptionsPrice={totals.finalOptionsPrice}
               selectedOptions={state.selected_options}
+              selectedUpgrades={state.selected_upgrades}
               optionsData={allOptions}
               customizations={state.customizations}
               onBaseDiscountChange={setBaseDiscount}

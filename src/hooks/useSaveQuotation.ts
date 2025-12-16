@@ -14,11 +14,19 @@ import { useQuotationCustomizations } from "./quotations/useQuotationCustomizati
 import { useUserRole } from "./useUserRole";
 
 interface SaveQuotationData {
-  quotationId?: string; // ✅ NOVO: ID da cotação sendo editada
+  quotationId?: string;
   yacht_model_id: string;
   base_price: number;
   base_delivery_days: number;
   selected_options: SelectedOption[];
+  selected_upgrades?: Array<{
+    upgrade_id: string;
+    memorial_item_id: string;
+    name: string;
+    price: number;
+    delivery_days_impact: number;
+    customization_notes?: string;
+  }>;
   customizations: Customization[];
   client_id?: string;
   client_name: string;

@@ -17,6 +17,7 @@ interface ConfigurationSummaryProps {
   modelName: string;
   basePrice: number;
   optionsPrice: number;
+  upgradesPrice?: number;
   customizationsPrice: number;
   totalPrice: number;
   baseDeliveryDays: number;
@@ -31,6 +32,13 @@ interface ConfigurationSummaryProps {
     unit_price: number;
     delivery_days_impact: number;
     customization_notes?: string;
+  }>;
+  selectedUpgrades?: Array<{
+    upgrade_id: string;
+    memorial_item_id: string;
+    name: string;
+    price: number;
+    delivery_days_impact: number;
   }>;
   optionsData?: Array<{
     id: string;
@@ -49,6 +57,7 @@ export function ConfigurationSummary({
   modelName,
   basePrice,
   optionsPrice,
+  upgradesPrice = 0,
   customizationsPrice,
   totalPrice,
   baseDeliveryDays,
@@ -58,6 +67,7 @@ export function ConfigurationSummary({
   finalBasePrice,
   finalOptionsPrice,
   selectedOptions,
+  selectedUpgrades = [],
   optionsData,
   customizations,
   onBaseDiscountChange,
@@ -433,6 +443,13 @@ export function ConfigurationSummary({
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground text-success">Total Customizações</span>
               <span className="font-medium text-success">{formatCurrency(customizationsPrice)}</span>
+            </div>
+          )}
+
+          {upgradesPrice > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground text-primary">Total Upgrades</span>
+              <span className="font-medium text-primary">{formatCurrency(upgradesPrice)}</span>
             </div>
           )}
         </div>

@@ -76,11 +76,32 @@ export function useMemorialItemsWithUpgrades(yachtModelId: string) {
   });
 }
 
+// Hook para buscar TODOS os itens do memorial (para criação de upgrades)
+export function useAllMemorialItemsForUpgrades(yachtModelId: string) {
+  return useQuery({
+    queryKey: ['all-memorial-items-for-upgrades', yachtModelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('memorial_items')
+        .select('id, item_name, category_id, has_upgrades, category:memorial_categories(id, label)')
+        .eq('yacht_model_id', yachtModelId)
+        .eq('is_active', true)
+        .order('category_display_order')
+        .order('display_order');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!yachtModelId,
+  });
+}
+
 export function useCreateMemorialUpgrade() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (upgrade: Omit<MemorialUpgrade, 'id' | 'created_at' | 'updated_at' | 'memorial_item' | 'job_stop'>) => {
+      // 1. Criar o upgrade
       const { data, error } = await supabase
         .from('memorial_upgrades')
         .insert(upgrade as any)
@@ -88,10 +109,24 @@ export function useCreateMemorialUpgrade() {
         .single();
       
       if (error) throw error;
+
+      // 2. Atualizar has_upgrades do item do memorial automaticamente
+      const { error: updateError } = await supabase
+        .from('memorial_items')
+        .update({ has_upgrades: true })
+        .eq('id', upgrade.memorial_item_id);
+      
+      if (updateError) {
+        console.error('Erro ao atualizar has_upgrades:', updateError);
+      }
+      
       return data;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['memorial-upgrades', variables.yacht_model_id] });
+      queryClient.invalidateQueries({ queryKey: ['memorial-items-with-upgrades', variables.yacht_model_id] });
+      queryClient.invalidateQueries({ queryKey: ['all-memorial-items-for-upgrades', variables.yacht_model_id] });
+      queryClient.invalidateQueries({ queryKey: ['memorial-items', variables.yacht_model_id] });
       toast.success('Upgrade criado com sucesso!');
     },
     onError: (error: Error) => {
