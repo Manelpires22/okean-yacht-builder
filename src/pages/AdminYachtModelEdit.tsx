@@ -14,6 +14,7 @@ import { yachtModelFullSchema, YachtModelFullValues } from "@/lib/schemas/yacht-
 import { YachtModelBasicForm } from "@/components/admin/yacht-models/YachtModelBasicForm";
 import { YachtModelSpecsForm } from "@/components/admin/yacht-models/YachtModelSpecsForm";
 import { YachtModelMemorialTab } from "@/components/admin/yacht-models/YachtModelMemorialTab";
+import { YachtModelUpgradesTab } from "@/components/admin/yacht-models/YachtModelUpgradesTab";
 import { YachtModelOptionsTab } from "@/components/admin/yacht-models/YachtModelOptionsTab";
 import { ImportDocumentDialog } from "@/components/admin/yacht-models/ImportDocumentDialog";
 import { useState } from "react";
@@ -232,10 +233,11 @@ export default function AdminYachtModelEdit() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="basic">Dados Básicos</TabsTrigger>
             <TabsTrigger value="specs">Especificações</TabsTrigger>
             <TabsTrigger value="memorial">Memorial</TabsTrigger>
+            <TabsTrigger value="upgrades">Upgrades</TabsTrigger>
             <TabsTrigger value="options">Opcionais</TabsTrigger>
           </TabsList>
 
@@ -251,6 +253,10 @@ export default function AdminYachtModelEdit() {
 
           <TabsContent value="memorial">
             <YachtModelMemorialTab yachtModelId={modelId!} />
+          </TabsContent>
+
+          <TabsContent value="upgrades">
+            <YachtModelUpgradesTab yachtModelId={modelId!} />
           </TabsContent>
 
           <TabsContent value="options">

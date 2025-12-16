@@ -664,6 +664,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           display_order: number
+          has_upgrades: boolean | null
           id: string
           is_active: boolean | null
           is_configurable: boolean | null
@@ -687,6 +688,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          has_upgrades?: boolean | null
           id?: string
           is_active?: boolean | null
           is_configurable?: boolean | null
@@ -710,6 +712,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           display_order?: number
+          has_upgrades?: boolean | null
           id?: string
           is_active?: boolean | null
           is_configurable?: boolean | null
@@ -740,6 +743,97 @@ export type Database = {
           },
           {
             foreignKeyName: "memorial_items_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memorial_upgrades: {
+        Row: {
+          brand: string | null
+          code: string
+          configurable_sub_items: Json | null
+          created_at: string | null
+          created_by: string | null
+          delivery_days_impact: number | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          is_configurable: boolean | null
+          is_customizable: boolean | null
+          job_stop_id: string | null
+          memorial_item_id: string
+          model: string | null
+          name: string
+          price: number
+          technical_specs: Json | null
+          updated_at: string | null
+          yacht_model_id: string
+        }
+        Insert: {
+          brand?: string | null
+          code: string
+          configurable_sub_items?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_configurable?: boolean | null
+          is_customizable?: boolean | null
+          job_stop_id?: string | null
+          memorial_item_id: string
+          model?: string | null
+          name: string
+          price?: number
+          technical_specs?: Json | null
+          updated_at?: string | null
+          yacht_model_id: string
+        }
+        Update: {
+          brand?: string | null
+          code?: string
+          configurable_sub_items?: Json | null
+          created_at?: string | null
+          created_by?: string | null
+          delivery_days_impact?: number | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_configurable?: boolean | null
+          is_customizable?: boolean | null
+          job_stop_id?: string | null
+          memorial_item_id?: string
+          model?: string | null
+          name?: string
+          price?: number
+          technical_specs?: Json | null
+          updated_at?: string | null
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memorial_upgrades_job_stop_id_fkey"
+            columns: ["job_stop_id"]
+            isOneToOne: false
+            referencedRelation: "job_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memorial_upgrades_memorial_item_id_fkey"
+            columns: ["memorial_item_id"]
+            isOneToOne: false
+            referencedRelation: "memorial_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memorial_upgrades_yacht_model_id_fkey"
             columns: ["yacht_model_id"]
             isOneToOne: false
             referencedRelation: "yacht_models"
@@ -1102,6 +1196,61 @@ export type Database = {
             columns: ["quotation_id"]
             isOneToOne: false
             referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotation_upgrades: {
+        Row: {
+          created_at: string | null
+          customization_notes: string | null
+          delivery_days_impact: number | null
+          id: string
+          memorial_item_id: string
+          price: number
+          quotation_id: string
+          upgrade_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          customization_notes?: string | null
+          delivery_days_impact?: number | null
+          id?: string
+          memorial_item_id: string
+          price?: number
+          quotation_id: string
+          upgrade_id: string
+        }
+        Update: {
+          created_at?: string | null
+          customization_notes?: string | null
+          delivery_days_impact?: number | null
+          id?: string
+          memorial_item_id?: string
+          price?: number
+          quotation_id?: string
+          upgrade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotation_upgrades_memorial_item_id_fkey"
+            columns: ["memorial_item_id"]
+            isOneToOne: false
+            referencedRelation: "memorial_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_upgrades_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotation_upgrades_upgrade_id_fkey"
+            columns: ["upgrade_id"]
+            isOneToOne: false
+            referencedRelation: "memorial_upgrades"
             referencedColumns: ["id"]
           },
         ]
