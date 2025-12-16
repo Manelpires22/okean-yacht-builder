@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical } from "lucide-react";
+import { Plus, GripVertical, Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,6 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Trash, FileText } from "lucide-react";
@@ -52,6 +57,28 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch upgrades grouped by memorial_item_id
+  const { data: upgradesByItem } = useQuery({
+    queryKey: ['upgrades-by-memorial-item', yachtModelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('memorial_upgrades')
+        .select('id, name, memorial_item_id, is_active')
+        .eq('yacht_model_id', yachtModelId)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      // Group by memorial_item_id
+      return data?.reduce((acc, upgrade) => {
+        if (!acc[upgrade.memorial_item_id]) acc[upgrade.memorial_item_id] = [];
+        acc[upgrade.memorial_item_id].push(upgrade);
+        return acc;
+      }, {} as Record<string, typeof data>) || {};
+    },
+    enabled: !!yachtModelId,
   });
 
   // Sort items by category display_order, then by item display_order
@@ -196,63 +223,93 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
                         <TableHead>Marca</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Qtd.</TableHead>
+                        <TableHead>Upgrades</TableHead>
                         <TableHead>Customizável</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="w-24">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {categoryItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-mono text-sm">
-                            {item.display_order}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{item.item_name}</p>
-                              {item.description && (
-                                <p className="text-sm text-muted-foreground line-clamp-1">
-                                  {item.description}
-                                </p>
+                      {categoryItems.map((item) => {
+                        const itemUpgrades = upgradesByItem?.[item.id] || [];
+                        const hasUpgrades = itemUpgrades.length > 0;
+                        
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-mono text-sm">
+                              {item.display_order}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">{item.item_name}</p>
+                                {item.description && (
+                                  <p className="text-sm text-muted-foreground line-clamp-1">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>{item.brand || "-"}</TableCell>
+                            <TableCell>{item.model || "-"}</TableCell>
+                            <TableCell>
+                              {item.quantity} {item.unit}
+                            </TableCell>
+                            <TableCell>
+                              {hasUpgrades ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="gap-1 h-8 px-2">
+                                      <Eye className="h-4 w-4" />
+                                      <Badge variant="secondary" className="text-xs px-1.5">
+                                        {itemUpgrades.length}
+                                      </Badge>
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-3">
+                                    <p className="font-medium text-sm mb-2">Upgrades disponíveis:</p>
+                                    <ul className="text-sm space-y-1">
+                                      {itemUpgrades.map((u: any) => (
+                                        <li key={u.id} className="text-muted-foreground">• {u.name}</li>
+                                      ))}
+                                    </ul>
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
                               )}
-                            </div>
-                          </TableCell>
-                          <TableCell>{item.brand || "-"}</TableCell>
-                          <TableCell>{item.model || "-"}</TableCell>
-                          <TableCell>
-                            {item.quantity} {item.unit}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={item.is_customizable ? "default" : "secondary"}>
-                              {item.is_customizable ? "Sim" : "Não"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={item.is_active ? "default" : "secondary"}>
-                              {item.is_active ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(item)}
-                              >
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(item.id)}
-                                disabled={isDeleting}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={item.is_customizable ? "default" : "secondary"}>
+                                {item.is_customizable ? "Sim" : "Não"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={item.is_active ? "default" : "secondary"}>
+                                {item.is_active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(item)}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(item.id)}
+                                  disabled={isDeleting}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </AccordionContent>
