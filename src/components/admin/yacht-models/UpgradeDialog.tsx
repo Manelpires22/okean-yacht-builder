@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -89,6 +89,18 @@ export function UpgradeDialog({
   const { data: memorialItems, isLoading: memorialItemsLoading } = useAllMemorialItemsForUpgrades(yachtModelId);
   const { data: jobStops } = useJobStops();
   const [memorialItemOpen, setMemorialItemOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filtrar itens baseado na busca (mínimo 3 caracteres)
+  const filteredMemorialItems = useMemo(() => {
+    if (!memorialItems || searchQuery.length < 3) return [];
+    
+    const query = searchQuery.toLowerCase();
+    return memorialItems.filter(item => 
+      item.item_name.toLowerCase().includes(query) ||
+      item.category?.label?.toLowerCase().includes(query)
+    );
+  }, [memorialItems, searchQuery]);
 
   const form = useForm<UpgradeFormData>({
     resolver: zodResolver(upgradeSchema),
@@ -185,7 +197,13 @@ export function UpgradeDialog({
                 return (
                   <FormItem className="flex flex-col">
                     <FormLabel>Item do Memorial *</FormLabel>
-                    <Popover open={memorialItemOpen} onOpenChange={setMemorialItemOpen}>
+                    <Popover 
+                      open={memorialItemOpen} 
+                      onOpenChange={(open) => {
+                        setMemorialItemOpen(open);
+                        if (!open) setSearchQuery("");
+                      }}
+                    >
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
@@ -211,46 +229,57 @@ export function UpgradeDialog({
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[500px] p-0" align="start">
-                        <Command>
-                          <CommandInput placeholder="Digite para buscar..." />
+                        <Command shouldFilter={false}>
+                          <CommandInput 
+                            placeholder="Digite ao menos 3 caracteres..." 
+                            value={searchQuery}
+                            onValueChange={setSearchQuery}
+                          />
                           <CommandList>
-                            <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              {memorialItems?.map((item) => (
-                                <CommandItem
-                                  key={item.id}
-                                  value={`${item.item_name} ${item.category?.label || ''}`}
-                                  onSelect={() => {
-                                    field.onChange(item.id);
-                                    setMemorialItemOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      field.value === item.id ? "opacity-100" : "opacity-0"
+                            {searchQuery.length < 3 ? (
+                              <CommandEmpty>
+                                Digite ao menos 3 caracteres para buscar...
+                              </CommandEmpty>
+                            ) : filteredMemorialItems.length === 0 ? (
+                              <CommandEmpty>Nenhum item encontrado.</CommandEmpty>
+                            ) : (
+                              <CommandGroup>
+                                {filteredMemorialItems.map((item) => (
+                                  <CommandItem
+                                    key={item.id}
+                                    value={item.id}
+                                    onSelect={() => {
+                                      field.onChange(item.id);
+                                      setMemorialItemOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === item.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <span className="flex-1 truncate">{item.item_name}</span>
+                                    {item.category && (
+                                      <span className="text-muted-foreground ml-2">
+                                        ({item.category.label})
+                                      </span>
                                     )}
-                                  />
-                                  <span className="flex-1 truncate">{item.item_name}</span>
-                                  {item.category && (
-                                    <span className="text-muted-foreground ml-2">
-                                      ({item.category.label})
-                                    </span>
-                                  )}
-                                  {item.upgrade_count > 0 && (
-                                    <Badge variant="secondary" className="ml-2 text-xs">
-                                      {item.upgrade_count}
-                                    </Badge>
-                                  )}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                                    {item.upgrade_count > 0 && (
+                                      <Badge variant="secondary" className="ml-2 text-xs">
+                                        {item.upgrade_count}
+                                      </Badge>
+                                    )}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
                           </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
                     <FormDescription>
-                      Digite para filtrar os itens do memorial
+                      Digite ao menos 3 caracteres para buscar itens
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
