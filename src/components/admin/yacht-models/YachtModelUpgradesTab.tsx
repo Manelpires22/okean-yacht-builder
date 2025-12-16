@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -42,6 +44,8 @@ import {
   MemorialUpgrade
 } from "@/hooks/useMemorialUpgrades";
 import { UpgradeDialog } from "./UpgradeDialog";
+import { ExportUpgradesButton } from "./ExportUpgradesButton";
+import { ImportUpgradesDialog } from "./ImportUpgradesDialog";
 import { formatCurrency } from "@/lib/quotation-utils";
 
 interface YachtModelUpgradesTabProps {
@@ -55,6 +59,32 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
   const [showInactive, setShowInactive] = useState(false);
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
+  
+  // Fetch yacht model code for export filename
+  const { data: yachtModel } = useQuery({
+    queryKey: ['yacht-model-code', yachtModelId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('yacht_models')
+        .select('code')
+        .eq('id', yachtModelId)
+        .single();
+      return data;
+    },
+  });
+
+  // Fetch memorial items for import linking
+  const { data: memorialItems } = useQuery({
+    queryKey: ['memorial-items-simple', yachtModelId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('memorial_items')
+        .select('id, item_name')
+        .eq('yacht_model_id', yachtModelId)
+        .eq('is_active', true);
+      return data || [];
+    },
+  });
   
   const createMutation = useCreateMemorialUpgrade();
   const updateMutation = useUpdateMemorialUpgrade();
@@ -193,6 +223,14 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                 Mostrar inativos
               </Label>
             </div>
+            <ExportUpgradesButton 
+              upgrades={upgrades || []} 
+              modelCode={yachtModel?.code || 'MODELO'} 
+            />
+            <ImportUpgradesDialog 
+              yachtModelId={yachtModelId} 
+              memorialItems={memorialItems || []} 
+            />
             <Button onClick={handleCreateClick}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Upgrade
