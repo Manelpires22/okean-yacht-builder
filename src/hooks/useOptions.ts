@@ -10,7 +10,7 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
         .select(`
           *,
           category:option_categories(id, name),
-          job_stop:job_stops(id, stage, days_limit, item_name)
+          job_stop:job_stops!options_job_stop_id_fkey(id, stage, days_limit, item_name)
         `)
         .eq("is_active", true);
       
