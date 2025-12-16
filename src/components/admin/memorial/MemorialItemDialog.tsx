@@ -114,8 +114,22 @@ export function MemorialItemDialog({
         // Handle both new shape (category_id) and old shape (category.id)
         const categoryId = initialData.category_id || initialData.category?.id;
         form.reset({
-          ...initialData,
           category_id: categoryId || defaultCategoryId || "",
+          item_name: initialData.item_name || "",
+          description: initialData.description || "",
+          brand: initialData.brand || "",
+          model: initialData.model || "",
+          quantity: initialData.quantity ?? 1,
+          unit: initialData.unit || "unidade",
+          display_order: initialData.display_order ?? 0,
+          is_active: initialData.is_active ?? true,
+          is_customizable: initialData.is_customizable ?? true,
+          is_configurable: initialData.is_configurable ?? false,
+          job_stop_id: initialData.job_stop_id || null,
+          // Convert array to JSON string for the form field
+          configurable_sub_items: Array.isArray(initialData.configurable_sub_items)
+            ? JSON.stringify(initialData.configurable_sub_items, null, 2)
+            : (initialData.configurable_sub_items || ""),
         });
       } else {
         form.reset({
