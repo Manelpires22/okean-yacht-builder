@@ -30,9 +30,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { useJobStops } from "@/hooks/useJobStops";
-import { useMemorialItemsWithUpgrades } from "@/hooks/useMemorialUpgrades";
+import { useAllMemorialItemsForUpgrades } from "@/hooks/useMemorialUpgrades";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 
 const upgradeSchema = z.object({
@@ -71,7 +72,7 @@ export function UpgradeDialog({
   onSubmit,
   isPending,
 }: UpgradeDialogProps) {
-  const { data: memorialItems, isLoading: memorialItemsLoading } = useMemorialItemsWithUpgrades(yachtModelId);
+  const { data: memorialItems, isLoading: memorialItemsLoading } = useAllMemorialItemsForUpgrades(yachtModelId);
   const { data: jobStops } = useJobStops();
 
   const form = useForm<UpgradeFormData>({
@@ -180,13 +181,23 @@ export function UpgradeDialog({
                     <SelectContent>
                       {memorialItems?.map((item) => (
                         <SelectItem key={item.id} value={item.id}>
-                          {item.item_name} {item.category && `(${item.category.label})`}
+                          <div className="flex items-center gap-2">
+                            <span>{item.item_name}</span>
+                            {item.category && (
+                              <span className="text-muted-foreground">({item.category.label})</span>
+                            )}
+                            {item.upgrade_count > 0 && (
+                              <Badge variant="secondary" className="ml-1 text-xs">
+                                {item.upgrade_count} upgrade{item.upgrade_count > 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Apenas itens marcados com "Possui Upgrades" aparecem aqui
+                    Selecione o item do memorial que receberá este upgrade
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
