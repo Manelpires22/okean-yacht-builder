@@ -18,135 +18,134 @@ Deno.serve(async (req) => {
 
     console.log('🚀 Iniciando migração de opcionais para modelo exclusivo...');
 
-    // 1. Buscar todos os vínculos option_yacht_models
-    const { data: links, error: linksError } = await supabase
-      .from('option_yacht_models')
-      .select('*');
+    // 1. Buscar opcionais genéricos (sem yacht_model_id)
+    const { data: genericOptions, error: genericError } = await supabase
+      .from('options')
+      .select('*')
+      .is('yacht_model_id', null)
+      .eq('is_active', true);
 
-    if (linksError) {
-      console.error('❌ Erro ao buscar vínculos:', linksError);
-      throw linksError;
+    if (genericError) {
+      console.error('❌ Erro ao buscar opcionais genéricos:', genericError);
+      throw genericError;
     }
 
-    console.log(`📊 Total de vínculos encontrados: ${links?.length || 0}`);
+    console.log(`📊 Opcionais genéricos encontrados: ${genericOptions?.length || 0}`);
 
-    // 2. Agrupar por option_id
-    const groupedByOption: Record<string, string[]> = {};
-    for (const link of links || []) {
-      if (!groupedByOption[link.option_id]) {
-        groupedByOption[link.option_id] = [];
-      }
-      groupedByOption[link.option_id].push(link.yacht_model_id);
+    if (!genericOptions || genericOptions.length === 0) {
+      console.log('✅ Nenhum opcional genérico para migrar');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Nenhum opcional genérico para migrar',
+          stats: { genericOptions: 0, created: 0, deactivated: 0 },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
     }
 
-    console.log(`📦 Total de opcionais únicos: ${Object.keys(groupedByOption).length}`);
+    // 2. Buscar todos os modelos de barco ativos
+    const { data: yachtModels, error: modelsError } = await supabase
+      .from('yacht_models')
+      .select('id, code')
+      .eq('is_active', true);
 
-    let updatedCount = 0;
+    if (modelsError) {
+      console.error('❌ Erro ao buscar modelos:', modelsError);
+      throw modelsError;
+    }
+
+    console.log(`🚤 Modelos de barco ativos: ${yachtModels?.length || 0}`);
+
+    if (!yachtModels || yachtModels.length === 0) {
+      throw new Error('Nenhum modelo de barco ativo encontrado');
+    }
+
     let createdCount = 0;
     const errors: string[] = [];
 
-    // 3. Para cada opcional
-    for (const [optionId, yachtModelIds] of Object.entries(groupedByOption)) {
-      try {
-        // Buscar dados do opcional
-        const { data: option, error: optionError } = await supabase
-          .from('options')
-          .select('*')
-          .eq('id', optionId)
-          .single();
+    // 3. Para cada opcional genérico, criar uma cópia para cada modelo
+    for (const option of genericOptions) {
+      for (const model of yachtModels) {
+        try {
+          const newOption = {
+            code: `${option.code}-${model.code}`,
+            name: option.name,
+            description: option.description,
+            category_id: option.category_id,
+            yacht_model_id: model.id,
+            base_price: option.base_price,
+            delivery_days_impact: option.delivery_days_impact,
+            is_active: option.is_active,
+            technical_specifications: option.technical_specifications,
+            cost: option.cost,
+            image_url: option.image_url,
+            is_configurable: option.is_configurable,
+            configurable_sub_items: option.configurable_sub_items,
+            job_stop_id: option.job_stop_id,
+          };
 
-        if (optionError || !option) {
-          console.warn(`⚠️ Opcional ${optionId} não encontrado, pulando...`);
-          errors.push(`Opcional ${optionId} não encontrado`);
-          continue;
-        }
-
-        if (yachtModelIds.length === 1) {
-          // Apenas 1 modelo: atualizar diretamente
-          const { error: updateError } = await supabase
+          const { error: insertError } = await supabase
             .from('options')
-            .update({ yacht_model_id: yachtModelIds[0] })
-            .eq('id', optionId);
+            .insert(newOption);
 
-          if (updateError) {
-            console.error(`❌ Erro ao atualizar opcional ${optionId}:`, updateError);
-            errors.push(`Erro ao atualizar ${option.name}: ${updateError.message}`);
-          } else {
-            console.log(`✅ Opcional "${option.name}" vinculado ao modelo ${yachtModelIds[0]}`);
-            updatedCount++;
-          }
-        } else {
-          // Múltiplos modelos: criar cópias
-          console.log(`🔄 Opcional "${option.name}" vinculado a ${yachtModelIds.length} modelos, criando cópias...`);
-
-          for (let i = 0; i < yachtModelIds.length; i++) {
-            if (i === 0) {
-              // Primeira iteração: atualizar original
-              const { error: updateError } = await supabase
+          if (insertError) {
+            // Se o código já existe, tentar com sufixo numérico
+            if (insertError.code === '23505') {
+              const fallbackCode = `${option.code}-${model.code}-${Date.now()}`;
+              const { error: retryError } = await supabase
                 .from('options')
-                .update({ yacht_model_id: yachtModelIds[i] })
-                .eq('id', optionId);
-
-              if (updateError) {
-                console.error(`❌ Erro ao atualizar opcional original ${optionId}:`, updateError);
-                errors.push(`Erro ao atualizar original de ${option.name}: ${updateError.message}`);
+                .insert({ ...newOption, code: fallbackCode });
+              
+              if (retryError) {
+                console.error(`❌ Erro ao criar opcional ${option.name} para ${model.code}:`, retryError);
+                errors.push(`${option.name} → ${model.code}: ${retryError.message}`);
               } else {
-                console.log(`  ✅ Original vinculado ao modelo ${yachtModelIds[i]}`);
-                updatedCount++;
-              }
-            } else {
-              // Demais: inserir cópias
-              const newOption = {
-                ...option,
-                yacht_model_id: yachtModelIds[i],
-              };
-              delete newOption.id; // Remove ID para criar novo registro
-              delete newOption.created_at;
-              delete newOption.updated_at;
-
-              const { error: insertError } = await supabase
-                .from('options')
-                .insert(newOption);
-
-              if (insertError) {
-                console.error(`❌ Erro ao criar cópia do opcional ${optionId}:`, insertError);
-                errors.push(`Erro ao criar cópia de ${option.name}: ${insertError.message}`);
-              } else {
-                console.log(`  ✅ Cópia criada para modelo ${yachtModelIds[i]}`);
+                console.log(`✅ Criado: ${fallbackCode}`);
                 createdCount++;
               }
+            } else {
+              console.error(`❌ Erro ao criar opcional ${option.name} para ${model.code}:`, insertError);
+              errors.push(`${option.name} → ${model.code}: ${insertError.message}`);
             }
+          } else {
+            console.log(`✅ Criado: ${newOption.code}`);
+            createdCount++;
           }
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          console.error(`❌ Erro ao processar ${option.name} para ${model.code}:`, errorMessage);
+          errors.push(`${option.name} → ${model.code}: ${errorMessage}`);
         }
-      } catch (err) {
-        console.error(`❌ Erro ao processar opcional ${optionId}:`, err);
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        errors.push(`Erro ao processar opcional ${optionId}: ${errorMessage}`);
       }
     }
 
+    // 4. Desativar opcionais genéricos originais
+    console.log('\n🔄 Desativando opcionais genéricos originais...');
+    const genericIds = genericOptions.map(o => o.id);
+    
+    const { error: deactivateError } = await supabase
+      .from('options')
+      .update({ is_active: false })
+      .in('id', genericIds);
+
+    if (deactivateError) {
+      console.error('❌ Erro ao desativar genéricos:', deactivateError);
+      errors.push(`Desativação: ${deactivateError.message}`);
+    } else {
+      console.log(`✅ ${genericIds.length} opcionais genéricos desativados`);
+    }
+
     console.log(`\n📊 Resumo da migração:`);
-    console.log(`  ✅ Opcionais atualizados: ${updatedCount}`);
-    console.log(`  ✅ Cópias criadas: ${createdCount}`);
+    console.log(`  📦 Opcionais genéricos processados: ${genericOptions.length}`);
+    console.log(`  🚤 Modelos de barco: ${yachtModels.length}`);
+    console.log(`  ✅ Opcionais específicos criados: ${createdCount}`);
+    console.log(`  🔄 Opcionais genéricos desativados: ${genericIds.length}`);
     console.log(`  ❌ Erros: ${errors.length}`);
 
     if (errors.length > 0) {
       console.log(`\n❌ Detalhes dos erros:`);
       errors.forEach((err, i) => console.log(`  ${i + 1}. ${err}`));
-    }
-
-    // 4. Limpar tabela option_yacht_models
-    console.log(`\n🗑️ Limpando tabela option_yacht_models...`);
-    const { error: deleteError } = await supabase
-      .from('option_yacht_models')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000'); // Deleta tudo
-
-    if (deleteError) {
-      console.error('❌ Erro ao limpar option_yacht_models:', deleteError);
-      errors.push(`Erro ao limpar option_yacht_models: ${deleteError.message}`);
-    } else {
-      console.log('✅ Tabela option_yacht_models limpa com sucesso!');
     }
 
     console.log('\n✨ Migração concluída!');
@@ -156,8 +155,10 @@ Deno.serve(async (req) => {
         success: true,
         message: 'Migração concluída com sucesso',
         stats: {
-          updated: updatedCount,
+          genericOptions: genericOptions.length,
+          yachtModels: yachtModels.length,
           created: createdCount,
+          deactivated: genericIds.length,
           errors: errors.length,
         },
         errors: errors.length > 0 ? errors : undefined,
