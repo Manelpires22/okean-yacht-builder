@@ -58,6 +58,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ExportOptionsButton } from "./ExportOptionsButton";
+import { ImportOptionsDialog } from "./ImportOptionsDialog";
 
 const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
@@ -95,6 +97,20 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
         .or(`yacht_model_id.is.null,yacht_model_id.eq.${yachtModelId}`)
         .order('name');
       
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch yacht model code for export filename
+  const { data: yachtModel } = useQuery({
+    queryKey: ['yacht-model-code', yachtModelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('yacht_models')
+        .select('code')
+        .eq('id', yachtModelId)
+        .single();
       if (error) throw error;
       return data;
     },
@@ -359,10 +375,21 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               Opcionais genéricos e específicos deste modelo. Selecione opcionais reutilizáveis para criar versões personalizadas.
             </p>
           </div>
-          <Button onClick={handleCreateClick}>
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Novo Opcional
-          </Button>
+          <div className="flex gap-2">
+            <ExportOptionsButton 
+              options={options || []} 
+              modelCode={yachtModel?.code || 'modelo'} 
+              disabled={isLoading}
+            />
+            <ImportOptionsDialog 
+              yachtModelId={yachtModelId} 
+              categories={categories || []} 
+            />
+            <Button onClick={handleCreateClick}>
+              <Plus className="mr-2 h-4 w-4" />
+              Criar Novo Opcional
+            </Button>
+          </div>
         </div>
 
         {selectedGlobalOptions.size > 0 && (
