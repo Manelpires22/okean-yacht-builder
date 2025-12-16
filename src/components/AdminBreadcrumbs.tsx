@@ -11,7 +11,6 @@ import {
   Home,
   Settings,
   Ship,
-  Package,
   Users,
   FileText,
   UserCheck,
@@ -40,7 +39,7 @@ const routeMap: Record<string, { label: string; icon?: any; parent?: string }> =
   // Grupo Barcos
   "/admin/yacht-models": { label: "Modelos de Iates", icon: Ship, parent: "/admin" },
   "/admin/yacht-models/create": { label: "Novo Modelo", parent: "/admin/yacht-models" },
-  "/admin/options": { label: "Opcionais", icon: Package, parent: "/admin" },
+  
   "/admin/memorial-categories": { label: "Categorias Memorial", icon: BookOpen, parent: "/admin" },
   
   // Grupo Utilizadores
