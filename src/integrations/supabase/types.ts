@@ -725,13 +725,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_memorial_items_job_stop"
-            columns: ["job_stop_id"]
-            isOneToOne: false
-            referencedRelation: "job_stops"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "memorial_items_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
@@ -843,13 +836,6 @@ export type Database = {
           yacht_model_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_options_job_stop"
-            columns: ["job_stop_id"]
-            isOneToOne: false
-            referencedRelation: "job_stops"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "options_category_id_fkey"
             columns: ["category_id"]
