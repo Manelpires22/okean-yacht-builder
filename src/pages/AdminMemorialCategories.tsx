@@ -49,6 +49,8 @@ import { MemorialCategory } from "@/types/memorial";
 import { toast } from "sonner";
 import { useMemorialCategoryStats } from "@/hooks/useMemorialCategoryStats";
 import { MergeCategoriesDialog } from "@/components/admin/memorial/MergeCategoriesDialog";
+import { ExportCategoriesButton } from "@/components/admin/memorial/ExportCategoriesButton";
+import { ImportCategoriesDialog } from "@/components/admin/memorial/ImportCategoriesDialog";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -276,6 +278,8 @@ export default function AdminMemorialCategories() {
             </p>
           </div>
           <div className="flex gap-2">
+            <ExportCategoriesButton categories={categoriesData || []} />
+            <ImportCategoriesDialog existingCategories={categoriesData || []} />
             <Button variant="outline" onClick={() => setShowMergeDialog(true)}>
               <Merge className="h-4 w-4 mr-2" />
               Mesclar Categorias
