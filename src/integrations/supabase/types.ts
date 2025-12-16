@@ -789,6 +789,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_configurable: boolean | null
+          is_customizable: boolean | null
           job_stop_id: string | null
           name: string
           technical_specifications: Json | null
@@ -809,6 +810,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_configurable?: boolean | null
+          is_customizable?: boolean | null
           job_stop_id?: string | null
           name: string
           technical_specifications?: Json | null
@@ -829,6 +831,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_configurable?: boolean | null
+          is_customizable?: boolean | null
           job_stop_id?: string | null
           name?: string
           technical_specifications?: Json | null
