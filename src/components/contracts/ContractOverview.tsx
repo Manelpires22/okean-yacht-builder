@@ -1,7 +1,6 @@
 import { Contract } from "@/hooks/useContracts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { FileText, Ship, User, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
@@ -13,10 +12,6 @@ interface ContractOverviewProps {
 }
 
 export function ContractOverview({ contract }: ContractOverviewProps) {
-  // Calcular valores de ATOs
-  const totalAtosPrice = contract.current_total_price - contract.base_price;
-  const totalAtosDays = contract.current_total_delivery_days - contract.base_delivery_days;
-  
   return (
     <div className="space-y-6">
       <Card>
@@ -67,85 +62,52 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
           <CardDescription>Consolidação de preços e prazos de entrega</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {/* Layout vertical: Base → Total em cada coluna */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Coluna VALORES */}
             <div className="space-y-6">
-              {/* Seção 1: Preço Base */}
+              {/* Preço Base */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Preço Base (Contrato Original)
-                </p>
-                <p className="text-3xl font-bold text-primary">
+                <p className="text-sm text-muted-foreground mb-1">Preço Base (Contrato Original)</p>
+                <p className="text-2xl font-bold text-primary">
                   {formatCurrency(contract.base_price)}
                 </p>
               </div>
 
-              {/* Seção 2: ATOs */}
+              {/* Valor Total Atual */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Valor Total ATOs Aprovadas
-                </p>
-                <p className={`text-2xl font-semibold ${totalAtosPrice > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {totalAtosPrice > 0 ? `+ ${formatCurrency(totalAtosPrice)}` : formatCurrency(0)}
-                </p>
-              </div>
-
-              {/* Separator */}
-              <Separator className="my-4" />
-
-              {/* Seção 3: Total Atual */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Valor Total Atual
-                </p>
-                <p className="text-4xl font-bold text-primary">
+                <p className="text-sm text-muted-foreground mb-1">Valor Total Atual (com ATOs)</p>
+                <p className="text-3xl font-bold">
                   {formatCurrency(contract.current_total_price)}
                 </p>
-                {totalAtosPrice > 0 && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Variação: +{formatCurrency(totalAtosPrice)}
-                  </p>
+                {contract.current_total_price !== contract.base_price && (
+                  <Badge className="mt-2 bg-primary">
+                    +{formatCurrency(contract.current_total_price - contract.base_price)} em ATOs
+                  </Badge>
                 )}
               </div>
             </div>
 
             {/* Coluna PRAZOS */}
             <div className="space-y-6">
-              {/* Seção 1: Prazo Base */}
+              {/* Prazo Base */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Prazo Base
-                </p>
-                <p className="text-3xl font-bold text-primary">
+                <p className="text-sm text-muted-foreground mb-1">Prazo Base</p>
+                <p className="text-2xl font-bold text-primary">
                   {contract.base_delivery_days} dias
                 </p>
               </div>
 
-              {/* Seção 2: ATOs */}
+              {/* Prazo Total Atual */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Impacto ATOs no Prazo
-                </p>
-                <p className={`text-2xl font-semibold ${totalAtosDays > 0 ? 'text-orange-600' : 'text-muted-foreground'}`}>
-                  {totalAtosDays > 0 ? `+ ${totalAtosDays} dias` : '0 dias'}
-                </p>
-              </div>
-
-              {/* Separator */}
-              <Separator className="my-4" />
-
-              {/* Seção 3: Total Atual */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Prazo Total Atual
-                </p>
-                <p className="text-4xl font-bold text-primary">
+                <p className="text-sm text-muted-foreground mb-1">Prazo Total Atual</p>
+                <p className="text-3xl font-bold">
                   {contract.current_total_delivery_days} dias
                 </p>
-                {totalAtosDays > 0 && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Variação: +{totalAtosDays} dias
-                  </p>
+                {contract.current_total_delivery_days !== contract.base_delivery_days && (
+                  <Badge className="mt-2 bg-primary">
+                    +{contract.current_total_delivery_days - contract.base_delivery_days} dias em ATOs
+                  </Badge>
                 )}
               </div>
             </div>
