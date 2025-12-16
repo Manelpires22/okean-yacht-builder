@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,7 +29,9 @@ import {
 import { 
   parseExcelFile, 
   validateMemorialImportData,
-  MemorialImportRow 
+  MemorialImportRow,
+  generateMemorialTemplate,
+  exportToExcel,
 } from "@/lib/export-utils";
 import { Database } from "@/integrations/supabase/types";
 
@@ -181,6 +183,27 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
         </DialogHeader>
 
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+          {/* Template Download */}
+          <Alert className="bg-muted/50">
+            <Lightbulb className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span className="text-sm">
+                Não sabe o formato esperado? Baixe o template com exemplos.
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const template = generateMemorialTemplate();
+                  exportToExcel(template, "template_memorial_exemplo", "Memorial");
+                }}
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Baixar Template
+              </Button>
+            </AlertDescription>
+          </Alert>
+
           {/* File Upload */}
           <div className="space-y-2">
             <Label htmlFor="file">Arquivo</Label>
