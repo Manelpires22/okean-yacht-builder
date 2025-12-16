@@ -83,11 +83,12 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingOption, setEditingOption] = useState<any | null>(null);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const { data: categories } = useOptionCategories();
   const { data: jobStops } = useJobStops();
 
-  // Fetch options for this yacht model (model-specific only)
+  // Fetch ALL options for this yacht model (model-specific only)
   const { data: options, isLoading } = useQuery({
     queryKey: ['yacht-model-options-v2', yachtModelId],
     queryFn: async () => {
@@ -98,7 +99,6 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           category:option_categories(id, name),
           job_stop:job_stops!options_job_stop_id_fkey(id, stage, days_limit, item_name)
         `)
-        .eq('is_active', true)
         .eq('yacht_model_id', yachtModelId)
         .order('name');
       
@@ -106,6 +106,12 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       return data;
     },
   });
+
+  // Filter options based on showInactive toggle
+  const filteredOptions = useMemo(() => {
+    if (!options) return [];
+    return showInactive ? options : options.filter(opt => opt.is_active);
+  }, [options, showInactive]);
 
   // Fetch yacht model code for export filename
   const { data: yachtModel } = useQuery({
@@ -121,7 +127,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
     },
   });
 
-  // Group options by category
+  // Group filtered options by category
   const optionsByCategory = useMemo(() => {
     const grouped: Record<string, any[]> = {};
     
@@ -129,13 +135,22 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       grouped[cat.id] = [];
     });
 
-    options?.forEach(opt => {
+    filteredOptions?.forEach(opt => {
       if (opt.category && grouped[opt.category.id]) {
         grouped[opt.category.id].push(opt);
       }
     });
 
     return grouped;
+  }, [filteredOptions, categories]);
+
+  // Count active options per category (for display when showing inactive)
+  const activeCountByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    categories?.forEach(cat => {
+      counts[cat.id] = options?.filter(opt => opt.category_id === cat.id && opt.is_active).length || 0;
+    });
+    return counts;
   }, [options, categories]);
 
   // Find first category with options for default open
@@ -327,29 +342,45 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               Opcionais exclusivos deste modelo de iate.
             </p>
           </div>
-          <div className="flex gap-2">
-            <ExportOptionsButton 
-              options={options || []} 
-              modelCode={yachtModel?.code || 'modelo'} 
-              disabled={isLoading}
-            />
-            <ImportOptionsDialog 
-              yachtModelId={yachtModelId} 
-              categories={categories || []} 
-            />
-            <Button onClick={handleCreateClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              Criar Novo Opcional
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-inactive"
+                checked={showInactive}
+                onCheckedChange={setShowInactive}
+              />
+              <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
+                Mostrar inativos
+              </Label>
+            </div>
+            <div className="flex gap-2">
+              <ExportOptionsButton 
+                options={options || []} 
+                modelCode={yachtModel?.code || 'modelo'} 
+                disabled={isLoading}
+              />
+              <ImportOptionsDialog 
+                yachtModelId={yachtModelId} 
+                categories={categories || []} 
+              />
+              <Button onClick={handleCreateClick}>
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Novo Opcional
+              </Button>
+            </div>
           </div>
         </div>
 
-        {!options || options.length === 0 ? (
+        {filteredOptions.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum opcional cadastrado</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {showInactive ? "Nenhum opcional cadastrado" : "Nenhum opcional ativo"}
+            </h3>
             <p className="text-muted-foreground mb-4">
-              Este modelo ainda não possui opcionais. Clique no botão acima para criar o primeiro opcional.
+              {showInactive 
+                ? "Este modelo ainda não possui opcionais. Clique no botão acima para criar o primeiro opcional."
+                : "Este modelo não possui opcionais ativos. Ative o toggle 'Mostrar inativos' para ver todos os opcionais."}
             </p>
           </div>
         ) : (
@@ -357,6 +388,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
             {categories?.map(cat => {
               const categoryOptions = optionsByCategory[cat.id] || [];
               const optionCount = categoryOptions.length;
+              const activeCount = activeCountByCategory[cat.id] || 0;
 
               return (
                 <AccordionItem key={cat.id} value={cat.id}>
@@ -364,7 +396,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                     <div className="flex items-center gap-3 w-full">
                       <span>{cat.name}</span>
                       <Badge variant="outline" className="ml-auto mr-2">
-                        {optionCount} {optionCount === 1 ? 'opcional' : 'opcionais'}
+                        {showInactive 
+                          ? `${activeCount} ativos / ${optionCount} total`
+                          : `${optionCount} ${optionCount === 1 ? 'opcional' : 'opcionais'}`}
                       </Badge>
                     </div>
                   </AccordionTrigger>
@@ -411,7 +445,10 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                                   )}
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant={option.is_active ? "default" : "secondary"}>
+                                  <Badge 
+                                    variant={option.is_active ? "default" : "destructive"}
+                                    className={!option.is_active ? "opacity-70" : ""}
+                                  >
                                     {option.is_active ? "Ativo" : "Inativo"}
                                   </Badge>
                                 </TableCell>
