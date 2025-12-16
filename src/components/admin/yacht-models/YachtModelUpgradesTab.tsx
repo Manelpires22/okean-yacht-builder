@@ -14,6 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -28,13 +33,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Pencil, ArrowUpCircle } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowUpCircle, Eye } from "lucide-react";
 import { 
   useMemorialUpgrades, 
-  useMemorialItemsWithUpgrades,
   useCreateMemorialUpgrade,
   useUpdateMemorialUpgrade,
-  useDeleteMemorialUpgrade 
+  useDeleteMemorialUpgrade,
+  MemorialUpgrade
 } from "@/hooks/useMemorialUpgrades";
 import { UpgradeDialog } from "./UpgradeDialog";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -50,7 +55,6 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
   const [showInactive, setShowInactive] = useState(false);
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
-  const { data: memorialItemsWithUpgrades } = useMemorialItemsWithUpgrades(yachtModelId);
   
   const createMutation = useCreateMemorialUpgrade();
   const updateMutation = useUpdateMemorialUpgrade();
@@ -62,39 +66,47 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
     return showInactive ? upgrades : upgrades.filter(u => u.is_active);
   }, [upgrades, showInactive]);
 
-  // Group upgrades by memorial item
-  const upgradesByMemorialItem = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
+  // Group upgrades by category (from memorial_item.category)
+  const upgradesByCategory = useMemo(() => {
+    const grouped: Record<string, {
+      category: { id: string; label: string; display_order: number };
+      upgrades: MemorialUpgrade[];
+    }> = {};
     
-    memorialItemsWithUpgrades?.forEach(item => {
-      grouped[item.id] = [];
-    });
-
     filteredUpgrades?.forEach(upgrade => {
-      if (upgrade.memorial_item_id && grouped[upgrade.memorial_item_id]) {
-        grouped[upgrade.memorial_item_id].push(upgrade);
+      const category = upgrade.memorial_item?.category;
+      const categoryLabel = category?.label || 'Outros';
+      
+      if (!grouped[categoryLabel]) {
+        grouped[categoryLabel] = {
+          category: category || { id: '', label: 'Outros', display_order: 999 },
+          upgrades: []
+        };
       }
+      grouped[categoryLabel].upgrades.push(upgrade);
     });
+    
+    // Sort by display_order
+    return Object.entries(grouped)
+      .sort((a, b) => a[1].category.display_order - b[1].category.display_order);
+  }, [filteredUpgrades]);
 
-    return grouped;
-  }, [filteredUpgrades, memorialItemsWithUpgrades]);
-
-  // Count active upgrades per memorial item
-  const activeCountByItem = useMemo(() => {
+  // Count active upgrades per category
+  const activeCountByCategory = useMemo(() => {
     const counts: Record<string, number> = {};
-    memorialItemsWithUpgrades?.forEach(item => {
-      counts[item.id] = upgrades?.filter(u => u.memorial_item_id === item.id && u.is_active).length || 0;
+    upgrades?.forEach(upgrade => {
+      const categoryLabel = upgrade.memorial_item?.category?.label || 'Outros';
+      if (!counts[categoryLabel]) counts[categoryLabel] = 0;
+      if (upgrade.is_active) counts[categoryLabel]++;
     });
     return counts;
-  }, [upgrades, memorialItemsWithUpgrades]);
+  }, [upgrades]);
 
-  // Find first item with upgrades for default open
-  const defaultOpenItem = useMemo(() => {
-    const itemWithUpgrades = memorialItemsWithUpgrades?.find(item => 
-      upgradesByMemorialItem[item.id]?.length > 0
-    );
-    return itemWithUpgrades?.id || memorialItemsWithUpgrades?.[0]?.id;
-  }, [upgradesByMemorialItem, memorialItemsWithUpgrades]);
+  // Find first category with upgrades for default open
+  const defaultOpenCategory = useMemo(() => {
+    if (upgradesByCategory.length === 0) return "";
+    return upgradesByCategory[0]?.[0] || "";
+  }, [upgradesByCategory]);
 
   const handleCreateClick = () => {
     setEditingUpgrade(null);
@@ -158,7 +170,7 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
     );
   }
 
-  const noUpgradesConfigured = !memorialItemsWithUpgrades || memorialItemsWithUpgrades.length === 0;
+  const noUpgrades = filteredUpgrades.length === 0;
 
   return (
     <>
@@ -181,22 +193,14 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                 Mostrar inativos
               </Label>
             </div>
-            <Button onClick={handleCreateClick} disabled={noUpgradesConfigured}>
+            <Button onClick={handleCreateClick}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Upgrade
             </Button>
           </div>
         </div>
 
-        {noUpgradesConfigured ? (
-          <div className="text-center py-12 border-2 border-dashed rounded-lg">
-            <ArrowUpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum item configurado para upgrades</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              Para criar upgrades, primeiro marque alguns itens do memorial com "Possui Upgrades" na aba Memorial.
-            </p>
-          </div>
-        ) : filteredUpgrades.length === 0 ? (
+        {noUpgrades ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <ArrowUpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
@@ -209,24 +213,16 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
             </p>
           </div>
         ) : (
-          <Accordion type="single" collapsible defaultValue={defaultOpenItem} className="w-full">
-            {memorialItemsWithUpgrades?.map(item => {
-              const itemUpgrades = upgradesByMemorialItem[item.id] || [];
-              const upgradeCount = itemUpgrades.length;
-              const activeCount = activeCountByItem[item.id] || 0;
-
-              if (upgradeCount === 0 && !showInactive) return null;
+          <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">
+            {upgradesByCategory.map(([categoryLabel, { upgrades: categoryUpgrades }]) => {
+              const upgradeCount = categoryUpgrades.length;
+              const activeCount = activeCountByCategory[categoryLabel] || 0;
 
               return (
-                <AccordionItem key={item.id} value={item.id}>
+                <AccordionItem key={categoryLabel} value={categoryLabel}>
                   <AccordionTrigger className="text-lg font-semibold hover:no-underline">
                     <div className="flex items-center gap-3 w-full">
-                      <span>{item.item_name}</span>
-                      {item.category && (
-                        <Badge variant="outline" className="text-xs">
-                          {item.category.label}
-                        </Badge>
-                      )}
+                      <span>{categoryLabel}</span>
                       <Badge variant="secondary" className="ml-auto mr-2">
                         {showInactive 
                           ? `${activeCount} ativos / ${upgradeCount} total`
@@ -235,98 +231,109 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    {itemUpgrades.length > 0 ? (
-                      <div className="border rounded-lg">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Código</TableHead>
-                              <TableHead>Nome</TableHead>
-                              <TableHead>Marca/Modelo</TableHead>
-                              <TableHead className="text-right">Preço Delta</TableHead>
-                              <TableHead className="text-right">Prazo</TableHead>
-                              <TableHead>Job Stop</TableHead>
-                              <TableHead>Status</TableHead>
-                              <TableHead className="text-right">Ações</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {itemUpgrades.map((upgrade) => (
-                              <TableRow key={upgrade.id}>
-                                <TableCell className="font-mono text-sm">{upgrade.code}</TableCell>
-                                <TableCell>
-                                  <div>
-                                    <p className="font-medium">{upgrade.name}</p>
-                                    {upgrade.description && (
-                                      <p className="text-sm text-muted-foreground line-clamp-1">
-                                        {upgrade.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  {upgrade.brand || upgrade.model ? (
-                                    <span className="text-sm">
-                                      {[upgrade.brand, upgrade.model].filter(Boolean).join(' - ')}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">—</span>
+                    <div className="border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Código</TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Marca/Modelo</TableHead>
+                            <TableHead className="text-right">Preço Delta</TableHead>
+                            <TableHead className="text-right">Prazo</TableHead>
+                            <TableHead>Job Stop</TableHead>
+                            <TableHead>Item Vinculado</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {categoryUpgrades.map((upgrade) => (
+                            <TableRow key={upgrade.id}>
+                              <TableCell className="font-mono text-sm">{upgrade.code}</TableCell>
+                              <TableCell>
+                                <div>
+                                  <p className="font-medium">{upgrade.name}</p>
+                                  {upgrade.description && (
+                                    <p className="text-sm text-muted-foreground line-clamp-1">
+                                      {upgrade.description}
+                                    </p>
                                   )}
-                                </TableCell>
-                                <TableCell className="text-right font-medium text-success">
-                                  +{formatCurrency(upgrade.price)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {upgrade.delivery_days_impact > 0 ? `+${upgrade.delivery_days_impact} dias` : '—'}
-                                </TableCell>
-                                <TableCell>
-                                  {upgrade.job_stop ? (
-                                    <Badge variant="outline" className="font-mono">
-                                      {upgrade.job_stop.stage}
-                                    </Badge>
-                                  ) : (
-                                    <span className="text-muted-foreground text-sm">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge 
-                                    variant={upgrade.is_active ? "default" : "secondary"}
-                                    className={!upgrade.is_active ? "opacity-70" : ""}
-                                  >
-                                    {upgrade.is_active ? "Ativo" : "Inativo"}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {upgrade.brand || upgrade.model ? (
+                                  <span className="text-sm">
+                                    {[upgrade.brand, upgrade.model].filter(Boolean).join(' - ')}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-success">
+                                +{formatCurrency(upgrade.price)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {upgrade.delivery_days_impact > 0 ? `+${upgrade.delivery_days_impact} dias` : '—'}
+                              </TableCell>
+                              <TableCell>
+                                {upgrade.job_stop ? (
+                                  <Badge variant="outline" className="font-mono">
+                                    {upgrade.job_stop.stage}
                                   </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleEditClick(upgrade)}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setDeletingUpgradeId(upgrade.id)}
-                                    >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    ) : (
-                      <div className="border rounded-lg p-8 text-center">
-                        <ArrowUpCircle className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">
-                          Nenhum upgrade cadastrado para este item.
-                        </p>
-                      </div>
-                    )}
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {upgrade.memorial_item ? (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                                        <Eye className="h-4 w-4 text-muted-foreground" />
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-3">
+                                      <div className="text-sm">
+                                        <p className="text-muted-foreground mb-1">Vinculado ao item:</p>
+                                        <p className="font-medium">{upgrade.memorial_item.item_name}</p>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={upgrade.is_active ? "default" : "secondary"}
+                                  className={!upgrade.is_active ? "opacity-70" : ""}
+                                >
+                                  {upgrade.is_active ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditClick(upgrade)}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setDeletingUpgradeId(upgrade.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               );

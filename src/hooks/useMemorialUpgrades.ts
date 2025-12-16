@@ -26,6 +26,11 @@ export interface MemorialUpgrade {
     id: string;
     item_name: string;
     category_id: string;
+    category?: {
+      id: string;
+      label: string;
+      display_order: number;
+    };
   };
   job_stop?: {
     id: string;
@@ -43,11 +48,15 @@ export function useMemorialUpgrades(yachtModelId: string) {
         .from('memorial_upgrades')
         .select(`
           *,
-          memorial_item:memorial_items(id, item_name, category_id),
+          memorial_item:memorial_items(
+            id, 
+            item_name, 
+            category_id,
+            category:memorial_categories(id, label, display_order)
+          ),
           job_stop:job_stops!memorial_upgrades_job_stop_id_fkey(id, stage, days_limit, item_name)
         `)
         .eq('yacht_model_id', yachtModelId)
-        .order('memorial_item_id')
         .order('display_order');
       
       if (error) throw error;
