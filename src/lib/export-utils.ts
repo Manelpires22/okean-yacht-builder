@@ -56,6 +56,26 @@ export interface OptionImportRow {
   is_active?: boolean;
 }
 
+// ===== MEMORIAL CATEGORIES =====
+
+export interface CategoryExportRow {
+  value: string;
+  label: string;
+  description: string;
+  icon: string;
+  display_order: number;
+  is_active: boolean;
+}
+
+export interface CategoryImportRow {
+  value: string;
+  label: string;
+  description?: string;
+  icon?: string;
+  display_order?: number;
+  is_active?: boolean;
+}
+
 // ===== UPGRADES =====
 
 export interface UpgradeExportRow {
@@ -535,6 +555,93 @@ export function generateUpgradesTemplate(): UpgradeExportRow[] {
       is_configurable: true,
       job_stop_stage: "JS3",
       job_stop_days_limit: 90,
+    },
+  ];
+}
+
+// ===== CATEGORIES SPECIFIC =====
+
+export function transformCategoriesForExport(categories: any[]): CategoryExportRow[] {
+  return categories.map(cat => ({
+    value: cat.value || '',
+    label: cat.label || '',
+    description: cat.description || '',
+    icon: cat.icon || '',
+    display_order: cat.display_order || 0,
+    is_active: cat.is_active ?? true,
+  }));
+}
+
+export function validateCategoriesImportData(data: any[]): { valid: boolean; errors: string[]; rows: CategoryImportRow[] } {
+  const errors: string[] = [];
+  const validRows: CategoryImportRow[] = [];
+  
+  if (!data || data.length === 0) {
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [] };
+  }
+  
+  data.forEach((row, index) => {
+    const rowNum = index + 2;
+    
+    if (!row.value) {
+      errors.push(`Linha ${rowNum}: Código (value) é obrigatório`);
+    }
+    if (!row.label) {
+      errors.push(`Linha ${rowNum}: Nome (label) é obrigatório`);
+    }
+    
+    if (row.value && row.label) {
+      validRows.push({
+        value: String(row.value).trim().toLowerCase().replace(/\s+/g, '_'),
+        label: String(row.label).trim(),
+        description: row.description ? String(row.description).trim() : undefined,
+        icon: row.icon ? String(row.icon).trim() : undefined,
+        display_order: row.display_order ? Number(row.display_order) : index + 1,
+        is_active: parseBoolean(row.is_active, true),
+      });
+    }
+  });
+  
+  return { 
+    valid: errors.length === 0, 
+    errors, 
+    rows: validRows 
+  };
+}
+
+export function generateCategoriesTemplate(): CategoryExportRow[] {
+  return [
+    {
+      value: "deck_principal",
+      label: "Deck Principal",
+      description: "Área principal do convés superior",
+      icon: "⛵",
+      display_order: 1,
+      is_active: true,
+    },
+    {
+      value: "casco_estrutura",
+      label: "Casco e Estrutura",
+      description: "Componentes estruturais do barco",
+      icon: "🚢",
+      display_order: 2,
+      is_active: true,
+    },
+    {
+      value: "sistema_eletrico",
+      label: "Sistema Elétrico",
+      description: "Componentes elétricos e eletrônicos",
+      icon: "⚡",
+      display_order: 3,
+      is_active: true,
+    },
+    {
+      value: "conforto",
+      label: "Conforto",
+      description: "Itens de conforto e climatização",
+      icon: "❄️",
+      display_order: 4,
+      is_active: true,
     },
   ];
 }
