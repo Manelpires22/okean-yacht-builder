@@ -55,6 +55,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExportOptionsButton } from "./ExportOptionsButton";
 import { ImportOptionsDialog } from "./ImportOptionsDialog";
+import { useJobStops } from "@/hooks/useJobStops";
+import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 
 const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
@@ -66,6 +68,8 @@ const optionSchema = z.object({
   is_customizable: z.boolean().default(true),
   is_configurable: z.boolean().default(false),
   is_active: z.boolean().default(true),
+  job_stop_id: z.string().uuid().nullable().optional(),
+  configurable_sub_items: z.string().optional(),
 });
 
 type OptionFormData = z.infer<typeof optionSchema>;
@@ -81,6 +85,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
 
   const { data: categories } = useOptionCategories();
+  const { data: jobStops } = useJobStops();
 
   // Fetch options for this yacht model (model-specific only)
   const { data: options, isLoading } = useQuery({
@@ -160,17 +165,24 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      job_stop_id: null,
+      configurable_sub_items: "",
     },
   });
 
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (newOption: OptionFormData) => {
+      const { configurable_sub_items, ...rest } = newOption;
       const { data, error } = await supabase
         .from('options')
         .insert({
-          ...newOption,
+          ...rest,
           yacht_model_id: yachtModelId,
+          job_stop_id: newOption.job_stop_id || null,
+          configurable_sub_items: configurable_sub_items 
+            ? JSON.parse(configurable_sub_items) 
+            : [],
         } as any)
         .select()
         .single();
@@ -193,9 +205,16 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: OptionFormData }) => {
+      const { configurable_sub_items, ...rest } = data;
       const { error } = await supabase
         .from('options')
-        .update(data)
+        .update({
+          ...rest,
+          job_stop_id: data.job_stop_id || null,
+          configurable_sub_items: configurable_sub_items 
+            ? JSON.parse(configurable_sub_items) 
+            : [],
+        })
         .eq('id', id);
       
       if (error) throw error;
@@ -244,6 +263,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      job_stop_id: null,
+      configurable_sub_items: "",
     });
     setCreateDialogOpen(true);
   };
@@ -259,6 +280,10 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: option.is_customizable ?? true,
       is_configurable: option.is_configurable ?? false,
       is_active: option.is_active,
+      job_stop_id: option.job_stop_id || null,
+      configurable_sub_items: Array.isArray(option.configurable_sub_items)
+        ? JSON.stringify(option.configurable_sub_items)
+        : (option.configurable_sub_items || ""),
     });
     setEditingOption(option);
   };
@@ -564,6 +589,40 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                   onCheckedChange={(checked) => setValue("is_configurable", checked)}
                 />
               </div>
+
+              {/* Campos condicionais quando is_configurable está ativo */}
+              {watch("is_configurable") && (
+                <>
+                  <div className="space-y-2 rounded-lg border p-4 bg-muted/50">
+                    <Label>Job-Stop de Definição</Label>
+                    <Select
+                      value={watch("job_stop_id") || ""}
+                      onValueChange={(val) => setValue("job_stop_id", val || null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o Job-Stop" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jobStops?.map((js) => (
+                          <SelectItem key={js.id} value={js.id}>
+                            {js.stage} - {js.days_limit} dias - {js.item_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Prazo limite para definição desta configuração
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border p-4 bg-muted/50">
+                    <ConfigurableSubItemsEditor
+                      value={parseSubItems(watch("configurable_sub_items"))}
+                      onChange={(items) => setValue("configurable_sub_items", JSON.stringify(items))}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">
