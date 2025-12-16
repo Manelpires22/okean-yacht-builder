@@ -2,7 +2,6 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Ship,
   Settings,
-  Package,
   Users,
   Home,
   FileText,
@@ -65,7 +64,6 @@ const navGroups = [
     icon: Ship,
     items: [
       { path: "/admin/yacht-models", icon: Ship, label: "Modelos de Iates" },
-      { path: "/admin/options", icon: Package, label: "Opcionais" },
       { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
     ],
   },

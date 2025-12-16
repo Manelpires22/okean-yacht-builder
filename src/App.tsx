@@ -44,7 +44,7 @@ const AdminYachtModels = lazy(() => import("@/pages/AdminYachtModels"));
 const AdminYachtModelEdit = lazy(() => import("@/pages/AdminYachtModelEdit"));
 const AdminYachtModelCreate = lazy(() => import("@/pages/AdminYachtModelCreate"));
 const AdminUsers = lazy(() => import("@/pages/AdminUsers"));
-const AdminOptions = lazy(() => import("@/pages/AdminOptions"));
+
 const AdminMemorialCategories = lazy(() => import("@/pages/AdminMemorialCategories"));
 const AdminDiscountSettings = lazy(() => import("@/pages/AdminDiscountSettings"));
 const AdminApprovalSettings = lazy(() => import("@/pages/AdminApprovalSettings"));
@@ -122,7 +122,7 @@ const App = () => (
               <Route path="/admin/yacht-models" element={<ProtectedRoute requireAdmin><AdminYachtModels /></ProtectedRoute>} />
               <Route path="/admin/yacht-models/new" element={<ProtectedRoute requireAdmin><AdminYachtModelCreate /></ProtectedRoute>} />
               <Route path="/admin/yacht-models/:modelId/edit" element={<ProtectedRoute requireAdmin><AdminYachtModelEdit /></ProtectedRoute>} />
-              <Route path="/admin/options" element={<ProtectedRoute requireAdmin><AdminOptions /></ProtectedRoute>} />
+              
               <Route path="/admin/memorial-categories" element={<ProtectedRoute requireAdmin><AdminMemorialCategories /></ProtectedRoute>} />
               <Route path="/admin/discount-settings" element={<ProtectedRoute requireAdmin><AdminDiscountSettings /></ProtectedRoute>} />
               <Route path="/admin/approval-settings" element={<ProtectedRoute requireAdmin><AdminApprovalSettings /></ProtectedRoute>} />

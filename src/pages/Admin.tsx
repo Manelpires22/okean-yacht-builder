@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { useStats } from "@/hooks/useStats";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, Package, FileText, Users, Layers } from "lucide-react";
+import { Ship, FileText, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -16,20 +16,6 @@ const Admin = () => {
       icon: Ship,
       link: "/admin/yacht-models",
       color: "text-primary"
-    },
-    {
-      title: "Categorias",
-      value: stats?.categoriesCount,
-      icon: Layers,
-      link: "/admin/options",
-      color: "text-accent"
-    },
-    {
-      title: "Opcionais",
-      value: stats?.optionsCount,
-      icon: Package,
-      link: "/admin/options",
-      color: "text-secondary"
     },
     {
       title: "Cotações",
