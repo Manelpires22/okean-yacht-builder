@@ -245,6 +245,119 @@ export function validateOptionsImportData(data: any[]): { valid: boolean; errors
   };
 }
 
+// ===== TEMPLATE GENERATORS =====
+
+export function generateMemorialTemplate(): MemorialExportRow[] {
+  return [
+    {
+      categoria: "Casco e Estrutura",
+      item_name: "Casco em Fibra de Vidro",
+      description: "Laminação manual com resina vinilester",
+      brand: "OKEAN",
+      model: "-",
+      quantity: 1,
+      unit: "unidade",
+      display_order: 1,
+      is_customizable: true,
+      is_configurable: false,
+      is_active: true,
+    },
+    {
+      categoria: "Sistema Elétrico",
+      item_name: "Gerador Principal",
+      description: "Gerador diesel silencioso",
+      brand: "Kohler",
+      model: "11EKOZD",
+      quantity: 1,
+      unit: "unidade",
+      display_order: 10,
+      is_customizable: true,
+      is_configurable: true,
+      is_active: true,
+    },
+    {
+      categoria: "Conforto",
+      item_name: "Ar Condicionado",
+      description: "Sistema split 24.000 BTU",
+      brand: "Webasto",
+      model: "BlueCool",
+      quantity: 2,
+      unit: "unidade",
+      display_order: 20,
+      is_customizable: true,
+      is_configurable: false,
+      is_active: true,
+    },
+    {
+      categoria: "Navegação",
+      item_name: "GPS Chartplotter",
+      description: "Tela 12 polegadas multifuncional",
+      brand: "Garmin",
+      model: "GPSMAP 1243",
+      quantity: 1,
+      unit: "unidade",
+      display_order: 30,
+      is_customizable: false,
+      is_configurable: true,
+      is_active: true,
+    },
+    {
+      categoria: "Acabamento",
+      item_name: "Revestimento Interno",
+      description: "Couro sintético premium",
+      brand: "-",
+      model: "-",
+      quantity: 50,
+      unit: "m²",
+      display_order: 40,
+      is_customizable: true,
+      is_configurable: false,
+      is_active: true,
+    },
+  ];
+}
+
+export function generateOptionsTemplate(): OptionExportRow[] {
+  return [
+    {
+      code: "OPT-001",
+      name: "Ar Condicionado Extra",
+      description: "Sistema adicional de 24.000 BTU",
+      category: "Conforto",
+      base_price: 45000,
+      delivery_days_impact: 15,
+      is_active: true,
+    },
+    {
+      code: "OPT-002",
+      name: "Sistema de Som Premium",
+      description: "Sistema Bose Marine com 8 alto-falantes",
+      category: "Entretenimento",
+      base_price: 32000,
+      delivery_days_impact: 7,
+      is_active: true,
+    },
+    {
+      code: "OPT-003",
+      name: "Teak no Cockpit",
+      description: "Revestimento em teak certificado",
+      category: "Acabamento",
+      base_price: 85000,
+      delivery_days_impact: 30,
+      is_active: true,
+    },
+    {
+      code: "OPT-004",
+      name: "Gerador Auxiliar",
+      description: "Gerador diesel 5kW para backup",
+      category: "Sistema Elétrico",
+      base_price: 58000,
+      delivery_days_impact: 21,
+      is_active: true,
+    },
+  ];
+}
+
 // ===== HELPERS =====
 
 function parseBoolean(value: any, defaultValue: boolean): boolean {
