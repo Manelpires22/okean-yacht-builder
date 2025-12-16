@@ -56,6 +56,39 @@ export interface OptionImportRow {
   is_active?: boolean;
 }
 
+// ===== UPGRADES =====
+
+export interface UpgradeExportRow {
+  code: string;
+  name: string;
+  description: string;
+  brand: string;
+  model: string;
+  memorial_item_name: string;
+  memorial_item_category: string;
+  price: number;
+  delivery_days_impact: number;
+  is_active: boolean;
+  is_customizable: boolean;
+  is_configurable: boolean;
+  job_stop_stage: string;
+  job_stop_days_limit: number | null;
+}
+
+export interface UpgradeImportRow {
+  code: string;
+  name: string;
+  description?: string;
+  brand?: string;
+  model?: string;
+  memorial_item_name: string;
+  price: number;
+  delivery_days_impact?: number;
+  is_active?: boolean;
+  is_customizable?: boolean;
+  is_configurable?: boolean;
+}
+
 // ===== EXPORT FUNCTIONS =====
 
 export function exportToExcel<T extends Record<string, any>>(
@@ -380,6 +413,128 @@ export function generateOptionsTemplate(): OptionExportRow[] {
       is_active: true,
       job_stop_stage: "JS1",
       job_stop_days_limit: 300,
+    },
+  ];
+}
+
+// ===== UPGRADES SPECIFIC =====
+
+export function transformUpgradesForExport(upgrades: any[]): UpgradeExportRow[] {
+  return upgrades.map(u => ({
+    code: u.code || '',
+    name: u.name || '',
+    description: u.description || '',
+    brand: u.brand || '',
+    model: u.model || '',
+    memorial_item_name: u.memorial_item?.item_name || '',
+    memorial_item_category: u.memorial_item?.category?.label || '',
+    price: u.price || 0,
+    delivery_days_impact: u.delivery_days_impact || 0,
+    is_active: u.is_active ?? true,
+    is_customizable: u.is_customizable ?? true,
+    is_configurable: u.is_configurable ?? false,
+    job_stop_stage: u.job_stop?.stage || '',
+    job_stop_days_limit: u.job_stop?.days_limit ?? null,
+  }));
+}
+
+export function validateUpgradesImportData(data: any[]): { valid: boolean; errors: string[]; rows: UpgradeImportRow[] } {
+  const errors: string[] = [];
+  const validRows: UpgradeImportRow[] = [];
+  
+  if (!data || data.length === 0) {
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [] };
+  }
+  
+  data.forEach((row, index) => {
+    const rowNum = index + 2;
+    
+    if (!row.code) {
+      errors.push(`Linha ${rowNum}: Código é obrigatório`);
+    }
+    if (!row.name) {
+      errors.push(`Linha ${rowNum}: Nome é obrigatório`);
+    }
+    if (!row.memorial_item_name) {
+      errors.push(`Linha ${rowNum}: Nome do item do memorial é obrigatório`);
+    }
+    if (row.price === undefined || row.price === null || row.price === '') {
+      errors.push(`Linha ${rowNum}: Preço é obrigatório`);
+    }
+    
+    if (row.code && row.name && row.memorial_item_name && row.price !== undefined) {
+      validRows.push({
+        code: String(row.code).trim(),
+        name: String(row.name).trim(),
+        description: row.description ? String(row.description).trim() : undefined,
+        brand: row.brand ? String(row.brand).trim() : undefined,
+        model: row.model ? String(row.model).trim() : undefined,
+        memorial_item_name: String(row.memorial_item_name).trim(),
+        price: Number(row.price),
+        delivery_days_impact: row.delivery_days_impact ? Number(row.delivery_days_impact) : 0,
+        is_active: parseBoolean(row.is_active, true),
+        is_customizable: parseBoolean(row.is_customizable, true),
+        is_configurable: parseBoolean(row.is_configurable, false),
+      });
+    }
+  });
+  
+  return { 
+    valid: errors.length === 0, 
+    errors, 
+    rows: validRows 
+  };
+}
+
+export function generateUpgradesTemplate(): UpgradeExportRow[] {
+  return [
+    {
+      code: "UPG-001",
+      name: "Gerador 15KW Premium",
+      description: "Gerador silencioso de alta performance",
+      brand: "ONAN",
+      model: "15MDKBR",
+      memorial_item_name: "Gerador Principal",
+      memorial_item_category: "Sistema Elétrico",
+      price: 45000,
+      delivery_days_impact: 15,
+      is_active: true,
+      is_customizable: true,
+      is_configurable: false,
+      job_stop_stage: "JS2",
+      job_stop_days_limit: 120,
+    },
+    {
+      code: "UPG-002",
+      name: "Motor 450HP Racing",
+      description: "Motor de alta potência para performance",
+      brand: "Mercury",
+      model: "450R",
+      memorial_item_name: "Motor de Popa",
+      memorial_item_category: "Propulsão",
+      price: 120000,
+      delivery_days_impact: 30,
+      is_active: true,
+      is_customizable: false,
+      is_configurable: false,
+      job_stop_stage: "JS1",
+      job_stop_days_limit: 300,
+    },
+    {
+      code: "UPG-003",
+      name: "Ar Condicionado 48.000 BTU",
+      description: "Sistema de climatização reforçado",
+      brand: "Webasto",
+      model: "BlueCool S48",
+      memorial_item_name: "Ar Condicionado",
+      memorial_item_category: "Conforto",
+      price: 28000,
+      delivery_days_impact: 10,
+      is_active: true,
+      is_customizable: true,
+      is_configurable: true,
+      job_stop_stage: "JS3",
+      job_stop_days_limit: 90,
     },
   ];
 }
