@@ -469,7 +469,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           reset();
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingOption ? "Editar Opcional" : "Criar Novo Opcional"}
