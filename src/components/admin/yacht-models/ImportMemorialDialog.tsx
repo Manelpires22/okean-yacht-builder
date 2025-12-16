@@ -53,6 +53,16 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
 
+  // Helper function to generate slug from category label
+  const generateCategorySlug = (label: string): string => {
+    return label
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove accents
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+  };
+
   const importMutation = useMutation({
     mutationFn: async ({ rows, mode }: { rows: MemorialImportRow[]; mode: ImportMode }) => {
       // If replace mode, delete existing items first
@@ -71,12 +81,51 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
         categoryMap.set(cat.label.toLowerCase(), { id: cat.id, value: cat.value });
       });
 
-      // Transform rows to database format
+      // Calculate max display_order for new categories
+      const maxCategoryOrder = categories?.reduce((max, cat) => Math.max(max, cat.display_order || 0), 0) || 0;
+      let newCategoryOrder = maxCategoryOrder;
+      let categoriesCreated = 0;
+
+      // Collect unique categories that need to be created
+      const categoriesToCreate = new Map<string, string>();
+      for (const row of rows) {
+        const categoryKey = row.categoria.toLowerCase();
+        if (!categoryMap.has(categoryKey) && !categoriesToCreate.has(categoryKey)) {
+          categoriesToCreate.set(categoryKey, row.categoria);
+        }
+      }
+
+      // Create missing categories
+      for (const [key, label] of categoriesToCreate) {
+        newCategoryOrder++;
+        const slug = generateCategorySlug(label);
+        
+        const { data: newCategory, error: createError } = await supabase
+          .from("memorial_categories")
+          .insert({
+            value: slug,
+            label: label,
+            display_order: newCategoryOrder,
+            is_active: true,
+          })
+          .select("id, value")
+          .single();
+
+        if (createError) {
+          throw new Error(`Erro ao criar categoria "${label}": ${createError.message}`);
+        }
+
+        categoryMap.set(key, { id: newCategory.id, value: newCategory.value });
+        categoriesCreated++;
+      }
+
+      // Transform rows to database format with defaults
       const itemsToInsert = rows.map((row, index) => {
         const categoryData = categoryMap.get(row.categoria.toLowerCase());
         
+        // This should never happen now, but keep as safety check
         if (!categoryData) {
-          throw new Error(`Categoria "${row.categoria}" não encontrada. Verifique se a categoria existe no sistema.`);
+          throw new Error(`Categoria "${row.categoria}" não encontrada.`);
         }
 
         return {
@@ -84,6 +133,7 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
           category_id: categoryData.id,
           category: categoryData.value as MemorialCategory,
           item_name: row.item_name,
+          // Defaults for empty fields
           description: row.description || null,
           brand: row.brand || null,
           model: row.model || null,
@@ -102,11 +152,16 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
 
       if (error) throw error;
       
-      return itemsToInsert.length;
+      return { itemsCount: itemsToInsert.length, categoriesCreated };
     },
-    onSuccess: (count) => {
+    onSuccess: ({ itemsCount, categoriesCreated }) => {
       queryClient.invalidateQueries({ queryKey: ["memorial-items", yachtModelId] });
-      toast.success(`${count} itens importados com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ["memorial-categories"] });
+      
+      const categoryMsg = categoriesCreated > 0 
+        ? ` (${categoriesCreated} nova${categoriesCreated > 1 ? 's' : ''} categoria${categoriesCreated > 1 ? 's' : ''} criada${categoriesCreated > 1 ? 's' : ''})`
+        : '';
+      toast.success(`${itemsCount} itens importados com sucesso!${categoryMsg}`);
       handleClose();
     },
     onError: (error: Error) => {
@@ -272,6 +327,29 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
                   {previewData.length} itens válidos para importação
                 </span>
               </div>
+
+              {/* New categories warning */}
+              {(() => {
+                const existingLabels = new Set(categories?.map(c => c.label.toLowerCase()) || []);
+                const newCategories = [...new Set(
+                  previewData
+                    .map(r => r.categoria)
+                    .filter(cat => !existingLabels.has(cat.toLowerCase()))
+                )];
+                
+                if (newCategories.length > 0) {
+                  return (
+                    <Alert className="mb-2 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                      <Lightbulb className="h-4 w-4 text-blue-600" />
+                      <AlertDescription className="text-sm">
+                        <span className="font-medium">{newCategories.length} nova{newCategories.length > 1 ? 's' : ''} categoria{newCategories.length > 1 ? 's' : ''} ser{newCategories.length > 1 ? 'ão' : 'á'} criada{newCategories.length > 1 ? 's' : ''}:</span>
+                        <span className="ml-1">{newCategories.slice(0, 5).join(", ")}{newCategories.length > 5 ? ` e mais ${newCategories.length - 5}` : ''}</span>
+                      </AlertDescription>
+                    </Alert>
+                  );
+                }
+                return null;
+              })()}
               
               <ScrollArea className="flex-1 border rounded-lg">
                 <Table>
@@ -285,15 +363,23 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {previewData.slice(0, 20).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-sm">{row.categoria}</TableCell>
-                        <TableCell className="text-sm font-medium">{row.item_name}</TableCell>
-                        <TableCell className="text-sm">{row.brand || "-"}</TableCell>
-                        <TableCell className="text-sm">{row.model || "-"}</TableCell>
-                        <TableCell className="text-sm">{row.quantity}</TableCell>
-                      </TableRow>
-                    ))}
+                    {previewData.slice(0, 20).map((row, i) => {
+                      const isNewCategory = !categories?.some(c => c.label.toLowerCase() === row.categoria.toLowerCase());
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="text-sm">
+                            {row.categoria}
+                            {isNewCategory && (
+                              <span className="ml-1 text-xs text-blue-600 font-medium">(nova)</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium">{row.item_name}</TableCell>
+                          <TableCell className="text-sm">{row.brand || "-"}</TableCell>
+                          <TableCell className="text-sm">{row.model || "-"}</TableCell>
+                          <TableCell className="text-sm">{row.quantity || 1}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {previewData.length > 20 && (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
