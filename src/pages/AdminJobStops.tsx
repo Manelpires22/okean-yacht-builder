@@ -10,6 +10,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export default function AdminJobStops() {
   const { data: jobStops, isLoading } = useJobStops();
 
+  // Agrupar por estágio para exibição
+  const groupedByStage = jobStops?.reduce((acc, js) => {
+    if (!acc[js.stage]) {
+      acc[js.stage] = [];
+    }
+    acc[js.stage].push(js);
+    return acc;
+  }, {} as Record<string, typeof jobStops>);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -25,8 +34,8 @@ export default function AdminJobStops() {
           <AlertTitle>Sobre Job-Stops</AlertTitle>
           <AlertDescription>
             Job-Stops são marcos na linha do tempo de construção que determinam até quando 
-            configurações específicas devem ser definidas. Itens configuráveis podem ser 
-            vinculados a um Job-Stop para respeitar prazos de produção.
+            configurações específicas devem ser definidas. O número de dias indica o prazo 
+            antes da entrega para definição de cada item.
           </AlertDescription>
         </Alert>
 
@@ -34,7 +43,7 @@ export default function AdminJobStops() {
           <CardHeader>
             <CardTitle>Job-Stops Cadastrados</CardTitle>
             <CardDescription>
-              Lista de todos os marcos de construção disponíveis
+              Lista de todos os marcos de construção organizados por estágio
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -48,23 +57,27 @@ export default function AdminJobStops() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20">Ordem</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
+                    <TableHead className="w-24">Estágio</TableHead>
+                    <TableHead className="w-32">Dias Limite</TableHead>
+                    <TableHead>Item de Configuração</TableHead>
                     <TableHead className="w-24 text-center">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {jobStops?.map((jobStop) => (
                     <TableRow key={jobStop.id}>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {jobStop.stage}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {jobStop.days_limit} dias
+                        </Badge>
+                      </TableCell>
                       <TableCell className="font-medium">
-                        <Badge variant="outline">#{jobStop.display_order}</Badge>
-                      </TableCell>
-                      <TableCell className="font-semibold">
-                        {jobStop.name}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {jobStop.description}
+                        {jobStop.item_name}
                       </TableCell>
                       <TableCell className="text-center">
                         {jobStop.is_active ? (
@@ -94,6 +107,28 @@ export default function AdminJobStops() {
           </CardContent>
         </Card>
 
+        {/* Resumo por Estágio */}
+        {groupedByStage && Object.keys(groupedByStage).length > 0 && (
+          <div className="grid gap-4 md:grid-cols-4">
+            {Object.entries(groupedByStage).map(([stage, items]) => (
+              <Card key={stage}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-mono">{stage}</CardTitle>
+                  <CardDescription>
+                    {items?.[0]?.days_limit} dias antes da entrega
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{items?.length}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {items?.length === 1 ? "item" : "itens"} de configuração
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Como Usar Job-Stops</CardTitle>
@@ -103,7 +138,7 @@ export default function AdminJobStops() {
               <h3 className="font-semibold mb-2">1. Vincular Item Configurável ao Job-Stop</h3>
               <p className="text-sm text-muted-foreground">
                 Ao criar ou editar um item do memorial ou opcional, marque como "Configurável" 
-                e selecione o Job-Stop apropriado.
+                e selecione o Job-Stop apropriado baseado no tipo de item.
               </p>
             </div>
 
@@ -111,7 +146,7 @@ export default function AdminJobStops() {
               <h3 className="font-semibold mb-2">2. Durante a Configuração</h3>
               <p className="text-sm text-muted-foreground">
                 Na fase de configuração da cotação, o sistema mostrará até quando cada item 
-                configurável precisa ser definido, baseado no Job-Stop vinculado.
+                configurável precisa ser definido, baseado no Job-Stop vinculado e dias limite.
               </p>
             </div>
 

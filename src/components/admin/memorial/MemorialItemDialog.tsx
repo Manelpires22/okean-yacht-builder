@@ -426,7 +426,7 @@ export function MemorialItemDialog({
                         <SelectContent>
                           {jobStops?.map((js) => (
                             <SelectItem key={js.id} value={js.id}>
-                              {js.name} - {js.description}
+                              {js.stage} - {js.days_limit} dias - {js.item_name}
                             </SelectItem>
                           ))}
                         </SelectContent>
