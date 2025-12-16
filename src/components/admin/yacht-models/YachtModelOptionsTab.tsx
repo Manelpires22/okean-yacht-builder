@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -62,6 +63,8 @@ const optionSchema = z.object({
   category_id: z.string().min(1, "Categoria é obrigatória"),
   base_price: z.number().min(0, "Preço deve ser positivo"),
   delivery_days_impact: z.number().int().min(0).default(0),
+  is_customizable: z.boolean().default(true),
+  is_configurable: z.boolean().default(false),
   is_active: z.boolean().default(true),
 });
 
@@ -154,6 +157,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       category_id: "",
       base_price: 0,
       delivery_days_impact: 0,
+      is_customizable: true,
+      is_configurable: false,
       is_active: true,
     },
   });
@@ -236,6 +241,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       category_id: "",
       base_price: 0,
       delivery_days_impact: 0,
+      is_customizable: true,
+      is_configurable: false,
       is_active: true,
     });
     setCreateDialogOpen(true);
@@ -249,6 +256,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       category_id: option.category_id,
       base_price: Number(option.base_price),
       delivery_days_impact: Number(option.delivery_days_impact),
+      is_customizable: option.is_customizable ?? true,
+      is_configurable: option.is_configurable ?? false,
       is_active: option.is_active,
     });
     setEditingOption(option);
@@ -524,6 +533,48 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                   id="delivery_days_impact"
                   type="number"
                   {...register("delivery_days_impact", { valueAsNumber: true })}
+                />
+              </div>
+            </div>
+
+            {/* Switches - Customizável, Configurável, Ativo */}
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Item Customizável</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Cliente pode solicitar customização deste item
+                  </p>
+                </div>
+                <Switch
+                  checked={watch("is_customizable")}
+                  onCheckedChange={(checked) => setValue("is_customizable", checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Item Configurável</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Item precisa ser configurado durante a construção (ex: tecidos, acabamentos)
+                  </p>
+                </div>
+                <Switch
+                  checked={watch("is_configurable")}
+                  onCheckedChange={(checked) => setValue("is_configurable", checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Item Ativo</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Exibir item na lista de opcionais disponíveis
+                  </p>
+                </div>
+                <Switch
+                  checked={watch("is_active")}
+                  onCheckedChange={(checked) => setValue("is_active", checked)}
                 />
               </div>
             </div>
