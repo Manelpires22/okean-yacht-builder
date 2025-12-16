@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Plus, GripVertical } from "lucide-react";
 import {
@@ -22,6 +24,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { CategoryOrderDialog } from "@/components/admin/memorial/CategoryOrderDialog";
+import { ExportMemorialButton } from "./ExportMemorialButton";
+import { ImportMemorialDialog } from "./ImportMemorialDialog";
 
 interface YachtModelMemorialTabProps {
   yachtModelId: string;
@@ -35,6 +39,20 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
   
   const { data: items, isLoading, deleteItem, isDeleting } = useMemorialItems(yachtModelId);
   const { data: categories } = useMemorialCategories();
+  
+  // Fetch yacht model code for export filename
+  const { data: yachtModel } = useQuery({
+    queryKey: ['yacht-model-code', yachtModelId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('yacht_models')
+        .select('code')
+        .eq('id', yachtModelId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // Sort items by category display_order, then by item display_order
   const sortedItems = useMemo(() => {
@@ -99,6 +117,15 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
           </p>
         </div>
         <div className="flex gap-2">
+          <ExportMemorialButton 
+            items={items || []} 
+            modelCode={yachtModel?.code || 'modelo'} 
+            disabled={isLoading}
+          />
+          <ImportMemorialDialog 
+            yachtModelId={yachtModelId} 
+            categories={categories || []} 
+          />
           <Button variant="outline" onClick={() => setOrderDialogOpen(true)}>
             <GripVertical className="mr-2 h-4 w-4" />
             Ordenar Categorias
