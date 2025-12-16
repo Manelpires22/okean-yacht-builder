@@ -76,12 +76,13 @@ export function useMemorialItemsWithUpgrades(yachtModelId: string) {
   });
 }
 
-// Hook para buscar TODOS os itens do memorial (para criação de upgrades)
+// Hook para buscar TODOS os itens do memorial (para criação de upgrades) com contagem de upgrades
 export function useAllMemorialItemsForUpgrades(yachtModelId: string) {
   return useQuery({
     queryKey: ['all-memorial-items-for-upgrades', yachtModelId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Buscar itens do memorial
+      const { data: items, error: itemsError } = await supabase
         .from('memorial_items')
         .select('id, item_name, category_id, has_upgrades, category:memorial_categories(id, label)')
         .eq('yacht_model_id', yachtModelId)
@@ -89,8 +90,28 @@ export function useAllMemorialItemsForUpgrades(yachtModelId: string) {
         .order('category_display_order')
         .order('display_order');
       
-      if (error) throw error;
-      return data;
+      if (itemsError) throw itemsError;
+
+      // Buscar contagem de upgrades por item
+      const { data: upgrades, error: upgradesError } = await supabase
+        .from('memorial_upgrades')
+        .select('memorial_item_id')
+        .eq('yacht_model_id', yachtModelId)
+        .eq('is_active', true);
+      
+      if (upgradesError) throw upgradesError;
+
+      // Calcular contagem por item
+      const counts = (upgrades || []).reduce((acc, u) => {
+        acc[u.memorial_item_id] = (acc[u.memorial_item_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Combinar dados
+      return items?.map(item => ({
+        ...item,
+        upgrade_count: counts[item.id] || 0
+      }));
     },
     enabled: !!yachtModelId,
   });
