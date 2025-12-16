@@ -587,29 +587,32 @@ export type Database = {
       job_stops: {
         Row: {
           created_at: string | null
-          description: string | null
+          days_limit: number | null
           display_order: number
           id: string
           is_active: boolean | null
-          name: string
+          item_name: string
+          stage: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
-          description?: string | null
+          days_limit?: number | null
           display_order: number
           id?: string
           is_active?: boolean | null
-          name: string
+          item_name: string
+          stage?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
-          description?: string | null
+          days_limit?: number | null
           display_order?: number
           id?: string
           is_active?: boolean | null
-          name?: string
+          item_name?: string
+          stage?: string | null
           updated_at?: string | null
         }
         Relationships: []

@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface JobStop {
   id: string;
-  name: string;
-  description: string | null;
+  stage: string;        // JS1, JS2, JS3, JS4
+  days_limit: number;   // 300, 120, 90, 60
+  item_name: string;    // Nome do item de configuração
   display_order: number;
   is_active: boolean;
   created_at: string;
