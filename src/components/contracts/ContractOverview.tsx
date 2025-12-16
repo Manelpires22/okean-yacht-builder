@@ -1,6 +1,7 @@
 import { Contract } from "@/hooks/useContracts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { FileText, Ship, User, Calendar } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
@@ -62,28 +63,49 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
           <CardDescription>Consolidação de preços e prazos de entrega</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Layout vertical: Base → Total em cada coluna */}
+          {/* Layout: Base → ATOs → Total em cada coluna */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Coluna VALORES */}
             <div className="space-y-6">
               {/* Preço Base */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Preço Base (Contrato Original)</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-3xl font-bold text-primary">
                   {formatCurrency(contract.base_price)}
                 </p>
               </div>
 
+              {/* Valor Total ATOs */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Valor Total em ATOs Aprovadas</p>
+                {contract.current_total_price !== contract.base_price ? (
+                  <>
+                    <p className="text-2xl font-semibold text-green-600">
+                      + {formatCurrency(contract.current_total_price - contract.base_price)}
+                    </p>
+                    <Badge variant="secondary" className="mt-2">
+                      ATO(s) aprovada(s)
+                    </Badge>
+                  </>
+                ) : (
+                  <p className="text-2xl font-semibold text-muted-foreground">
+                    R$ 0,00
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
               {/* Valor Total Atual */}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Valor Total Atual (com ATOs)</p>
-                <p className="text-3xl font-bold">
+                <p className="text-sm text-muted-foreground mb-1">Valor Total Atual</p>
+                <p className="text-4xl font-bold text-primary">
                   {formatCurrency(contract.current_total_price)}
                 </p>
                 {contract.current_total_price !== contract.base_price && (
-                  <Badge className="mt-2 bg-primary">
-                    +{formatCurrency(contract.current_total_price - contract.base_price)} em ATOs
-                  </Badge>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Variação: +{formatCurrency(contract.current_total_price - contract.base_price)}
+                  </p>
                 )}
               </div>
             </div>
@@ -93,21 +115,37 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               {/* Prazo Base */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Prazo Base</p>
-                <p className="text-2xl font-bold text-primary">
+                <p className="text-3xl font-bold text-primary">
                   {contract.base_delivery_days} dias
                 </p>
               </div>
 
+              {/* Impacto ATOs no Prazo */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Impacto ATOs no Prazo</p>
+                {contract.current_total_delivery_days !== contract.base_delivery_days ? (
+                  <p className="text-2xl font-semibold text-orange-600">
+                    + {contract.current_total_delivery_days - contract.base_delivery_days} dias
+                  </p>
+                ) : (
+                  <p className="text-2xl font-semibold text-muted-foreground">
+                    0 dias
+                  </p>
+                )}
+              </div>
+
+              <Separator />
+
               {/* Prazo Total Atual */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Prazo Total Atual</p>
-                <p className="text-3xl font-bold">
+                <p className="text-4xl font-bold text-primary">
                   {contract.current_total_delivery_days} dias
                 </p>
                 {contract.current_total_delivery_days !== contract.base_delivery_days && (
-                  <Badge className="mt-2 bg-primary">
-                    +{contract.current_total_delivery_days - contract.base_delivery_days} dias em ATOs
-                  </Badge>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Variação: +{contract.current_total_delivery_days - contract.base_delivery_days} dias
+                  </p>
                 )}
               </div>
             </div>
