@@ -28,6 +28,7 @@ import { useYachtModels } from "@/hooks/useYachtModels";
 import { useJobStops } from "@/hooks/useJobStops";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 
 const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
@@ -367,19 +368,10 @@ export function OptionDialog({
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="configurable_sub_items">Sub-itens Configuráveis (JSON)</Label>
-                  <Textarea
-                    id="configurable_sub_items"
-                    {...register('configurable_sub_items')}
-                    placeholder='[{"name": "Cor", "type": "color"}, {"name": "Material", "type": "text"}]'
-                    rows={4}
-                    className="font-mono text-sm"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Definição de sub-itens em formato JSON (opcional)
-                  </p>
-                </div>
+                <ConfigurableSubItemsEditor
+                  value={parseSubItems(watch('configurable_sub_items'))}
+                  onChange={(items) => setValue('configurable_sub_items', JSON.stringify(items))}
+                />
               </>
             )}
           </div>

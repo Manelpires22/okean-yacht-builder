@@ -36,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useJobStops } from "@/hooks/useJobStops";
+import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 
 const UNITS = [
   { value: "unidade", label: "Unidade(s)" },
@@ -460,18 +461,12 @@ export function MemorialItemDialog({
                   name="configurable_sub_items"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Sub-itens Configuráveis (JSON)</FormLabel>
                       <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder='[{"name": "Tecido", "type": "text"}, {"name": "Cor", "type": "color"}]'
-                          rows={4}
-                          className="font-mono text-sm"
+                        <ConfigurableSubItemsEditor
+                          value={parseSubItems(field.value)}
+                          onChange={(items) => field.onChange(JSON.stringify(items))}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Definição de sub-itens em formato JSON (opcional)
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
