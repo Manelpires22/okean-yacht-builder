@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -379,8 +380,11 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                                   <span className="text-muted-foreground text-sm">—</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right font-medium text-success">
-                                +{formatCurrency(upgrade.price)}
+                              <TableCell className={cn(
+                                "text-right font-medium",
+                                upgrade.price < 0 ? "text-blue-600" : "text-success"
+                              )}>
+                                {upgrade.price >= 0 ? "+" : ""}{formatCurrency(upgrade.price)}
                               </TableCell>
                               <TableCell className="text-right">
                                 {upgrade.delivery_days_impact > 0 ? `+${upgrade.delivery_days_impact} dias` : '—'}
