@@ -133,7 +133,9 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
 
       const { error } = await supabase
         .from("memorial_items")
-        .insert(itemsToInsert);
+        .upsert(itemsToInsert, { 
+          onConflict: 'yacht_model_id,category,item_name' 
+        });
 
       if (error) throw error;
       

@@ -208,13 +208,13 @@ export function transformMemorialItemsForExport(items: any[]): MemorialExportRow
 export function validateMemorialImportData(
   data: any[], 
   existingCategories?: { label: string }[]
-): { valid: boolean; errors: string[]; rows: MemorialImportRow[]; unmatchedCategories: string[] } {
+): { valid: boolean; errors: string[]; rows: MemorialImportRow[]; unmatchedCategories: string[]; duplicateCount: number } {
   const errors: string[] = [];
   const validRows: MemorialImportRow[] = [];
   const unmatchedCategories: string[] = [];
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], unmatchedCategories: [] };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], unmatchedCategories: [], duplicateCount: 0 };
   }
   
   // Criar set de categorias existentes (lowercase para comparação case-insensitive)
@@ -258,11 +258,31 @@ export function validateMemorialImportData(
     }
   });
   
+  // Detectar duplicatas no arquivo (mesma categoria + item_name)
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  
+  validRows.forEach(row => {
+    const key = `${row.categoria.toLowerCase()}|${row.item_name.toLowerCase()}`;
+    if (seen.has(key)) {
+      duplicates.push(`"${row.item_name}" em "${row.categoria}"`);
+    } else {
+      seen.add(key);
+    }
+  });
+  
+  if (duplicates.length > 0) {
+    const displayDuplicates = duplicates.slice(0, 5).join(', ');
+    const moreCount = duplicates.length > 5 ? ` e mais ${duplicates.length - 5}` : '';
+    errors.push(`⚠️ ${duplicates.length} itens duplicados no arquivo (serão atualizados): ${displayDuplicates}${moreCount}`);
+  }
+  
   return { 
-    valid: errors.length === 0, 
+    valid: errors.length === 0 || (errors.length === 1 && duplicates.length > 0), // Duplicatas são apenas aviso
     errors, 
     rows: validRows,
     unmatchedCategories,
+    duplicateCount: duplicates.length,
   };
 }
 
