@@ -451,7 +451,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           </div>
         ) : (
           <Accordion type="single" collapsible defaultValue={defaultOpenCategory} className="w-full">
-            {categories?.map(cat => {
+            {categories
+              ?.filter(cat => (optionsByCategory[cat.id] || []).length > 0)
+              .map(cat => {
               const categoryOptions = optionsByCategory[cat.id] || [];
               const optionCount = categoryOptions.length;
               const activeCount = activeCountByCategory[cat.id] || 0;
