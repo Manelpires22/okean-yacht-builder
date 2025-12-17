@@ -5,7 +5,7 @@ import { toast } from "sonner";
 export interface MemorialUpgrade {
   id: string;
   yacht_model_id: string;
-  memorial_item_id: string;
+  memorial_item_id: string | null; // Pode ser null para upgrades pendentes de vinculação
   code: string;
   name: string;
   description?: string;
@@ -31,7 +31,7 @@ export interface MemorialUpgrade {
       label: string;
       display_order: number;
     };
-  };
+  } | null;
   job_stop?: {
     id: string;
     stage: string;
@@ -140,14 +140,16 @@ export function useCreateMemorialUpgrade() {
       
       if (error) throw error;
 
-      // 2. Atualizar has_upgrades do item do memorial automaticamente
-      const { error: updateError } = await supabase
-        .from('memorial_items')
-        .update({ has_upgrades: true })
-        .eq('id', upgrade.memorial_item_id);
-      
-      if (updateError) {
-        console.error('Erro ao atualizar has_upgrades:', updateError);
+      // 2. Atualizar has_upgrades do item do memorial automaticamente (se houver vínculo)
+      if (upgrade.memorial_item_id) {
+        const { error: updateError } = await supabase
+          .from('memorial_items')
+          .update({ has_upgrades: true })
+          .eq('id', upgrade.memorial_item_id);
+        
+        if (updateError) {
+          console.error('Erro ao atualizar has_upgrades:', updateError);
+        }
       }
       
       return data;

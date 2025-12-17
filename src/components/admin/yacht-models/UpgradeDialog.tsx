@@ -44,14 +44,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Check, ChevronsUpDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useJobStops } from "@/hooks/useJobStops";
 import { useAllMemorialItemsForUpgrades } from "@/hooks/useMemorialUpgrades";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 
 const upgradeSchema = z.object({
-  memorial_item_id: z.string().uuid("Selecione um item do memorial"),
+  memorial_item_id: z.string().uuid("Selecione um item do memorial").nullable().optional(),
   code: z.string().min(1, "Código é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
@@ -105,7 +106,7 @@ export function UpgradeDialog({
   const form = useForm<UpgradeFormData>({
     resolver: zodResolver(upgradeSchema),
     defaultValues: {
-      memorial_item_id: "",
+      memorial_item_id: null,
       code: "",
       name: "",
       description: "",
@@ -126,7 +127,7 @@ export function UpgradeDialog({
     if (open) {
       if (initialData) {
         form.reset({
-          memorial_item_id: initialData.memorial_item_id || "",
+          memorial_item_id: initialData.memorial_item_id || null,
           code: initialData.code || "",
           name: initialData.name || "",
           description: initialData.description || "",
@@ -145,7 +146,7 @@ export function UpgradeDialog({
         });
       } else {
         form.reset({
-          memorial_item_id: "",
+          memorial_item_id: null,
           code: "",
           name: "",
           description: "",
@@ -187,6 +188,17 @@ export function UpgradeDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Alert para upgrade pendente de vinculação */}
+        {initialData && !initialData.memorial_item_id && (
+          <Alert className="border-warning bg-warning/10">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription>
+              Este upgrade está <strong>pendente de vinculação</strong>. 
+              Selecione um item do memorial para que ele apareça no configurador.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
             <FormField
@@ -196,7 +208,14 @@ export function UpgradeDialog({
                 const selectedItem = memorialItems?.find(item => item.id === field.value);
                 return (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Item do Memorial *</FormLabel>
+                    <FormLabel>
+                      Item do Memorial
+                      {!field.value && (
+                        <Badge variant="outline" className="ml-2 text-xs text-warning border-warning">
+                          Pendente
+                        </Badge>
+                      )}
+                    </FormLabel>
                     <Popover 
                       open={memorialItemOpen} 
                       onOpenChange={(open) => {
@@ -279,7 +298,7 @@ export function UpgradeDialog({
                       </PopoverContent>
                     </Popover>
                     <FormDescription>
-                      Digite ao menos 3 caracteres para buscar itens
+                      Vincule a um item do memorial para aparecer no configurador. Sem vínculo, o upgrade fica como pendente.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

@@ -101,7 +101,7 @@ export interface UpgradeImportRow {
   description?: string;
   brand?: string;
   model?: string;
-  memorial_item_name: string;
+  memorial_item_name?: string; // Agora opcional - permite importar sem vínculo
   price: number;
   delivery_days_impact?: number;
   is_active?: boolean;
@@ -458,12 +458,13 @@ export function transformUpgradesForExport(upgrades: any[]): UpgradeExportRow[] 
   }));
 }
 
-export function validateUpgradesImportData(data: any[]): { valid: boolean; errors: string[]; rows: UpgradeImportRow[] } {
+export function validateUpgradesImportData(data: any[]): { valid: boolean; errors: string[]; rows: UpgradeImportRow[]; pendingLinkCount: number } {
   const errors: string[] = [];
   const validRows: UpgradeImportRow[] = [];
+  let pendingLinkCount = 0;
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [] };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], pendingLinkCount: 0 };
   }
   
   data.forEach((row, index) => {
@@ -475,21 +476,23 @@ export function validateUpgradesImportData(data: any[]): { valid: boolean; error
     if (!row.name) {
       errors.push(`Linha ${rowNum}: Nome é obrigatório`);
     }
+    // memorial_item_name não é mais obrigatório - contamos quantos ficam pendentes
     if (!row.memorial_item_name) {
-      errors.push(`Linha ${rowNum}: Nome do item do memorial é obrigatório`);
+      pendingLinkCount++;
     }
     if (row.price === undefined || row.price === null || row.price === '') {
       errors.push(`Linha ${rowNum}: Preço é obrigatório`);
     }
     
-    if (row.code && row.name && row.memorial_item_name && row.price !== undefined) {
+    // Agora aceita mesmo sem memorial_item_name
+    if (row.code && row.name && row.price !== undefined) {
       validRows.push({
         code: String(row.code).trim(),
         name: String(row.name).trim(),
         description: row.description ? String(row.description).trim() : undefined,
         brand: row.brand ? String(row.brand).trim() : undefined,
         model: row.model ? String(row.model).trim() : undefined,
-        memorial_item_name: String(row.memorial_item_name).trim(),
+        memorial_item_name: row.memorial_item_name ? String(row.memorial_item_name).trim() : undefined,
         price: Number(row.price),
         delivery_days_impact: row.delivery_days_impact ? Number(row.delivery_days_impact) : 0,
         is_active: parseBoolean(row.is_active, true),
@@ -502,7 +505,8 @@ export function validateUpgradesImportData(data: any[]): { valid: boolean; error
   return { 
     valid: errors.length === 0, 
     errors, 
-    rows: validRows 
+    rows: validRows,
+    pendingLinkCount
   };
 }
 

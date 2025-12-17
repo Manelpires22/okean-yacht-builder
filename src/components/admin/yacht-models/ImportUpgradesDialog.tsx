@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Download, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb } from "lucide-react";
+import { Download, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -54,6 +54,7 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
   const [importMode, setImportMode] = useState<ImportMode>("merge");
   const [previewData, setPreviewData] = useState<UpgradeImportRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [pendingLinkCount, setPendingLinkCount] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
 
   const importMutation = useMutation({
@@ -74,13 +75,11 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
         itemMap.set(item.item_name.toLowerCase().trim(), item.id);
       });
 
-      // Transform rows to database format
-      const upgradesToInsert = rows.map((row, index) => {
-        const memorialItemId = itemMap.get(row.memorial_item_name.toLowerCase().trim());
-        
-        if (!memorialItemId) {
-          throw new Error(`Item do memorial "${row.memorial_item_name}" não encontrado na linha ${index + 2}. Verifique se o item existe no memorial.`);
-        }
+      const upgradesToInsert = rows.map((row) => {
+        // Tentar encontrar o memorial item se o nome foi fornecido
+        const memorialItemId = row.memorial_item_name 
+          ? itemMap.get(row.memorial_item_name.toLowerCase().trim()) || null
+          : null;
 
         return {
           yacht_model_id: yachtModelId,
@@ -143,6 +142,7 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
       
       setValidationErrors(validation.errors);
       setPreviewData(validation.rows);
+      setPendingLinkCount(validation.pendingLinkCount);
     } catch (error) {
       toast.error("Erro ao processar arquivo: " + (error as Error).message);
       setFile(null);
@@ -165,6 +165,7 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
     setFile(null);
     setPreviewData([]);
     setValidationErrors([]);
+    setPendingLinkCount(0);
     setImportMode("merge");
   };
 
@@ -278,6 +279,16 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
                   {previewData.length} upgrades válidos para importação
                 </span>
               </div>
+
+              {pendingLinkCount > 0 && (
+                <Alert className="mb-3 border-warning bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  <AlertDescription className="text-sm">
+                    <strong>{pendingLinkCount} upgrades</strong> não possuem vínculo com item do memorial. 
+                    Eles serão importados como <strong>pendentes</strong> e não aparecerão no configurador até serem vinculados.
+                  </AlertDescription>
+                </Alert>
+              )}
               
               <ScrollArea className="flex-1 border rounded-lg">
                 <Table>
@@ -294,8 +305,14 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
                     {previewData.slice(0, 20).map((row, i) => (
                       <TableRow key={i}>
                         <TableCell className="text-sm font-mono">{row.code}</TableCell>
-                        <TableCell className="text-sm font-medium">{row.name}</TableCell>
-                        <TableCell className="text-sm">{row.memorial_item_name}</TableCell>
+                        <TableCell className="text-sm">
+                          {row.memorial_item_name || (
+                            <span className="inline-flex items-center gap-1 text-warning">
+                              <AlertTriangle className="h-3 w-3" />
+                              Pendente
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-right text-success">
                           +{formatCurrency(row.price)}
                         </TableCell>
