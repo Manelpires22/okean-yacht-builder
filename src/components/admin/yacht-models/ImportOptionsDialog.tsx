@@ -95,6 +95,8 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
       const key = row.code.toLowerCase();
       seen.set(key, row);
     });
+    const deduped = Array.from(seen.values());
+    setPreviewData(deduped);
     toast.success(`${duplicateCount} duplicado(s) removido(s)`);
   };
 
@@ -372,18 +374,25 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
           {duplicateCount > 0 && (
             <Alert className="border-amber-300 bg-amber-50">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="flex items-center justify-between">
-                <span className="text-amber-800">
-                  {duplicateCount} item(ns) duplicado(s) no arquivo (mesma categoria + código)
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={removeDuplicates}
-                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                >
-                  Remover {duplicateCount} Duplicados
-                </Button>
+              <AlertDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-amber-800 font-medium">
+                      {duplicateCount} item(ns) duplicado(s) no arquivo (mesmo código)
+                    </span>
+                    <div className="text-xs text-amber-700 mt-1">
+                      Códigos: <code className="bg-amber-100 px-1 rounded">{Array.from(duplicateKeys).join(', ')}</code>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={removeDuplicates}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-100 ml-4"
+                  >
+                    Remover {duplicateCount} Duplicados
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
