@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Download, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb } from "lucide-react";
+import { Download, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -38,6 +38,7 @@ import {
   generateOptionsTemplate,
   exportToExcel,
 } from "@/lib/export-utils";
+import { cn } from "@/lib/utils";
 
 interface ImportOptionsDialogProps {
   yachtModelId: string;
@@ -54,6 +55,42 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
   const [previewData, setPreviewData] = useState<OptionImportRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+
+  // Calculate duplicates from current preview data
+  const { duplicateCount, duplicateKeys } = useMemo(() => {
+    const keyCount = new Map<string, number>();
+    previewData.forEach(row => {
+      const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+      keyCount.set(key, (keyCount.get(key) || 0) + 1);
+    });
+    
+    const keys = new Set<string>();
+    let count = 0;
+    keyCount.forEach((c, key) => {
+      if (c > 1) {
+        keys.add(key);
+        count += c - 1; // Count extra occurrences
+      }
+    });
+    
+    return { duplicateCount: count, duplicateKeys: keys };
+  }, [previewData]);
+
+  const isDuplicateRow = (row: OptionImportRow) => {
+    const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    return duplicateKeys.has(key);
+  };
+
+  const removeDuplicates = () => {
+    // Keep last occurrence of each duplicate
+    const seen = new Map<string, OptionImportRow>();
+    previewData.forEach(row => {
+      const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+      seen.set(key, row);
+    });
+    setPreviewData(Array.from(seen.values()));
+    toast.success(`${duplicateCount} duplicado(s) removido(s)`);
+  };
 
   const importMutation = useMutation({
     mutationFn: async ({ rows, mode }: { rows: OptionImportRow[]; mode: ImportMode }) => {
@@ -73,24 +110,58 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
         categoryMap.set(cat.name.toLowerCase(), cat.id);
       });
 
-      // Transform rows to database format
-      const optionsToInsert = rows.map((row) => {
+      // Group items by category first, with deduplication (last occurrence wins)
+      const itemsByCategory = new Map<string, { row: OptionImportRow; categoryId: string }[]>();
+      const seenKeys = new Set<string>();
+
+      rows.forEach((row) => {
         const categoryId = categoryMap.get(row.category.toLowerCase());
         
         if (!categoryId) {
           throw new Error(`Categoria "${row.category}" não encontrada. Verifique se a categoria existe no sistema.`);
         }
 
-        return {
-          yacht_model_id: yachtModelId,
-          code: row.code,
-          name: row.name,
-          description: row.description || null,
-          category_id: categoryId,
-          base_price: row.base_price,
-          delivery_days_impact: row.delivery_days_impact || 0,
-          is_active: row.is_active ?? true,
-        };
+        const categoryKey = row.category.toLowerCase();
+        if (!itemsByCategory.has(categoryKey)) {
+          itemsByCategory.set(categoryKey, []);
+        }
+
+        // Unique key for deduplication
+        const uniqueKey = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+
+        // Remove previous occurrence if exists (last occurrence wins)
+        if (seenKeys.has(uniqueKey)) {
+          const items = itemsByCategory.get(categoryKey)!;
+          const existingIndex = items.findIndex(
+            i => `${i.row.category.toLowerCase()}|${i.row.code.toLowerCase()}` === uniqueKey
+          );
+          if (existingIndex > -1) {
+            items.splice(existingIndex, 1);
+          }
+        }
+        seenKeys.add(uniqueKey);
+
+        itemsByCategory.get(categoryKey)!.push({ row, categoryId });
+      });
+
+      // Second pass: assign display_order sequentially within each category
+      const optionsToInsert: any[] = [];
+
+      itemsByCategory.forEach((items) => {
+        items.forEach((item, indexInCategory) => {
+          const { row, categoryId } = item;
+          
+          optionsToInsert.push({
+            yacht_model_id: yachtModelId,
+            code: row.code,
+            name: row.name,
+            description: row.description || null,
+            category_id: categoryId,
+            base_price: row.base_price,
+            delivery_days_impact: row.delivery_days_impact || 0,
+            is_active: row.is_active ?? true,
+          });
+        });
       });
 
       const { error } = await supabase
@@ -254,18 +325,38 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
             </div>
           )}
 
+          {/* Duplicates Alert */}
+          {duplicateCount > 0 && (
+            <Alert className="border-amber-300 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-amber-800">
+                  {duplicateCount} item(ns) duplicado(s) no arquivo (mesma categoria + código)
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={removeDuplicates}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                >
+                  Remover {duplicateCount} Duplicados
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Validation Errors */}
-          {validationErrors.length > 0 && (
+          {validationErrors.length > 0 && !validationErrors.every(e => e.includes('duplicado')) && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <p className="font-semibold mb-2">Erros encontrados:</p>
                 <ul className="list-disc list-inside text-sm max-h-24 overflow-y-auto">
-                  {validationErrors.slice(0, 10).map((err, i) => (
+                  {validationErrors.filter(e => !e.includes('duplicado')).slice(0, 10).map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
-                  {validationErrors.length > 10 && (
-                    <li>... e mais {validationErrors.length - 10} erros</li>
+                  {validationErrors.filter(e => !e.includes('duplicado')).length > 10 && (
+                    <li>... e mais {validationErrors.filter(e => !e.includes('duplicado')).length - 10} erros</li>
                   )}
                 </ul>
               </AlertDescription>
@@ -295,8 +386,15 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                   </TableHeader>
                   <TableBody>
                     {previewData.slice(0, 20).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-sm font-mono">{row.code}</TableCell>
+                      <TableRow key={i} className={cn(isDuplicateRow(row) && "bg-amber-50")}>
+                        <TableCell className="text-sm font-mono">
+                          {row.code}
+                          {isDuplicateRow(row) && (
+                            <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
+                              Duplicado
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm font-medium">{row.name}</TableCell>
                         <TableCell className="text-sm">{row.category}</TableCell>
                         <TableCell className="text-sm text-right">{formatCurrency(row.base_price)}</TableCell>

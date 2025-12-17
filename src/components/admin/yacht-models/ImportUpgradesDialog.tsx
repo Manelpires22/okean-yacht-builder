@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Download, FileSpreadsheet, AlertCircle, CheckCircle2, FileDown, Lightbulb, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -39,6 +39,7 @@ import {
   exportToExcel,
 } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/quotation-utils";
+import { cn } from "@/lib/utils";
 
 interface ImportUpgradesDialogProps {
   yachtModelId: string;
@@ -56,6 +57,42 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [pendingLinkCount, setPendingLinkCount] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
+
+  // Calculate duplicates from current preview data
+  const { duplicateCount, duplicateKeys } = useMemo(() => {
+    const keyCount = new Map<string, number>();
+    previewData.forEach(row => {
+      const key = row.code.toLowerCase();
+      keyCount.set(key, (keyCount.get(key) || 0) + 1);
+    });
+    
+    const keys = new Set<string>();
+    let count = 0;
+    keyCount.forEach((c, key) => {
+      if (c > 1) {
+        keys.add(key);
+        count += c - 1; // Count extra occurrences
+      }
+    });
+    
+    return { duplicateCount: count, duplicateKeys: keys };
+  }, [previewData]);
+
+  const isDuplicateRow = (row: UpgradeImportRow) => {
+    const key = row.code.toLowerCase();
+    return duplicateKeys.has(key);
+  };
+
+  const removeDuplicates = () => {
+    // Keep last occurrence of each duplicate
+    const seen = new Map<string, UpgradeImportRow>();
+    previewData.forEach(row => {
+      const key = row.code.toLowerCase();
+      seen.set(key, row);
+    });
+    setPreviewData(Array.from(seen.values()));
+    toast.success(`${duplicateCount} duplicado(s) removido(s)`);
+  };
 
   const importMutation = useMutation({
     mutationFn: async ({ rows, mode }: { rows: UpgradeImportRow[]; mode: ImportMode }) => {
@@ -75,13 +112,18 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
         itemMap.set(item.item_name.toLowerCase().trim(), item.id);
       });
 
-      const upgradesToInsert = rows.map((row) => {
+      // Deduplicate with Map (last occurrence wins)
+      const upgradesMap = new Map<string, any>();
+
+      rows.forEach((row) => {
+        const key = row.code.toLowerCase();
+        
         // Tentar encontrar o memorial item se o nome foi fornecido
         const memorialItemId = row.memorial_item_name 
           ? itemMap.get(row.memorial_item_name.toLowerCase().trim()) || null
           : null;
 
-        return {
+        upgradesMap.set(key, {
           yacht_model_id: yachtModelId,
           memorial_item_id: memorialItemId,
           code: row.code,
@@ -94,8 +136,10 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
           is_active: row.is_active ?? true,
           is_customizable: row.is_customizable ?? true,
           is_configurable: row.is_configurable ?? false,
-        };
+        });
       });
+
+      const upgradesToInsert = Array.from(upgradesMap.values());
 
       const { error } = await supabase
         .from("memorial_upgrades")
@@ -252,18 +296,38 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
             </div>
           )}
 
+          {/* Duplicates Alert */}
+          {duplicateCount > 0 && (
+            <Alert className="border-amber-300 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-amber-800">
+                  {duplicateCount} upgrade(s) duplicado(s) no arquivo (mesmo código)
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={removeDuplicates}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                >
+                  Remover {duplicateCount} Duplicados
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Validation Errors */}
-          {validationErrors.length > 0 && (
+          {validationErrors.length > 0 && !validationErrors.every(e => e.includes('duplicado')) && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <p className="font-semibold mb-2">Erros encontrados:</p>
                 <ul className="list-disc list-inside text-sm max-h-24 overflow-y-auto">
-                  {validationErrors.slice(0, 10).map((err, i) => (
+                  {validationErrors.filter(e => !e.includes('duplicado')).slice(0, 10).map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
-                  {validationErrors.length > 10 && (
-                    <li>... e mais {validationErrors.length - 10} erros</li>
+                  {validationErrors.filter(e => !e.includes('duplicado')).length > 10 && (
+                    <li>... e mais {validationErrors.filter(e => !e.includes('duplicado')).length - 10} erros</li>
                   )}
                 </ul>
               </AlertDescription>
@@ -303,8 +367,16 @@ export function ImportUpgradesDialog({ yachtModelId, memorialItems }: ImportUpgr
                   </TableHeader>
                   <TableBody>
                     {previewData.slice(0, 20).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-sm font-mono">{row.code}</TableCell>
+                      <TableRow key={i} className={cn(isDuplicateRow(row) && "bg-amber-50")}>
+                        <TableCell className="text-sm font-mono">
+                          {row.code}
+                          {isDuplicateRow(row) && (
+                            <Badge variant="outline" className="ml-2 text-amber-600 border-amber-300">
+                              Duplicado
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm font-medium">{row.name}</TableCell>
                         <TableCell className="text-sm">
                           {row.memorial_item_name || (
                             <span className="inline-flex items-center gap-1 text-warning">

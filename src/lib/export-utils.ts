@@ -317,12 +317,18 @@ export function transformOptionsForExport(options: any[]): OptionExportRow[] {
   }));
 }
 
-export function validateOptionsImportData(data: any[]): { valid: boolean; errors: string[]; rows: OptionImportRow[] } {
+export function validateOptionsImportData(data: any[]): { 
+  valid: boolean; 
+  errors: string[]; 
+  rows: OptionImportRow[];
+  duplicateCount: number;
+  duplicateKeys: Set<string>;
+} {
   const errors: string[] = [];
   const validRows: OptionImportRow[] = [];
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [] };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], duplicateCount: 0, duplicateKeys: new Set() };
   }
   
   data.forEach((row, index) => {
@@ -354,10 +360,42 @@ export function validateOptionsImportData(data: any[]): { valid: boolean; errors
     }
   });
   
+  // Detectar duplicatas (mesma categoria + code)
+  const keyCount = new Map<string, number>();
+  validRows.forEach(row => {
+    const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    keyCount.set(key, (keyCount.get(key) || 0) + 1);
+  });
+  
+  const duplicateKeys = new Set<string>();
+  const duplicateLabels: string[] = [];
+  
+  keyCount.forEach((count, key) => {
+    if (count > 1) {
+      duplicateKeys.add(key);
+      const [category, code] = key.split('|');
+      const originalRow = validRows.find(r => 
+        r.category.toLowerCase() === category && 
+        r.code.toLowerCase() === code
+      );
+      if (originalRow) {
+        duplicateLabels.push(`"${originalRow.code}" em "${originalRow.category}"`);
+      }
+    }
+  });
+  
+  if (duplicateLabels.length > 0) {
+    const displayDuplicates = duplicateLabels.slice(0, 5).join(', ');
+    const moreCount = duplicateLabels.length > 5 ? ` e mais ${duplicateLabels.length - 5}` : '';
+    errors.push(`⚠️ ${duplicateLabels.length} opcionais duplicados no arquivo: ${displayDuplicates}${moreCount}`);
+  }
+  
   return { 
-    valid: errors.length === 0, 
+    valid: errors.length === 0 || (errors.length === 1 && duplicateLabels.length > 0),
     errors, 
-    rows: validRows 
+    rows: validRows,
+    duplicateCount: duplicateLabels.length,
+    duplicateKeys,
   };
 }
 
@@ -513,13 +551,20 @@ export function transformUpgradesForExport(upgrades: any[]): UpgradeExportRow[] 
   }));
 }
 
-export function validateUpgradesImportData(data: any[]): { valid: boolean; errors: string[]; rows: UpgradeImportRow[]; pendingLinkCount: number } {
+export function validateUpgradesImportData(data: any[]): { 
+  valid: boolean; 
+  errors: string[]; 
+  rows: UpgradeImportRow[]; 
+  pendingLinkCount: number;
+  duplicateCount: number;
+  duplicateKeys: Set<string>;
+} {
   const errors: string[] = [];
   const validRows: UpgradeImportRow[] = [];
   let pendingLinkCount = 0;
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], pendingLinkCount: 0 };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], pendingLinkCount: 0, duplicateCount: 0, duplicateKeys: new Set() };
   }
   
   data.forEach((row, index) => {
@@ -557,11 +602,39 @@ export function validateUpgradesImportData(data: any[]): { valid: boolean; error
     }
   });
   
+  // Detectar duplicatas (mesmo code)
+  const keyCount = new Map<string, number>();
+  validRows.forEach(row => {
+    const key = row.code.toLowerCase();
+    keyCount.set(key, (keyCount.get(key) || 0) + 1);
+  });
+  
+  const duplicateKeys = new Set<string>();
+  const duplicateLabels: string[] = [];
+  
+  keyCount.forEach((count, key) => {
+    if (count > 1) {
+      duplicateKeys.add(key);
+      const originalRow = validRows.find(r => r.code.toLowerCase() === key);
+      if (originalRow) {
+        duplicateLabels.push(`"${originalRow.code}"`);
+      }
+    }
+  });
+  
+  if (duplicateLabels.length > 0) {
+    const displayDuplicates = duplicateLabels.slice(0, 5).join(', ');
+    const moreCount = duplicateLabels.length > 5 ? ` e mais ${duplicateLabels.length - 5}` : '';
+    errors.push(`⚠️ ${duplicateLabels.length} upgrades duplicados no arquivo: ${displayDuplicates}${moreCount}`);
+  }
+  
   return { 
-    valid: errors.length === 0, 
+    valid: errors.length === 0 || (errors.length === 1 && duplicateLabels.length > 0),
     errors, 
     rows: validRows,
-    pendingLinkCount
+    pendingLinkCount,
+    duplicateCount: duplicateLabels.length,
+    duplicateKeys,
   };
 }
 
