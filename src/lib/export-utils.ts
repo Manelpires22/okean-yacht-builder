@@ -30,6 +30,7 @@ export interface MemorialImportRow {
   is_customizable?: boolean;
   is_configurable?: boolean;
   is_active?: boolean;
+  _categoryError?: boolean; // Flag para indicar categoria não encontrada
 }
 
 // ===== OPTIONS =====
@@ -204,13 +205,22 @@ export function transformMemorialItemsForExport(items: any[]): MemorialExportRow
   }));
 }
 
-export function validateMemorialImportData(data: any[]): { valid: boolean; errors: string[]; rows: MemorialImportRow[] } {
+export function validateMemorialImportData(
+  data: any[], 
+  existingCategories?: { label: string }[]
+): { valid: boolean; errors: string[]; rows: MemorialImportRow[]; unmatchedCategories: string[] } {
   const errors: string[] = [];
   const validRows: MemorialImportRow[] = [];
+  const unmatchedCategories: string[] = [];
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [] };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], unmatchedCategories: [] };
   }
+  
+  // Criar set de categorias existentes (lowercase para comparação case-insensitive)
+  const existingLabels = existingCategories 
+    ? new Set(existingCategories.map(c => c.label.toLowerCase()))
+    : null;
   
   data.forEach((row, index) => {
     const rowNum = index + 2; // +2 because Excel rows start at 1 and header is row 1
@@ -223,8 +233,16 @@ export function validateMemorialImportData(data: any[]): { valid: boolean; error
     }
     
     if (row.categoria && row.item_name) {
+      const categoria = String(row.categoria).trim();
+      const categoryNotFound = existingLabels && !existingLabels.has(categoria.toLowerCase());
+      
+      // Track unique unmatched categories
+      if (categoryNotFound && !unmatchedCategories.includes(categoria)) {
+        unmatchedCategories.push(categoria);
+      }
+      
       validRows.push({
-        categoria: String(row.categoria).trim(),
+        categoria,
         item_name: String(row.item_name).trim(),
         description: row.description ? String(row.description).trim() : undefined,
         brand: row.brand ? String(row.brand).trim() : undefined,
@@ -235,6 +253,7 @@ export function validateMemorialImportData(data: any[]): { valid: boolean; error
         is_customizable: parseBoolean(row.is_customizable, true),
         is_configurable: parseBoolean(row.is_configurable, false),
         is_active: parseBoolean(row.is_active, true),
+        _categoryError: categoryNotFound || false,
       });
     }
   });
@@ -242,7 +261,8 @@ export function validateMemorialImportData(data: any[]): { valid: boolean; error
   return { 
     valid: errors.length === 0, 
     errors, 
-    rows: validRows 
+    rows: validRows,
+    unmatchedCategories,
   };
 }
 
