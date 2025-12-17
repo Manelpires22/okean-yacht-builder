@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Pencil, Package } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -84,9 +84,30 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [editingOption, setEditingOption] = useState<any | null>(null);
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const { data: categories } = useOptionCategories();
   const { data: jobStops } = useJobStops();
+
+  // Delete all options mutation
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('options')
+        .delete()
+        .eq('yacht_model_id', yachtModelId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['yacht-model-options-v2'] });
+      queryClient.invalidateQueries({ queryKey: ['options'] });
+      toast.success('Todos os opcionais foram apagados com sucesso!');
+      setShowDeleteAllDialog(false);
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao apagar opcionais: ' + error.message);
+    },
+  });
 
   // Fetch ALL options for this yacht model (model-specific only)
   const { data: options, isLoading } = useQuery({
@@ -354,6 +375,15 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               </Label>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => setShowDeleteAllDialog(true)}
+                disabled={!options?.length}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Apagar Opcionais ({options?.length || 0})
+              </Button>
               <ExportOptionsButton 
                 options={options || []} 
                 modelCode={yachtModel?.code || 'modelo'} 
@@ -715,6 +745,37 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Apagar todos os Opcionais?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá remover <strong>{options?.length || 0} opcionais</strong> deste 
+              modelo de iate. Esta ação <strong>não pode ser desfeita</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAllMutation.mutate()}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteAllMutation.isPending}
+            >
+              {deleteAllMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Apagar Tudo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

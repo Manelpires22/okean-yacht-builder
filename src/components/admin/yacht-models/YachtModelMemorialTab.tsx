@@ -1,8 +1,19 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, Eye } from "lucide-react";
+import { Plus, GripVertical, Eye, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -37,13 +48,34 @@ interface YachtModelMemorialTabProps {
 }
 
 export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabProps) {
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>();
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   
   const { data: items, isLoading, deleteItem, isDeleting } = useMemorialItems(yachtModelId);
   const { data: categories } = useMemorialCategories();
+
+  // Delete all memorial items mutation
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('memorial_items')
+        .delete()
+        .eq('yacht_model_id', yachtModelId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memorial-items'] });
+      toast.success('Memorial apagado com sucesso!');
+      setShowDeleteAllDialog(false);
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao apagar memorial: ' + error.message);
+    },
+  });
   
   // Fetch yacht model code for export filename
   const { data: yachtModel } = useQuery({
@@ -144,6 +176,15 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={() => setShowDeleteAllDialog(true)}
+            disabled={!items?.length}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Apagar Memorial ({items?.length || 0})
+          </Button>
           <ExportMemorialButton 
             items={items || []} 
             modelCode={yachtModel?.code || 'modelo'} 
@@ -331,6 +372,36 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         open={orderDialogOpen}
         onOpenChange={setOrderDialogOpen}
       />
+
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Apagar todo o Memorial?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá remover <strong>{items?.length || 0} itens</strong> do memorial 
+              deste modelo de iate. Esta ação <strong>não pode ser desfeita</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAllMutation.mutate()}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteAllMutation.isPending}
+            >
+              {deleteAllMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Apagar Tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
