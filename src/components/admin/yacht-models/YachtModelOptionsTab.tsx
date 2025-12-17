@@ -663,6 +663,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                     if (data.description) setValue("description", data.description);
                     if (data.brand) setValue("brand", data.brand);
                     if (data.model) setValue("model", data.model);
+                    if (data.image_url) setValue("image_url", data.image_url);
                   }}
                 />
               </div>
