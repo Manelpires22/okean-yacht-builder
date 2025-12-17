@@ -158,9 +158,16 @@ export function MemorialItemDialog({
 
   const saveMutation = useMutation({
     mutationFn: async (data: MemorialItemFormData) => {
+      // Buscar o value da categoria selecionada para o campo ENUM
+      const selectedCategory = categories?.find(c => c.id === data.category_id);
+      if (!selectedCategory) {
+        throw new Error("Categoria não encontrada");
+      }
+
       const payload = {
         yacht_model_id: yachtModelId,
         category_id: data.category_id,
+        category: selectedCategory.value, // Campo ENUM obrigatório
         item_name: data.item_name,
         description: data.description || null,
         brand: data.brand || null,
