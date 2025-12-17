@@ -1851,6 +1851,11 @@ export type Database = {
         | "navegacao"
         | "cockpit"
         | "caracteristicas_externas"
+        | "cockpit_praca_popa"
+        | "cozinha_gourmet"
+        | "proa"
+        | "diversos"
+        | "banheiro_social"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2052,6 +2057,11 @@ export const Constants = {
         "navegacao",
         "cockpit",
         "caracteristicas_externas",
+        "cockpit_praca_popa",
+        "cozinha_gourmet",
+        "proa",
+        "diversos",
+        "banheiro_social",
       ],
     },
   },
