@@ -22,6 +22,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -235,8 +240,8 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
               Upgrades substituem ou melhoram itens do memorial padrão.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 mr-2">
               <Switch
                 id="show-inactive-upgrades"
                 checked={showInactive}
@@ -246,15 +251,19 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                 Mostrar inativos
               </Label>
             </div>
-            <Button 
-              variant="destructive" 
-              size="sm"
-              onClick={() => setShowDeleteAllDialog(true)}
-              disabled={!upgrades?.length}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Apagar Upgrades ({upgrades?.length || 0})
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="icon"
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  disabled={!upgrades?.length}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Apagar Upgrades ({upgrades?.length || 0})</TooltipContent>
+            </Tooltip>
             <ExportUpgradesButton 
               upgrades={upgrades || []} 
               modelCode={yachtModel?.code || 'MODELO'} 
@@ -263,7 +272,7 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
               yachtModelId={yachtModelId} 
               memorialItems={memorialItems || []} 
             />
-            <Button onClick={handleCreateClick}>
+            <Button size="sm" onClick={handleCreateClick}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Upgrade
             </Button>

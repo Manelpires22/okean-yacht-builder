@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { 
   exportToExcel, 
   transformMemorialItemsForExport, 
   generateFilename 
 } from "@/lib/export-utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ExportMemorialButtonProps {
   items: any[];
@@ -31,13 +36,18 @@ export function ExportMemorialButton({ items, modelCode, disabled }: ExportMemor
   };
 
   return (
-    <Button 
-      variant="outline" 
-      onClick={handleExport}
-      disabled={disabled || !items || items.length === 0}
-    >
-      <Download className="mr-2 h-4 w-4" />
-      Exportar
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={handleExport}
+          disabled={disabled || !items || items.length === 0}
+        >
+          <Upload className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Exportar ({items?.length || 0})</TooltipContent>
+    </Tooltip>
   );
 }

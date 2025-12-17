@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { 
   exportToExcel, 
   transformOptionsForExport, 
   generateFilename 
 } from "@/lib/export-utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ExportOptionsButtonProps {
   options: any[];
@@ -33,13 +38,18 @@ export function ExportOptionsButton({ options, modelCode, disabled }: ExportOpti
   const optionsCount = options?.length || 0;
 
   return (
-    <Button 
-      variant="outline" 
-      onClick={handleExport}
-      disabled={disabled || optionsCount === 0}
-    >
-      <Download className="mr-2 h-4 w-4" />
-      Exportar ({optionsCount})
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={handleExport}
+          disabled={disabled || optionsCount === 0}
+        >
+          <Upload className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Exportar ({optionsCount})</TooltipContent>
+    </Tooltip>
   );
 }
