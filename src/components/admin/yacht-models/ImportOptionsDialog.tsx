@@ -63,14 +63,14 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
 
-  // Calculate duplicates from current preview data
+  // Calculate duplicates from current preview data (bank constraint: unique code per model)
   const { duplicateCount, duplicateKeys } = useMemo(() => {
     const keyCount = new Map<string, number>();
-    previewData.forEach(row => {
-      const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    previewData.forEach((row) => {
+      const key = row.code.toLowerCase();
       keyCount.set(key, (keyCount.get(key) || 0) + 1);
     });
-    
+
     const keys = new Set<string>();
     let count = 0;
     keyCount.forEach((c, key) => {
@@ -79,30 +79,29 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
         count += c - 1; // Count extra occurrences
       }
     });
-    
+
     return { duplicateCount: count, duplicateKeys: keys };
   }, [previewData]);
 
-  // Calculate unmatched categories count
-  const unmatchedCount = useMemo(() => {
-    return previewData.filter(row => row._categoryError).length;
-  }, [previewData]);
-
   const isDuplicateRow = (row: OptionImportRow) => {
-    const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    const key = row.code.toLowerCase();
     return duplicateKeys.has(key);
   };
 
   const removeDuplicates = () => {
-    // Keep last occurrence of each duplicate
+    // Keep last occurrence of each duplicate (by code)
     const seen = new Map<string, OptionImportRow>();
-    previewData.forEach(row => {
-      const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    previewData.forEach((row) => {
+      const key = row.code.toLowerCase();
       seen.set(key, row);
     });
-    setPreviewData(Array.from(seen.values()));
     toast.success(`${duplicateCount} duplicado(s) removido(s)`);
   };
+
+  // Calculate unmatched categories count
+  const unmatchedCount = useMemo(() => {
+    return previewData.filter((row) => row._categoryError).length;
+  }, [previewData]);
 
   // Update category for a specific row (inline editing)
   const updateRowCategory = (index: number, newCategory: string) => {
@@ -136,14 +135,17 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
       });
 
       // Group items by category first, with deduplication (last occurrence wins)
+      // NOTE: DB enforces unique (yacht_model_id, code). So dedupe must be by code.
       const itemsByCategory = new Map<string, { row: OptionImportRow; categoryId: string }[]>();
-      const seenKeys = new Set<string>();
+      const seenCodes = new Set<string>();
 
       rows.forEach((row) => {
         const categoryId = categoryMap.get(row.category.toLowerCase());
-        
+
         if (!categoryId) {
-          throw new Error(`Categoria "${row.category}" não encontrada. Verifique se a categoria existe no sistema.`);
+          throw new Error(
+            `Categoria "${row.category}" não encontrada. Verifique se a categoria existe no sistema.`
+          );
         }
 
         const categoryKey = row.category.toLowerCase();
@@ -151,20 +153,20 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
           itemsByCategory.set(categoryKey, []);
         }
 
-        // Unique key for deduplication
-        const uniqueKey = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+        const codeKey = row.code.toLowerCase();
 
-        // Remove previous occurrence if exists (last occurrence wins)
-        if (seenKeys.has(uniqueKey)) {
-          const items = itemsByCategory.get(categoryKey)!;
-          const existingIndex = items.findIndex(
-            i => `${i.row.category.toLowerCase()}|${i.row.code.toLowerCase()}` === uniqueKey
-          );
-          if (existingIndex > -1) {
-            items.splice(existingIndex, 1);
-          }
+        // Remove previous occurrence across ALL categories (last occurrence wins)
+        if (seenCodes.has(codeKey)) {
+          itemsByCategory.forEach((items) => {
+            const existingIndex = items.findIndex(
+              (i) => i.row.code.toLowerCase() === codeKey
+            );
+            if (existingIndex > -1) {
+              items.splice(existingIndex, 1);
+            }
+          });
         }
-        seenKeys.add(uniqueKey);
+        seenCodes.add(codeKey);
 
         itemsByCategory.get(categoryKey)!.push({ row, categoryId });
       });
