@@ -765,7 +765,7 @@ export type Database = {
           is_configurable: boolean | null
           is_customizable: boolean | null
           job_stop_id: string | null
-          memorial_item_id: string
+          memorial_item_id: string | null
           model: string | null
           name: string
           price: number
@@ -787,7 +787,7 @@ export type Database = {
           is_configurable?: boolean | null
           is_customizable?: boolean | null
           job_stop_id?: string | null
-          memorial_item_id: string
+          memorial_item_id?: string | null
           model?: string | null
           name: string
           price?: number
@@ -809,7 +809,7 @@ export type Database = {
           is_configurable?: boolean | null
           is_customizable?: boolean | null
           job_stop_id?: string | null
-          memorial_item_id?: string
+          memorial_item_id?: string | null
           model?: string | null
           name?: string
           price?: number

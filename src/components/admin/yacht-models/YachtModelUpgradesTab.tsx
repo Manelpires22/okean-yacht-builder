@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -124,14 +125,31 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
     return showInactive ? upgrades : upgrades.filter(u => u.is_active);
   }, [upgrades, showInactive]);
 
+  // Count pending upgrades (without memorial_item)
+  const pendingUpgrades = useMemo(() => {
+    return filteredUpgrades.filter(u => !u.memorial_item_id);
+  }, [filteredUpgrades]);
+
   // Group upgrades by category (from memorial_item.category)
   const upgradesByCategory = useMemo(() => {
     const grouped: Record<string, {
       category: { id: string; label: string; display_order: number };
       upgrades: MemorialUpgrade[];
     }> = {};
+
+    // Primeiro, adicionar categoria especial para upgrades pendentes
+    if (pendingUpgrades.length > 0) {
+      grouped['⚠️ Pendentes de Vínculo'] = {
+        category: { id: 'pending', label: '⚠️ Pendentes de Vínculo', display_order: -1 },
+        upgrades: pendingUpgrades
+      };
+    }
     
+    // Depois, agrupar os outros por categoria
     filteredUpgrades?.forEach(upgrade => {
+      // Pular upgrades pendentes (já foram agrupados acima)
+      if (!upgrade.memorial_item_id) return;
+      
       const category = upgrade.memorial_item?.category;
       const categoryLabel = category?.label || 'Outros';
       
@@ -147,7 +165,7 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
     // Sort by display_order
     return Object.entries(grouped)
       .sort((a, b) => a[1].category.display_order - b[1].category.display_order);
-  }, [filteredUpgrades]);
+  }, [filteredUpgrades, pendingUpgrades]);
 
   // Count active upgrades per category
   const activeCountByCategory = useMemo(() => {
@@ -279,6 +297,19 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
           </div>
         </div>
 
+        {/* Alert para upgrades pendentes */}
+        {pendingUpgrades.length > 0 && (
+          <Alert className="border-warning bg-warning/10">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                <strong>{pendingUpgrades.length} upgrades</strong> estão pendentes de vinculação ao memorial. 
+                Eles não aparecerão no configurador até serem vinculados.
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {noUpgrades ? (
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <ArrowUpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -379,7 +410,10 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                                     </PopoverContent>
                                   </Popover>
                                 ) : (
-                                  <span className="text-muted-foreground text-sm">—</span>
+                                  <Badge variant="destructive" className="gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Pendente
+                                  </Badge>
                                 )}
                               </TableCell>
                               <TableCell>
