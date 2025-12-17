@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2, Search } from "lucide-react";
 import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import {
@@ -695,26 +696,15 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="image_url">URL da Imagem</Label>
-              <Input
-                id="image_url"
-                {...register("image_url")}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
-              {watch("image_url") && (
-                <div className="mt-2">
-                  <img 
-                    src={watch("image_url")} 
-                    alt="Preview" 
-                    className="h-24 w-auto rounded border object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+            <ImageUploadField
+              value={watch("image_url")}
+              onChange={(url) => setValue("image_url", url || "")}
+              productName={watch("name")}
+              brand={watch("brand")}
+              model={watch("model")}
+              folder="options"
+              label="Imagem do Opcional"
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

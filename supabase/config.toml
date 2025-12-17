@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.enrich-item-with-ai]
 verify_jwt = true
+
+[functions.search-product-images]
+verify_jwt = true

@@ -48,6 +48,7 @@ import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useJobStops } from "@/hooks/useJobStops";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 const UNITS = [
   { value: "unidade", label: "Unidade(s)" },
@@ -385,6 +386,16 @@ export function MemorialItemDialog({
                 )}
               />
             </div>
+
+            <ImageUploadField
+              value={form.watch("image_url")}
+              onChange={(url) => form.setValue("image_url", url || "")}
+              productName={form.watch("item_name")}
+              brand={form.watch("brand")}
+              model={form.watch("model")}
+              folder="options"
+              label="Imagem do Item"
+            />
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
