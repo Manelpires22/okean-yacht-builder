@@ -282,7 +282,7 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                 </span>
               </div>
               
-              <ScrollArea className="flex-1 border rounded-lg max-h-[400px]">
+              <div className="border rounded-lg max-h-[400px] overflow-y-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -314,7 +314,7 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                     )}
                   </TableBody>
                 </Table>
-              </ScrollArea>
+              </div>
             </div>
           )}
         </div>

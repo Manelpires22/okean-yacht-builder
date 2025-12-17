@@ -227,7 +227,7 @@ export function ImportCategoriesDialog({ existingCategories }: ImportCategoriesD
                 <Badge variant="secondary">{validatedData.length} linhas válidas</Badge>
               </div>
               
-              <ScrollArea className="max-h-[400px] border rounded-md">
+              <div className="max-h-[400px] border rounded-md overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {validatedData.slice(0, 10).map((row, i) => (
                     <div 
@@ -249,7 +249,7 @@ export function ImportCategoriesDialog({ existingCategories }: ImportCategoriesD
                     </p>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Import Mode */}
               <div>
