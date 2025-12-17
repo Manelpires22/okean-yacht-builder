@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, RefreshCw, AlertCircle, Check, X, AlertTriangle, ShieldCheck, Info } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, AlertCircle, Check, X, AlertTriangle, ShieldCheck, Info, Image, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichmentData } from "./AIEnrichmentButton";
 
@@ -37,6 +37,7 @@ interface EnrichmentResult {
   brand_confidence: number;
   needs_human_review: boolean;
   reasoning: string;
+  image_urls: string[];
 }
 
 function ConfidenceBadge({ confidence }: { confidence: number }) {
@@ -79,6 +80,8 @@ export function AIEnrichmentModal({
   const [includeDescription, setIncludeDescription] = useState(true);
   const [includeBrand, setIncludeBrand] = useState(true);
   const [includeModel, setIncludeModel] = useState(true);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [includeImage, setIncludeImage] = useState(true);
 
   const enrichMutation = useMutation({
     mutationFn: async (): Promise<EnrichmentResult> => {
@@ -104,6 +107,15 @@ export function AIEnrichmentModal({
       // Set checkboxes based on what was returned and confidence
       setIncludeBrand(!currentBrand && !!data.extracted_brand && data.brand_confidence >= 0.7);
       setIncludeModel(!currentModel && !!data.extracted_model && data.brand_confidence >= 0.7);
+      
+      // Select first image by default if available
+      if (data.image_urls && data.image_urls.length > 0) {
+        setSelectedImageUrl(data.image_urls[0]);
+        setIncludeImage(true);
+      } else {
+        setSelectedImageUrl(null);
+        setIncludeImage(false);
+      }
     },
   });
 
@@ -126,6 +138,9 @@ export function AIEnrichmentModal({
     }
     if (includeModel && editedModel && !currentModel) {
       data.model = editedModel;
+    }
+    if (includeImage && selectedImageUrl) {
+      data.image_url = selectedImageUrl;
     }
 
     onAccept(data);
@@ -160,12 +175,17 @@ export function AIEnrichmentModal({
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Gerando conteúdo com IA...</span>
+              <span>Gerando conteúdo e buscando imagens...</span>
             </div>
             <div className="space-y-3">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-4 w-5/6" />
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
             </div>
           </div>
         ) : enrichMutation.isError ? (
@@ -286,10 +306,65 @@ export function AIEnrichmentModal({
               </div>
             )}
 
-            {/* No Images Section - Removed per anti-hallucination policy */}
-            <p className="text-xs text-muted-foreground italic">
-              💡 Imagens devem ser adicionadas manualmente via upload para garantir autenticidade.
-            </p>
+            {/* Images Section */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="include-image"
+                  checked={includeImage}
+                  onCheckedChange={(checked) => setIncludeImage(!!checked)}
+                  disabled={!result.image_urls || result.image_urls.length === 0}
+                />
+                <Label htmlFor="include-image" className="font-medium cursor-pointer flex items-center gap-2">
+                  <Image className="h-4 w-4" />
+                  Imagens Encontradas na Web
+                </Label>
+                <Badge variant="outline" className="gap-1 text-xs">
+                  <Globe className="h-3 w-3" />
+                  via Perplexity
+                </Badge>
+              </div>
+              
+              {result.image_urls && result.image_urls.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {result.image_urls.map((url, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setSelectedImageUrl(url);
+                        setIncludeImage(true);
+                      }}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        selectedImageUrl === url 
+                          ? 'border-primary ring-2 ring-primary/30' 
+                          : 'border-border hover:border-primary/50'
+                      } ${!includeImage ? 'opacity-50' : ''}`}
+                    >
+                      <img
+                        src={url}
+                        alt={`Imagem ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                        }}
+                      />
+                      {selectedImageUrl === url && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <Check className="h-8 w-8 text-primary-foreground bg-primary rounded-full p-1" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic p-4 bg-muted/30 rounded-lg text-center">
+                  Nenhuma imagem encontrada na web para este produto.
+                  <br />
+                  <span className="text-xs">Você pode fazer upload manual após salvar.</span>
+                </p>
+              )}
+            </div>
           </div>
         ) : null}
 

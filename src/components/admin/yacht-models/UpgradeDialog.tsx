@@ -59,6 +59,7 @@ const upgradeSchema = z.object({
   description: z.string().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
+  image_url: z.string().optional(),
   price: z.number(), // Permite valores negativos (crédito)
   delivery_days_impact: z.number().int().min(0).default(0),
   job_stop_id: z.string().uuid().nullable().optional(),
@@ -353,6 +354,7 @@ export function UpgradeDialog({
                         if (data.description) form.setValue('description', data.description);
                         if (data.brand) form.setValue('brand', data.brand);
                         if (data.model) form.setValue('model', data.model);
+                        if (data.image_url) form.setValue('image_url', data.image_url);
                       }}
                     />
                   </div>

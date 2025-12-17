@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,6 +52,7 @@ interface EnrichmentResponse {
   brand_confidence: number;
   needs_human_review: boolean;
   reasoning: string;
+  image_urls: string[];
 }
 
 // Pre-process name to extract known brands
@@ -69,6 +71,84 @@ function extractModelFromName(name: string): string | null {
   // Look for patterns like X19, 850, A50, etc.
   const modelMatch = name.match(/\b([A-Z]?\d+[A-Z]?)\b/i);
   return modelMatch ? modelMatch[1].toUpperCase() : null;
+}
+
+// Search for product images using Perplexity
+async function searchProductImages(brand: string | null, model: string | null, productName: string): Promise<string[]> {
+  if (!perplexityApiKey) {
+    console.log('PERPLEXITY_API_KEY not configured, skipping image search');
+    return [];
+  }
+
+  const searchQuery = brand && model 
+    ? `${brand} ${model} marine yacht product official image` 
+    : `${productName} yacht marine equipment product image`;
+
+  console.log('Searching images with Perplexity:', searchQuery);
+
+  try {
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${perplexityApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'sonar',
+        messages: [{
+          role: 'user',
+          content: `Find 3-5 official product image URLs for: "${searchQuery}". 
+          
+IMPORTANT RULES:
+1. Return ONLY direct image URLs (ending in .jpg, .jpeg, .png, .webp, .gif)
+2. Prefer images from manufacturer websites or official distributors
+3. Images should be product photos, not logos or icons
+4. Return the URLs in a JSON array format like: ["url1", "url2", "url3"]
+5. If you cannot find relevant images, return an empty array: []
+6. Do NOT include any other text, just the JSON array`
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('Perplexity API error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    console.log('Perplexity response:', content);
+
+    // Try to extract JSON array from response
+    const jsonMatch = content.match(/\[[\s\S]*?\]/);
+    if (jsonMatch) {
+      try {
+        const urls = JSON.parse(jsonMatch[0]);
+        // Filter valid image URLs
+        const validUrls = urls.filter((url: string) => 
+          typeof url === 'string' && 
+          url.startsWith('http') && 
+          /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(url)
+        );
+        console.log('Found valid image URLs:', validUrls);
+        return validUrls.slice(0, 5); // Max 5 images
+      } catch (e) {
+        console.error('Failed to parse image URLs:', e);
+      }
+    }
+
+    // Try to extract URLs directly from text
+    const urlPattern = /https?:\/\/[^\s"'<>\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>\]]*)?/gi;
+    const foundUrls = content.match(urlPattern) || [];
+    console.log('Extracted URLs from text:', foundUrls);
+    const uniqueUrls = [...new Set(foundUrls)] as string[];
+    return uniqueUrls.slice(0, 5);
+
+  } catch (error) {
+    console.error('Error searching images:', error);
+    return [];
+  }
 }
 
 serve(async (req) => {
@@ -138,7 +218,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem backticks):
 }`;
 
     // Call OpenAI with lower temperature for more deterministic results
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const openAIPromise = fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
@@ -150,18 +230,26 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem backticks):
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.2, // Low temperature for more deterministic results
+        temperature: 0.2,
         max_tokens: 800,
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`Erro na API OpenAI: ${response.status}`);
+    // Search for images in parallel
+    const finalBrand = knownBrand?.brand || brand || null;
+    const finalModel = model || extractedModel || null;
+    const imageSearchPromise = searchProductImages(finalBrand, finalModel, name);
+
+    // Wait for both calls
+    const [openAIResponse, imageUrls] = await Promise.all([openAIPromise, imageSearchPromise]);
+
+    if (!openAIResponse.ok) {
+      const errorText = await openAIResponse.text();
+      console.error('OpenAI API error:', openAIResponse.status, errorText);
+      throw new Error(`Erro na API OpenAI: ${openAIResponse.status}`);
     }
 
-    const data = await response.json();
+    const data = await openAIResponse.json();
     const content = data.choices[0]?.message?.content;
 
     if (!content) {
@@ -203,6 +291,7 @@ Responda EXATAMENTE neste formato JSON (sem markdown, sem backticks):
         : 0.5,
       needs_human_review: parsedContent.needs_human_review ?? (parsedContent.brand_confidence < 0.7),
       reasoning: parsedContent.reasoning || 'Sem justificativa',
+      image_urls: imageUrls,
     };
 
     // If we used pre-processing to identify brand, boost confidence

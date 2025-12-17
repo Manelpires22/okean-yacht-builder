@@ -64,6 +64,7 @@ const memorialItemSchema = z.object({
   description: z.string().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
+  image_url: z.string().optional(),
   quantity: z.number().int().positive("Quantidade deve ser positiva").default(1),
   unit: z.string().default("unidade"),
   display_order: z.number().int().default(0),
@@ -339,6 +340,7 @@ export function MemorialItemDialog({
                         if (data.description) form.setValue('description', data.description);
                         if (data.brand) form.setValue('brand', data.brand);
                         if (data.model) form.setValue('model', data.model);
+                        if (data.image_url) form.setValue('image_url', data.image_url);
                       }}
                     />
                   </div>

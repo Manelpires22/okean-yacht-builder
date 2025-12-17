@@ -8,6 +8,7 @@ export interface EnrichmentData {
   description?: string;
   brand?: string;
   model?: string;
+  image_url?: string;
 }
 
 interface AIEnrichmentButtonProps {
