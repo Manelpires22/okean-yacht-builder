@@ -48,7 +48,7 @@ import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useOptionCategories } from "@/hooks/useOptions";
+import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,7 +94,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  const { data: categories } = useOptionCategories();
+  const { data: categories } = useMemorialCategories();
   const { data: jobStops } = useJobStops();
 
   // Delete all options mutation
@@ -125,7 +125,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
         .from('options')
         .select(`
           *,
-          category:option_categories(id, name),
+          category:memorial_categories!options_category_id_fkey(id, label, value),
           job_stop:job_stops!options_job_stop_id_fkey(id, stage, days_limit, item_name)
         `)
         .eq('yacht_model_id', yachtModelId)
@@ -460,7 +460,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                 <AccordionItem key={cat.id} value={cat.id}>
                   <AccordionTrigger className="text-lg font-semibold hover:no-underline">
                     <div className="flex items-center gap-3 w-full">
-                      <span>{cat.name}</span>
+                      <span>{cat.label}</span>
                       <Badge variant="outline" className="ml-auto mr-2">
                         {showInactive 
                           ? `${activeCount} ativos / ${optionCount} total`
@@ -548,7 +548,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                           Nenhum opcional nesta categoria
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          Adicione opcionais à categoria {cat.name}
+                          Adicione opcionais à categoria {cat.label}
                         </p>
                         <Button onClick={handleCreateClick}>
                           <Plus className="mr-2 h-4 w-4" />
@@ -608,7 +608,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                   <SelectContent>
                     {categories?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
+                        {cat.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

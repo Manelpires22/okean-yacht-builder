@@ -844,6 +844,7 @@ export type Database = {
       option_categories: {
         Row: {
           created_at: string | null
+          deprecated_at: string | null
           description: string | null
           display_order: number
           id: string
@@ -852,6 +853,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          deprecated_at?: string | null
           description?: string | null
           display_order: number
           id?: string
@@ -860,6 +862,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          deprecated_at?: string | null
           description?: string | null
           display_order?: number
           id?: string
@@ -937,7 +940,7 @@ export type Database = {
             foreignKeyName: "options_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "option_categories"
+            referencedRelation: "memorial_categories"
             referencedColumns: ["id"]
           },
           {

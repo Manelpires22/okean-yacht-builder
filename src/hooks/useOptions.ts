@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMemorialCategories } from "./useMemorialCategories";
 
 export function useOptions(categoryId?: string, yachtModelId?: string) {
   return useQuery({
@@ -9,7 +10,7 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
         .from("options")
         .select(`
           *,
-          category:option_categories(id, name),
+          category:memorial_categories!options_category_id_fkey(id, label, value),
           job_stop:job_stops!options_job_stop_id_fkey(id, stage, days_limit, item_name)
         `)
         .eq("is_active", true);
@@ -31,18 +32,11 @@ export function useOptions(categoryId?: string, yachtModelId?: string) {
   });
 }
 
+/**
+ * @deprecated Use useMemorialCategories instead. 
+ * Options now use memorial_categories as the single source of truth.
+ */
 export function useOptionCategories() {
-  return useQuery({
-    queryKey: ["option-categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("option_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  console.warn('useOptionCategories is deprecated. Use useMemorialCategories instead.');
+  return useMemorialCategories();
 }
