@@ -230,13 +230,13 @@ export function UpgradeDialog({
                             role="combobox"
                             aria-expanded={memorialItemOpen}
                             className={cn(
-                              "w-full justify-between",
+                              "w-full justify-between h-auto min-h-10 whitespace-normal text-left",
                               !field.value && "text-muted-foreground"
                             )}
                             disabled={memorialItemsLoading}
                           >
                             {selectedItem ? (
-                              <span className="truncate">
+                              <span className="flex-1 text-left break-words">
                                 {selectedItem.item_name}
                                 {selectedItem.category && ` (${selectedItem.category.label})`}
                               </span>
@@ -395,7 +395,7 @@ export function UpgradeDialog({
                       <Input
                         type="number"
                         step="0.01"
-                        {...field}
+                        value={Math.round(field.value * 100) / 100}
                         onChange={(e) => {
                           const value = parseFloat(e.target.value);
                           field.onChange(isNaN(value) ? 0 : Math.round(value * 100) / 100);
