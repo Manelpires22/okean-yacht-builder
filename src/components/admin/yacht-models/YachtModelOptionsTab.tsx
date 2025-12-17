@@ -69,6 +69,9 @@ const optionSchema = z.object({
   code: z.string().min(1, "Código é obrigatório"),
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  image_url: z.string().optional(),
   category_id: z.string().min(1, "Categoria é obrigatória"),
   base_price: z.number().min(0, "Preço deve ser positivo"),
   delivery_days_impact: z.number().int().min(0).default(0),
@@ -216,6 +219,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       code: "",
       name: "",
       description: "",
+      brand: "",
+      model: "",
+      image_url: "",
       category_id: "",
       base_price: 0,
       delivery_days_impact: 0,
@@ -237,11 +243,13 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           ...rest,
           yacht_model_id: yachtModelId,
           job_stop_id: newOption.job_stop_id || null,
+          image_url: newOption.image_url || null,
+          brand: newOption.brand || null,
+          model: newOption.model || null,
           configurable_sub_items: configurable_sub_items 
             ? JSON.parse(configurable_sub_items) 
             : [],
         } as any)
-        .select()
         .single();
       
       if (error) throw error;
@@ -268,6 +276,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
         .update({
           ...rest,
           job_stop_id: data.job_stop_id || null,
+          image_url: data.image_url || null,
+          brand: data.brand || null,
+          model: data.model || null,
           configurable_sub_items: configurable_sub_items 
             ? JSON.parse(configurable_sub_items) 
             : [],
@@ -314,6 +325,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       code: "",
       name: "",
       description: "",
+      brand: "",
+      model: "",
+      image_url: "",
       category_id: "",
       base_price: 0,
       delivery_days_impact: 0,
@@ -331,6 +345,9 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       code: option.code,
       name: option.name,
       description: option.description || "",
+      brand: option.brand || "",
+      model: option.model || "",
+      image_url: option.image_url || "",
       category_id: option.category_id,
       base_price: Number(option.base_price),
       delivery_days_impact: Number(option.delivery_days_impact),
@@ -640,8 +657,12 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                 <AIEnrichmentButton
                   itemName={watch("name")}
                   itemType="optional"
+                  currentBrand={watch("brand")}
+                  currentModel={watch("model")}
                   onAccept={(data: EnrichmentData) => {
                     if (data.description) setValue("description", data.description);
+                    if (data.brand) setValue("brand", data.brand);
+                    if (data.model) setValue("model", data.model);
                   }}
                 />
               </div>
@@ -651,6 +672,47 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                 placeholder="Descrição detalhada do opcional"
                 rows={3}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="brand">Marca</Label>
+                <Input
+                  id="brand"
+                  {...register("brand")}
+                  placeholder="Ex: CMC Marine"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="model">Modelo</Label>
+                <Input
+                  id="model"
+                  {...register("model")}
+                  placeholder="Ex: MC² X19"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="image_url">URL da Imagem</Label>
+              <Input
+                id="image_url"
+                {...register("image_url")}
+                placeholder="https://exemplo.com/imagem.jpg"
+              />
+              {watch("image_url") && (
+                <div className="mt-2">
+                  <img 
+                    src={watch("image_url")} 
+                    alt="Preview" 
+                    className="h-24 w-auto rounded border object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

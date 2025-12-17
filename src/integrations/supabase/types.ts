@@ -886,6 +886,7 @@ export type Database = {
       options: {
         Row: {
           base_price: number
+          brand: string | null
           category_id: string | null
           code: string
           configurable_sub_items: Json | null
@@ -901,6 +902,7 @@ export type Database = {
           is_configurable: boolean | null
           is_customizable: boolean | null
           job_stop_id: string | null
+          model: string | null
           name: string
           technical_specifications: Json | null
           updated_at: string | null
@@ -908,6 +910,7 @@ export type Database = {
         }
         Insert: {
           base_price: number
+          brand?: string | null
           category_id?: string | null
           code: string
           configurable_sub_items?: Json | null
@@ -923,6 +926,7 @@ export type Database = {
           is_configurable?: boolean | null
           is_customizable?: boolean | null
           job_stop_id?: string | null
+          model?: string | null
           name: string
           technical_specifications?: Json | null
           updated_at?: string | null
@@ -930,6 +934,7 @@ export type Database = {
         }
         Update: {
           base_price?: number
+          brand?: string | null
           category_id?: string | null
           code?: string
           configurable_sub_items?: Json | null
@@ -945,6 +950,7 @@ export type Database = {
           is_configurable?: boolean | null
           is_customizable?: boolean | null
           job_stop_id?: string | null
+          model?: string | null
           name?: string
           technical_specifications?: Json | null
           updated_at?: string | null
