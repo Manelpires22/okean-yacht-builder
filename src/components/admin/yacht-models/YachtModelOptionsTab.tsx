@@ -16,6 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2 } from "lucide-react";
@@ -363,8 +368,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               Opcionais exclusivos deste modelo de iate.
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 mr-2">
               <Switch
                 id="show-inactive"
                 checked={showInactive}
@@ -374,30 +379,32 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                 Mostrar inativos
               </Label>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="destructive" 
-                size="sm"
-                onClick={() => setShowDeleteAllDialog(true)}
-                disabled={!options?.length}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Apagar Opcionais ({options?.length || 0})
-              </Button>
-              <ExportOptionsButton 
-                options={options || []} 
-                modelCode={yachtModel?.code || 'modelo'} 
-                disabled={isLoading}
-              />
-              <ImportOptionsDialog 
-                yachtModelId={yachtModelId} 
-                categories={categories || []} 
-              />
-              <Button onClick={handleCreateClick}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Novo Opcional
-              </Button>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  size="icon"
+                  onClick={() => setShowDeleteAllDialog(true)}
+                  disabled={!options?.length}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Apagar Opcionais ({options?.length || 0})</TooltipContent>
+            </Tooltip>
+            <ExportOptionsButton 
+              options={options || []} 
+              modelCode={yachtModel?.code || 'modelo'} 
+              disabled={isLoading}
+            />
+            <ImportOptionsDialog 
+              yachtModelId={yachtModelId} 
+              categories={categories || []} 
+            />
+            <Button size="sm" onClick={handleCreateClick}>
+              <Plus className="mr-2 h-4 w-4" />
+              Criar Novo Opcional
+            </Button>
           </div>
         </div>
 

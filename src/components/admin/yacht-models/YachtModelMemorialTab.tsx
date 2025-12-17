@@ -27,6 +27,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Trash, FileText } from "lucide-react";
@@ -175,16 +180,20 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
             Gerir itens técnicos e equipamentos do modelo
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="destructive" 
-            size="sm"
-            onClick={() => setShowDeleteAllDialog(true)}
-            disabled={!items?.length}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Apagar Memorial ({items?.length || 0})
-          </Button>
+        <div className="flex flex-wrap gap-2 items-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="icon"
+                onClick={() => setShowDeleteAllDialog(true)}
+                disabled={!items?.length}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Apagar Memorial ({items?.length || 0})</TooltipContent>
+          </Tooltip>
           <ExportMemorialButton 
             items={items || []} 
             modelCode={yachtModel?.code || 'modelo'} 
@@ -194,11 +203,11 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
             yachtModelId={yachtModelId} 
             categories={categories || []} 
           />
-          <Button variant="outline" onClick={() => setOrderDialogOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setOrderDialogOpen(true)}>
             <GripVertical className="mr-2 h-4 w-4" />
             Ordenar Categorias
           </Button>
-          <Button onClick={() => handleCreate()}>
+          <Button size="sm" onClick={() => handleCreate()}>
             <Plus className="mr-2 h-4 w-4" />
             Adicionar Item
           </Button>
