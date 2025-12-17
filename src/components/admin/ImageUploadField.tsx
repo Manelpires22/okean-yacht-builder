@@ -201,14 +201,14 @@ export function ImageUploadField({
             <span className="text-xs text-muted-foreground">{foundImages.length} resultados</span>
           </div>
           
-          <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2">
             {foundImages.map((img, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => setSelectedImage(img)}
                 className={cn(
-                  "relative aspect-square rounded-md overflow-hidden border-2 transition-all",
+                  "relative aspect-square rounded-md overflow-hidden border-2 transition-all bg-muted",
                   selectedImage === img
                     ? "border-primary ring-2 ring-primary/30"
                     : "border-transparent hover:border-muted-foreground/30"
@@ -218,8 +218,15 @@ export function ImageUploadField({
                   src={img}
                   alt={`Resultado ${index + 1}`}
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                    const target = e.target as HTMLImageElement;
+                    // Try loading without crossOrigin if it fails
+                    if (target.crossOrigin) {
+                      target.crossOrigin = '';
+                      target.src = img;
+                    }
                   }}
                 />
                 {selectedImage === img && (
