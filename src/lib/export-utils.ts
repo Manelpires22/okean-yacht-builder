@@ -309,7 +309,7 @@ export function transformOptionsForExport(options: any[]): OptionExportRow[] {
     code: opt.code || '',
     name: opt.name || '',
     description: opt.description || '',
-    category: opt.category?.name || '',
+    category: opt.category?.label || '',
     base_price: opt.base_price || 0,
     delivery_days_impact: opt.delivery_days_impact || 0,
     is_active: opt.is_active ?? true,
@@ -380,26 +380,22 @@ export function validateOptionsImportData(
     }
   });
   
-  // Detectar duplicatas (mesma categoria + code)
+  // Detectar duplicatas (mesmo code, pois o banco exige code único por modelo)
   const keyCount = new Map<string, number>();
   validRows.forEach(row => {
-    const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
+    const key = row.code.toLowerCase();
     keyCount.set(key, (keyCount.get(key) || 0) + 1);
   });
-  
+
   const duplicateKeys = new Set<string>();
   const duplicateLabels: string[] = [];
-  
+
   keyCount.forEach((count, key) => {
     if (count > 1) {
       duplicateKeys.add(key);
-      const [category, code] = key.split('|');
-      const originalRow = validRows.find(r => 
-        r.category.toLowerCase() === category && 
-        r.code.toLowerCase() === code
-      );
+      const originalRow = validRows.find(r => r.code.toLowerCase() === key);
       if (originalRow) {
-        duplicateLabels.push(`"${originalRow.code}" em "${originalRow.category}"`);
+        duplicateLabels.push(`"${originalRow.code}"`);
       }
     }
   });
