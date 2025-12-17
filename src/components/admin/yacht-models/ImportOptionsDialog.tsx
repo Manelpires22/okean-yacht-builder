@@ -31,6 +31,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   parseExcelFile, 
   validateOptionsImportData,
@@ -76,6 +83,11 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
     return { duplicateCount: count, duplicateKeys: keys };
   }, [previewData]);
 
+  // Calculate unmatched categories count
+  const unmatchedCount = useMemo(() => {
+    return previewData.filter(row => row._categoryError).length;
+  }, [previewData]);
+
   const isDuplicateRow = (row: OptionImportRow) => {
     const key = `${row.category.toLowerCase()}|${row.code.toLowerCase()}`;
     return duplicateKeys.has(key);
@@ -90,6 +102,19 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
     });
     setPreviewData(Array.from(seen.values()));
     toast.success(`${duplicateCount} duplicado(s) removido(s)`);
+  };
+
+  // Update category for a specific row (inline editing)
+  const updateRowCategory = (index: number, newCategory: string) => {
+    setPreviewData(prev => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        category: newCategory,
+        _categoryError: false,
+      };
+      return updated;
+    });
   };
 
   const importMutation = useMutation({
@@ -206,7 +231,7 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
 
     try {
       const data = await parseExcelFile<any>(selectedFile);
-      const validation = validateOptionsImportData(data);
+      const validation = validateOptionsImportData(data, categories);
       
       setValidationErrors(validation.errors);
       setPreviewData(validation.rows);
@@ -221,6 +246,11 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
   const handleImport = () => {
     if (previewData.length === 0) {
       toast.error("Nenhum dado válido para importar");
+      return;
+    }
+    
+    if (unmatchedCount > 0) {
+      toast.error("Corrija as categorias inválidas antes de importar");
       return;
     }
     
@@ -325,6 +355,17 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
             </div>
           )}
 
+          {/* Unmatched Categories Alert */}
+          {unmatchedCount > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>{unmatchedCount} {unmatchedCount === 1 ? 'item tem' : 'itens têm'} categoria não reconhecida.</strong>
+                {' '}Corrija selecionando uma categoria existente na tabela abaixo.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Duplicates Alert */}
           {duplicateCount > 0 && (
             <Alert className="border-amber-300 bg-amber-50">
@@ -370,6 +411,11 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                 <CheckCircle2 className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium">
                   {previewData.length} opcionais válidos para importação
+                  {unmatchedCount > 0 && (
+                    <span className="text-destructive ml-1">
+                      ({unmatchedCount} com categoria inválida)
+                    </span>
+                  )}
                 </span>
               </div>
               
@@ -386,7 +432,13 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                   </TableHeader>
                   <TableBody>
                     {previewData.slice(0, 20).map((row, i) => (
-                      <TableRow key={i} className={cn(isDuplicateRow(row) && "bg-amber-50")}>
+                      <TableRow 
+                        key={i} 
+                        className={cn(
+                          isDuplicateRow(row) && "bg-amber-50",
+                          row._categoryError && "bg-destructive/10"
+                        )}
+                      >
                         <TableCell className="text-sm font-mono">
                           {row.code}
                           {isDuplicateRow(row) && (
@@ -396,7 +448,27 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                           )}
                         </TableCell>
                         <TableCell className="text-sm font-medium">{row.name}</TableCell>
-                        <TableCell className="text-sm">{row.category}</TableCell>
+                        <TableCell className="text-sm">
+                          {row._categoryError ? (
+                            <Select 
+                              value="" 
+                              onValueChange={(v) => updateRowCategory(i, v)}
+                            >
+                              <SelectTrigger className="h-8 w-[180px] border-destructive">
+                                <SelectValue placeholder={row.category} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories?.map(cat => (
+                                  <SelectItem key={cat.id} value={cat.name}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            row.category
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-right">{formatCurrency(row.base_price)}</TableCell>
                         <TableCell className="text-sm text-right">
                           {row.delivery_days_impact ? `+${row.delivery_days_impact}d` : "-"}
@@ -423,7 +495,7 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
           </Button>
           <Button 
             onClick={handleImport} 
-            disabled={previewData.length === 0 || importMutation.isPending || isValidating}
+            disabled={previewData.length === 0 || importMutation.isPending || isValidating || unmatchedCount > 0}
           >
             {importMutation.isPending ? "Importando..." : `Importar ${previewData.length} Opcionais`}
           </Button>
