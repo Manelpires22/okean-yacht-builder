@@ -106,15 +106,21 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
         categoryMap.set(cat.label.toLowerCase(), { id: cat.id, value: cat.value });
       });
 
-      // Transform rows to database format with defaults
-      const itemsToInsert = rows.map((row, index) => {
+      // Transform rows to database format with deduplication (last occurrence wins)
+      const itemsMap = new Map<string, any>();
+      
+      rows.forEach((row, index) => {
         const categoryData = categoryMap.get(row.categoria.toLowerCase());
         
         if (!categoryData) {
           throw new Error(`Categoria "${row.categoria}" não encontrada. Corrija antes de importar.`);
         }
 
-        return {
+        // Unique key: category + item_name (lowercase for consistency)
+        const key = `${categoryData.value}|${row.item_name.toLowerCase()}`;
+        
+        // If already exists, overwrites (last occurrence wins)
+        itemsMap.set(key, {
           yacht_model_id: yachtModelId,
           category_id: categoryData.id,
           category: categoryData.value as MemorialCategory,
@@ -128,8 +134,10 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
           is_customizable: row.is_customizable ?? true,
           is_configurable: row.is_configurable ?? false,
           is_active: row.is_active ?? true,
-        };
+        });
       });
+      
+      const itemsToInsert = Array.from(itemsMap.values());
 
       const { error } = await supabase
         .from("memorial_items")
