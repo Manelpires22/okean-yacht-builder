@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2, Search } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -90,6 +91,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
   const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const { data: categories } = useOptionCategories();
   const { data: jobStops } = useJobStops();
@@ -133,11 +136,23 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
     },
   });
 
-  // Filter options based on showInactive toggle
+  // Filter options based on showInactive toggle and search
   const filteredOptions = useMemo(() => {
     if (!options) return [];
-    return showInactive ? options : options.filter(opt => opt.is_active);
-  }, [options, showInactive]);
+    let filtered = showInactive ? options : options.filter(opt => opt.is_active);
+    
+    // Apply search filter (only if >= 3 characters)
+    if (debouncedSearch.length >= 3) {
+      const searchLower = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(opt =>
+        opt.name?.toLowerCase().includes(searchLower) ||
+        opt.code?.toLowerCase().includes(searchLower) ||
+        opt.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  }, [options, showInactive, debouncedSearch]);
 
   // Fetch yacht model code for export filename
   const { data: yachtModel } = useQuery({
@@ -369,6 +384,20 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar opcionais..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-48"
+              />
+            </div>
+            {searchTerm.length > 0 && searchTerm.length < 3 && (
+              <span className="text-xs text-muted-foreground">
+                Digite ao menos 3 caracteres
+              </span>
+            )}
             <div className="flex items-center gap-2 mr-2">
               <Switch
                 id="show-inactive"
