@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useJobStops } from "@/hooks/useJobStops";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
+import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
 
 const UNITS = [
   { value: "unidade", label: "Unidade(s)" },
@@ -327,7 +328,20 @@ export function MemorialItemDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Descrição</FormLabel>
+                    <AIEnrichmentButton
+                      itemName={form.watch('item_name')}
+                      itemType="memorial"
+                      currentBrand={form.watch('brand')}
+                      currentModel={form.watch('model')}
+                      onAccept={(data: EnrichmentData) => {
+                        if (data.description) form.setValue('description', data.description);
+                        if (data.brand) form.setValue('brand', data.brand);
+                        if (data.model) form.setValue('model', data.model);
+                      }}
+                    />
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Descrição detalhada do item"

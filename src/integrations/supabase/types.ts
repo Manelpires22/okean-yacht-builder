@@ -666,6 +666,8 @@ export type Database = {
           display_order: number
           has_upgrades: boolean | null
           id: string
+          image_url: string | null
+          images: Json | null
           is_active: boolean | null
           is_configurable: boolean | null
           is_customizable: boolean | null
@@ -690,6 +692,8 @@ export type Database = {
           display_order?: number
           has_upgrades?: boolean | null
           id?: string
+          image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
@@ -714,6 +718,8 @@ export type Database = {
           display_order?: number
           has_upgrades?: boolean | null
           id?: string
+          image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
@@ -761,6 +767,8 @@ export type Database = {
           description: string | null
           display_order: number | null
           id: string
+          image_url: string | null
+          images: Json | null
           is_active: boolean | null
           is_configurable: boolean | null
           is_customizable: boolean | null
@@ -783,6 +791,8 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           id?: string
+          image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
@@ -805,6 +815,8 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           id?: string
+          image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
@@ -884,6 +896,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          images: Json | null
           is_active: boolean | null
           is_configurable: boolean | null
           is_customizable: boolean | null
@@ -905,6 +918,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
@@ -926,6 +940,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: Json | null
           is_active?: boolean | null
           is_configurable?: boolean | null
           is_customizable?: boolean | null
