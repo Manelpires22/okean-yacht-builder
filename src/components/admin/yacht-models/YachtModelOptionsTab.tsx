@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2, Search } from "lucide-react";
+import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
 import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import {
@@ -634,7 +635,16 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description">Descrição</Label>
+                <AIEnrichmentButton
+                  itemName={watch("name")}
+                  itemType="optional"
+                  onAccept={(data: EnrichmentData) => {
+                    if (data.description) setValue("description", data.description);
+                  }}
+                />
+              </div>
               <Textarea
                 id="description"
                 {...register("description")}

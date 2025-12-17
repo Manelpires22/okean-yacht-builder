@@ -45,3 +45,5 @@ verify_jwt = true
 [functions.advance-ato-workflow]
 verify_jwt = true
 
+[functions.enrich-item-with-ai]
+verify_jwt = true

@@ -50,6 +50,7 @@ import { cn } from "@/lib/utils";
 import { useJobStops } from "@/hooks/useJobStops";
 import { useAllMemorialItemsForUpgrades } from "@/hooks/useMemorialUpgrades";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
+import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
 
 const upgradeSchema = z.object({
   memorial_item_id: z.string().uuid("Selecione um item do memorial").nullable().optional(),
@@ -341,7 +342,20 @@ export function UpgradeDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Descrição</FormLabel>
+                    <AIEnrichmentButton
+                      itemName={form.watch('name')}
+                      itemType="upgrade"
+                      currentBrand={form.watch('brand')}
+                      currentModel={form.watch('model')}
+                      onAccept={(data: EnrichmentData) => {
+                        if (data.description) form.setValue('description', data.description);
+                        if (data.brand) form.setValue('brand', data.brand);
+                        if (data.model) form.setValue('model', data.model);
+                      }}
+                    />
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Descrição detalhada do upgrade"
