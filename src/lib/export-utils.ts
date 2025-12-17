@@ -320,7 +320,7 @@ export function transformOptionsForExport(options: any[]): OptionExportRow[] {
 
 export function validateOptionsImportData(
   data: any[],
-  existingCategories?: { name: string }[]
+  existingCategories?: { label: string }[]
 ): { 
   valid: boolean; 
   errors: string[]; 
@@ -333,9 +333,9 @@ export function validateOptionsImportData(
   const validRows: OptionImportRow[] = [];
   const unmatchedCategories: string[] = [];
   
-  // Create Set of existing category names (case-insensitive)
-  const existingCategoryNames = new Set(
-    existingCategories?.map(c => c.name.toLowerCase()) || []
+  // Create Set of existing category labels (case-insensitive)
+  const existingCategoryLabels = new Set(
+    existingCategories?.map(c => c.label.toLowerCase()) || []
   );
   
   if (!data || data.length === 0) {
@@ -360,7 +360,7 @@ export function validateOptionsImportData(
     
     if (row.code && row.name && row.category && row.base_price !== undefined) {
       const categoryStr = String(row.category).trim();
-      const categoryExists = existingCategoryNames.has(categoryStr.toLowerCase());
+      const categoryExists = existingCategoryLabels.has(categoryStr.toLowerCase());
       
       // Track unmatched categories
       if (!categoryExists && !unmatchedCategories.includes(categoryStr)) {

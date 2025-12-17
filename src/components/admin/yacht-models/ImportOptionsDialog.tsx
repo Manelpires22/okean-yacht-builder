@@ -129,10 +129,10 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
         if (deleteError) throw deleteError;
       }
 
-      // Create a map of category name to category id
+      // Create a map of category label to category id
       const categoryMap = new Map<string, string>();
       categories?.forEach(cat => {
-        categoryMap.set(cat.name.toLowerCase(), cat.id);
+        categoryMap.set(cat.label.toLowerCase(), cat.id);
       });
 
       // Group items by category first, with deduplication (last occurrence wins)
@@ -459,8 +459,8 @@ export function ImportOptionsDialog({ yachtModelId, categories }: ImportOptionsD
                               </SelectTrigger>
                               <SelectContent>
                                 {categories?.map(cat => (
-                                  <SelectItem key={cat.id} value={cat.name}>
-                                    {cat.name}
+                                  <SelectItem key={cat.id} value={cat.label}>
+                                    {cat.label}
                                   </SelectItem>
                                 ))}
                               </SelectContent>

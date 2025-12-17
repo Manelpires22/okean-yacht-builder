@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface OptionCategorySectionProps {
   categories: Array<{
     id: string;
-    name: string;
+    label: string;
     description?: string;
   }>;
   selectedOptions: Array<{
@@ -51,7 +51,7 @@ function CategoryAccordionItem({
   onCustomizeOption,
   yachtModelId,
 }: {
-  category: { id: string; name: string; description?: string };
+  category: { id: string; label: string; description?: string };
   selectedOptions: Array<{
     option_id: string;
     customization_notes?: string;
@@ -72,7 +72,7 @@ function CategoryAccordionItem({
       <AccordionTrigger className="text-left hover:no-underline">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full pr-4 gap-2">
           <div className="min-w-0 flex-1">
-            <span className="font-semibold text-base md:text-lg break-words">{category.name}</span>
+            <span className="font-semibold text-base md:text-lg break-words">{category.label}</span>
             {category.description && (
               <p className="text-sm md:text-base text-muted-foreground break-words">
                 {category.description}

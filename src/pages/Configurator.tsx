@@ -8,7 +8,8 @@ import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDial
 import { FreeCustomizationDialog } from "@/components/configurator/FreeCustomizationDialog";
 import { UpgradesTab } from "@/components/configurator/UpgradesTab";
 import { useConfigurationState, SelectedUpgrade } from "@/hooks/useConfigurationState";
-import { useOptionCategories, useOptions } from "@/hooks/useOptions";
+import { useOptions } from "@/hooks/useOptions";
+import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useSaveQuotation } from "@/hooks/useSaveQuotation";
 import { useQuotation } from "@/hooks/useQuotations";
@@ -47,7 +48,7 @@ export default function Configurator() {
   } = useConfigurationState();
 
   const { data: models } = useYachtModels();
-  const { data: categories } = useOptionCategories();
+  const { data: categories } = useMemorialCategories();
   const { data: allOptions } = useOptions();
   const saveQuotation = useSaveQuotation();
   
