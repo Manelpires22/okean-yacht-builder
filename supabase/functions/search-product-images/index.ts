@@ -36,27 +36,44 @@ async function downloadToStorage(supabase: any, imageUrl: string) {
   const ext = getExtensionFromUrl(imageUrl);
   const path = `ai-search/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
-  const res = await fetch(imageUrl, {
-    headers: {
-      // Some origins block hotlinks unless a user-agent is present
-      "User-Agent": "Mozilla/5.0 (compatible; OKEAN-CPQ/1.0; +https://okeanyachts.com)",
-      "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-    },
-  });
+  const tryFetch = async (withHeaders: boolean) => {
+    const res = await fetch(imageUrl, {
+      redirect: "follow",
+      headers: withHeaders
+        ? {
+            // Some origins block hotlinks unless a user-agent is present
+            "User-Agent":
+              "Mozilla/5.0 (compatible; OKEAN-CPQ/1.0; +https://okeanyachts.com)",
+            Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+          }
+        : undefined,
+    });
+    return res;
+  };
+
+  let res = await tryFetch(true);
+  if (!res.ok) {
+    console.log("Image download failed (with headers)", { url: imageUrl, status: res.status });
+    res = await tryFetch(false);
+  }
 
   if (!res.ok) {
     throw new Error(`download_failed_${res.status}`);
   }
 
-  const contentType = res.headers.get("content-type") || toContentType(ext);
+  const contentTypeHeader = res.headers.get("content-type") || "";
+  const contentType = contentTypeHeader || toContentType(ext);
+
+  if (contentTypeHeader && !contentTypeHeader.startsWith("image/")) {
+    throw new Error(`not_image_content_type_${contentTypeHeader}`);
+  }
+
   const bytes = new Uint8Array(await res.arrayBuffer());
 
-  const { error: uploadError } = await supabase.storage
-    .from("yacht-images")
-    .upload(path, bytes, {
-      contentType,
-      upsert: true,
-    });
+  const { error: uploadError } = await supabase.storage.from("yacht-images").upload(path, bytes, {
+    contentType,
+    upsert: true,
+  });
 
   if (uploadError) throw uploadError;
 
@@ -191,13 +208,21 @@ Maximum 6 URLs.`,
 
     // Download to our Storage to avoid hotlink/CORS blocks in the browser
     const settled = await Promise.allSettled(urls.map((u) => downloadToStorage(supabase, u)));
+
+    const failed = settled.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+    if (failed.length) {
+      console.log(
+        "Image download/upload failures:",
+        failed.map((f) => (f.reason instanceof Error ? f.reason.message : String(f.reason))),
+      );
+    }
+
     const images = settled
       .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
       .map((r) => r.value)
       .slice(0, 6);
 
     console.log("Stored images:", images);
-
     return new Response(JSON.stringify({ success: true, images }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
