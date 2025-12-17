@@ -58,7 +58,7 @@ const upgradeSchema = z.object({
   description: z.string().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
-  price: z.number().min(0, "Preço deve ser positivo"),
+  price: z.number(), // Permite valores negativos (crédito)
   delivery_days_impact: z.number().int().min(0).default(0),
   job_stop_id: z.string().uuid().nullable().optional(),
   is_configurable: z.boolean().default(false),
@@ -178,7 +178,7 @@ export function UpgradeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>
             {initialData ? "Editar Upgrade" : "Criar Upgrade"}
@@ -247,7 +247,7 @@ export function UpgradeDialog({
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className="w-[500px] p-0" align="start">
+                      <PopoverContent className="w-full max-w-[500px] p-0" align="start">
                         <Command shouldFilter={false}>
                           <CommandInput 
                             placeholder="Digite ao menos 3 caracteres..." 
@@ -384,7 +384,7 @@ export function UpgradeDialog({
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="price"
@@ -394,14 +394,19 @@ export function UpgradeDialog({
                     <FormControl>
                       <Input
                         type="number"
-                        min="0"
                         step="0.01"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormDescription>
-                      Valor adicional ao padrão
+                      {field.value < 0 ? (
+                        <span className="text-green-600 font-medium">
+                          💰 Crédito: {formatCurrency(Math.abs(field.value))}
+                        </span>
+                      ) : (
+                        "Valor adicional (positivo) ou crédito (negativo)"
+                      )}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
