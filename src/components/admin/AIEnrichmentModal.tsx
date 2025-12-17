@@ -15,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Sparkles, RefreshCw, AlertCircle, Check, X, ImageIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Sparkles, RefreshCw, AlertCircle, Check, X, AlertTriangle, ShieldCheck, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichmentData } from "./AIEnrichmentButton";
 
@@ -31,9 +32,36 @@ interface AIEnrichmentModalProps {
 
 interface EnrichmentResult {
   description: string;
-  brand?: string;
-  model?: string;
-  suggestedImages: string[];
+  extracted_brand: string | null;
+  extracted_model: string | null;
+  brand_confidence: number;
+  needs_human_review: boolean;
+  reasoning: string;
+}
+
+function ConfidenceBadge({ confidence }: { confidence: number }) {
+  if (confidence >= 0.9) {
+    return (
+      <Badge variant="default" className="bg-success text-success-foreground gap-1">
+        <ShieldCheck className="h-3 w-3" />
+        Alta confiança ({Math.round(confidence * 100)}%)
+      </Badge>
+    );
+  }
+  if (confidence >= 0.7) {
+    return (
+      <Badge variant="secondary" className="gap-1">
+        <Info className="h-3 w-3" />
+        Média confiança ({Math.round(confidence * 100)}%)
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="destructive" className="gap-1">
+      <AlertTriangle className="h-3 w-3" />
+      Baixa confiança ({Math.round(confidence * 100)}%)
+    </Badge>
+  );
 }
 
 export function AIEnrichmentModal({
@@ -48,11 +76,9 @@ export function AIEnrichmentModal({
   const [editedDescription, setEditedDescription] = useState("");
   const [editedBrand, setEditedBrand] = useState("");
   const [editedModel, setEditedModel] = useState("");
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [includeDescription, setIncludeDescription] = useState(true);
   const [includeBrand, setIncludeBrand] = useState(true);
   const [includeModel, setIncludeModel] = useState(true);
-  const [includeImages, setIncludeImages] = useState(true);
 
   const enrichMutation = useMutation({
     mutationFn: async (): Promise<EnrichmentResult> => {
@@ -72,13 +98,12 @@ export function AIEnrichmentModal({
     },
     onSuccess: (data) => {
       setEditedDescription(data.description || "");
-      setEditedBrand(data.brand || currentBrand || "");
-      setEditedModel(data.model || currentModel || "");
-      setSelectedImages(data.suggestedImages || []);
+      setEditedBrand(data.extracted_brand || currentBrand || "");
+      setEditedModel(data.extracted_model || currentModel || "");
       
-      // Set checkboxes based on what was returned
-      setIncludeBrand(!currentBrand && !!data.brand);
-      setIncludeModel(!currentModel && !!data.model);
+      // Set checkboxes based on what was returned and confidence
+      setIncludeBrand(!currentBrand && !!data.extracted_brand && data.brand_confidence >= 0.7);
+      setIncludeModel(!currentModel && !!data.extracted_model && data.brand_confidence >= 0.7);
     },
   });
 
@@ -102,9 +127,6 @@ export function AIEnrichmentModal({
     if (includeModel && editedModel && !currentModel) {
       data.model = editedModel;
     }
-    if (includeImages && selectedImages.length > 0) {
-      data.images = selectedImages;
-    }
 
     onAccept(data);
   };
@@ -113,19 +135,13 @@ export function AIEnrichmentModal({
     enrichMutation.mutate();
   };
 
-  const toggleImageSelection = (imageUrl: string) => {
-    setSelectedImages(prev => 
-      prev.includes(imageUrl)
-        ? prev.filter(url => url !== imageUrl)
-        : [...prev, imageUrl]
-    );
-  };
-
   const typeLabels = {
     optional: 'Opcional',
     upgrade: 'Upgrade',
     memorial: 'Item do Memorial'
   };
+
+  const result = enrichMutation.data;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -151,10 +167,6 @@ export function AIEnrichmentModal({
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-4 w-5/6" />
             </div>
-            <div className="flex gap-4">
-              <Skeleton className="h-24 w-32" />
-              <Skeleton className="h-24 w-32" />
-            </div>
           </div>
         ) : enrichMutation.isError ? (
           <Alert variant="destructive">
@@ -169,8 +181,30 @@ export function AIEnrichmentModal({
               </Button>
             </AlertDescription>
           </Alert>
-        ) : enrichMutation.isSuccess ? (
+        ) : enrichMutation.isSuccess && result ? (
           <div className="space-y-6 py-2">
+            {/* Human Review Warning */}
+            {result.needs_human_review && (
+              <Alert variant="default" className="border-warning bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-warning-foreground">
+                  <strong>Revisão recomendada:</strong> A IA não conseguiu identificar com certeza alguns dados. 
+                  Verifique antes de aceitar.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Confidence & Reasoning */}
+            <div className="flex flex-col gap-2 p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Confiança na identificação:</span>
+                <ConfidenceBadge confidence={result.brand_confidence} />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                <strong>Raciocínio:</strong> {result.reasoning}
+              </p>
+            </div>
+
             {/* Description */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -191,10 +225,13 @@ export function AIEnrichmentModal({
                 className={!includeDescription ? "opacity-50" : ""}
                 placeholder="Descrição gerada pela IA..."
               />
+              <p className="text-xs text-muted-foreground">
+                {editedDescription.length}/400 caracteres
+              </p>
             </div>
 
-            {/* Brand (only show if not already set) */}
-            {!currentBrand && editedBrand && (
+            {/* Brand (only show if not already set and was extracted) */}
+            {!currentBrand && result.extracted_brand && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -203,21 +240,26 @@ export function AIEnrichmentModal({
                     onCheckedChange={(checked) => setIncludeBrand(!!checked)}
                   />
                   <Label htmlFor="include-brand" className="font-medium cursor-pointer">
-                    🏷️ Marca Sugerida
+                    🏷️ Marca Identificada
                   </Label>
+                  {result.brand_confidence < 0.7 && (
+                    <Badge variant="outline" className="text-warning border-warning text-xs">
+                      Verificar
+                    </Badge>
+                  )}
                 </div>
                 <Input
                   value={editedBrand}
                   onChange={(e) => setEditedBrand(e.target.value)}
                   disabled={!includeBrand}
                   className={!includeBrand ? "opacity-50" : ""}
-                  placeholder="Marca sugerida..."
+                  placeholder="Marca identificada..."
                 />
               </div>
             )}
 
-            {/* Model (only show if not already set) */}
-            {!currentModel && editedModel && (
+            {/* Model (only show if not already set and was extracted) */}
+            {!currentModel && result.extracted_model && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -226,64 +268,28 @@ export function AIEnrichmentModal({
                     onCheckedChange={(checked) => setIncludeModel(!!checked)}
                   />
                   <Label htmlFor="include-model" className="font-medium cursor-pointer">
-                    📦 Modelo Sugerido
+                    📦 Modelo Identificado
                   </Label>
+                  {result.brand_confidence < 0.7 && (
+                    <Badge variant="outline" className="text-warning border-warning text-xs">
+                      Verificar
+                    </Badge>
+                  )}
                 </div>
                 <Input
                   value={editedModel}
                   onChange={(e) => setEditedModel(e.target.value)}
                   disabled={!includeModel}
                   className={!includeModel ? "opacity-50" : ""}
-                  placeholder="Modelo sugerido..."
+                  placeholder="Modelo identificado..."
                 />
               </div>
             )}
 
-            {/* Images */}
-            {enrichMutation.data?.suggestedImages && enrichMutation.data.suggestedImages.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="include-images"
-                    checked={includeImages}
-                    onCheckedChange={(checked) => setIncludeImages(!!checked)}
-                  />
-                  <Label htmlFor="include-images" className="font-medium cursor-pointer">
-                    🖼️ Imagens Sugeridas
-                  </Label>
-                </div>
-                <div className={`flex gap-4 flex-wrap ${!includeImages ? "opacity-50 pointer-events-none" : ""}`}>
-                  {enrichMutation.data.suggestedImages.map((imageUrl, index) => (
-                    <div
-                      key={index}
-                      className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedImages.includes(imageUrl)
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-muted hover:border-primary/50"
-                      }`}
-                      onClick={() => includeImages && toggleImageSelection(imageUrl)}
-                    >
-                      <img
-                        src={imageUrl}
-                        alt={`Sugestão ${index + 1}`}
-                        className="w-32 h-24 object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjgiIGhlaWdodD0iOTYiIGZpbGw9Im5vbmUiPjxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iOTYiIGZpbGw9IiNmMWYxZjEiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTIiPkltYWdlbTwvdGV4dD48L3N2Zz4=';
-                        }}
-                      />
-                      {selectedImages.includes(imageUrl) && (
-                        <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1">
-                          <Check className="h-3 w-3" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Clique nas imagens para selecionar/deselecionar. As imagens são sugestões ilustrativas.
-                </p>
-              </div>
-            )}
+            {/* No Images Section - Removed per anti-hallucination policy */}
+            <p className="text-xs text-muted-foreground italic">
+              💡 Imagens devem ser adicionadas manualmente via upload para garantir autenticidade.
+            </p>
           </div>
         ) : null}
 
