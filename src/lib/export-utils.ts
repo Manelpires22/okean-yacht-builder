@@ -55,6 +55,7 @@ export interface OptionImportRow {
   base_price: number;
   delivery_days_impact?: number;
   is_active?: boolean;
+  _categoryError?: boolean;
 }
 
 // ===== MEMORIAL CATEGORIES =====
@@ -317,18 +318,28 @@ export function transformOptionsForExport(options: any[]): OptionExportRow[] {
   }));
 }
 
-export function validateOptionsImportData(data: any[]): { 
+export function validateOptionsImportData(
+  data: any[],
+  existingCategories?: { name: string }[]
+): { 
   valid: boolean; 
   errors: string[]; 
   rows: OptionImportRow[];
   duplicateCount: number;
   duplicateKeys: Set<string>;
+  unmatchedCategories: string[];
 } {
   const errors: string[] = [];
   const validRows: OptionImportRow[] = [];
+  const unmatchedCategories: string[] = [];
+  
+  // Create Set of existing category names (case-insensitive)
+  const existingCategoryNames = new Set(
+    existingCategories?.map(c => c.name.toLowerCase()) || []
+  );
   
   if (!data || data.length === 0) {
-    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], duplicateCount: 0, duplicateKeys: new Set() };
+    return { valid: false, errors: ['Arquivo vazio ou sem dados válidos'], rows: [], duplicateCount: 0, duplicateKeys: new Set(), unmatchedCategories: [] };
   }
   
   data.forEach((row, index) => {
@@ -348,14 +359,23 @@ export function validateOptionsImportData(data: any[]): {
     }
     
     if (row.code && row.name && row.category && row.base_price !== undefined) {
+      const categoryStr = String(row.category).trim();
+      const categoryExists = existingCategoryNames.has(categoryStr.toLowerCase());
+      
+      // Track unmatched categories
+      if (!categoryExists && !unmatchedCategories.includes(categoryStr)) {
+        unmatchedCategories.push(categoryStr);
+      }
+      
       validRows.push({
         code: String(row.code).trim(),
         name: String(row.name).trim(),
         description: row.description ? String(row.description).trim() : undefined,
-        category: String(row.category).trim(),
+        category: categoryStr,
         base_price: Number(row.base_price),
         delivery_days_impact: row.delivery_days_impact ? Number(row.delivery_days_impact) : 0,
         is_active: parseBoolean(row.is_active, true),
+        _categoryError: !categoryExists,
       });
     }
   });
@@ -396,6 +416,7 @@ export function validateOptionsImportData(data: any[]): {
     rows: validRows,
     duplicateCount: duplicateLabels.length,
     duplicateKeys,
+    unmatchedCategories,
   };
 }
 
