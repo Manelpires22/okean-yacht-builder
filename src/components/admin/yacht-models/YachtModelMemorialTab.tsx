@@ -2,7 +2,9 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, Eye, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, GripVertical, Eye, Trash2, AlertTriangle, Loader2, Search } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -59,6 +61,8 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
   const [orderDialogOpen, setOrderDialogOpen] = useState(false);
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
   
   const { data: items, isLoading, deleteItem, isDeleting } = useMemorialItems(yachtModelId);
   const { data: categories } = useMemorialCategories();
@@ -118,11 +122,24 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
     enabled: !!yachtModelId,
   });
 
-  // Sort items by category display_order, then by item display_order
+  // Sort and filter items by search term
   const sortedItems = useMemo(() => {
     if (!items) return [];
     
-    return [...items].sort((a, b) => {
+    let filtered = [...items];
+    
+    // Apply search filter (only if >= 3 characters)
+    if (debouncedSearch.length >= 3) {
+      const searchLower = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.item_name?.toLowerCase().includes(searchLower) ||
+        item.brand?.toLowerCase().includes(searchLower) ||
+        item.model?.toLowerCase().includes(searchLower) ||
+        item.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered.sort((a, b) => {
       // First by category display_order
       const catOrderDiff = (a.category?.display_order || 999) - (b.category?.display_order || 999);
       if (catOrderDiff !== 0) return catOrderDiff;
@@ -130,7 +147,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
       // Then by item display_order
       return (a.display_order || 0) - (b.display_order || 0);
     });
-  }, [items]);
+  }, [items, debouncedSearch]);
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
@@ -181,6 +198,20 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
           </p>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar itens..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 w-48"
+            />
+          </div>
+          {searchTerm.length > 0 && searchTerm.length < 3 && (
+            <span className="text-xs text-muted-foreground">
+              Digite ao menos 3 caracteres
+            </span>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 

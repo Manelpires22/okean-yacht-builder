@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Accordion,
   AccordionContent,
@@ -43,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Pencil, ArrowUpCircle, Eye, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowUpCircle, Eye, AlertTriangle, Loader2, Search } from "lucide-react";
 import { 
   useMemorialUpgrades, 
   useCreateMemorialUpgrade,
@@ -67,6 +69,8 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
   const [deletingUpgradeId, setDeletingUpgradeId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
   
@@ -120,11 +124,25 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
   const updateMutation = useUpdateMemorialUpgrade();
   const deleteMutation = useDeleteMemorialUpgrade();
 
-  // Filter upgrades based on showInactive toggle
+  // Filter upgrades based on showInactive toggle and search
   const filteredUpgrades = useMemo(() => {
     if (!upgrades) return [];
-    return showInactive ? upgrades : upgrades.filter(u => u.is_active);
-  }, [upgrades, showInactive]);
+    let filtered = showInactive ? upgrades : upgrades.filter(u => u.is_active);
+    
+    // Apply search filter (only if >= 3 characters)
+    if (debouncedSearch.length >= 3) {
+      const searchLower = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(upgrade =>
+        upgrade.name?.toLowerCase().includes(searchLower) ||
+        upgrade.code?.toLowerCase().includes(searchLower) ||
+        upgrade.brand?.toLowerCase().includes(searchLower) ||
+        upgrade.model?.toLowerCase().includes(searchLower) ||
+        upgrade.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  }, [upgrades, showInactive, debouncedSearch]);
 
   // Count pending upgrades (without memorial_item)
   const pendingUpgrades = useMemo(() => {
@@ -260,6 +278,20 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar upgrades..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 w-48"
+              />
+            </div>
+            {searchTerm.length > 0 && searchTerm.length < 3 && (
+              <span className="text-xs text-muted-foreground">
+                Digite ao menos 3 caracteres
+              </span>
+            )}
             <div className="flex items-center gap-2 mr-2">
               <Switch
                 id="show-inactive-upgrades"
