@@ -51,6 +51,7 @@ import { useJobStops } from "@/hooks/useJobStops";
 import { useAllMemorialItemsForUpgrades } from "@/hooks/useMemorialUpgrades";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
 import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
+import { ImageUploadField } from "@/components/admin/ImageUploadField";
 
 const upgradeSchema = z.object({
   memorial_item_id: z.string().uuid("Selecione um item do memorial").nullable().optional(),
@@ -399,6 +400,16 @@ export function UpgradeDialog({
                 )}
               />
             </div>
+
+            <ImageUploadField
+              value={form.watch("image_url")}
+              onChange={(url) => form.setValue("image_url", url || "")}
+              productName={form.watch("name")}
+              brand={form.watch("brand")}
+              model={form.watch("model")}
+              folder="options"
+              label="Imagem do Upgrade"
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <FormField
