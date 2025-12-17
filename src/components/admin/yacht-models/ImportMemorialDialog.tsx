@@ -160,38 +160,65 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
         categoryMap.set(cat.label.toLowerCase(), { id: cat.id, value: cat.value });
       });
 
-      // Transform rows to database format with deduplication (last occurrence wins)
-      const itemsMap = new Map<string, any>();
+      // Group items by category first, with deduplication (last occurrence wins)
+      const itemsByCategory = new Map<string, { row: MemorialImportRow; categoryData: { id: string; value: string } }[]>();
+      const seenKeys = new Set<string>();
       
-      rows.forEach((row, index) => {
+      // First pass: group by category and deduplicate
+      rows.forEach((row) => {
         const categoryData = categoryMap.get(row.categoria.toLowerCase());
         
         if (!categoryData) {
           throw new Error(`Categoria "${row.categoria}" não encontrada. Corrija antes de importar.`);
         }
 
-        // Unique key: category + item_name (lowercase for consistency)
-        const key = `${categoryData.value}|${row.item_name.toLowerCase()}`;
+        const categoryKey = categoryData.value;
+        if (!itemsByCategory.has(categoryKey)) {
+          itemsByCategory.set(categoryKey, []);
+        }
         
-        // If already exists, overwrites (last occurrence wins)
-        itemsMap.set(key, {
-          yacht_model_id: yachtModelId,
-          category_id: categoryData.id,
-          category: categoryData.value as MemorialCategory,
-          item_name: row.item_name,
-          description: row.description || null,
-          brand: row.brand || null,
-          model: row.model || null,
-          quantity: row.quantity || 1,
-          unit: row.unit || "unidade",
-          display_order: row.display_order || index + 1,
-          is_customizable: row.is_customizable ?? true,
-          is_configurable: row.is_configurable ?? false,
-          is_active: row.is_active ?? true,
+        // Unique key for deduplication
+        const uniqueKey = `${categoryData.value}|${row.item_name.toLowerCase()}`;
+        
+        // Remove previous occurrence if exists (last occurrence wins)
+        if (seenKeys.has(uniqueKey)) {
+          const items = itemsByCategory.get(categoryKey)!;
+          const existingIndex = items.findIndex(
+            i => `${i.categoryData.value}|${i.row.item_name.toLowerCase()}` === uniqueKey
+          );
+          if (existingIndex > -1) {
+            items.splice(existingIndex, 1);
+          }
+        }
+        seenKeys.add(uniqueKey);
+        
+        itemsByCategory.get(categoryKey)!.push({ row, categoryData });
+      });
+
+      // Second pass: assign display_order sequentially within each category
+      const itemsToInsert: any[] = [];
+      
+      itemsByCategory.forEach((items) => {
+        items.forEach((item, indexInCategory) => {
+          const { row, categoryData } = item;
+          
+          itemsToInsert.push({
+            yacht_model_id: yachtModelId,
+            category_id: categoryData.id,
+            category: categoryData.value as MemorialCategory,
+            item_name: row.item_name,
+            description: row.description || null,
+            brand: row.brand || null,
+            model: row.model || null,
+            quantity: row.quantity || 1,
+            unit: row.unit || "unidade",
+            display_order: indexInCategory + 1, // Sequential within category
+            is_customizable: row.is_customizable ?? true,
+            is_configurable: row.is_configurable ?? false,
+            is_active: row.is_active ?? true,
+          });
         });
       });
-      
-      const itemsToInsert = Array.from(itemsMap.values());
 
       const { error } = await supabase
         .from("memorial_items")

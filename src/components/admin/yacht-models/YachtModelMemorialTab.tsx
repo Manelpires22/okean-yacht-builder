@@ -234,10 +234,9 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
         </div>
       ) : (
         <Accordion 
-          type="single" 
-          collapsible 
+          type="multiple" 
           className="w-full"
-          defaultValue={defaultOpenCategory}
+          defaultValue={defaultOpenCategory ? [defaultOpenCategory] : []}
         >
           {Object.entries(itemsByCategory).map(([categoryLabel, categoryItems]) => {
             const firstItem = categoryItems[0];
