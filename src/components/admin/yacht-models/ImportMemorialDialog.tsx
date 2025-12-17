@@ -64,11 +64,40 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
   const [editableData, setEditableData] = useState<MemorialImportRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+  const [duplicateKeys, setDuplicateKeys] = useState<Set<string>>(new Set());
 
   // Calcular quantos itens têm erro de categoria
   const unmatchedCount = useMemo(() => {
     return editableData.filter(row => row._categoryError).length;
   }, [editableData]);
+
+  // Calcular quantos itens são duplicados
+  const duplicateCount = useMemo(() => {
+    let count = 0;
+    const seen = new Set<string>();
+    editableData.forEach(row => {
+      const key = `${row.categoria.toLowerCase()}|${row.item_name.toLowerCase()}`;
+      if (seen.has(key)) {
+        count++;
+      } else {
+        seen.add(key);
+      }
+    });
+    return count;
+  }, [editableData]);
+
+  // Verificar se uma linha é duplicada (não é a primeira ocorrência)
+  const isDuplicateRow = (index: number) => {
+    const row = editableData[index];
+    const key = `${row.categoria.toLowerCase()}|${row.item_name.toLowerCase()}`;
+    // Verificar se existe uma linha anterior com a mesma chave
+    for (let i = 0; i < index; i++) {
+      const prevRow = editableData[i];
+      const prevKey = `${prevRow.categoria.toLowerCase()}|${prevRow.item_name.toLowerCase()}`;
+      if (prevKey === key) return true;
+    }
+    return false;
+  };
 
   // Função para atualizar categoria de uma linha
   const updateRowCategory = (index: number, newCategory: string) => {
@@ -81,6 +110,31 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
       };
       return updated;
     });
+  };
+
+  // Função para remover duplicados (mantém última ocorrência)
+  const removeDuplicates = () => {
+    const itemsMap = new Map<string, { row: MemorialImportRow; index: number }>();
+    
+    // Percorrer do início ao fim para que a última ocorrência sobrescreva
+    editableData.forEach((row, index) => {
+      const key = `${row.categoria.toLowerCase()}|${row.item_name.toLowerCase()}`;
+      itemsMap.set(key, { row, index });
+    });
+    
+    // Extrair apenas as linhas únicas (mantendo ordem original da última ocorrência)
+    const uniqueRows = Array.from(itemsMap.values())
+      .sort((a, b) => a.index - b.index)
+      .map(item => item.row);
+    
+    const removedCount = editableData.length - uniqueRows.length;
+    setEditableData(uniqueRows);
+    setDuplicateKeys(new Set());
+    
+    // Remover erro de duplicatas da lista de validação
+    setValidationErrors(prev => prev.filter(err => !err.includes('itens duplicados')));
+    
+    toast.success(`${removedCount} duplicado${removedCount > 1 ? 's' : ''} removido${removedCount > 1 ? 's' : ''}`);
   };
 
   // Verificar se uma categoria existe
@@ -187,6 +241,7 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
       
       setValidationErrors(validation.errors);
       setEditableData(validation.rows);
+      setDuplicateKeys(validation.duplicateKeys);
     } catch (error) {
       toast.error("Erro ao processar arquivo: " + (error as Error).message);
       setFile(null);
@@ -215,6 +270,7 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
     setEditableData([]);
     setValidationErrors([]);
     setImportMode("merge");
+    setDuplicateKeys(new Set());
   };
 
   return (
@@ -329,6 +385,27 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
             </Alert>
           )}
 
+          {/* Duplicate Items Warning with Remove Option */}
+          {duplicateCount > 0 && (
+            <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="flex items-center justify-between">
+                <span className="text-amber-800 dark:text-amber-200">
+                  <strong>{duplicateCount} {duplicateCount === 1 ? 'item duplicado' : 'itens duplicados'}</strong> no arquivo. 
+                  Você pode remover os duplicados ou manter (última ocorrência prevalece).
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={removeDuplicates}
+                  className="ml-4 shrink-0 border-amber-500 text-amber-700 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900"
+                >
+                  Remover {duplicateCount} Duplicado{duplicateCount > 1 ? 's' : ''}
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Preview */}
           {editableData.length > 0 && (
             <div className="flex-1 overflow-hidden flex flex-col">
@@ -362,38 +439,67 @@ export function ImportMemorialDialog({ yachtModelId, categories }: ImportMemoria
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {editableData.slice(0, 50).map((row, i) => (
-                      <TableRow key={i} className={row._categoryError ? "bg-destructive/10" : ""}>
-                        <TableCell className="text-sm">
-                          {row._categoryError ? (
-                            <Select
-                              value=""
-                              onValueChange={(value) => updateRowCategory(i, value)}
-                            >
-                              <SelectTrigger className="h-8 border-destructive text-destructive">
-                                <SelectValue placeholder={row.categoria} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categories?.map(cat => (
-                                  <SelectItem key={cat.id} value={cat.label}>
-                                    {cat.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              {row.categoria}
+                    {editableData.slice(0, 50).map((row, i) => {
+                      const isDuplicate = isDuplicateRow(i);
+                      return (
+                        <TableRow 
+                          key={i} 
+                          className={
+                            row._categoryError 
+                              ? "bg-destructive/10" 
+                              : isDuplicate 
+                                ? "bg-amber-50 dark:bg-amber-950/20" 
+                                : ""
+                          }
+                        >
+                          <TableCell className="text-sm">
+                            {row._categoryError ? (
+                              <Select
+                                value=""
+                                onValueChange={(value) => updateRowCategory(i, value)}
+                              >
+                                <SelectTrigger className="h-8 border-destructive text-destructive">
+                                  <SelectValue placeholder={row.categoria} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {categories?.map(cat => (
+                                    <SelectItem key={cat.id} value={cat.label}>
+                                      {cat.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-green-600 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {row.categoria}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium">
+                            <span className="flex items-center gap-2">
+                              {row.item_name}
+                              {isDuplicate && (
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-200 text-amber-800 dark:bg-amber-800 dark:text-amber-200">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Duplicado
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Este item já aparece antes no arquivo. Será atualizado ou pode ser removido.
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm font-medium">{row.item_name}</TableCell>
-                        <TableCell className="text-sm">{row.brand || "-"}</TableCell>
-                        <TableCell className="text-sm">{row.model || "-"}</TableCell>
-                        <TableCell className="text-sm">{row.quantity || 1}</TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="text-sm">{row.brand || "-"}</TableCell>
+                          <TableCell className="text-sm">{row.model || "-"}</TableCell>
+                          <TableCell className="text-sm">{row.quantity || 1}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {editableData.length > 50 && (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground">
