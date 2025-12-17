@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -35,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Pencil, ArrowUpCircle, Eye } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowUpCircle, Eye, AlertTriangle, Loader2 } from "lucide-react";
 import { 
   useMemorialUpgrades, 
   useCreateMemorialUpgrade,
@@ -53,12 +54,34 @@ interface YachtModelUpgradesTabProps {
 }
 
 export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabProps) {
+  const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingUpgrade, setEditingUpgrade] = useState<any | null>(null);
   const [deletingUpgradeId, setDeletingUpgradeId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
+  
+  // Delete all upgrades mutation
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('memorial_upgrades')
+        .delete()
+        .eq('yacht_model_id', yachtModelId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['memorial-upgrades'] });
+      queryClient.invalidateQueries({ queryKey: ['upgrades-by-memorial-item'] });
+      toast.success('Todos os upgrades foram apagados com sucesso!');
+      setShowDeleteAllDialog(false);
+    },
+    onError: (error: Error) => {
+      toast.error('Erro ao apagar upgrades: ' + error.message);
+    },
+  });
   
   // Fetch yacht model code for export filename
   const { data: yachtModel } = useQuery({
@@ -223,6 +246,15 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                 Mostrar inativos
               </Label>
             </div>
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={() => setShowDeleteAllDialog(true)}
+              disabled={!upgrades?.length}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Apagar Upgrades ({upgrades?.length || 0})
+            </Button>
             <ExportUpgradesButton 
               upgrades={upgrades || []} 
               modelCode={yachtModel?.code || 'MODELO'} 
@@ -404,6 +436,36 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Apagar todos os Upgrades?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá remover <strong>{upgrades?.length || 0} upgrades</strong> deste 
+              modelo de iate. Esta ação <strong>não pode ser desfeita</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAllMutation.mutate()}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteAllMutation.isPending}
+            >
+              {deleteAllMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              Apagar Tudo
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
