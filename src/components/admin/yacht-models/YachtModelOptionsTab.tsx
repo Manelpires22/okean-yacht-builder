@@ -495,6 +495,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                         <Table>
                           <TableHeader>
                             <TableRow>
+                              <TableHead className="w-14">Imagem</TableHead>
                               <TableHead>Código</TableHead>
                               <TableHead>Nome</TableHead>
                               <TableHead className="text-right">Preço</TableHead>
@@ -507,6 +508,19 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                           <TableBody>
                             {categoryOptions.map((option) => (
                               <TableRow key={option.id}>
+                                <TableCell>
+                                  {option.image_url ? (
+                                    <img 
+                                      src={option.image_url} 
+                                      alt={option.name}
+                                      className="w-10 h-10 rounded object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                      <Package className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                </TableCell>
                                 <TableCell className="font-mono text-sm">{option.code}</TableCell>
                                 <TableCell>
                                   <div>
