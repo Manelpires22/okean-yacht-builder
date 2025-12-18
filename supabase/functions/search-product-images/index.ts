@@ -87,11 +87,12 @@ serve(async (req) => {
   }
 
   try {
-    const { productName, brand, model } = await req.json();
+    const { productName, brand, model, customQuery } = await req.json();
+    console.log('Search request:', { productName, brand, model, customQuery });
 
-    if (!productName?.trim()) {
+    if (!productName?.trim() && !customQuery?.trim()) {
       return new Response(
-        JSON.stringify({ success: false, error: "Product name is required", images: [] }),
+        JSON.stringify({ success: false, error: "Product name or custom query is required", images: [] }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
@@ -128,14 +129,18 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Build search query for product images
-    const queryParts: string[] = [];
-    if (brand) queryParts.push(brand);
-    if (model) queryParts.push(model);
-    queryParts.push(productName);
-    queryParts.push("yacht marine equipment");
-    
-    const searchQuery = queryParts.join(" ");
+    // Use custom query if provided, otherwise build from parts
+    let searchQuery: string;
+    if (customQuery?.trim()) {
+      searchQuery = customQuery.trim();
+    } else {
+      const queryParts: string[] = [];
+      if (brand) queryParts.push(brand);
+      if (model) queryParts.push(model);
+      queryParts.push(productName);
+      queryParts.push("yacht marine equipment");
+      searchQuery = queryParts.join(" ");
+    }
     console.log("Searching images with Google Custom Search for:", searchQuery);
 
     // Call Google Custom Search API
