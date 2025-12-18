@@ -19,6 +19,8 @@ export interface MemorialUpgrade {
   is_customizable: boolean;
   is_active: boolean;
   display_order: number;
+  image_url?: string;
+  images?: any;
   technical_specs?: any;
   created_at: string;
   updated_at: string;

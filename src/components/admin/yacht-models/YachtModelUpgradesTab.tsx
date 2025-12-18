@@ -45,7 +45,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Pencil, ArrowUpCircle, Eye, AlertTriangle, Loader2, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, ArrowUpCircle, Eye, AlertTriangle, Loader2, Search, Package } from "lucide-react";
 import { 
   useMemorialUpgrades, 
   useCreateMemorialUpgrade,
@@ -378,6 +378,7 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-14">Imagem</TableHead>
                             <TableHead>Código</TableHead>
                             <TableHead>Nome</TableHead>
                             <TableHead>Marca/Modelo</TableHead>
@@ -392,6 +393,19 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                         <TableBody>
                           {categoryUpgrades.map((upgrade) => (
                             <TableRow key={upgrade.id}>
+                              <TableCell>
+                                {upgrade.image_url ? (
+                                  <img 
+                                    src={upgrade.image_url} 
+                                    alt={upgrade.name}
+                                    className="w-10 h-10 rounded object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                                    <Package className="h-5 w-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="font-mono text-sm">{upgrade.code}</TableCell>
                               <TableCell>
                                 <div>
