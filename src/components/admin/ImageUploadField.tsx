@@ -118,7 +118,7 @@ export function ImageUploadField({
       {/* Preview atual */}
       <div className="border rounded-lg p-4 bg-muted/30">
         {value ? (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center">
             <img
               src={value}
               alt="Preview"
@@ -127,9 +127,6 @@ export function ImageUploadField({
                 (e.target as HTMLImageElement).src = '/placeholder.svg';
               }}
             />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-muted-foreground truncate">{value}</p>
-            </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-24 text-muted-foreground">
