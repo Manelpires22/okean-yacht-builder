@@ -129,17 +129,21 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Use custom query if provided, otherwise build from parts
+    // Use custom query if provided, otherwise build optimized query
     let searchQuery: string;
     if (customQuery?.trim()) {
       searchQuery = customQuery.trim();
+    } else if (brand && model) {
+      // Best case: use brand + model only (most efficient)
+      searchQuery = `${brand} ${model} marine yacht product official image`;
+    } else if (brand) {
+      // Has brand but no model: use brand + truncated product name
+      const shortName = productName.split(' ').slice(0, 5).join(' ').substring(0, 50);
+      searchQuery = `${brand} ${shortName} yacht marine equipment`;
     } else {
-      const queryParts: string[] = [];
-      if (brand) queryParts.push(brand);
-      if (model) queryParts.push(model);
-      queryParts.push(productName);
-      queryParts.push("yacht marine equipment");
-      searchQuery = queryParts.join(" ");
+      // Fallback: truncated product name only
+      const shortName = productName.split(' ').slice(0, 6).join(' ').substring(0, 60);
+      searchQuery = `${shortName} yacht marine equipment`;
     }
     console.log("Searching images with Google Custom Search for:", searchQuery);
 
