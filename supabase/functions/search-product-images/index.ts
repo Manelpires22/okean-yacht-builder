@@ -41,10 +41,10 @@ async function downloadToStorage(supabase: any, imageUrl: string) {
       redirect: "follow",
       headers: withHeaders
         ? {
-            // Some origins block hotlinks unless a user-agent is present
             "User-Agent":
-              "Mozilla/5.0 (compatible; OKEAN-CPQ/1.0; +https://okeanyachts.com)",
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+            Referer: new URL(imageUrl).origin,
           }
         : undefined,
     });
@@ -79,6 +79,13 @@ async function downloadToStorage(supabase: any, imageUrl: string) {
 
   const { data } = supabase.storage.from("yacht-images").getPublicUrl(path);
   return data.publicUrl;
+}
+
+// Extract image URLs from search results text/snippets
+function extractImageUrls(text: string): string[] {
+  const urlRegex = /https?:\/\/[^\s"'<>\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>\]]*)?/gi;
+  const matches = text.match(urlRegex);
+  return matches ? [...new Set(matches)] : [];
 }
 
 serve(async (req) => {
@@ -126,14 +133,15 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Build search query
+    // Build search query for product images
     let searchQuery = productName;
     if (brand) searchQuery = `${brand} ${searchQuery}`;
     if (model) searchQuery = `${model} ${searchQuery}`;
-    searchQuery += " yacht marine equipment product image high quality";
+    searchQuery += " product image photo";
 
-    console.log("Searching images for:", searchQuery);
+    console.log("Searching images with Perplexity Search API for:", searchQuery);
 
+    // Use Perplexity Search API for real-time web search
     const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
       headers: {
@@ -145,17 +153,26 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content:
-              `You are an image search assistant. Find real product images from the web for yacht/marine equipment.
-Return ONLY a JSON array of direct image URLs.
-Return exactly this format: ["url1", "url2", "url3", "url4", "url5", "url6"]
-Maximum 6 URLs.`,
+            content: `You are a product image search assistant. Your task is to find REAL, EXISTING product images from the web.
+
+CRITICAL RULES:
+1. ONLY return URLs that you found in your web search results
+2. DO NOT generate, invent, or hallucinate URLs
+3. Prefer images from official manufacturer websites, marine equipment retailers (West Marine, MarineWarehouse, etc.), or Amazon
+4. Return ONLY a JSON array of direct image URLs in this exact format: ["url1", "url2", "url3"]
+5. If you cannot find real images, return an empty array: []
+6. Maximum 6 URLs`,
           },
           {
             role: "user",
-            content: `Find product images for: ${searchQuery}. Return only the JSON array of image URLs.`,
+            content: `Search the web and find real product images for: ${searchQuery}
+
+Return ONLY URLs from your actual search results. Do not make up URLs.`,
           },
         ],
+        web_search: true,
+        return_images: true,
+        return_related_questions: false,
       }),
     });
 
@@ -172,39 +189,73 @@ Maximum 6 URLs.`,
     }
 
     const data = await perplexityResponse.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    console.log("Perplexity full response:", JSON.stringify(data, null, 2));
 
-    console.log("Perplexity response content:", content);
-
-    // Extract URLs from response
     let urls: string[] = [];
 
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*?\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed)) {
-          urls = parsed.filter(
-            (url: unknown) =>
-              typeof url === "string" &&
-              (url.startsWith("http://") || url.startsWith("https://")),
-          );
-        }
-      }
-    } catch {
-      // ignore
+    // Try to get images from the images field if available
+    if (data.images && Array.isArray(data.images)) {
+      urls = data.images.filter(
+        (url: unknown) =>
+          typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://")),
+      );
+      console.log("Found images in images field:", urls);
     }
+
+    // Also try to extract from message content
+    const content = data.choices?.[0]?.message?.content || "";
+    console.log("Perplexity response content:", content);
 
     if (urls.length === 0) {
-      const urlRegex = /https?:\/\/[^\s"'<>\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>\]]*)?/gi;
-      const matches = content.match(urlRegex);
-      if (matches) urls = [...new Set(matches)] as string[];
+      try {
+        const jsonMatch = content.match(/\[[\s\S]*?\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed)) {
+            urls = parsed.filter(
+              (url: unknown) =>
+                typeof url === "string" &&
+                (url.startsWith("http://") || url.startsWith("https://")),
+            );
+          }
+        }
+      } catch {
+        // ignore JSON parse errors
+      }
     }
 
-    // Limit to 6
-    urls = urls.slice(0, 6);
+    // Extract URLs from citations if available
+    if (urls.length === 0 && data.citations && Array.isArray(data.citations)) {
+      for (const citation of data.citations) {
+        const extractedUrls = extractImageUrls(citation);
+        urls.push(...extractedUrls);
+      }
+      console.log("Extracted from citations:", urls);
+    }
 
-    console.log("Found candidate URLs:", urls);
+    // Fallback: extract URLs from content text
+    if (urls.length === 0) {
+      urls = extractImageUrls(content);
+      console.log("Extracted from content text:", urls);
+    }
+
+    // Limit to 6 and dedupe
+    urls = [...new Set(urls)].slice(0, 6);
+
+    console.log("Final candidate URLs:", urls);
+
+    if (urls.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          images: [],
+          message: "No images found for this product",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
 
     // Download to our Storage to avoid hotlink/CORS blocks in the browser
     const settled = await Promise.allSettled(urls.map((u) => downloadToStorage(supabase, u)));
@@ -229,12 +280,9 @@ Maximum 6 URLs.`,
   } catch (error: unknown) {
     console.error("Error in search-product-images:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage, images: [] }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      },
-    );
+    return new Response(JSON.stringify({ success: false, error: errorMessage, images: [] }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+    });
   }
 });
