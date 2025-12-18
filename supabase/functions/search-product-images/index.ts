@@ -81,13 +81,6 @@ async function downloadToStorage(supabase: any, imageUrl: string) {
   return data.publicUrl;
 }
 
-// Extract image URLs from search results text/snippets
-function extractImageUrls(text: string): string[] {
-  const urlRegex = /https?:\/\/[^\s"'<>\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>\]]*)?/gi;
-  const matches = text.match(urlRegex);
-  return matches ? [...new Set(matches)] : [];
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,11 +99,13 @@ serve(async (req) => {
       );
     }
 
-    const perplexityApiKey = Deno.env.get("PERPLEXITY_API_KEY");
-    if (!perplexityApiKey) {
-      console.error("PERPLEXITY_API_KEY not configured");
+    const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+    const searchEngineId = Deno.env.get("GOOGLE_SEARCH_ENGINE_ID");
+    
+    if (!googleApiKey || !searchEngineId) {
+      console.error("GOOGLE_API_KEY or GOOGLE_SEARCH_ENGINE_ID not configured");
       return new Response(
-        JSON.stringify({ success: false, error: "Perplexity API key not configured", images: [] }),
+        JSON.stringify({ success: false, error: "Google API not configured", images: [] }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
@@ -134,53 +129,32 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Build search query for product images
-    let searchQuery = productName;
-    if (brand) searchQuery = `${brand} ${searchQuery}`;
-    if (model) searchQuery = `${model} ${searchQuery}`;
-    searchQuery += " product image photo";
+    const queryParts: string[] = [];
+    if (brand) queryParts.push(brand);
+    if (model) queryParts.push(model);
+    queryParts.push(productName);
+    queryParts.push("yacht marine equipment");
+    
+    const searchQuery = queryParts.join(" ");
+    console.log("Searching images with Google Custom Search for:", searchQuery);
 
-    console.log("Searching images with Perplexity Search API for:", searchQuery);
+    // Call Google Custom Search API
+    const searchUrl = new URL("https://www.googleapis.com/customsearch/v1");
+    searchUrl.searchParams.set("key", googleApiKey);
+    searchUrl.searchParams.set("cx", searchEngineId);
+    searchUrl.searchParams.set("q", searchQuery);
+    searchUrl.searchParams.set("searchType", "image");
+    searchUrl.searchParams.set("num", "10"); // Request more to have fallbacks
+    searchUrl.searchParams.set("imgSize", "large");
+    searchUrl.searchParams.set("safe", "active");
 
-    // Use Perplexity Search API for real-time web search
-    const perplexityResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${perplexityApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "sonar",
-        messages: [
-          {
-            role: "system",
-            content: `You are a product image search assistant. Your task is to find REAL, EXISTING product images from the web.
-
-CRITICAL RULES:
-1. ONLY return URLs that you found in your web search results
-2. DO NOT generate, invent, or hallucinate URLs
-3. Prefer images from official manufacturer websites, marine equipment retailers (West Marine, MarineWarehouse, etc.), or Amazon
-4. Return ONLY a JSON array of direct image URLs in this exact format: ["url1", "url2", "url3"]
-5. If you cannot find real images, return an empty array: []
-6. Maximum 6 URLs`,
-          },
-          {
-            role: "user",
-            content: `Search the web and find real product images for: ${searchQuery}
-
-Return ONLY URLs from your actual search results. Do not make up URLs.`,
-          },
-        ],
-        web_search: true,
-        return_images: true,
-        return_related_questions: false,
-      }),
-    });
-
-    if (!perplexityResponse.ok) {
-      const errorText = await perplexityResponse.text();
-      console.error("Perplexity API error:", perplexityResponse.status, errorText);
+    const googleResponse = await fetch(searchUrl.toString());
+    
+    if (!googleResponse.ok) {
+      const errorText = await googleResponse.text();
+      console.error("Google API error:", googleResponse.status, errorText);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to search images", images: [] }),
+        JSON.stringify({ success: false, error: "Google search failed", details: errorText, images: [] }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
@@ -188,61 +162,26 @@ Return ONLY URLs from your actual search results. Do not make up URLs.`,
       );
     }
 
-    const data = await perplexityResponse.json();
-    console.log("Perplexity full response:", JSON.stringify(data, null, 2));
+    const googleData = await googleResponse.json();
+    console.log("Google returned", googleData.items?.length || 0, "results");
 
+    // Extract image URLs from Google response
     let urls: string[] = [];
-
-    // Try to get images from the images field if available
-    if (data.images && Array.isArray(data.images)) {
-      urls = data.images.filter(
-        (url: unknown) =>
-          typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://")),
-      );
-      console.log("Found images in images field:", urls);
-    }
-
-    // Also try to extract from message content
-    const content = data.choices?.[0]?.message?.content || "";
-    console.log("Perplexity response content:", content);
-
-    if (urls.length === 0) {
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*?\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (Array.isArray(parsed)) {
-            urls = parsed.filter(
-              (url: unknown) =>
-                typeof url === "string" &&
-                (url.startsWith("http://") || url.startsWith("https://")),
-            );
+    if (googleData.items && Array.isArray(googleData.items)) {
+      for (const item of googleData.items) {
+        if (item.link && typeof item.link === "string") {
+          // Filter out unwanted image types
+          const urlLower = item.link.toLowerCase();
+          if (!urlLower.includes("logo") && !urlLower.includes("icon") && !urlLower.includes("thumbnail") && !urlLower.includes("favicon")) {
+            urls.push(item.link);
           }
         }
-      } catch {
-        // ignore JSON parse errors
       }
-    }
-
-    // Extract URLs from citations if available
-    if (urls.length === 0 && data.citations && Array.isArray(data.citations)) {
-      for (const citation of data.citations) {
-        const extractedUrls = extractImageUrls(citation);
-        urls.push(...extractedUrls);
-      }
-      console.log("Extracted from citations:", urls);
-    }
-
-    // Fallback: extract URLs from content text
-    if (urls.length === 0) {
-      urls = extractImageUrls(content);
-      console.log("Extracted from content text:", urls);
     }
 
     // Limit to 6 and dedupe
-    urls = [...new Set(urls)].slice(0, 6);
-
-    console.log("Final candidate URLs:", urls);
+    urls = [...new Set(urls)].slice(0, 8);
+    console.log("Valid image URLs found:", urls.length);
 
     if (urls.length === 0) {
       return new Response(
@@ -250,6 +189,7 @@ Return ONLY URLs from your actual search results. Do not make up URLs.`,
           success: true,
           images: [],
           message: "No images found for this product",
+          searchQuery,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -273,8 +213,8 @@ Return ONLY URLs from your actual search results. Do not make up URLs.`,
       .map((r) => r.value)
       .slice(0, 6);
 
-    console.log("Stored images:", images);
-    return new Response(JSON.stringify({ success: true, images }), {
+    console.log("Stored images:", images.length);
+    return new Response(JSON.stringify({ success: true, images, searchQuery }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
