@@ -155,7 +155,57 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
         className="mb-4"
       />
 
-      <Accordion type="multiple" defaultValue={["dimensions"]} className="w-full">
+      <Accordion type="multiple" defaultValue={["engines", "dimensions"]} className="w-full">
+        {/* MOTORIZAÇÃO */}
+        <AccordionItem value="engines">
+          <AccordionTrigger className="text-lg font-semibold">
+            🔧 Motorização
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <FormField
+                control={form.control}
+                name="engines"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Motorização</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Ex: 2x MAN V8 1300hp" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Motores instalados (quantidade e modelo)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="hull_color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cor do Casco</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Ex: Branco com linha azul" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Cor padrão do casco
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
         {/* DIMENSÕES */}
         <AccordionItem value="dimensions">
           <AccordionTrigger className="text-lg font-semibold">

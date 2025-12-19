@@ -89,7 +89,9 @@ export const NumericInput = React.forwardRef<HTMLInputElement, NumericInputProps
       decimalPart = '';
     } else {
       // Com casas decimais: separar parte inteira e decimal
-      integerPart = paddedDigits.slice(0, -decimals) || '0';
+      // IMPORTANTE: Remover zeros à esquerda da parte inteira
+      const rawIntegerPart = paddedDigits.slice(0, -decimals) || '0';
+      integerPart = rawIntegerPart.replace(/^0+/, '') || '0';
       decimalPart = paddedDigits.slice(-decimals);
     }
 
