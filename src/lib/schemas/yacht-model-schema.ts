@@ -27,6 +27,8 @@ export const yachtModelBasicSchema = z.object({
   
   image_url: z.string().optional(),
   
+  gallery_images: z.array(z.string()).optional().default([]),
+  
   base_price: z.string().optional(),
   
   is_active: z.boolean().default(true),
