@@ -174,6 +174,31 @@ export function useSaveQuotation() {
 
           console.log(`✅ Customizações processadas: ${customizationsResult.insertedCount} inseridas`);
         }
+
+        // ✅ Salvar upgrades selecionados (modo edição)
+        if (data.selected_upgrades && data.selected_upgrades.length > 0) {
+          // Deletar upgrades existentes
+          await supabase
+            .from('quotation_upgrades')
+            .delete()
+            .eq('quotation_id', data.quotationId);
+
+          // Inserir novos upgrades
+          const upgradesData = data.selected_upgrades.map(u => ({
+            quotation_id: data.quotationId!,
+            upgrade_id: u.upgrade_id,
+            memorial_item_id: u.memorial_item_id,
+            price: u.price,
+            delivery_days_impact: u.delivery_days_impact,
+            customization_notes: u.customization_notes || null,
+          }));
+
+          const { error: upgradesError } = await supabase
+            .from('quotation_upgrades')
+            .insert(upgradesData);
+
+          if (upgradesError) throw upgradesError;
+        }
         
         return quotation;
       }
@@ -296,6 +321,24 @@ export function useSaveQuotation() {
           optionsWithCustomization,
           isEditMode: false,
         });
+      }
+
+      // 5. Salvar upgrades selecionados
+      if (data.selected_upgrades && data.selected_upgrades.length > 0) {
+        const upgradesData = data.selected_upgrades.map(u => ({
+          quotation_id: quotation.id,
+          upgrade_id: u.upgrade_id,
+          memorial_item_id: u.memorial_item_id,
+          price: u.price,
+          delivery_days_impact: u.delivery_days_impact,
+          customization_notes: u.customization_notes || null,
+        }));
+
+        const { error: upgradesError } = await supabase
+          .from('quotation_upgrades')
+          .insert(upgradesData);
+
+        if (upgradesError) throw upgradesError;
       }
 
       // Descontos e customizações agora são gerenciados via workflow simplificado

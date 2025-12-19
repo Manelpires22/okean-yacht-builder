@@ -17,7 +17,8 @@ import {
   Palette, 
   DollarSign, 
   GitBranch,
-  Info
+  Info,
+  ArrowUpCircle
 } from "lucide-react";
 
 interface QuotationDetailsAccordionProps {
@@ -32,13 +33,17 @@ export function QuotationDetailsAccordion({
   const [expanded, setExpanded] = useState<string[]>(defaultExpanded);
   
   // Memoizar contadores (evita recálculos a cada render)
-  const { optionsCount, customizationsCount, pendingCustomizationsCount } = useMemo(() => ({
+  const { optionsCount, customizationsCount, pendingCustomizationsCount, upgradesCount, totalUpgradesPrice } = useMemo(() => ({
     optionsCount: quotation.quotation_options?.length || 0,
     customizationsCount: quotation.quotation_customizations?.length || 0,
     pendingCustomizationsCount: quotation.quotation_customizations?.filter(
       (c: any) => c.status === 'pending'
     ).length || 0,
-  }), [quotation.quotation_options, quotation.quotation_customizations]);
+    upgradesCount: quotation.quotation_upgrades?.length || 0,
+    totalUpgradesPrice: quotation.quotation_upgrades?.reduce(
+      (sum: number, u: any) => sum + (u.price || 0), 0
+    ) || 0,
+  }), [quotation.quotation_options, quotation.quotation_customizations, quotation.quotation_upgrades]);
 
   // Criar mapa para customizações por option_id (O(1) lookup)
   const customizationsByOptionId = useMemo(() => {
@@ -156,6 +161,67 @@ export function QuotationDetailsAccordion({
         </AccordionItem>
       )}
 
+      {/* Upgrades Selecionados */}
+      {upgradesCount > 0 && (
+        <AccordionItem value="upgrades" className="border rounded-lg px-6 bg-card">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <ArrowUpCircle className="h-4 w-4 text-amber-600" />
+              </div>
+              <span className="font-semibold">Upgrades Selecionados</span>
+              <Badge variant="secondary" className="ml-auto mr-4">
+                {upgradesCount} {upgradesCount === 1 ? 'item' : 'itens'}
+              </Badge>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pt-4 space-y-3">
+            {quotation.quotation_upgrades.map((upg: any) => (
+              <div key={upg.id} className="flex justify-between items-start p-3 border rounded-lg bg-muted/30">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    Substituição de: {upg.memorial_items?.item_name || 'Item do memorial'}
+                  </p>
+                  <p className="font-medium">{upg.memorial_upgrades?.name}</p>
+                  {upg.memorial_upgrades?.description && (
+                    <p className="text-sm mt-1 text-muted-foreground">
+                      {upg.memorial_upgrades.description}
+                    </p>
+                  )}
+                  {upg.customization_notes && (
+                    <div className="mt-2 p-2 bg-accent/30 rounded border border-accent">
+                      <p className="text-xs font-semibold text-accent-foreground mb-1">
+                        ✏️ Notas de Customização:
+                      </p>
+                      <p className="text-sm text-accent-foreground">
+                        {upg.customization_notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="text-right ml-4">
+                  <p className="font-semibold text-amber-600">
+                    +{formatCurrency(upg.price)}
+                  </p>
+                  {upg.delivery_days_impact > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      +{upg.delivery_days_impact} dias
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+            <Separator />
+            <div className="flex justify-between items-center font-semibold">
+              <span>Total de Upgrades</span>
+              <span className="text-amber-600">
+                +{formatCurrency(totalUpgradesPrice)}
+              </span>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      )}
+
       {/* Customizações */}
       {customizationsCount > 0 && (
         <AccordionItem value="customizations" className="border rounded-lg px-6 bg-card">
@@ -253,6 +319,18 @@ export function QuotationDetailsAccordion({
                   <span className="font-medium">Opcionais Final</span>
                   <span className="font-semibold">{formatCurrency(quotation.final_options_price || 0)}</span>
                 </div>
+              </div>
+              <Separator />
+            </>
+          )}
+
+          {upgradesCount > 0 && (
+            <>
+              <div className="flex justify-between text-amber-600">
+                <span className="font-medium">Total de Upgrades</span>
+                <span className="font-semibold">
+                  +{formatCurrency(totalUpgradesPrice)}
+                </span>
               </div>
               <Separator />
             </>
