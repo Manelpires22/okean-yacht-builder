@@ -126,7 +126,7 @@ export function ConfigurationSummary({
   );
 
   return (
-    <Card className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+    <Card className="lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base md:text-lg lg:text-xl">
           <Ship className="h-4 w-4 md:h-5 md:w-5" />
