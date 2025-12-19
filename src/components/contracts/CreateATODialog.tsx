@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -21,9 +21,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronLeft, ChevronRight, Check, Plus } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, ChevronLeft, ChevronRight, Check, Plus, Percent, DollarSign } from "lucide-react";
 import { useCreateATO } from "@/hooks/useATOs";
 import { useContractItems } from "@/hooks/useContractItems";
 import { ATOItemSelector } from "./ato-creation/ATOItemSelector";
@@ -33,6 +36,7 @@ import { SelectAvailableOptionDialog } from "./ato-creation/SelectAvailableOptio
 import { SelectAvailableUpgradeDialog } from "./ato-creation/SelectAvailableUpgradeDialog";
 import { NewCustomizationForm } from "./ato-creation/NewCustomizationForm";
 import { SelectDefinableItemDialog } from "./ato-creation/SelectDefinableItemDialog";
+import { formatCurrency } from "@/lib/quotation-utils";
 
 // Schema simplificado - título agora é automático
 const atoSchema = z.object({
@@ -41,6 +45,7 @@ const atoSchema = z.object({
 });
 
 type ATOFormData = z.infer<typeof atoSchema>;
+type DiscountType = "percentage" | "fixed";
 
 interface CreateATODialogProps {
   open: boolean;
@@ -64,6 +69,10 @@ export function CreateATODialog({
   const [pendingItems, setPendingItems] = useState<PendingATOItem[]>([]);
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [currentDialog, setCurrentDialog] = useState<string | null>(null);
+  
+  // Estado para desconto da ATO
+  const [discountType, setDiscountType] = useState<DiscountType>("percentage");
+  const [discountValue, setDiscountValue] = useState<number>(0);
 
   const { mutate: createATO, isPending } = useCreateATO();
   const { data: contractData } = useContractItems(open ? contractId : undefined);
@@ -110,16 +119,68 @@ export function CreateATODialog({
       });
       setStep(1);
       setPendingItems([]);
+      setDiscountType("percentage");
+      setDiscountValue(0);
     }
   }, [open, reversalOf, form]);
 
+  // Calcular preço final com descontos
+  const { totalOriginalPrice, totalWithItemDiscounts, finalPrice, atoDiscountAmount } = useMemo(() => {
+    // Soma dos preços originais dos itens
+    const totalOriginal = pendingItems.reduce(
+      (sum, item) => sum + (item.original_price || item.estimated_price || 0),
+      0
+    );
+    
+    // Soma com descontos individuais aplicados
+    const withItemDiscounts = pendingItems.reduce((sum, item) => {
+      const price = item.original_price || item.estimated_price || 0;
+      const discount = item.discount_percentage || 0;
+      return sum + price * (1 - discount / 100);
+    }, 0);
+    
+    // Desconto da ATO (% ou valor fixo)
+    let atoDiscount = 0;
+    if (discountType === "percentage" && discountValue > 0) {
+      atoDiscount = withItemDiscounts * (discountValue / 100);
+    } else if (discountType === "fixed" && discountValue > 0) {
+      atoDiscount = Math.min(discountValue, withItemDiscounts);
+    }
+    
+    return {
+      totalOriginalPrice: totalOriginal,
+      totalWithItemDiscounts: withItemDiscounts,
+      finalPrice: withItemDiscounts - atoDiscount,
+      atoDiscountAmount: atoDiscount,
+    };
+  }, [pendingItems, discountType, discountValue]);
+
   const handleAddItem = (item: PendingATOItem) => {
-    setPendingItems([...pendingItems, item]);
+    // Garantir que original_price esteja sempre definido
+    const itemWithOriginalPrice = {
+      ...item,
+      original_price: item.original_price || item.estimated_price || 0,
+    };
+    setPendingItems([...pendingItems, itemWithOriginalPrice]);
     setShowItemSelector(false);
   };
 
   const handleRemoveItem = (id: string) => {
     setPendingItems(pendingItems.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateItemDiscount = (id: string, discount: number) => {
+    setPendingItems(
+      pendingItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              discount_percentage: discount,
+              estimated_price: (item.original_price || item.estimated_price || 0) * (1 - discount / 100),
+            }
+          : item
+      )
+    );
   };
 
   const handleSelectType = (type: PendingATOItem["type"]) => {
@@ -128,17 +189,12 @@ export function CreateATODialog({
   };
 
   const onSubmit = (data: ATOFormData) => {
-    // Calcular impactos totais dos itens
-    const totalEstimatedPrice = pendingItems.reduce(
-      (sum, item) => sum + (item.estimated_price || 0),
-      0
-    );
     const maxEstimatedDays = Math.max(
       ...pendingItems.map((item) => item.estimated_days || 0),
       0
     );
 
-    // Criar configurações para os itens
+    // Criar configurações para os itens (com desconto individual)
     const configurations = pendingItems.map((item) => ({
       item_type: item.type === "add_optional" ? "option" : item.type === "add_upgrade" ? "upgrade" : "memorial_item",
       item_id: item.item_id || null,
@@ -146,19 +202,25 @@ export function CreateATODialog({
         type: item.type,
         notes: item.notes,
         quantity: item.quantity,
+        item_name: item.item_name,
       },
       sub_items: [],
       notes: item.notes,
+      discount_percentage: item.discount_percentage || 0,
+      original_price: item.original_price || item.estimated_price || 0,
     }));
 
     const payload: any = {
       contract_id: contractId,
-      title: autoTitle, // Título automático
+      title: autoTitle,
       description: data.description,
-      price_impact: totalEstimatedPrice,
+      price_impact: finalPrice,
+      original_price_impact: totalOriginalPrice,
       delivery_days_impact: maxEstimatedDays,
       notes: data.notes,
       workflow_status: "pending_pm_review",
+      discount_percentage: discountType === "percentage" ? discountValue : 0,
+      discount_amount: discountType === "fixed" ? discountValue : 0,
       configurations,
     };
 
@@ -258,7 +320,11 @@ export function CreateATODialog({
                         </Button>
                       </div>
 
-                      <ATOItemsList items={pendingItems} onRemove={handleRemoveItem} />
+                      <ATOItemsList 
+                        items={pendingItems} 
+                        onRemove={handleRemoveItem}
+                        onUpdateDiscount={handleUpdateItemDiscount}
+                      />
                     </>
                   ) : (
                     <>
@@ -316,39 +382,91 @@ export function CreateATODialog({
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    {/* Seção de Desconto da ATO */}
+                    <div className="border rounded-lg p-4 space-y-4 bg-background">
+                      <div className="flex items-center gap-2">
+                        <Percent className="h-4 w-4 text-muted-foreground" />
+                        <h4 className="font-semibold">Desconto da ATO</h4>
+                      </div>
+
+                      <RadioGroup
+                        value={discountType}
+                        onValueChange={(value) => setDiscountType(value as DiscountType)}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="percentage" id="discount-percentage" />
+                          <Label htmlFor="discount-percentage" className="flex items-center gap-1 cursor-pointer">
+                            <Percent className="h-3 w-3" />
+                            Percentual
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="fixed" id="discount-fixed" />
+                          <Label htmlFor="discount-fixed" className="flex items-center gap-1 cursor-pointer">
+                            <DollarSign className="h-3 w-3" />
+                            Valor Fixo
+                          </Label>
+                        </div>
+                      </RadioGroup>
+
+                      <div className="flex items-center gap-3">
+                        <Label className="text-sm text-muted-foreground">
+                          {discountType === "percentage" ? "Desconto (%)" : "Desconto (R$)"}
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={discountType === "percentage" ? 100 : totalWithItemDiscounts}
+                          step={discountType === "percentage" ? 0.5 : 100}
+                          className="w-32"
+                          value={discountValue || ""}
+                          onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                          placeholder={discountType === "percentage" ? "0%" : "R$ 0,00"}
+                        />
+                      </div>
+
+                      {discountValue > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          Desconto aplicado: <span className="text-destructive font-medium">{formatCurrency(atoDiscountAmount)}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Resumo de Preços */}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
                       <div>
-                        <p className="text-sm text-muted-foreground">Impacto Estimado</p>
-                        <p className="font-semibold">
-                          <Badge variant="default">
-                            R${" "}
-                            {pendingItems
-                              .reduce((sum, item) => sum + (item.estimated_price || 0), 0)
-                              .toFixed(2)}
-                          </Badge>
+                        <p className="text-sm text-muted-foreground">Preço Original</p>
+                        <p className="text-muted-foreground line-through">
+                          {formatCurrency(totalOriginalPrice)}
                         </p>
                       </div>
 
                       <div>
-                        <p className="text-sm text-muted-foreground">Prazo Estimado</p>
-                        <p className="font-semibold">
-                          <Badge variant="outline">
-                            +
-                            {Math.max(
-                              ...pendingItems.map((item) => item.estimated_days || 0),
-                              0
-                            )}{" "}
-                            dias
-                          </Badge>
+                        <p className="text-sm text-muted-foreground">Preço Final</p>
+                        <p className="font-semibold text-lg text-primary">
+                          {formatCurrency(finalPrice)}
                         </p>
+                        {(totalOriginalPrice - finalPrice) > 0 && (
+                          <Badge variant="destructive" className="text-xs mt-1">
+                            Economia: {formatCurrency(totalOriginalPrice - finalPrice)}
+                          </Badge>
+                        )}
                       </div>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground">Prazo Estimado</p>
+                      <Badge variant="outline">
+                        +{Math.max(...pendingItems.map((item) => item.estimated_days || 0), 0)} dias
+                      </Badge>
                     </div>
                   </div>
 
                   {pendingItems.length > 0 && (
                     <div className="border rounded-lg p-4">
                       <h4 className="font-semibold mb-3">Resumo dos Itens:</h4>
-                      <ATOItemsList items={pendingItems} onRemove={() => {}} />
+                      <ATOItemsList items={pendingItems} onRemove={() => {}} readOnly />
                     </div>
                   )}
 

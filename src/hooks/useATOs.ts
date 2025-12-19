@@ -82,12 +82,17 @@ export interface CreateATOInput {
   price_impact: number;
   delivery_days_impact: number;
   workflow_status?: string | null;
+  discount_percentage?: number;
+  discount_amount?: number;
+  original_price_impact?: number;
   configurations?: Array<{
-    item_type: "memorial_item" | "option";
+    item_type: "memorial_item" | "option" | "upgrade" | "ato_item" | "free_customization" | "definable_item";
     item_id: string | null;
     configuration_details: any;
     sub_items?: any[];
     notes?: string;
+    discount_percentage?: number;
+    original_price?: number;
   }>;
   notes?: string;
 }
@@ -295,13 +300,16 @@ export function useCreateATO() {
           requires_approval: requiresApproval || !!input.workflow_status,
           commercial_approval_status: requiresApproval && !input.workflow_status ? "pending" : null,
           workflow_status: input.workflow_status || null,
+          discount_percentage: input.discount_percentage || 0,
+          discount_amount: input.discount_amount || 0,
+          original_price_impact: input.original_price_impact || input.price_impact,
         })
         .select()
         .single();
 
       if (atoError) throw atoError;
 
-      // 4. Criar configurações de itens
+      // 4. Criar configurações de itens (com desconto individual)
       if (input.configurations && input.configurations.length > 0) {
         const { error: configError } = await supabase
           .from("ato_configurations")
@@ -314,6 +322,8 @@ export function useCreateATO() {
               sub_items: config.sub_items || [],
               notes: config.notes,
               created_by: user.id,
+              discount_percentage: config.discount_percentage || 0,
+              original_price: config.original_price || 0,
             }))
           );
 

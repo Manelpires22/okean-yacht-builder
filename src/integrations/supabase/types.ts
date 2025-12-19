@@ -24,9 +24,11 @@ export type Database = {
           created_at: string | null
           delivery_days_impact: number | null
           description: string | null
+          discount_amount: number | null
           discount_percentage: number | null
           id: string
           notes: string | null
+          original_price_impact: number | null
           price_impact: number | null
           rejection_reason: string | null
           requested_at: string | null
@@ -48,9 +50,11 @@ export type Database = {
           created_at?: string | null
           delivery_days_impact?: number | null
           description?: string | null
+          discount_amount?: number | null
           discount_percentage?: number | null
           id?: string
           notes?: string | null
+          original_price_impact?: number | null
           price_impact?: number | null
           rejection_reason?: string | null
           requested_at?: string | null
@@ -72,9 +76,11 @@ export type Database = {
           created_at?: string | null
           delivery_days_impact?: number | null
           description?: string | null
+          discount_amount?: number | null
           discount_percentage?: number | null
           id?: string
           notes?: string | null
+          original_price_impact?: number | null
           price_impact?: number | null
           rejection_reason?: string | null
           requested_at?: string | null
@@ -158,10 +164,12 @@ export type Database = {
           configuration_details: Json | null
           created_at: string | null
           created_by: string | null
+          discount_percentage: number | null
           id: string
           item_id: string | null
           item_type: string
           notes: string | null
+          original_price: number | null
           sub_items: Json | null
         }
         Insert: {
@@ -169,10 +177,12 @@ export type Database = {
           configuration_details?: Json | null
           created_at?: string | null
           created_by?: string | null
+          discount_percentage?: number | null
           id?: string
           item_id?: string | null
           item_type: string
           notes?: string | null
+          original_price?: number | null
           sub_items?: Json | null
         }
         Update: {
@@ -180,10 +190,12 @@ export type Database = {
           configuration_details?: Json | null
           created_at?: string | null
           created_by?: string | null
+          discount_percentage?: number | null
           id?: string
           item_id?: string | null
           item_type?: string
           notes?: string | null
+          original_price?: number | null
           sub_items?: Json | null
         }
         Relationships: [
