@@ -82,6 +82,7 @@ export function useConsolidatedContractScope(contractId: string | undefined) {
         baseSnapshot,
         memorialItems: memorialItems || [],
         selectedOptions: baseSnapshot?.selected_options || [],
+        selectedUpgrades: baseSnapshot?.selected_upgrades || [],
         customizations: baseSnapshot?.customizations || [],
         atoConfigurations,
         approvedATOs: approvedATOs || [],
