@@ -65,13 +65,13 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
           <BookOpen className="h-4 w-4" />
           Memorial
         </TabsTrigger>
-        <TabsTrigger value="opcionais" className="gap-2">
-          <Package className="h-4 w-4" />
-          Opcionais
-        </TabsTrigger>
         <TabsTrigger value="upgrades" className="gap-2">
           <ArrowUpCircle className="h-4 w-4" />
           Upgrades
+        </TabsTrigger>
+        <TabsTrigger value="opcionais" className="gap-2">
+          <Package className="h-4 w-4" />
+          Opcionais
         </TabsTrigger>
         <TabsTrigger value="customizacoes" className="gap-2">
           <Wrench className="h-4 w-4" />
@@ -213,14 +213,14 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
         <ContractMemorialView items={scopeData?.memorialItems || []} />
       </TabsContent>
 
-      {/* Tab: Opcionais Contratados */}
-      <TabsContent value="opcionais">
-        <ContractOptionsView options={scopeData?.selectedOptions || []} />
-      </TabsContent>
-
       {/* Tab: Upgrades */}
       <TabsContent value="upgrades">
         <ContractUpgradesView upgrades={scopeData?.selectedUpgrades || []} />
+      </TabsContent>
+
+      {/* Tab: Opcionais Contratados */}
+      <TabsContent value="opcionais">
+        <ContractOptionsView options={scopeData?.selectedOptions || []} />
       </TabsContent>
 
       {/* Tab: Customizações Aprovadas */}
