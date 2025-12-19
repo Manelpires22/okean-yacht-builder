@@ -403,7 +403,7 @@ export default function Configurator() {
             </Tabs>
           </div>
 
-          <div className="lg:col-span-1 self-start">
+          <div className="lg:col-span-1 lg:sticky lg:top-4 self-start">
             <ConfigurationSummary
               modelName={selectedModel?.name || ""}
               basePrice={state.base_price}
