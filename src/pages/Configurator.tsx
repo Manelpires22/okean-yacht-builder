@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ModelSelector } from "@/components/configurator/ModelSelector";
 import { MemorialDescritivo } from "@/components/configurator/MemorialDescritivo";
+import { ModelBaseTab } from "@/components/configurator/ModelBaseTab";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
 import { ConfigurationSummary } from "@/components/configurator/ConfigurationSummary";
 import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDialog";
@@ -223,12 +224,16 @@ export default function Configurator() {
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] xl:grid-cols-[3fr_1fr] 2xl:grid-cols-[4fr_1fr] gap-4 md:gap-6 items-start">
           <div className="min-w-0">
             <Tabs defaultValue="base" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 h-auto">
-                <TabsTrigger value="base" className="text-xs sm:text-sm py-2 px-2">
+              <TabsList className="grid w-full grid-cols-5 h-auto">
+                <TabsTrigger value="base" className="text-xs sm:text-sm py-2 px-1 sm:px-2">
                   <span className="hidden sm:inline">Modelo Base</span>
                   <span className="sm:hidden">Base</span>
                 </TabsTrigger>
-                <TabsTrigger value="upgrades" className="text-xs sm:text-sm py-2 px-2 relative">
+                <TabsTrigger value="memorial" className="text-xs sm:text-sm py-2 px-1 sm:px-2">
+                  <span className="hidden sm:inline">Memorial</span>
+                  <span className="sm:hidden">Memorial</span>
+                </TabsTrigger>
+                <TabsTrigger value="upgrades" className="text-xs sm:text-sm py-2 px-1 sm:px-2 relative">
                   <span className="hidden sm:inline">Upgrades</span>
                   <span className="sm:hidden">Upg</span>
                   {(state.selected_upgrades?.length || 0) > 0 && (
@@ -237,7 +242,7 @@ export default function Configurator() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="options" className="text-xs sm:text-sm py-2 px-2 relative">
+                <TabsTrigger value="options" className="text-xs sm:text-sm py-2 px-1 sm:px-2 relative">
                   <span className="hidden sm:inline">Opcionais</span>
                   <span className="sm:hidden">Opções</span>
                   {(state.selected_options?.length || 0) > 0 && (
@@ -246,7 +251,7 @@ export default function Configurator() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="custom" className="text-xs sm:text-sm py-2 px-2 relative">
+                <TabsTrigger value="custom" className="text-xs sm:text-sm py-2 px-1 sm:px-2 relative">
                   <span className="hidden sm:inline">Customizações</span>
                   <span className="sm:hidden">Custom</span>
                   {freeCustomizations.length > 0 && (
@@ -258,6 +263,12 @@ export default function Configurator() {
               </TabsList>
 
               <TabsContent value="base" className="space-y-6 mt-6">
+                {selectedModel && (
+                  <ModelBaseTab model={selectedModel} />
+                )}
+              </TabsContent>
+
+              <TabsContent value="memorial" className="space-y-6 mt-6">
                 {selectedModel && (
                   <MemorialDescritivo
                     yachtModelId={selectedModel.id}
