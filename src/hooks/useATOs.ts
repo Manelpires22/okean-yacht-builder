@@ -753,9 +753,13 @@ export function useDeleteATO() {
         .from("additional_to_orders")
         .select("contract_id, status")
         .eq("id", atoId)
-        .single();
+        .maybeSingle();
       
       if (fetchError) throw fetchError;
+      
+      if (!ato) {
+        throw new Error("ATO não encontrada ou você não tem permissão para visualizá-la.");
+      }
 
       // ⚠️ CRÍTICO: Impedir exclusão de ATOs aprovadas ou enviadas ao cliente
       if (['approved', 'pending_approval', 'sent'].includes(ato?.status)) {
