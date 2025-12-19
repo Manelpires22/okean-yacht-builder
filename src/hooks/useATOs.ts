@@ -787,6 +787,38 @@ export function useDeleteATO() {
         .eq("id", atoId);
 
       if (error) throw error;
+
+      // Recalcular totais do contrato após exclusão
+      if (contractId) {
+        const { data: contract } = await supabase
+          .from("contracts")
+          .select("id, base_price, base_delivery_days")
+          .eq("id", contractId)
+          .single();
+
+        if (contract) {
+          // Buscar ATOs aprovadas restantes
+          const { data: approvedATOs } = await supabase
+            .from("additional_to_orders")
+            .select("price_impact, delivery_days_impact")
+            .eq("contract_id", contractId)
+            .eq("status", "approved");
+
+          const totalATOsPrice = approvedATOs?.reduce((sum, ato) => sum + (ato.price_impact || 0), 0) || 0;
+          const totalATOsDelivery = approvedATOs?.reduce((max, ato) => Math.max(max, ato.delivery_days_impact || 0), 0) || 0;
+
+          // Atualizar contrato com valores recalculados
+          await supabase
+            .from("contracts")
+            .update({
+              current_total_price: contract.base_price + totalATOsPrice,
+              current_total_delivery_days: contract.base_delivery_days + totalATOsDelivery,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", contractId);
+        }
+      }
+
       return { contractId };
     },
     onSuccess: (data) => {
