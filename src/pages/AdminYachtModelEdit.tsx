@@ -50,6 +50,7 @@ export default function AdminYachtModelEdit() {
       model: model.model || "",
       description: model.description || "",
       image_url: model.image_url || "",
+      gallery_images: (model.gallery_images as string[]) || [],
       base_price: model.base_price ? model.base_price.toString() : "",
       is_active: model.is_active ?? true,
       
@@ -94,6 +95,7 @@ export default function AdminYachtModelEdit() {
           model: values.model || null,
           description: values.description || null,
           image_url: values.image_url || null,
+          gallery_images: values.gallery_images || [],
           base_price: values.base_price ? parseFloat(values.base_price) : null,
           is_active: values.is_active,
           

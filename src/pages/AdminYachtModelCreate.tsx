@@ -35,6 +35,7 @@ export default function AdminYachtModelCreate() {
       model: "",
       description: "",
       image_url: "",
+      gallery_images: [],
       base_price: "",
     },
   });
@@ -51,6 +52,7 @@ export default function AdminYachtModelCreate() {
           model: values.model || null,
           description: values.description || null,
           image_url: values.image_url || null,
+          gallery_images: values.gallery_images || [],
           base_price: values.base_price ? parseFloat(values.base_price) : 0,
           base_delivery_days: 0,
           is_active: values.is_active,
