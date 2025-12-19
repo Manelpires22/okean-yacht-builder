@@ -31,12 +31,11 @@ export default function AdminYachtModelCreate() {
       is_active: true,
       code: "",
       name: "",
+      brand: "",
+      model: "",
       description: "",
       image_url: "",
       base_price: "",
-      base_delivery_days: "",
-      registration_number: "",
-      delivery_date: "",
     },
   });
 
@@ -48,12 +47,12 @@ export default function AdminYachtModelCreate() {
         .insert({
           code: values.code,
           name: values.name,
+          brand: values.brand || null,
+          model: values.model || null,
           description: values.description || null,
           image_url: values.image_url || null,
-          base_price: values.base_price ? parseFloat(values.base_price) : null,
-          base_delivery_days: values.base_delivery_days ? parseInt(values.base_delivery_days) : null,
-          registration_number: values.registration_number || null,
-          delivery_date: values.delivery_date || null,
+          base_price: values.base_price ? parseFloat(values.base_price) : 0,
+          base_delivery_days: 0,
           is_active: values.is_active,
           
           // Specifications
@@ -161,11 +160,10 @@ export default function AdminYachtModelCreate() {
       const basic = extractedData.basic_data;
       if (basic.code) form.setValue('code', basic.code);
       if (basic.name) form.setValue('name', basic.name);
+      if (basic.brand) form.setValue('brand', basic.brand);
+      if (basic.model) form.setValue('model', basic.model);
       if (basic.description) form.setValue('description', basic.description);
       if (basic.base_price) form.setValue('base_price', basic.base_price.toString());
-      if (basic.base_delivery_days) form.setValue('base_delivery_days', basic.base_delivery_days.toString());
-      if (basic.registration_number) form.setValue('registration_number', basic.registration_number);
-      if (basic.delivery_date) form.setValue('delivery_date', basic.delivery_date);
     }
 
     // 2. Preencher Especificações
@@ -199,6 +197,14 @@ export default function AdminYachtModelCreate() {
     });
   };
 
+  const handleSpecsExtracted = (specs: Record<string, any>) => {
+    Object.entries(specs).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        form.setValue(key as any, value.toString());
+      }
+    });
+  };
+
   const onSubmit = (values: YachtModelFullValues) => {
     createModelMutation.mutate(values);
   };
@@ -218,7 +224,7 @@ export default function AdminYachtModelCreate() {
             <div>
               <h1 className="text-3xl font-bold">Novo Modelo de Iate</h1>
               <p className="text-muted-foreground">
-                Preencha os dados manualmente ou importe um documento
+                Preencha manualmente, importe um documento ou extraia de URL com IA
               </p>
             </div>
           </div>
@@ -250,7 +256,7 @@ export default function AdminYachtModelCreate() {
 
           <Form {...form}>
             <TabsContent value="basic" className="space-y-4">
-              <YachtModelBasicForm form={form} />
+              <YachtModelBasicForm form={form} onSpecsExtracted={handleSpecsExtracted} />
             </TabsContent>
 
             <TabsContent value="specs" className="space-y-4">

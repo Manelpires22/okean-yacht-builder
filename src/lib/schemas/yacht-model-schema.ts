@@ -7,6 +7,18 @@ export const yachtModelBasicSchema = z.object({
     .max(20, "Código deve ter no máximo 20 caracteres")
     .regex(/^[A-Z0-9-]+$/, "Código deve conter apenas letras maiúsculas, números e hífens"),
   
+  brand: z.string()
+    .min(1, "Marca é obrigatória")
+    .max(100, "Marca deve ter no máximo 100 caracteres")
+    .optional()
+    .or(z.literal("")),
+  
+  model: z.string()
+    .min(1, "Modelo é obrigatório")
+    .max(100, "Modelo deve ter no máximo 100 caracteres")
+    .optional()
+    .or(z.literal("")),
+  
   name: z.string()
     .min(1, "Nome é obrigatório")
     .max(200, "Nome deve ter no máximo 200 caracteres"),
@@ -16,14 +28,6 @@ export const yachtModelBasicSchema = z.object({
   image_url: z.string().optional(),
   
   base_price: z.string().optional(),
-  
-  base_delivery_days: z.string().optional(),
-  
-  registration_number: z.string()
-    .max(50, "Matrícula deve ter no máximo 50 caracteres")
-    .optional(),
-  
-  delivery_date: z.string().optional(), // ISO date string (YYYY-MM-DD)
   
   is_active: z.boolean().default(true),
 });

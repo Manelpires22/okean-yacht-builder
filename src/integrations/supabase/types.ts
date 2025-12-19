@@ -1565,6 +1565,7 @@ export type Database = {
           base_price: number
           bathrooms: string | null
           beam: number | null
+          brand: string | null
           cabins: number | null
           code: string
           created_at: string | null
@@ -1587,6 +1588,7 @@ export type Database = {
           is_active: boolean | null
           length_overall: number | null
           max_speed: number | null
+          model: string | null
           name: string
           passengers_capacity: number | null
           range_nautical_miles: number | null
@@ -1600,6 +1602,7 @@ export type Database = {
           base_price: number
           bathrooms?: string | null
           beam?: number | null
+          brand?: string | null
           cabins?: number | null
           code: string
           created_at?: string | null
@@ -1622,6 +1625,7 @@ export type Database = {
           is_active?: boolean | null
           length_overall?: number | null
           max_speed?: number | null
+          model?: string | null
           name: string
           passengers_capacity?: number | null
           range_nautical_miles?: number | null
@@ -1635,6 +1639,7 @@ export type Database = {
           base_price?: number
           bathrooms?: string | null
           beam?: number | null
+          brand?: string | null
           cabins?: number | null
           code?: string
           created_at?: string | null
@@ -1657,6 +1662,7 @@ export type Database = {
           is_active?: boolean | null
           length_overall?: number | null
           max_speed?: number | null
+          model?: string | null
           name?: string
           passengers_capacity?: number | null
           range_nautical_miles?: number | null
