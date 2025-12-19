@@ -261,18 +261,9 @@ function validateSpecifications(
     }
   }
   
-  // Regra: Comprimento do casco não pode ser maior que comprimento total
-  if (typeof specs.hull_length === 'number' && typeof specs.length_overall === 'number') {
-    if (specs.hull_length > specs.length_overall) {
-      issues.push({
-        field: 'hull_length',
-        currentValue: specs.hull_length,
-        issue: `Comprimento do casco (${specs.hull_length}m) não pode ser maior que comprimento total (${specs.length_overall}m)`,
-        suggestion: specs.length_overall,
-        severity: 'error'
-      });
-    }
-  }
+  // Nota: Comprimento total (length_overall) PODE ser maior que comprimento do casco (hull_length)
+  // porque inclui extensões como plataformas de popa, púlpitos, etc.
+  // Por isso NÃO validamos essa relação - ambos os cenários são válidos.
   
   // Regra: Boca máxima proporcional ao comprimento (tipicamente 20-35% do comprimento)
   if (typeof specs.beam === 'number' && length) {
