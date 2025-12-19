@@ -49,7 +49,8 @@ serve(async (req) => {
         client:clients(*),
         yacht_model:yacht_models(*),
         quotation_options(*, option:options(*)),
-        quotation_customizations(*)
+        quotation_customizations(*),
+        quotation_upgrades(*, upgrade:memorial_upgrades(*), memorial_item:memorial_items(item_name))
       `)
       .eq("id", quotation_id)
       .single();
@@ -103,6 +104,7 @@ serve(async (req) => {
       base_delivery_days: quotation.base_delivery_days,
       total_delivery_days: quotation.total_delivery_days,
       selected_options: quotation.quotation_options || [],
+      selected_upgrades: quotation.quotation_upgrades || [],
       customizations: quotation.quotation_customizations || [],
       discount_percentage: quotation.discount_percentage,
       options_discount_percentage: quotation.options_discount_percentage,

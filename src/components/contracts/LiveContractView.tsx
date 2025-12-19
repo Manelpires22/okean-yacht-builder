@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Calendar, FileText, TrendingUp, BookOpen, Package, Wrench, Settings } from "lucide-react";
+import { TrendingUp, BookOpen, Package, Wrench, Settings, ArrowUpCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { ContractMemorialView } from "./scope/ContractMemorialView";
 import { ContractOptionsView } from "./scope/ContractOptionsView";
+import { ContractUpgradesView } from "./scope/ContractUpgradesView";
 import { ContractCustomizationsView } from "./scope/ContractCustomizationsView";
 import { ContractATODefinitionsView } from "./scope/ContractATODefinitionsView";
 import { ATODetailDialog } from "./ATODetailDialog";
-
 interface LiveContractViewProps {
   contractId: string;
 }
@@ -56,7 +56,7 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
   return (
     <>
     <Tabs defaultValue="resumo" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-5">
+      <TabsList className="grid w-full grid-cols-6">
         <TabsTrigger value="resumo" className="gap-2">
           <TrendingUp className="h-4 w-4" />
           Resumo
@@ -68,6 +68,10 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
         <TabsTrigger value="opcionais" className="gap-2">
           <Package className="h-4 w-4" />
           Opcionais
+        </TabsTrigger>
+        <TabsTrigger value="upgrades" className="gap-2">
+          <ArrowUpCircle className="h-4 w-4" />
+          Upgrades
         </TabsTrigger>
         <TabsTrigger value="customizacoes" className="gap-2">
           <Wrench className="h-4 w-4" />
@@ -212,6 +216,11 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
       {/* Tab: Opcionais Contratados */}
       <TabsContent value="opcionais">
         <ContractOptionsView options={scopeData?.selectedOptions || []} />
+      </TabsContent>
+
+      {/* Tab: Upgrades */}
+      <TabsContent value="upgrades">
+        <ContractUpgradesView upgrades={scopeData?.selectedUpgrades || []} />
       </TabsContent>
 
       {/* Tab: Customizações Aprovadas */}
