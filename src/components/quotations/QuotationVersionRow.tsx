@@ -148,7 +148,7 @@ export function QuotationVersionRow({
               <Eye className="h-4 w-4" />
             </Button>
             
-            {canEdit && (
+            {canEdit && !isContracted && (
               <Button
                 variant="ghost"
                 size="sm"

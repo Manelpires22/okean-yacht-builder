@@ -103,8 +103,23 @@ export default function QuotationDetail() {
     setTimeout(() => setIsRevalidating(false), 2000);
   };
 
+  // Verificar se cotação é imutável (contratada/aceita)
+  const isQuotationImmutable = quotation && (
+    quotation.status === 'accepted' ||
+    quotation.status === 'approved' ||
+    !!contract
+  );
+
   const handleEdit = async () => {
     if (!quotation) return;
+    
+    // Cotações contratadas não podem ser editadas
+    if (isQuotationImmutable) {
+      toast.error("Esta cotação não pode ser editada", {
+        description: "Cotações contratadas são imutáveis. Alterações devem ser feitas via ATOs no contrato."
+      });
+      return;
+    }
     
     // Permitir edição direta apenas se status é draft E nunca foi enviado
     const canEditDirectly = quotation.status === 'draft' && !quotation.sent_at;
@@ -364,8 +379,8 @@ export default function QuotationDetail() {
         {/* Fixed Footer with Actions - Ajustado para AdminLayout */}
         <div className="fixed bottom-0 left-0 lg:left-64 right-0 bg-background/95 backdrop-blur-sm border-t p-4 z-10">
           <div className="flex flex-wrap gap-3 justify-end">
-            {/* Botão Editar Rascunho - só se draft */}
-            {quotation.status === 'draft' && quotationStatus.canEdit && (
+            {/* Botão Editar Rascunho - só se draft e não contratada */}
+            {quotation.status === 'draft' && quotationStatus.canEdit && !isQuotationImmutable && (
               <Button 
                 variant="outline" 
                 onClick={handleEdit} 
