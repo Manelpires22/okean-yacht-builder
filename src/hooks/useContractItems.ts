@@ -39,6 +39,19 @@ export function useContractItems(contractId: string | undefined) {
         delivery_days_impact: so.delivery_days_impact,
         ...so.option
       })) || [];
+
+      // Extrair upgrades do snapshot
+      const upgrades = baseSnapshot?.selected_upgrades?.map((su: any) => ({
+        id: su.upgrade_id || su.id,
+        name: su.name || su.upgrade?.name,
+        code: su.code || su.upgrade?.code,
+        description: su.description || su.upgrade?.description,
+        price: su.price,
+        delivery_days_impact: su.delivery_days_impact,
+        memorial_item_id: su.memorial_item_id,
+        memorial_item_name: su.memorial_item?.item_name,
+        ...su.upgrade
+      })) || [];
       
       // Buscar memorial items da tabela usando yacht_model_id
       const { data: memorialItems, error: memorialError } = await supabase
@@ -54,10 +67,53 @@ export function useContractItems(contractId: string | undefined) {
 
       if (memorialError) throw memorialError;
 
+      // Buscar ATOs aprovadas com suas configurações
+      const { data: approvedATOs, error: atoError } = await supabase
+        .from("additional_to_orders")
+        .select(`
+          id,
+          ato_number,
+          title,
+          status,
+          price_impact,
+          delivery_days_impact
+        `)
+        .eq("contract_id", contractId)
+        .eq("status", "approved");
+
+      if (atoError) throw atoError;
+
+      // Buscar configurações de todas as ATOs aprovadas
+      let atoItems: any[] = [];
+      if (approvedATOs && approvedATOs.length > 0) {
+        const { data: atoConfigs, error: configError } = await supabase
+          .from("ato_configurations")
+          .select("*")
+          .in("ato_id", approvedATOs.map(ato => ato.id));
+
+        if (!configError && atoConfigs) {
+          atoItems = atoConfigs.map(config => {
+            const ato = approvedATOs.find(a => a.id === config.ato_id);
+            const details = config.configuration_details as any;
+            return {
+              id: config.id,
+              ato_id: config.ato_id,
+              ato_number: ato?.ato_number,
+              item_type: config.item_type,
+              item_name: details?.item_name || details?.name || config.notes || "Item ATO",
+              notes: config.notes,
+              configuration_details: details,
+            };
+          });
+        }
+      }
+
       return {
         contract,
         options,
+        upgrades,
         memorialItems,
+        atoItems,
       };
     },
     enabled: !!contractId,

@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Package, Wrench, Search } from "lucide-react";
+import { Loader2, Package, Wrench, Search, ArrowUpCircle, FileEdit } from "lucide-react";
 import { useContractItems } from "@/hooks/useContractItems";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -27,6 +27,8 @@ interface SelectContractItemDialogProps {
   onAdd: (item: PendingATOItem) => void;
 }
 
+type ItemType = "option" | "upgrade" | "memorial" | "ato";
+
 export function SelectContractItemDialog({
   open,
   onOpenChange,
@@ -34,7 +36,7 @@ export function SelectContractItemDialog({
   onAdd,
 }: SelectContractItemDialogProps) {
   const [selectedItem, setSelectedItem] = useState<any>(null);
-  const [itemType, setItemType] = useState<"option" | "memorial">("option");
+  const [itemType, setItemType] = useState<ItemType>("option");
   const [notes, setNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -52,6 +54,17 @@ export function SelectContractItemDialog({
     ) || [];
   }, [data?.options, debouncedSearchTerm]);
 
+  // Filtrar upgrades baseado na busca
+  const filteredUpgrades = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return data?.upgrades || [];
+    const term = debouncedSearchTerm.toLowerCase();
+    return data?.upgrades?.filter((upgrade: any) =>
+      upgrade.name?.toLowerCase().includes(term) ||
+      upgrade.code?.toLowerCase().includes(term) ||
+      upgrade.description?.toLowerCase().includes(term)
+    ) || [];
+  }, [data?.upgrades, debouncedSearchTerm]);
+
   // Filtrar memorial items baseado na busca
   const filteredMemorialItems = useMemo(() => {
     if (!debouncedSearchTerm.trim()) return data?.memorialItems || [];
@@ -63,6 +76,17 @@ export function SelectContractItemDialog({
       item.model?.toLowerCase().includes(term)
     ) || [];
   }, [data?.memorialItems, debouncedSearchTerm]);
+
+  // Filtrar itens de ATOs baseado na busca
+  const filteredATOItems = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return data?.atoItems || [];
+    const term = debouncedSearchTerm.toLowerCase();
+    return data?.atoItems?.filter((item: any) =>
+      item.item_name?.toLowerCase().includes(term) ||
+      item.ato_number?.toLowerCase().includes(term) ||
+      item.notes?.toLowerCase().includes(term)
+    ) || [];
+  }, [data?.atoItems, debouncedSearchTerm]);
 
   const handleAdd = () => {
     if (!selectedItem) return;
@@ -106,14 +130,22 @@ export function SelectContractItemDialog({
             }}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="option" className="gap-2">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="option" className="gap-1.5 text-xs">
                 <Package className="h-4 w-4" />
                 Opcionais ({filteredOptions.length})
               </TabsTrigger>
-              <TabsTrigger value="memorial" className="gap-2">
+              <TabsTrigger value="upgrade" className="gap-1.5 text-xs">
+                <ArrowUpCircle className="h-4 w-4" />
+                Upgrades ({filteredUpgrades.length})
+              </TabsTrigger>
+              <TabsTrigger value="memorial" className="gap-1.5 text-xs">
                 <Wrench className="h-4 w-4" />
                 Memorial ({filteredMemorialItems.length})
+              </TabsTrigger>
+              <TabsTrigger value="ato" className="gap-1.5 text-xs">
+                <FileEdit className="h-4 w-4" />
+                ATOs ({filteredATOItems.length})
               </TabsTrigger>
             </TabsList>
 
@@ -122,9 +154,10 @@ export function SelectContractItemDialog({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={
-                  itemType === "option"
-                    ? "Buscar por nome, código ou descrição..."
-                    : "Buscar por nome, descrição, marca ou modelo..."
+                  itemType === "option" ? "Buscar por nome, código ou descrição..." :
+                  itemType === "upgrade" ? "Buscar por nome, código ou descrição..." :
+                  itemType === "ato" ? "Buscar por nome ou número da ATO..." :
+                  "Buscar por nome, descrição, marca ou modelo..."
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,7 +166,7 @@ export function SelectContractItemDialog({
             </div>
 
             <TabsContent value="option" className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[350px]">
                 <div className="space-y-2">
                   {filteredOptions.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -175,8 +208,56 @@ export function SelectContractItemDialog({
               </ScrollArea>
             </TabsContent>
 
+            <TabsContent value="upgrade" className="flex-1 overflow-hidden mt-4">
+              <ScrollArea className="h-[350px]">
+                <div className="space-y-2">
+                  {filteredUpgrades.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum upgrade encontrado no contrato
+                    </div>
+                  ) : (
+                    filteredUpgrades.map((upgrade: any) => (
+                    <div
+                      key={upgrade.id}
+                      onClick={() => setSelectedItem(upgrade)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedItem?.id === upgrade.id
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-primary/50 hover:bg-accent"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold">{upgrade.name}</h4>
+                            {upgrade.code && <Badge variant="outline">{upgrade.code}</Badge>}
+                          </div>
+                          {upgrade.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {upgrade.description}
+                            </p>
+                          )}
+                          {upgrade.memorial_item_name && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Upgrade de: {upgrade.memorial_item_name}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <p className="font-bold text-primary">
+                            {formatCurrency(upgrade.price)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
             <TabsContent value="memorial" className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[350px]">
                 <div className="space-y-2">
                   {filteredMemorialItems.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -213,6 +294,47 @@ export function SelectContractItemDialog({
                               </Badge>
                             )}
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="ato" className="flex-1 overflow-hidden mt-4">
+              <ScrollArea className="h-[350px]">
+                <div className="space-y-2">
+                  {filteredATOItems.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum item de ATO aprovada encontrado
+                    </div>
+                  ) : (
+                    filteredATOItems.map((item: any) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedItem?.id === item.id
+                          ? "border-primary bg-primary/5"
+                          : "hover:border-primary/50 hover:bg-accent"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-semibold">{item.item_name}</h4>
+                            <Badge variant="outline">{item.ato_number}</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Tipo: {item.item_type}
+                          </p>
+                          {item.notes && (
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {item.notes}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
