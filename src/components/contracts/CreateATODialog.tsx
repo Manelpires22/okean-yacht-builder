@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -13,13 +15,11 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,8 +33,8 @@ import { SelectAvailableOptionDialog } from "./ato-creation/SelectAvailableOptio
 import { NewCustomizationForm } from "./ato-creation/NewCustomizationForm";
 import { SelectDefinableItemDialog } from "./ato-creation/SelectDefinableItemDialog";
 
+// Schema simplificado - título agora é automático
 const atoSchema = z.object({
-  title: z.string().min(1, "Título é obrigatório"),
   description: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -67,10 +67,30 @@ export function CreateATODialog({
   const { mutate: createATO, isPending } = useCreateATO();
   const { data: contractData } = useContractItems(open ? contractId : undefined);
 
+  // Buscar próximo número da ATO
+  const { data: existingATOs } = useQuery({
+    queryKey: ['ato-next-number', contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("additional_to_orders")
+        .select("sequence_number")
+        .eq("contract_id", contractId)
+        .order("sequence_number", { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  // Calcular próximo número e título automático
+  const nextATONumber = (existingATOs?.[0]?.sequence_number || 0) + 1;
+  const autoTitle = reversalOf ? `Estorno - ${reversalOf.title}` : `ATO ${nextATONumber}`;
+
   const form = useForm<ATOFormData>({
     resolver: zodResolver(atoSchema),
     defaultValues: {
-      title: reversalOf ? `Estorno - ${reversalOf.title}` : "",
       description: reversalOf 
         ? `Estorno da ${reversalOf.atoNumber}. Esta ATO cancela os itens previamente aprovados.`
         : "",
@@ -82,7 +102,6 @@ export function CreateATODialog({
   useEffect(() => {
     if (open) {
       form.reset({
-        title: reversalOf ? `Estorno - ${reversalOf.title}` : "",
         description: reversalOf 
           ? `Estorno da ${reversalOf.atoNumber}. Esta ATO cancela os itens previamente aprovados.`
           : "",
@@ -133,12 +152,12 @@ export function CreateATODialog({
 
     const payload: any = {
       contract_id: contractId,
-      title: data.title,
+      title: autoTitle, // Título automático
       description: data.description,
       price_impact: totalEstimatedPrice,
       delivery_days_impact: maxEstimatedDays,
       notes: data.notes,
-      workflow_status: "pending_pm_review", // Sempre usar workflow simplificado
+      workflow_status: "pending_pm_review",
       configurations,
     };
 
@@ -149,17 +168,12 @@ export function CreateATODialog({
     });
   };
 
-  const handleNext = async () => {
-    if (step === 1) {
-      const isValid = await form.trigger(["title", "description"]);
-      if (isValid) setStep(2);
-    } else if (step === 2) {
-      setStep(3);
-    }
+  const handleNext = () => {
+    setStep(2);
   };
 
   const handleBack = () => {
-    setStep(step - 1);
+    setStep(1);
   };
 
   const handleCloseDialog = () => {
@@ -171,10 +185,10 @@ export function CreateATODialog({
     onOpenChange(false);
   };
 
+  // Apenas 2 etapas agora
   const steps = [
-    { number: 1, title: "Informações Básicas" },
-    { number: 2, title: "Adicionar Itens" },
-    { number: 3, title: "Revisão e Confirmação" },
+    { number: 1, title: "Adicionar Itens" },
+    { number: 2, title: "Revisão e Confirmação" },
   ];
 
   return (
@@ -182,7 +196,7 @@ export function CreateATODialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova ATO (Additional To Order)</DialogTitle>
+            <DialogTitle>Nova ATO: {autoTitle}</DialogTitle>
             <DialogDescription>
               Crie um aditivo ao contrato com múltiplos itens
             </DialogDescription>
@@ -221,57 +235,8 @@ export function CreateATODialog({
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Step 1: Basic Info */}
+              {/* Step 1: Add Items (antes era step 2) */}
               {step === 1 && (
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Título da ATO *</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Ex: Definição de Acabamentos e Adicionais"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Título descritivo do aditivo ao contrato
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Descrição</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Descreva o objetivo geral deste ATO"
-                            rows={4}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="p-4 border rounded-lg bg-primary/10">
-                    <p className="text-sm">
-                      <strong>Workflow:</strong> Esta ATO será enviada para análise do PM, que retornará com preço e prazo finais.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Add Items */}
-              {step === 2 && (
                 <div className="space-y-6">
                   {!showItemSelector ? (
                     <>
@@ -313,23 +278,35 @@ export function CreateATODialog({
                 </div>
               )}
 
-              {/* Step 3: Review */}
-              {step === 3 && (
+              {/* Step 2: Review (antes era step 3) */}
+              {step === 2 && (
                 <div className="space-y-4">
                   <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                     <h3 className="font-semibold">Revisar ATO</h3>
 
                     <div>
                       <p className="text-sm text-muted-foreground">Título</p>
-                      <p className="font-semibold">{form.watch("title")}</p>
+                      <p className="font-semibold">{autoTitle}</p>
                     </div>
 
-                    {form.watch("description") && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">Descrição</p>
-                        <p className="text-sm">{form.watch("description")}</p>
-                      </div>
-                    )}
+                    {/* Campo de descrição opcional movido para revisão */}
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Descrição (opcional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Adicione detalhes sobre esta ATO..."
+                              rows={3}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">Itens</p>
@@ -401,8 +378,8 @@ export function CreateATODialog({
                     Cancelar
                   </Button>
 
-                  {step < 3 ? (
-                    <Button type="button" onClick={handleNext}>
+                  {step < 2 ? (
+                    <Button type="button" onClick={handleNext} disabled={pendingItems.length === 0}>
                       Próximo
                       <ChevronRight className="ml-2 h-4 w-4" />
                     </Button>
