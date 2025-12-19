@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ModelSelector } from "@/components/configurator/ModelSelector";
 import { MemorialDescritivo } from "@/components/configurator/MemorialDescritivo";
@@ -50,6 +50,8 @@ export default function Configurator() {
   const { data: models } = useYachtModels();
   const { data: categories } = useMemorialCategories();
   const { data: allOptions } = useOptions();
+  // Query para opções do modelo selecionado (para filtrar categorias)
+  const { data: modelOptions } = useOptions(undefined, state.yacht_model_id);
   const saveQuotation = useSaveQuotation();
   
   // Carregar cotação se estiver editando
@@ -62,6 +64,17 @@ export default function Configurator() {
       toast.success(`Editando cotação ${existingQuotation.quotation_number}`);
     }
   }, [existingQuotation, editQuotationId, isLoadingQuotation]);
+
+  // Filtrar categorias que têm opções para o modelo selecionado
+  const categoriesWithOptions = useMemo(() => {
+    if (!categories || !modelOptions) return [];
+    
+    const categoryIdsWithOptions = new Set(
+      modelOptions.map(opt => opt.category_id).filter(Boolean)
+    );
+    
+    return categories.filter(cat => categoryIdsWithOptions.has(cat.id));
+  }, [categories, modelOptions]);
 
   const selectedModel = models?.find((m) => m.id === state.yacht_model_id);
 
@@ -273,9 +286,9 @@ export default function Configurator() {
               </TabsContent>
 
               <TabsContent value="options" className="space-y-6 mt-6">
-                {categories && categories.length > 0 ? (
+                {categoriesWithOptions && categoriesWithOptions.length > 0 ? (
                   <OptionCategorySection
-                    categories={categories}
+                    categories={categoriesWithOptions}
                     selectedOptions={state.selected_options}
                     onToggleOption={handleToggleOption}
                     onCustomizeOption={handleCustomizeOption}
@@ -283,7 +296,7 @@ export default function Configurator() {
                   />
                 ) : (
                   <p className="text-center text-muted-foreground py-12">
-                    Nenhuma categoria de opcionais disponível
+                    Nenhuma categoria de opcionais disponível para este modelo
                   </p>
                 )}
               </TabsContent>
