@@ -22,11 +22,6 @@ export interface ATOConfiguration {
   discount_percentage: number | null;
   created_at: string;
   created_by: string | null;
-  
-  // Relacionamentos
-  options?: any;
-  memorial_items?: any;
-  memorial_upgrades?: any;
 }
 
 export function useATOConfigurations(atoId: string | undefined) {
@@ -37,12 +32,7 @@ export function useATOConfigurations(atoId: string | undefined) {
 
       const { data, error } = await supabase
         .from("ato_configurations")
-        .select(`
-          *,
-          options (*),
-          memorial_items (*),
-          memorial_upgrades (*)
-        `)
+        .select("*")
         .eq("ato_id", atoId)
         .order("created_at", { ascending: true });
 
