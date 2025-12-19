@@ -222,6 +222,22 @@ export function useQuotation(id: string) {
             option_id,
             pm_final_price,
             pm_final_delivery_impact_days
+          ),
+          quotation_upgrades (
+            id,
+            upgrade_id,
+            memorial_item_id,
+            price,
+            delivery_days_impact,
+            customization_notes,
+            memorial_upgrades:upgrade_id (
+              name,
+              code,
+              description
+            ),
+            memorial_items:memorial_item_id (
+              item_name
+            )
           )
         `)
         .eq("id", id)
