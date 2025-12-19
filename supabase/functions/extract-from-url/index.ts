@@ -603,9 +603,10 @@ ${markdown.substring(0, 4000)}`;
 
 Campos a extrair:
 - brand, model, description
-- specifications: length_overall, hull_length, beam, draft, height_from_waterline, displacement_light, displacement_loaded, dry_weight, fuel_capacity, water_capacity, passengers_capacity, cabins, bathrooms, engines, max_speed, cruise_speed, range_nautical_miles
+- specifications: length_overall, hull_length, beam, draft, height_from_waterline, displacement_light, displacement_loaded, dry_weight, fuel_capacity, water_capacity, passengers_capacity, cabins, bathrooms, engines, hull_color, max_speed, cruise_speed, range_nautical_miles
 
-Converta para sistema métrico (metros, litros, kg). Seja preciso com números.`;
+Converta para sistema métrico (metros, litros, kg). Seja preciso com números.
+Para hull_color, extraia a cor padrão do casco se disponível (ex: "Branco", "Azul marinho").`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -647,6 +648,7 @@ Converta para sistema métrico (metros, litros, kg). Seja preciso com números.`
                     cabins: { type: 'number' },
                     bathrooms: { type: 'string' },
                     engines: { type: 'string' },
+                    hull_color: { type: 'string' },
                     max_speed: { type: 'number' },
                     cruise_speed: { type: 'number' },
                     range_nautical_miles: { type: 'number' }
