@@ -6,23 +6,22 @@ import { Loader2, Sparkles, Link2, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-interface ExtractedBasicData {
-  brand: string | null;
-  model: string | null;
-  description: string | null;
-  exteriorImages: string[];
-  interiorImages: string[];
+interface ExtractedSpecs {
+  brand?: string;
+  model?: string;
+  description?: string;
+  specifications: Record<string, number | string>;
 }
 
-interface AIUrlExtractorProps {
-  onDataExtracted: (data: ExtractedBasicData) => void;
+interface SpecsUrlExtractorProps {
+  onDataExtracted: (data: ExtractedSpecs) => void;
   className?: string;
 }
 
-export function AIUrlExtractor({ 
+export function SpecsUrlExtractor({ 
   onDataExtracted, 
   className 
-}: AIUrlExtractorProps) {
+}: SpecsUrlExtractorProps) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [lastExtraction, setLastExtraction] = useState<{
@@ -41,7 +40,7 @@ export function AIUrlExtractor({
 
     try {
       const { data, error } = await supabase.functions.invoke('extract-from-url', {
-        body: { url: url.trim(), mode: 'basic' }
+        body: { url: url.trim(), mode: 'specs' }
       });
 
       if (error) {
@@ -53,35 +52,27 @@ export function AIUrlExtractor({
       }
 
       const extractedData = data.data;
-      
-      // Count extracted fields
-      let fieldsCount = 0;
-      if (extractedData.brand) fieldsCount++;
-      if (extractedData.model) fieldsCount++;
-      if (extractedData.description) fieldsCount++;
-      
-      const exteriorCount = extractedData.exteriorImages?.length || 0;
-      const interiorCount = extractedData.interiorImages?.length || 0;
+      const specsCount = Object.values(extractedData.specifications || {})
+        .filter(v => v !== null && v !== undefined).length;
       
       onDataExtracted({
-        brand: extractedData.brand || null,
-        model: extractedData.model || null,
-        description: extractedData.description || null,
-        exteriorImages: extractedData.exteriorImages || [],
-        interiorImages: extractedData.interiorImages || [],
+        brand: extractedData.brand,
+        model: extractedData.model,
+        description: extractedData.description,
+        specifications: extractedData.specifications || {},
       });
 
       setLastExtraction({
         success: true,
-        message: `${fieldsCount} campos, ${exteriorCount} fotos externas, ${interiorCount} fotos internas`
+        message: `${specsCount} especificações técnicas encontradas`
       });
 
-      toast.success("Dados extraídos com sucesso!", {
-        description: `${fieldsCount} campos, ${exteriorCount} fotos externas, ${interiorCount} fotos internas`
+      toast.success("Especificações extraídas!", {
+        description: `${specsCount} campos técnicos preenchidos`
       });
 
     } catch (error) {
-      console.error('Error extracting data:', error);
+      console.error('Error extracting specs:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
       setLastExtraction({
@@ -89,7 +80,7 @@ export function AIUrlExtractor({
         message: errorMessage
       });
 
-      toast.error("Erro ao extrair dados", {
+      toast.error("Erro ao extrair especificações", {
         description: errorMessage
       });
     } finally {
@@ -103,7 +94,7 @@ export function AIUrlExtractor({
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Sparkles className="h-4 w-4" />
-            <span>Preencher com IA</span>
+            <span>Extrair Especificações Técnicas</span>
           </div>
 
           <div className="flex gap-2">
@@ -143,7 +134,7 @@ export function AIUrlExtractor({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Extrai: Marca, Modelo, Descrição e busca fotos externas e internas automaticamente
+            Extrai dimensões, capacidades, performance e outras especificações técnicas
           </p>
 
           {lastExtraction && (

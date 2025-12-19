@@ -23,7 +23,7 @@ import {
   NauticalMileInput,
   NumericInput 
 } from "@/components/ui/numeric-input";
-import { AIUrlExtractor } from "./AIUrlExtractor";
+import { SpecsUrlExtractor } from "./SpecsUrlExtractor";
 import { toast } from "sonner";
 
 interface YachtModelSpecsFormProps {
@@ -31,10 +31,9 @@ interface YachtModelSpecsFormProps {
 }
 
 export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
-  // Mapeamento dos campos de especificações extraídos pela IA
-  const handleSpecsExtracted = (data: any) => {
+  const handleSpecsExtracted = (data: { specifications: Record<string, number | string> }) => {
     const specs = data.specifications;
-    if (!specs) {
+    if (!specs || Object.keys(specs).length === 0) {
       toast.info("Nenhuma especificação técnica encontrada na URL");
       return;
     }
@@ -43,73 +42,73 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
 
     // Dimensões
     if (specs.length_overall) {
-      form.setValue("length_overall", specs.length_overall);
+      form.setValue("length_overall", String(specs.length_overall));
       fieldsUpdated++;
     }
     if (specs.hull_length) {
-      form.setValue("hull_length", specs.hull_length);
+      form.setValue("hull_length", String(specs.hull_length));
       fieldsUpdated++;
     }
     if (specs.beam) {
-      form.setValue("beam", specs.beam);
+      form.setValue("beam", String(specs.beam));
       fieldsUpdated++;
     }
     if (specs.draft) {
-      form.setValue("draft", specs.draft);
+      form.setValue("draft", String(specs.draft));
       fieldsUpdated++;
     }
     if (specs.height_from_waterline) {
-      form.setValue("height_from_waterline", specs.height_from_waterline);
+      form.setValue("height_from_waterline", String(specs.height_from_waterline));
       fieldsUpdated++;
     }
 
     // Pesos
     if (specs.displacement_light) {
-      form.setValue("displacement_light", specs.displacement_light);
+      form.setValue("displacement_light", String(specs.displacement_light));
       fieldsUpdated++;
     }
     if (specs.displacement_loaded) {
-      form.setValue("displacement_loaded", specs.displacement_loaded);
+      form.setValue("displacement_loaded", String(specs.displacement_loaded));
       fieldsUpdated++;
     }
     if (specs.dry_weight) {
-      form.setValue("dry_weight", specs.dry_weight);
+      form.setValue("dry_weight", String(specs.dry_weight));
       fieldsUpdated++;
     }
 
     // Capacidades
     if (specs.fuel_capacity) {
-      form.setValue("fuel_capacity", specs.fuel_capacity);
+      form.setValue("fuel_capacity", String(specs.fuel_capacity));
       fieldsUpdated++;
     }
     if (specs.water_capacity) {
-      form.setValue("water_capacity", specs.water_capacity);
+      form.setValue("water_capacity", String(specs.water_capacity));
       fieldsUpdated++;
     }
     if (specs.passengers_capacity) {
-      form.setValue("passengers_capacity", specs.passengers_capacity);
+      form.setValue("passengers_capacity", String(specs.passengers_capacity));
       fieldsUpdated++;
     }
     if (specs.cabins) {
-      form.setValue("cabins", specs.cabins);
+      form.setValue("cabins", String(specs.cabins));
       fieldsUpdated++;
     }
     if (specs.bathrooms) {
-      form.setValue("bathrooms", specs.bathrooms);
+      form.setValue("bathrooms", String(specs.bathrooms));
       fieldsUpdated++;
     }
 
     // Performance
     if (specs.max_speed) {
-      form.setValue("max_speed", specs.max_speed);
+      form.setValue("max_speed", String(specs.max_speed));
       fieldsUpdated++;
     }
     if (specs.cruise_speed) {
-      form.setValue("cruise_speed", specs.cruise_speed);
+      form.setValue("cruise_speed", String(specs.cruise_speed));
       fieldsUpdated++;
     }
     if (specs.range_nautical_miles) {
-      form.setValue("range_nautical_miles", specs.range_nautical_miles);
+      form.setValue("range_nautical_miles", String(specs.range_nautical_miles));
       fieldsUpdated++;
     }
 
@@ -122,10 +121,9 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
 
   return (
     <div className="space-y-6">
-      {/* AI URL Extractor para especificações */}
-      <AIUrlExtractor 
+      {/* Extrator de specs */}
+      <SpecsUrlExtractor 
         onDataExtracted={handleSpecsExtracted}
-        includeSpecs={true}
         className="mb-4"
       />
 
@@ -147,7 +145,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                       <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Comprimento total da embarcação (converte automaticamente para pés)
+                      Comprimento total da embarcação
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -164,7 +162,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                       <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Comprimento apenas do casco (converte automaticamente para pés)
+                      Comprimento apenas do casco
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -181,7 +179,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                       <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Largura máxima da embarcação (converte automaticamente para pés)
+                      Largura máxima da embarcação
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -198,7 +196,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                       <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Profundidade submersa (converte automaticamente para pés)
+                      Profundidade submersa
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -215,7 +213,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
                       <MeterInput {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
-                      Altura acima da linha d'água (converte automaticamente para pés)
+                      Altura acima da linha d'água
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -374,8 +372,6 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* MOTORIZAÇÃO */}
-
         {/* PERFORMANCE */}
         <AccordionItem value="performance">
           <AccordionTrigger className="text-lg font-semibold">
@@ -439,7 +435,7 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
       </Accordion>
 
       <FormDescription className="text-center text-sm">
-        Todos os campos de especificações técnicas são opcionais e podem ser preenchidos conforme disponibilidade dos dados do fabricante.
+        Todos os campos de especificações técnicas são opcionais.
       </FormDescription>
     </div>
   );

@@ -1,5 +1,5 @@
 import { UseFormReturn } from "react-hook-form";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import {
   FormControl,
@@ -13,113 +13,52 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2, Link2, Check, Star, GripVertical, Trash2 } from "lucide-react";
+import { Upload, X, Loader2, Link2, Check, Star, Trash2, Search, AlertTriangle, Ship, Armchair } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { YachtModelFullValues } from "@/lib/schemas/yacht-model-schema";
 import { CurrencyInput } from "@/components/ui/numeric-input";
 import { AIUrlExtractor } from "./AIUrlExtractor";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface YachtModelBasicFormProps {
   form: UseFormReturn<YachtModelFullValues>;
-  onSpecsExtracted?: (specs: Record<string, any>) => void;
 }
 
-export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicFormProps) {
+export function YachtModelBasicForm({ form }: YachtModelBasicFormProps) {
   const { uploadImage, uploading } = useImageUpload();
-  const [foundImages, setFoundImages] = useState<string[]>([]);
+  const [searchingExterior, setSearchingExterior] = useState(false);
+  const [searchingInterior, setSearchingInterior] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState("");
   
   // Get current values from form
   const currentImageUrl = form.watch("image_url") || "";
-  const currentGalleryImages = form.watch("gallery_images") || [];
+  const currentExteriorImages = form.watch("exterior_images") || [];
+  const currentInteriorImages = form.watch("interior_images") || [];
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: 'exterior' | 'interior') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const url = await uploadImage(file, 'models');
     if (url) {
-      // If no primary image, set as primary
-      if (!currentImageUrl) {
-        form.setValue("image_url", url);
+      if (category === 'exterior') {
+        form.setValue("exterior_images", [...currentExteriorImages, url]);
       } else {
-        // Add to gallery
-        form.setValue("gallery_images", [...currentGalleryImages, url]);
+        form.setValue("interior_images", [...currentInteriorImages, url]);
       }
     }
   };
 
-  const handleImageUrlSet = () => {
-    if (imageUrlInput.trim()) {
-      const url = imageUrlInput.trim();
-      if (!currentImageUrl) {
-        form.setValue("image_url", url);
-      } else {
-        form.setValue("gallery_images", [...currentGalleryImages, url]);
-      }
-      setImageUrlInput("");
-    }
-  };
-
-  // Toggle image selection (add/remove from gallery or set as primary)
-  const handleToggleImage = (url: string) => {
-    const isPrimary = currentImageUrl === url;
-    const inGallery = currentGalleryImages.includes(url);
-
-    if (isPrimary) {
-      // If primary, move to gallery first image and remove from primary
-      if (currentGalleryImages.length > 0) {
-        form.setValue("image_url", currentGalleryImages[0]);
-        form.setValue("gallery_images", currentGalleryImages.slice(1));
-      } else {
-        form.setValue("image_url", "");
-      }
-    } else if (inGallery) {
-      // Remove from gallery
-      form.setValue("gallery_images", currentGalleryImages.filter(img => img !== url));
-    } else {
-      // Add to selection
-      if (!currentImageUrl) {
-        // No primary yet, set as primary
-        form.setValue("image_url", url);
-      } else {
-        // Add to gallery
-        form.setValue("gallery_images", [...currentGalleryImages, url]);
-      }
-    }
-  };
-
-  // Set as primary image
-  const handleSetAsPrimary = (url: string) => {
-    const oldPrimary = currentImageUrl;
-    const newGallery = currentGalleryImages.filter(img => img !== url);
-    
-    // If there was an old primary, add it to gallery
-    if (oldPrimary && oldPrimary !== url) {
-      newGallery.unshift(oldPrimary);
-    }
-    
-    form.setValue("image_url", url);
-    form.setValue("gallery_images", newGallery);
-  };
-
-  // Remove from gallery
-  const handleRemoveFromGallery = (url: string) => {
-    form.setValue("gallery_images", currentGalleryImages.filter(img => img !== url));
-  };
-
-  // Remove primary image
-  const handleRemovePrimary = () => {
-    if (currentGalleryImages.length > 0) {
-      form.setValue("image_url", currentGalleryImages[0]);
-      form.setValue("gallery_images", currentGalleryImages.slice(1));
-    } else {
-      form.setValue("image_url", "");
-    }
-  };
-
-  const handleDataExtracted = (data: any) => {
+  const handleDataExtracted = (data: {
+    brand: string | null;
+    model: string | null;
+    description: string | null;
+    exteriorImages: string[];
+    interiorImages: string[];
+  }) => {
     if (data.brand) form.setValue("brand", data.brand);
     if (data.model) form.setValue("model", data.model);
     if (data.description) form.setValue("description", data.description);
@@ -130,17 +69,87 @@ export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicF
       form.setValue("name", `${brand} ${model}`);
     }
 
-    if (data.specifications && onSpecsExtracted) {
-      onSpecsExtracted(data.specifications);
+    // Set categorized images
+    if (data.exteriorImages?.length > 0) {
+      form.setValue("exterior_images", data.exteriorImages);
+      // Set first exterior image as primary if none set
+      if (!currentImageUrl) {
+        form.setValue("image_url", data.exteriorImages[0]);
+      }
+    }
+    if (data.interiorImages?.length > 0) {
+      form.setValue("interior_images", data.interiorImages);
     }
   };
 
-  const handleImagesFound = (images: string[]) => {
-    setFoundImages(images);
-    // Auto-select first image if no image is set
-    if (images.length > 0 && !currentImageUrl) {
-      form.setValue("image_url", images[0]);
+  const handleSearchMoreImages = async (category: 'exterior' | 'interior') => {
+    const brand = form.getValues("brand");
+    const model = form.getValues("model");
+    
+    if (!brand || !model) {
+      toast.error("Preencha a Marca e Modelo primeiro");
+      return;
     }
+
+    const setSearching = category === 'exterior' ? setSearchingExterior : setSearchingInterior;
+    setSearching(true);
+
+    try {
+      const categoryTerms = category === 'exterior' 
+        ? 'exterior hull deck yacht boat' 
+        : 'interior cabin saloon galley bedroom yacht';
+      
+      const { data, error } = await supabase.functions.invoke('search-product-images', {
+        body: { 
+          brand, 
+          model,
+          customQuery: `${brand} ${model} ${categoryTerms}`
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.images?.length > 0) {
+        const currentImages = category === 'exterior' ? currentExteriorImages : currentInteriorImages;
+        const newImages = [...new Set([...currentImages, ...data.images])];
+        
+        if (category === 'exterior') {
+          form.setValue("exterior_images", newImages);
+        } else {
+          form.setValue("interior_images", newImages);
+        }
+        
+        toast.success(`${data.images.length} novas imagens encontradas`);
+      } else {
+        toast.info("Nenhuma imagem adicional encontrada");
+      }
+    } catch (error) {
+      console.error('Error searching images:', error);
+      toast.error("Erro ao buscar imagens");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSetAsPrimary = (url: string) => {
+    form.setValue("image_url", url);
+  };
+
+  const handleRemoveImage = (url: string, category: 'exterior' | 'interior') => {
+    if (category === 'exterior') {
+      form.setValue("exterior_images", currentExteriorImages.filter(img => img !== url));
+    } else {
+      form.setValue("interior_images", currentInteriorImages.filter(img => img !== url));
+    }
+    
+    // If removed image was primary, clear it
+    if (currentImageUrl === url) {
+      form.setValue("image_url", "");
+    }
+  };
+
+  const handleRemovePrimary = () => {
+    form.setValue("image_url", "");
   };
 
   const handleBrandModelChange = () => {
@@ -151,22 +160,16 @@ export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicF
     }
   };
 
-  // Check if image is selected (primary or gallery)
-  const isImageSelected = (url: string) => {
-    return currentImageUrl === url || currentGalleryImages.includes(url);
-  };
-
-  // Count selected images
-  const selectedCount = (currentImageUrl ? 1 : 0) + currentGalleryImages.length;
+  const exteriorCount = currentExteriorImages.length;
+  const interiorCount = currentInteriorImages.length;
+  const hasMinExterior = exteriorCount >= 6;
+  const hasMinInterior = interiorCount >= 6;
+  const hasPrimary = !!currentImageUrl;
 
   return (
     <div className="space-y-6">
       {/* AI URL Extractor */}
-      <AIUrlExtractor
-        onDataExtracted={handleDataExtracted}
-        onImagesFound={handleImagesFound}
-        includeSpecs={true}
-      />
+      <AIUrlExtractor onDataExtracted={handleDataExtracted} />
 
       {/* Código */}
       <FormField
@@ -271,20 +274,19 @@ export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicF
       />
 
       {/* Imagem Principal */}
-      <div className="space-y-4">
-        <Label>Imagem Principal</Label>
+      <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+        <div className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-primary fill-primary" />
+          <Label className="text-base font-semibold">Imagem Principal</Label>
+        </div>
         
         {currentImageUrl ? (
-          <div className="relative">
+          <div className="relative max-w-md">
             <img
               src={currentImageUrl}
               alt="Imagem principal"
               className="w-full h-48 object-cover rounded-lg border-2 border-primary"
             />
-            <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs flex items-center gap-1">
-              <Star className="h-3 w-3 fill-current" />
-              Principal
-            </div>
             <Button
               type="button"
               variant="destructive"
@@ -296,180 +298,228 @@ export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicF
             </Button>
           </div>
         ) : (
-          <div className="border-2 border-dashed rounded-lg p-8 text-center">
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Nenhuma imagem principal selecionada
-            </p>
-          </div>
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Clique no ★ em uma das fotos abaixo para definir como principal
+            </AlertDescription>
+          </Alert>
         )}
       </div>
 
-      {/* Grid de imagens encontradas pela IA */}
-      {foundImages.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Imagens encontradas via IA</Label>
-            <span className="text-xs text-muted-foreground">
-              {selectedCount} selecionada{selectedCount !== 1 ? 's' : ''} • Clique para selecionar • ★ para definir como principal
+      {/* FOTOS EXTERNAS */}
+      <div className="space-y-3 p-4 border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Ship className="h-5 w-5 text-blue-500" />
+            <Label className="text-base font-semibold">Fotos Externas</Label>
+            <span className={cn(
+              "text-sm px-2 py-0.5 rounded-full",
+              hasMinExterior ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+            )}>
+              {exteriorCount} selecionada{exteriorCount !== 1 ? 's' : ''}
             </span>
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {foundImages.slice(0, 12).map((img, index) => {
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleSearchMoreImages('exterior')}
+            disabled={searchingExterior}
+          >
+            {searchingExterior ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="mr-2 h-4 w-4" />
+            )}
+            Buscar mais fotos
+          </Button>
+        </div>
+
+        {!hasMinExterior && (
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Recomendado: mínimo 6 fotos externas. Faltam {6 - exteriorCount}.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {currentExteriorImages.length > 0 ? (
+          <div className="grid grid-cols-5 gap-2">
+            {currentExteriorImages.map((img, index) => {
               const isPrimary = currentImageUrl === img;
-              const isSelected = isImageSelected(img);
-              
               return (
                 <div
                   key={index}
                   className={cn(
-                    "relative aspect-video rounded-lg overflow-hidden border-2 transition-all group",
-                    isPrimary 
-                      ? "border-primary ring-2 ring-primary/30" 
-                      : isSelected 
-                        ? "border-primary/70 ring-1 ring-primary/20" 
-                        : "border-border hover:border-primary/50"
+                    "relative aspect-video rounded-lg overflow-hidden border-2 group",
+                    isPrimary ? "border-primary ring-2 ring-primary/30" : "border-border"
                   )}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handleToggleImage(img)}
-                    className="w-full h-full"
-                  >
-                    <img
-                      src={img}
-                      alt={`Opção ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                    
-                    {/* Selection overlay */}
-                    {isSelected && (
-                      <div className={cn(
-                        "absolute inset-0 flex items-center justify-center",
-                        isPrimary ? "bg-primary/30" : "bg-primary/20"
-                      )}>
-                        <Check className={cn(
-                          "h-6 w-6",
-                          isPrimary ? "text-primary-foreground" : "text-primary"
-                        )} />
-                      </div>
-                    )}
-                  </button>
+                  <img
+                    src={img}
+                    alt={`Exterior ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
                   
-                  {/* Star button to set as primary */}
-                  {isSelected && !isPrimary && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSetAsPrimary(img);
-                      }}
-                      className="absolute top-1 right-1 p-1 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary hover:text-primary-foreground"
-                      title="Definir como principal"
-                    >
-                      <Star className="h-3 w-3" />
-                    </button>
-                  )}
-                  
-                  {/* Primary badge */}
                   {isPrimary && (
                     <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] flex items-center gap-0.5">
                       <Star className="h-2.5 w-2.5 fill-current" />
                     </div>
                   )}
+
+                  <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    {!isPrimary && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetAsPrimary(img)}
+                        className="p-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                        title="Definir como principal"
+                      >
+                        <Star className="h-3 w-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(img, 'exterior')}
+                      className="p-1.5 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
+                      title="Remover"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground">
+            <Ship className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Nenhuma foto externa. Use "Buscar mais fotos" ou faça upload.</p>
+          </div>
+        )}
 
-      {/* Galeria de Imagens Selecionadas */}
-      {currentGalleryImages.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm">Galeria de Imagens ({currentGalleryImages.length})</Label>
-          </div>
-          <div className="grid grid-cols-6 gap-2">
-            {currentGalleryImages.map((img, index) => (
-              <div
-                key={index}
-                className="relative aspect-video rounded-lg overflow-hidden border group"
-              >
-                <img
-                  src={img}
-                  alt={`Galeria ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleSetAsPrimary(img)}
-                    className="p-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                    title="Definir como principal"
-                  >
-                    <Star className="h-3 w-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFromGallery(img)}
-                    className="p-1.5 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
-                    title="Remover da galeria"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {/* Opções de upload */}
-      <div className="flex flex-col gap-2">
-        <Label className="text-sm text-muted-foreground">Adicionar imagem</Label>
-        {/* Upload de arquivo */}
         <div className="flex items-center gap-2">
           <Input
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/webp"
-            onChange={handleImageUpload}
+            onChange={(e) => handleImageUpload(e, 'exterior')}
             disabled={uploading}
             className="flex-1"
           />
-          {uploading && (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          )}
+          {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
+        </div>
+      </div>
+
+      {/* FOTOS INTERNAS */}
+      <div className="space-y-3 p-4 border rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Armchair className="h-5 w-5 text-amber-500" />
+            <Label className="text-base font-semibold">Fotos Internas</Label>
+            <span className={cn(
+              "text-sm px-2 py-0.5 rounded-full",
+              hasMinInterior ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+            )}>
+              {interiorCount} selecionada{interiorCount !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleSearchMoreImages('interior')}
+            disabled={searchingInterior}
+          >
+            {searchingInterior ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="mr-2 h-4 w-4" />
+            )}
+            Buscar mais fotos
+          </Button>
         </div>
 
-        {/* URL direta */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cole uma URL de imagem..."
-              value={imageUrlInput}
-              onChange={(e) => setImageUrlInput(e.target.value)}
-              className="pl-9"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleImageUrlSet();
-                }
-              }}
-            />
+        {!hasMinInterior && (
+          <Alert variant="destructive" className="bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Recomendado: mínimo 6 fotos internas. Faltam {6 - interiorCount}.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {currentInteriorImages.length > 0 ? (
+          <div className="grid grid-cols-5 gap-2">
+            {currentInteriorImages.map((img, index) => {
+              const isPrimary = currentImageUrl === img;
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "relative aspect-video rounded-lg overflow-hidden border-2 group",
+                    isPrimary ? "border-primary ring-2 ring-primary/30" : "border-border"
+                  )}
+                >
+                  <img
+                    src={img}
+                    alt={`Interior ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                  
+                  {isPrimary && (
+                    <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1.5 py-0.5 rounded text-[10px] flex items-center gap-0.5">
+                      <Star className="h-2.5 w-2.5 fill-current" />
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                    {!isPrimary && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetAsPrimary(img)}
+                        className="p-1.5 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                        title="Definir como principal"
+                      >
+                        <Star className="h-3 w-3" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(img, 'interior')}
+                      className="p-1.5 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90"
+                      title="Remover"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={handleImageUrlSet}
-            disabled={!imageUrlInput.trim()}
-          >
-            Usar URL
-          </Button>
+        ) : (
+          <div className="border-2 border-dashed rounded-lg p-6 text-center text-muted-foreground">
+            <Armchair className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Nenhuma foto interna. Use "Buscar mais fotos" ou faça upload.</p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <Input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={(e) => handleImageUpload(e, 'interior')}
+            disabled={uploading}
+            className="flex-1"
+          />
+          {uploading && <Loader2 className="h-4 w-4 animate-spin" />}
         </div>
       </div>
 
@@ -498,7 +548,7 @@ export function YachtModelBasicForm({ form, onSpecsExtracted }: YachtModelBasicF
             <div className="space-y-0.5">
               <FormLabel className="text-base">Status</FormLabel>
               <FormDescription>
-                Modelo ativo e disponível para cotação
+                Modelos inativos não aparecem no configurador
               </FormDescription>
             </div>
             <FormControl>
