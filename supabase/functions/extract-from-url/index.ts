@@ -31,7 +31,97 @@ interface ExtractedData {
     max_speed?: number;
     cruise_speed?: number;
     range_nautical_miles?: number;
+    dry_weight?: number;
   };
+}
+
+// Pré-processamento com regex para extrair especificações diretamente do markdown
+function extractSpecsFromMarkdown(markdown: string): Record<string, number | string> {
+  const specs: Record<string, number | string> = {};
+  
+  // Helper para extrair número de uma string
+  const extractNumber = (match: RegExpMatchArray | null): number | null => {
+    if (!match || !match[1]) return null;
+    // Substitui vírgula por ponto e extrai o número
+    const numStr = match[1].replace(',', '.').replace(/\s/g, '');
+    const num = parseFloat(numStr);
+    return isNaN(num) ? null : num;
+  };
+
+  // Padrões para especificações em português (sites brasileiros como Yachtmax)
+  const patterns: Array<{ key: string; regex: RegExp; isString?: boolean }> = [
+    // Dimensões
+    { key: 'length_overall', regex: /Comprimento\s*Total[*\s:]*(\d+[.,]?\d*)\s*(Metros?|m)?/i },
+    { key: 'hull_length', regex: /Comprimento\s*(?:do\s*)?Casco[*\s:]*(\d+[.,]?\d*)\s*(Metros?|m)?/i },
+    { key: 'beam', regex: /Boca\s*(?:Máxima)?[*\s:]*(\d+[.,]?\d*)\s*(Metros?|m)?/i },
+    { key: 'draft', regex: /Calado[*\s:]*(\d+[.,]?\d*)\s*(Metros?|m)?/i },
+    { key: 'height_from_waterline', regex: /Altura\s*(?:da\s*)?(?:Linha\s*(?:d['']?[aá]gua)?|Borda\s*Livre)[*\s:]*(\d+[.,]?\d*)\s*(Metros?|m)?/i },
+    
+    // Pesos e deslocamento
+    { key: 'displacement_loaded', regex: /Deslocamento\s*(?:Carregado|Total)[*\s:]*(\d+[.,]?\d*)\s*(?:kg|quilos?)?/i },
+    { key: 'displacement_light', regex: /Deslocamento\s*(?:Leve|Sem\s*Carga)[*\s:]*(\d+[.,]?\d*)\s*(?:kg|quilos?)?/i },
+    { key: 'dry_weight', regex: /Peso\s*(?:Seco|a\s*Seco)[*\s:]*(\d+[.,]?\d*)\s*(?:kg|quilos?)?/i },
+    
+    // Capacidades
+    { key: 'fuel_capacity', regex: /(?:Combust[ií]vel|Tanque\s*(?:de\s*)?Combust[ií]vel|Diesel)[*\s:]*(\d+[.,]?\d*)\s*(?:litros?|L)?/i },
+    { key: 'water_capacity', regex: /(?:[ÁA]gua\s*(?:Pot[áa]vel|Doce)?|Tanque\s*(?:de\s*)?[ÁA]gua)[*\s:]*(\d+[.,]?\d*)\s*(?:litros?|L)?/i },
+    { key: 'passengers_capacity', regex: /(?:Pessoas?\s*(?:a\s*)?Bordo|Passageiros?|Capacidade)[*\s:]*(\d+)/i },
+    { key: 'cabins', regex: /Cabin(?:e|s)[*\s:]*(\d+)/i },
+    { key: 'bathrooms', regex: /(?:Banheiros?|WC|Lavabos?)[*\s:]*(\d+(?:\s*\+\s*\d+)?)/i, isString: true },
+    
+    // Performance
+    { key: 'max_speed', regex: /(?:Velocidade\s*)?M[áa]xima[*\s:]*(\d+[.,]?\d*)\s*(?:n[óo]s?|kts?)?/i },
+    { key: 'cruise_speed', regex: /(?:Velocidade\s*(?:de\s*)?)?Cruzeiro[*\s:]*(\d+[.,]?\d*)\s*(?:n[óo]s?|kts?)?/i },
+    { key: 'range_nautical_miles', regex: /(?:Autonomia|Alcance)[*\s:]*(\d+[.,]?\d*)\s*(?:milhas?\s*n[áa]uticas?|NM|mn)?/i },
+    
+    // Motores (string)
+    { key: 'engines', regex: /Motor(?:es|iza[çc][ãa]o)?[*\s:]*(.+?)(?:\n|\|)/i, isString: true },
+  ];
+
+  for (const { key, regex, isString } of patterns) {
+    const match = markdown.match(regex);
+    if (match) {
+      if (isString) {
+        const value = match[1]?.trim();
+        if (value) {
+          specs[key] = value;
+          console.log(`Regex extracted ${key}:`, value);
+        }
+      } else {
+        const num = extractNumber(match);
+        if (num !== null) {
+          specs[key] = num;
+          console.log(`Regex extracted ${key}:`, num);
+        }
+      }
+    }
+  }
+
+  return specs;
+}
+
+// Encontra a seção de especificações no markdown
+function findSpecsSection(markdown: string): string {
+  // Procura por seções que tipicamente contêm especificações
+  const specsSectionPatterns = [
+    /#{1,3}\s*(?:Especifica[çc][õo]es?|Ficha\s*T[ée]cnica|Dados\s*T[ée]cnicos?|Caracter[íi]sticas)/i,
+    /\*{2}(?:Especifica[çc][õo]es?|Ficha\s*T[ée]cnica)\*{2}/i,
+  ];
+
+  for (const pattern of specsSectionPatterns) {
+    const match = markdown.search(pattern);
+    if (match !== -1) {
+      // Extrai a partir da seção encontrada até o final ou próxima seção major
+      const section = markdown.substring(match);
+      // Retorna até 5000 caracteres da seção de specs
+      return section.substring(0, 5000);
+    }
+  }
+
+  // Se não encontrou seção específica, retorna a segunda metade do markdown
+  // (specs geralmente estão depois da descrição comercial)
+  const midPoint = Math.floor(markdown.length / 2);
+  return markdown.substring(midPoint, midPoint + 5000);
 }
 
 serve(async (req) => {
@@ -103,6 +193,10 @@ serve(async (req) => {
 
     console.log('Firecrawl response - markdown length:', markdown.length, 'links count:', links.length);
 
+    // Step 1.5: Pré-processamento com regex para extrair specs diretamente
+    const regexSpecs = extractSpecsFromMarkdown(markdown);
+    console.log('Regex pre-extracted specs:', JSON.stringify(regexSpecs, null, 2));
+
     // Extract image URLs from links
     const imageUrls = links.filter((link: string) => 
       /\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(link) ||
@@ -114,9 +208,15 @@ serve(async (req) => {
     console.log('Found image URLs:', imageUrls.length);
 
     // Step 2: Send to Lovable AI for structured extraction
+    // Enviamos tanto o início (descrição) quanto a seção de specs
     console.log('Sending to Lovable AI for extraction...');
 
+    const specsSection = findSpecsSection(markdown);
+    const basicSection = markdown.substring(0, 6000);
+
     const systemPrompt = `Você é um especialista em iates e embarcações. Sua tarefa é extrair informações estruturadas de páginas de fabricantes de iates.
+
+IMPORTANTE: Extraia TODAS as especificações técnicas disponíveis. Preste atenção especial aos números e unidades.
 
 Extraia as seguintes informações do conteúdo fornecido:
 - brand: Nome do fabricante/marca (ex: OKEAN, Azimut, Ferretti)
@@ -125,34 +225,42 @@ Extraia as seguintes informações do conteúdo fornecido:
 - specifications: Especificações técnicas incluindo:
   - length_overall: Comprimento total em metros (número decimal)
   - hull_length: Comprimento do casco em metros (número decimal)
-  - beam: Largura máxima em metros (número decimal)
+  - beam: Boca/Largura máxima em metros (número decimal)
   - draft: Calado em metros (número decimal)
-  - displacement_light: Deslocamento sem carga em kg (número inteiro)
-  - displacement_loaded: Deslocamento com carga em kg (número inteiro)
+  - height_from_waterline: Altura da linha d'água/borda livre em metros
+  - displacement_light: Deslocamento leve em kg (número inteiro)
+  - displacement_loaded: Deslocamento carregado em kg (número inteiro)
+  - dry_weight: Peso seco em kg (número inteiro)
   - fuel_capacity: Capacidade de combustível em litros (número inteiro)
   - water_capacity: Capacidade de água em litros (número inteiro)
-  - passengers_capacity: Número máximo de passageiros (número inteiro)
+  - passengers_capacity: Número máximo de passageiros/pessoas a bordo (número inteiro)
   - cabins: Número de cabines (número inteiro)
   - bathrooms: Número de banheiros (string, pode ser "3+1")
-  - engines: Descrição dos motores (string)
+  - engines: Descrição completa dos motores (string)
   - max_speed: Velocidade máxima em nós (número decimal)
   - cruise_speed: Velocidade de cruzeiro em nós (número decimal)
   - range_nautical_miles: Autonomia em milhas náuticas (número inteiro)
 
-Importante:
-- Converta todas as medidas para o sistema métrico (metros, litros, kg)
-- Se um valor estiver em pés, converta para metros (1 pé = 0.3048 metros)
-- Se um valor estiver em galões, converta para litros (1 galão = 3.785 litros)
-- Se uma informação não estiver disponível, retorne null para aquele campo
-- Seja preciso com os números, não invente valores`;
+REGRAS IMPORTANTES:
+1. Converta todas as medidas para o sistema métrico (metros, litros, kg)
+2. Se um valor estiver em pés, converta para metros (1 pé = 0.3048 metros)
+3. Se um valor estiver em galões, converta para litros (1 galão = 3.785 litros)
+4. Se uma informação não estiver disponível, NÃO inclua o campo
+5. Seja preciso com os números, não invente valores
+6. Para "Pessoas a Bordo" use passengers_capacity
+7. Para "Combustível" use fuel_capacity
+8. Para "Água Potável" use water_capacity`;
 
-    const userPrompt = `Extraia as informações deste conteúdo de página de iate:
+    const userPrompt = `Extraia as informações deste conteúdo de página de iate.
 
 URL: ${formattedUrl}
 Título da página: ${metadata.title || 'Não disponível'}
 
-Conteúdo:
-${markdown.substring(0, 8000)}`;
+=== CONTEÚDO PRINCIPAL ===
+${basicSection}
+
+=== SEÇÃO DE ESPECIFICAÇÕES TÉCNICAS ===
+${specsSection}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -181,21 +289,23 @@ ${markdown.substring(0, 8000)}`;
                   specifications: {
                     type: 'object',
                     properties: {
-                      length_overall: { type: 'number', description: 'Length in meters' },
-                      hull_length: { type: 'number', description: 'Hull length in meters' },
-                      beam: { type: 'number', description: 'Beam/width in meters' },
-                      draft: { type: 'number', description: 'Draft in meters' },
-                      displacement_light: { type: 'number', description: 'Light displacement in kg' },
-                      displacement_loaded: { type: 'number', description: 'Loaded displacement in kg' },
-                      fuel_capacity: { type: 'number', description: 'Fuel capacity in liters' },
-                      water_capacity: { type: 'number', description: 'Water capacity in liters' },
-                      passengers_capacity: { type: 'number', description: 'Max passengers' },
-                      cabins: { type: 'number', description: 'Number of cabins' },
-                      bathrooms: { type: 'string', description: 'Number of bathrooms' },
-                      engines: { type: 'string', description: 'Engine description' },
-                      max_speed: { type: 'number', description: 'Max speed in knots' },
-                      cruise_speed: { type: 'number', description: 'Cruise speed in knots' },
-                      range_nautical_miles: { type: 'number', description: 'Range in nautical miles' }
+                      length_overall: { type: 'number', description: 'Comprimento Total in meters' },
+                      hull_length: { type: 'number', description: 'Comprimento do Casco in meters' },
+                      beam: { type: 'number', description: 'Boca Máxima in meters' },
+                      draft: { type: 'number', description: 'Calado in meters' },
+                      height_from_waterline: { type: 'number', description: 'Altura da linha d agua in meters' },
+                      displacement_light: { type: 'number', description: 'Deslocamento leve in kg' },
+                      displacement_loaded: { type: 'number', description: 'Deslocamento carregado in kg' },
+                      dry_weight: { type: 'number', description: 'Peso seco in kg' },
+                      fuel_capacity: { type: 'number', description: 'Combustível capacity in liters' },
+                      water_capacity: { type: 'number', description: 'Água Potável capacity in liters' },
+                      passengers_capacity: { type: 'number', description: 'Pessoas a Bordo max count' },
+                      cabins: { type: 'number', description: 'Number of cabines' },
+                      bathrooms: { type: 'string', description: 'Number of banheiros' },
+                      engines: { type: 'string', description: 'Motorização description' },
+                      max_speed: { type: 'number', description: 'Velocidade máxima in knots' },
+                      cruise_speed: { type: 'number', description: 'Velocidade de cruzeiro in knots' },
+                      range_nautical_miles: { type: 'number', description: 'Autonomia in nautical miles' }
                     }
                   }
                 },
@@ -253,7 +363,29 @@ ${markdown.substring(0, 8000)}`;
       }
     }
 
-    console.log('Extracted data:', JSON.stringify(extractedData, null, 2));
+    // Step 3: Merge regex specs with AI specs (regex has priority for numerical values)
+    const mergedSpecs = { ...extractedData.specifications };
+    
+    for (const [key, value] of Object.entries(regexSpecs)) {
+      // Se regex encontrou um valor e AI não, ou se é um valor numérico (regex é mais preciso)
+      if (value !== undefined && value !== null) {
+        const aiValue = mergedSpecs[key as keyof typeof mergedSpecs];
+        if (aiValue === undefined || aiValue === null) {
+          // AI não encontrou, usar regex
+          (mergedSpecs as Record<string, number | string>)[key] = value;
+          console.log(`Using regex value for ${key}:`, value);
+        } else if (typeof value === 'number' && typeof aiValue === 'number') {
+          // Ambos são números - preferir regex se os valores são próximos
+          // (regex pode ter extraído valor mais preciso direto do texto)
+          (mergedSpecs as Record<string, number | string>)[key] = value;
+          console.log(`Overriding AI value with regex for ${key}:`, value, '(was:', aiValue, ')');
+        }
+      }
+    }
+
+    extractedData.specifications = mergedSpecs;
+
+    console.log('Final extracted data:', JSON.stringify(extractedData, null, 2));
 
     return new Response(
       JSON.stringify({ 
@@ -263,6 +395,10 @@ ${markdown.substring(0, 8000)}`;
           url: formattedUrl,
           title: metadata.title,
           scrapedAt: new Date().toISOString()
+        },
+        debug: {
+          regexSpecsCount: Object.keys(regexSpecs).length,
+          aiSpecsCount: Object.keys(extractedData.specifications).length
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
