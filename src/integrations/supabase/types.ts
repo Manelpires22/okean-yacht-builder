@@ -758,6 +758,7 @@ export type Database = {
       }
       memorial_upgrades: {
         Row: {
+          allow_multiple: boolean | null
           brand: string | null
           code: string
           configurable_sub_items: Json | null
@@ -782,6 +783,7 @@ export type Database = {
           yacht_model_id: string
         }
         Insert: {
+          allow_multiple?: boolean | null
           brand?: string | null
           code: string
           configurable_sub_items?: Json | null
@@ -806,6 +808,7 @@ export type Database = {
           yacht_model_id: string
         }
         Update: {
+          allow_multiple?: boolean | null
           brand?: string | null
           code?: string
           configurable_sub_items?: Json | null
@@ -885,6 +888,7 @@ export type Database = {
       }
       options: {
         Row: {
+          allow_multiple: boolean | null
           base_price: number
           brand: string | null
           category_id: string | null
@@ -909,6 +913,7 @@ export type Database = {
           yacht_model_id: string | null
         }
         Insert: {
+          allow_multiple?: boolean | null
           base_price: number
           brand?: string | null
           category_id?: string | null
@@ -933,6 +938,7 @@ export type Database = {
           yacht_model_id?: string | null
         }
         Update: {
+          allow_multiple?: boolean | null
           base_price?: number
           brand?: string | null
           category_id?: string | null
