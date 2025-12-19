@@ -27,7 +27,86 @@ interface SpecsExtractedData {
   specifications: Record<string, number | string>;
 }
 
-// Busca imagens no Google por categoria
+// Extrai imagens diretamente do markdown da página, separando por categoria
+function extractImagesFromMarkdown(markdown: string): { 
+  exteriorImages: string[]; 
+  interiorImages: string[] 
+} {
+  const exteriorImages: string[] = [];
+  const interiorImages: string[] = [];
+
+  // Regex para encontrar URLs de imagens no markdown
+  const imageRegex = /\!\[.*?\]\((https?:\/\/[^\s\)]+)\)/gi;
+  const directUrlRegex = /(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s\)]*)?)/gi;
+
+  // Padrões para identificar seções de imagens externas
+  const externalPatterns = [
+    /##\s*Imagens?\s*Extern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Exterior\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Fotos?\s*Extern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Galeria\s*Extern[ao]?\s*([\s\S]*?)(?=##|$)/i,
+  ];
+
+  // Padrões para identificar seções de imagens internas
+  const internalPatterns = [
+    /##\s*Imagens?\s*Intern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Interior\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Fotos?\s*Intern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
+    /##\s*Galeria\s*Intern[ao]?\s*([\s\S]*?)(?=##|$)/i,
+  ];
+
+  // Função para extrair URLs de uma seção
+  const extractUrlsFromSection = (section: string): string[] => {
+    const urls: string[] = [];
+    
+    // Tentar extrair de formato markdown ![alt](url)
+    let match;
+    const imgRegex = /\!\[.*?\]\((https?:\/\/[^\s\)]+)\)/gi;
+    while ((match = imgRegex.exec(section)) !== null) {
+      if (match[1]) urls.push(match[1]);
+    }
+    
+    // Também pegar URLs diretas de imagens
+    const urlRegex = /(https?:\/\/[^\s\)\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s\)\]]*)?)/gi;
+    while ((match = urlRegex.exec(section)) !== null) {
+      if (match[1] && !urls.includes(match[1])) {
+        urls.push(match[1]);
+      }
+    }
+    
+    return urls;
+  };
+
+  // Tentar encontrar seção de imagens externas
+  for (const pattern of externalPatterns) {
+    const match = markdown.match(pattern);
+    if (match && match[1]) {
+      const urls = extractUrlsFromSection(match[1]);
+      exteriorImages.push(...urls);
+      console.log(`Found ${urls.length} exterior images in section`);
+      break;
+    }
+  }
+
+  // Tentar encontrar seção de imagens internas
+  for (const pattern of internalPatterns) {
+    const match = markdown.match(pattern);
+    if (match && match[1]) {
+      const urls = extractUrlsFromSection(match[1]);
+      interiorImages.push(...urls);
+      console.log(`Found ${urls.length} interior images in section`);
+      break;
+    }
+  }
+
+  // Remover duplicatas
+  return { 
+    exteriorImages: [...new Set(exteriorImages)], 
+    interiorImages: [...new Set(interiorImages)]
+  };
+}
+
+// Fallback: Busca imagens no Google por categoria
 async function searchImagesByCategory(
   brand: string, 
   model: string, 
@@ -286,17 +365,28 @@ ${markdown.substring(0, 4000)}`;
 
       console.log('Extracted basic data:', { brand, model });
 
-      // Search images by category in parallel
-      let exteriorImages: string[] = [];
-      let interiorImages: string[] = [];
+      // Primeiro: Tentar extrair imagens diretamente do markdown da página
+      const pageImages = extractImagesFromMarkdown(markdown);
+      let exteriorImages = pageImages.exteriorImages;
+      let interiorImages = pageImages.interiorImages;
 
+      console.log('Page images extracted:', { 
+        exterior: exteriorImages.length, 
+        interior: interiorImages.length 
+      });
+
+      // Fallback: Se não encontrou imagens suficientes na página, buscar no Google
       if (brand && model) {
-        const [exterior, interior] = await Promise.all([
-          searchImagesByCategory(brand, model, 'exterior'),
-          searchImagesByCategory(brand, model, 'interior')
-        ]);
-        exteriorImages = exterior;
-        interiorImages = interior;
+        if (exteriorImages.length < 3) {
+          console.log('Not enough exterior images from page, searching Google...');
+          const googleExterior = await searchImagesByCategory(brand, model, 'exterior');
+          exteriorImages = [...exteriorImages, ...googleExterior];
+        }
+        if (interiorImages.length < 3) {
+          console.log('Not enough interior images from page, searching Google...');
+          const googleInterior = await searchImagesByCategory(brand, model, 'interior');
+          interiorImages = [...interiorImages, ...googleInterior];
+        }
       }
 
       const result: BasicExtractedData = {
