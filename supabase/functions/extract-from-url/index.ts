@@ -367,7 +367,8 @@ function extractSpecsFromMarkdown(markdown: string): Record<string, number | str
     { key: 'max_speed', regex: /(?:Velocidade\s*)?M[áa]xima[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:n[óo]s?|kts?)?/i },
     { key: 'cruise_speed', regex: /(?:Velocidade\s*(?:de\s*)?)?Cruzeiro[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:n[óo]s?|kts?)?/i },
     { key: 'range_nautical_miles', regex: /(?:Autonomia|Alcance)[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:milhas?\s*n[áa]uticas?|NM|mn)?/i },
-    { key: 'engines', regex: /Motor(?:es|iza[çc][ãa]o)?[*\s:]*(.+?)(?:\n{2}|\|\s*(?:Transmiss[ãa]o|Hélices?)|$)/i, isString: true },
+    // Regex melhorado para capturar **Motor** em formato markdown com negrito
+    { key: 'engines', regex: /\*{0,2}Motor(?:es|iza[çc][ãa]o)?\*{0,2}[\s:]+(.+?)(?=\n\n|\n###|\n\*{2}Transmiss[ãa]o|\*{2}Transmiss[ãa]o|$)/i, isString: true },
     { key: 'hull_color', regex: /(?:Cor(?:\s*do)?\s*Casco)[*\s:]*(.+?)(?:\n|\||$)/i, isString: true },
   ];
 
@@ -375,8 +376,10 @@ function extractSpecsFromMarkdown(markdown: string): Record<string, number | str
     const match = markdown.match(regex);
     if (match) {
       if (isString) {
-        const value = match[1]?.trim();
+        let value = match[1]?.trim();
         if (value) {
+          // Limpar caracteres escapados do markdown (\| → |)
+          value = value.replace(/\\([|])/g, '$1');
           specs[key] = value;
         }
       } else {
