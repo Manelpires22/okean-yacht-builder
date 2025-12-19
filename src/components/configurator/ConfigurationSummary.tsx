@@ -446,10 +446,14 @@ export function ConfigurationSummary({
             </div>
           )}
 
-          {upgradesPrice > 0 && (
+          {upgradesPrice !== 0 && (
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground text-primary">Total Upgrades</span>
-              <span className="font-medium text-primary">{formatCurrency(upgradesPrice)}</span>
+              <span className={`text-muted-foreground ${upgradesPrice > 0 ? 'text-primary' : 'text-blue-600'}`}>
+                Total Upgrades
+              </span>
+              <span className={`font-medium ${upgradesPrice > 0 ? 'text-primary' : 'text-blue-600'}`}>
+                {upgradesPrice > 0 && '+'}{formatCurrency(upgradesPrice)}
+              </span>
             </div>
           )}
         </div>
