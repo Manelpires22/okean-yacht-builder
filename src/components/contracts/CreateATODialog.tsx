@@ -30,6 +30,7 @@ import { ATOItemSelector } from "./ato-creation/ATOItemSelector";
 import { ATOItemsList, PendingATOItem } from "./ato-creation/ATOItemsList";
 import { SelectContractItemDialog } from "./ato-creation/SelectContractItemDialog";
 import { SelectAvailableOptionDialog } from "./ato-creation/SelectAvailableOptionDialog";
+import { SelectAvailableUpgradeDialog } from "./ato-creation/SelectAvailableUpgradeDialog";
 import { NewCustomizationForm } from "./ato-creation/NewCustomizationForm";
 import { SelectDefinableItemDialog } from "./ato-creation/SelectDefinableItemDialog";
 
@@ -139,7 +140,7 @@ export function CreateATODialog({
 
     // Criar configurações para os itens
     const configurations = pendingItems.map((item) => ({
-      item_type: item.type === "add_optional" ? "option" : "memorial_item",
+      item_type: item.type === "add_optional" ? "option" : item.type === "add_upgrade" ? "upgrade" : "memorial_item",
       item_id: item.item_id || null,
       configuration_details: {
         type: item.type,
@@ -416,6 +417,13 @@ export function CreateATODialog({
           <NewCustomizationForm
             open={currentDialog === "new_customization"}
             onOpenChange={(open) => !open && setCurrentDialog(null)}
+            onAdd={handleAddItem}
+          />
+
+          <SelectAvailableUpgradeDialog
+            open={currentDialog === "add_upgrade"}
+            onOpenChange={(open) => !open && setCurrentDialog(null)}
+            yachtModelId={contractData.contract.yacht_model_id}
             onAdd={handleAddItem}
           />
 

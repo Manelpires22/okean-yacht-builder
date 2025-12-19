@@ -1,4 +1,4 @@
-import { X, Edit, Plus, FileText, Palette } from "lucide-react";
+import { X, Edit, Plus, FileText, Palette, ArrowUpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/quotation-utils";
 
 export interface PendingATOItem {
   id: string;
-  type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing";
+  type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade";
   item_id?: string;
   item_name: string;
   notes?: string;
@@ -25,6 +25,7 @@ const TYPE_ICONS = {
   add_optional: Plus,
   new_customization: FileText,
   define_finishing: Palette,
+  add_upgrade: ArrowUpCircle,
 };
 
 const TYPE_LABELS = {
@@ -32,6 +33,7 @@ const TYPE_LABELS = {
   add_optional: "Adicional",
   new_customization: "Customização",
   define_finishing: "Definição",
+  add_upgrade: "Upgrade",
 };
 
 export function ATOItemsList({ items, onRemove }: ATOItemsListProps) {

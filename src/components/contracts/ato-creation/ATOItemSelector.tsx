@@ -1,14 +1,13 @@
-import { Edit, Plus, FileText, Palette } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Edit, Plus, FileText, Palette, ArrowUpCircle } from "lucide-react";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ATOItemSelectorProps {
-  onSelectType: (type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing") => void;
+  onSelectType: (type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade") => void;
 }
 
 export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("edit_existing")}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -29,6 +28,18 @@ export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
           </CardTitle>
           <CardDescription>
             Incluir um novo opcional disponível para este modelo de iate
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("add_upgrade")}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ArrowUpCircle className="h-5 w-5 text-primary" />
+            Adicionar Upgrade
+          </CardTitle>
+          <CardDescription>
+            Incluir um upgrade disponível para itens do memorial
           </CardDescription>
         </CardHeader>
       </Card>
