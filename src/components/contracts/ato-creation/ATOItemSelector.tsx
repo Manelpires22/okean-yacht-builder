@@ -20,18 +20,6 @@ export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
         </CardHeader>
       </Card>
 
-      <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("add_optional")}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Plus className="h-5 w-5 text-primary" />
-            Adicionar Opcional
-          </CardTitle>
-          <CardDescription>
-            Incluir um novo opcional disponível para este modelo de iate
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
       <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("add_upgrade")}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -40,6 +28,18 @@ export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
           </CardTitle>
           <CardDescription>
             Incluir um upgrade disponível para itens do memorial
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("add_optional")}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Plus className="h-5 w-5 text-primary" />
+            Adicionar Opcional
+          </CardTitle>
+          <CardDescription>
+            Incluir um novo opcional disponível para este modelo de iate
           </CardDescription>
         </CardHeader>
       </Card>
