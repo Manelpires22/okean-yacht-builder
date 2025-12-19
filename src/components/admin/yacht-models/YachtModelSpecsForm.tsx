@@ -8,7 +8,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Accordion,
   AccordionContent,
@@ -24,14 +23,112 @@ import {
   NauticalMileInput,
   NumericInput 
 } from "@/components/ui/numeric-input";
+import { AIUrlExtractor } from "./AIUrlExtractor";
+import { toast } from "sonner";
 
 interface YachtModelSpecsFormProps {
   form: UseFormReturn<YachtModelFullValues>;
 }
 
 export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
+  // Mapeamento dos campos de especificações extraídos pela IA
+  const handleSpecsExtracted = (data: any) => {
+    const specs = data.specifications;
+    if (!specs) {
+      toast.info("Nenhuma especificação técnica encontrada na URL");
+      return;
+    }
+
+    let fieldsUpdated = 0;
+
+    // Dimensões
+    if (specs.length_overall) {
+      form.setValue("length_overall", specs.length_overall);
+      fieldsUpdated++;
+    }
+    if (specs.hull_length) {
+      form.setValue("hull_length", specs.hull_length);
+      fieldsUpdated++;
+    }
+    if (specs.beam) {
+      form.setValue("beam", specs.beam);
+      fieldsUpdated++;
+    }
+    if (specs.draft) {
+      form.setValue("draft", specs.draft);
+      fieldsUpdated++;
+    }
+    if (specs.height_from_waterline) {
+      form.setValue("height_from_waterline", specs.height_from_waterline);
+      fieldsUpdated++;
+    }
+
+    // Pesos
+    if (specs.displacement_light) {
+      form.setValue("displacement_light", specs.displacement_light);
+      fieldsUpdated++;
+    }
+    if (specs.displacement_loaded) {
+      form.setValue("displacement_loaded", specs.displacement_loaded);
+      fieldsUpdated++;
+    }
+    if (specs.dry_weight) {
+      form.setValue("dry_weight", specs.dry_weight);
+      fieldsUpdated++;
+    }
+
+    // Capacidades
+    if (specs.fuel_capacity) {
+      form.setValue("fuel_capacity", specs.fuel_capacity);
+      fieldsUpdated++;
+    }
+    if (specs.water_capacity) {
+      form.setValue("water_capacity", specs.water_capacity);
+      fieldsUpdated++;
+    }
+    if (specs.passengers_capacity) {
+      form.setValue("passengers_capacity", specs.passengers_capacity);
+      fieldsUpdated++;
+    }
+    if (specs.cabins) {
+      form.setValue("cabins", specs.cabins);
+      fieldsUpdated++;
+    }
+    if (specs.bathrooms) {
+      form.setValue("bathrooms", specs.bathrooms);
+      fieldsUpdated++;
+    }
+
+    // Performance
+    if (specs.max_speed) {
+      form.setValue("max_speed", specs.max_speed);
+      fieldsUpdated++;
+    }
+    if (specs.cruise_speed) {
+      form.setValue("cruise_speed", specs.cruise_speed);
+      fieldsUpdated++;
+    }
+    if (specs.range_nautical_miles) {
+      form.setValue("range_nautical_miles", specs.range_nautical_miles);
+      fieldsUpdated++;
+    }
+
+    if (fieldsUpdated > 0) {
+      toast.success(`${fieldsUpdated} campo(s) de especificações preenchido(s)`);
+    } else {
+      toast.info("Nenhum campo de especificação foi atualizado");
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* AI URL Extractor para especificações */}
+      <AIUrlExtractor 
+        onDataExtracted={handleSpecsExtracted}
+        includeSpecs={true}
+        className="mb-4"
+      />
+
       <Accordion type="multiple" defaultValue={["dimensions"]} className="w-full">
         {/* DIMENSÕES */}
         <AccordionItem value="dimensions">
