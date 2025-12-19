@@ -367,7 +367,8 @@ function extractSpecsFromMarkdown(markdown: string): Record<string, number | str
     { key: 'max_speed', regex: /(?:Velocidade\s*)?M[áa]xima[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:n[óo]s?|kts?)?/i },
     { key: 'cruise_speed', regex: /(?:Velocidade\s*(?:de\s*)?)?Cruzeiro[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:n[óo]s?|kts?)?/i },
     { key: 'range_nautical_miles', regex: /(?:Autonomia|Alcance)[*\s:]*(\d+[\d.,\s]*\d*)\s*(?:milhas?\s*n[áa]uticas?|NM|mn)?/i },
-    { key: 'engines', regex: /Motor(?:es|iza[çc][ãa]o)?[*\s:]*(.+?)(?:\n|\|)/i, isString: true },
+    { key: 'engines', regex: /Motor(?:es|iza[çc][ãa]o)?[*\s:]*(.+?)(?:\n{2}|\|\s*(?:Transmiss[ãa]o|Hélices?)|$)/i, isString: true },
+    { key: 'hull_color', regex: /(?:Cor(?:\s*do)?\s*Casco)[*\s:]*(.+?)(?:\n|\||$)/i, isString: true },
   ];
 
   for (const { key, regex, isString } of patterns) {
@@ -454,7 +455,8 @@ serve(async (req) => {
       body: JSON.stringify({
         url: formattedUrl,
         formats: ['markdown', 'links'],
-        onlyMainContent: true,
+        onlyMainContent: false,
+        waitFor: 2000,
       }),
     });
 
@@ -604,6 +606,11 @@ ${markdown.substring(0, 4000)}`;
 Campos a extrair:
 - brand, model, description
 - specifications: length_overall, hull_length, beam, draft, height_from_waterline, displacement_light, displacement_loaded, dry_weight, fuel_capacity, water_capacity, passengers_capacity, cabins, bathrooms, engines, hull_color, max_speed, cruise_speed, range_nautical_miles
+
+IMPORTANTE sobre engines/motorização:
+- Extraia a especificação COMPLETA dos motores incluindo marca, modelo e potência
+- Exemplo: "2x Volvo D8 IPS800 600HP" ou "Volvo D11 IPS950 725HP"
+- Se houver opções, liste todas separadas por " | "
 
 Converta para sistema métrico (metros, litros, kg). Seja preciso com números.
 Para hull_color, extraia a cor padrão do casco se disponível (ex: "Branco", "Azul marinho").`;
