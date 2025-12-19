@@ -2,20 +2,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type ATOConfigurationItemType = 
+  | "option" 
+  | "memorial_item" 
+  | "upgrade" 
+  | "ato_item" 
+  | "free_customization" 
+  | "definable_item";
+
 export interface ATOConfiguration {
   id: string;
   ato_id: string;
-  item_id: string;
-  item_type: "option" | "memorial_item";
+  item_id: string | null;
+  item_type: ATOConfigurationItemType;
   configuration_details: any;
   sub_items: any[];
   notes: string | null;
+  original_price: number | null;
+  discount_percentage: number | null;
   created_at: string;
   created_by: string | null;
   
   // Relacionamentos
   options?: any;
   memorial_items?: any;
+  memorial_upgrades?: any;
 }
 
 export function useATOConfigurations(atoId: string | undefined) {
@@ -29,7 +40,8 @@ export function useATOConfigurations(atoId: string | undefined) {
         .select(`
           *,
           options (*),
-          memorial_items (*)
+          memorial_items (*),
+          memorial_upgrades (*)
         `)
         .eq("ato_id", atoId)
         .order("created_at", { ascending: true });

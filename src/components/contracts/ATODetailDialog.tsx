@@ -50,6 +50,9 @@ import {
   Send,
   MinusCircle,
   Download,
+  ArrowUpCircle,
+  FileEdit,
+  Settings,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
@@ -460,8 +463,63 @@ export function ATODetailDialog({
                   ) : (
                     <div className="space-y-3">
                       {configurations.map((config) => {
-                        const isOption = config.item_type === "option";
-                        const item = isOption ? config.options : config.memorial_items;
+                        // Determinar o item e seu nome com base no tipo
+                        let item: any = null;
+                        let itemName = "";
+                        let itemDescription = "";
+                        let badgeLabel = "";
+                        let badgeVariant: "default" | "secondary" | "outline" = "outline";
+                        let ItemIcon = Package;
+
+                        switch (config.item_type) {
+                          case "option":
+                            item = config.options;
+                            itemName = item?.name || config.configuration_details?.item_name || "Opcional";
+                            itemDescription = item?.description || "";
+                            badgeLabel = "Opcional";
+                            ItemIcon = Package;
+                            break;
+                          case "memorial_item":
+                            item = config.memorial_items;
+                            itemName = item?.item_name || config.configuration_details?.item_name || "Item Memorial";
+                            itemDescription = item?.description || "";
+                            badgeLabel = "Memorial";
+                            ItemIcon = Wrench;
+                            break;
+                          case "upgrade":
+                            item = config.memorial_upgrades;
+                            itemName = item?.name || config.configuration_details?.item_name || "Upgrade";
+                            itemDescription = item?.description || "";
+                            badgeLabel = "Upgrade";
+                            ItemIcon = ArrowUpCircle;
+                            break;
+                          case "ato_item":
+                            itemName = config.configuration_details?.item_name || "Item de ATO";
+                            itemDescription = config.configuration_details?.description || "";
+                            badgeLabel = "Item ATO";
+                            ItemIcon = FileEdit;
+                            break;
+                          case "free_customization":
+                            itemName = config.configuration_details?.item_name || config.notes || "Customização";
+                            itemDescription = config.configuration_details?.description || "";
+                            badgeLabel = "Customização";
+                            ItemIcon = Pencil;
+                            break;
+                          case "definable_item":
+                            itemName = config.configuration_details?.item_name || "Item Definível";
+                            itemDescription = config.configuration_details?.description || "";
+                            badgeLabel = "Definição";
+                            ItemIcon = Settings;
+                            break;
+                          default:
+                            itemName = config.configuration_details?.item_name || "Item";
+                            badgeLabel = config.item_type;
+                        }
+
+                        // Calcular preço com desconto
+                        const hasDiscount = (config.discount_percentage || 0) > 0;
+                        const originalPrice = config.original_price || 0;
+                        const finalPrice = originalPrice * (1 - (config.discount_percentage || 0) / 100);
 
                         return (
                           <div
@@ -471,23 +529,41 @@ export function ATODetailDialog({
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
-                                  {isOption ? (
-                                    <Package className="h-4 w-4 text-primary" />
-                                  ) : (
-                                    <Wrench className="h-4 w-4 text-orange-500" />
-                                  )}
-                                  <Badge variant="outline">
-                                    {isOption ? "Opcional" : "Memorial"}
+                                  <ItemIcon className="h-4 w-4 text-primary" />
+                                  <Badge variant={badgeVariant}>
+                                    {badgeLabel}
                                   </Badge>
                                 </div>
-                                <h4 className="font-semibold mb-1">
-                                  {isOption ? item?.name : item?.item_name}
-                                </h4>
-                                {item?.description && (
+                                <h4 className="font-semibold mb-1">{itemName}</h4>
+                                {itemDescription && (
                                   <p className="text-sm text-muted-foreground">
-                                    {item.description}
+                                    {itemDescription}
                                   </p>
                                 )}
+                                
+                                {/* Preço com desconto */}
+                                {originalPrice > 0 && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    {hasDiscount ? (
+                                      <>
+                                        <span className="text-sm line-through text-muted-foreground">
+                                          {formatCurrency(originalPrice)}
+                                        </span>
+                                        <span className="text-sm font-medium text-green-600">
+                                          {formatCurrency(finalPrice)}
+                                        </span>
+                                        <Badge variant="secondary" className="text-xs">
+                                          -{config.discount_percentage}%
+                                        </Badge>
+                                      </>
+                                    ) : (
+                                      <span className="text-sm font-medium">
+                                        {formatCurrency(originalPrice)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                
                                 {config.notes && (
                                   <p className="text-xs text-muted-foreground mt-2 italic">
                                     {config.notes}
