@@ -119,11 +119,39 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
     }
   };
 
+  // Handler para aplicar sugestões de correção da validação
+  const handleApplySuggestion = (field: string, value: number | string) => {
+    const fieldMap: Record<string, keyof YachtModelFullValues> = {
+      length_overall: 'length_overall',
+      hull_length: 'hull_length',
+      beam: 'beam',
+      draft: 'draft',
+      height_from_waterline: 'height_from_waterline',
+      displacement_light: 'displacement_light',
+      displacement_loaded: 'displacement_loaded',
+      dry_weight: 'dry_weight',
+      fuel_capacity: 'fuel_capacity',
+      water_capacity: 'water_capacity',
+      passengers_capacity: 'passengers_capacity',
+      cabins: 'cabins',
+      bathrooms: 'bathrooms',
+      max_speed: 'max_speed',
+      cruise_speed: 'cruise_speed',
+      range_nautical_miles: 'range_nautical_miles',
+    };
+
+    const formField = fieldMap[field];
+    if (formField) {
+      form.setValue(formField, String(value));
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Extrator de specs */}
+      {/* Extrator de specs com validação inteligente */}
       <SpecsUrlExtractor 
         onDataExtracted={handleSpecsExtracted}
+        onApplySuggestion={handleApplySuggestion}
         className="mb-4"
       />
 
