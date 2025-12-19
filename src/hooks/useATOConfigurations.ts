@@ -15,13 +15,30 @@ export interface ATOConfiguration {
   ato_id: string;
   item_id: string | null;
   item_type: ATOConfigurationItemType;
-  configuration_details: any;
+  configuration_details: {
+    item_name?: string;
+    description?: string;
+    quantity?: number;
+    type?: string;
+    [key: string]: any;
+  };
   sub_items: any[];
   notes: string | null;
   original_price: number | null;
   discount_percentage: number | null;
   created_at: string;
   created_by: string | null;
+  // Campos de aprovação individual pelo PM
+  pm_status: 'pending' | 'approved' | 'rejected' | null;
+  pm_notes: string | null;
+  pm_reviewed_by: string | null;
+  pm_reviewed_at: string | null;
+  delivery_impact_days: number | null;
+  // Campos para customizações
+  materials: any[] | null;
+  labor_hours: number | null;
+  labor_cost_per_hour: number | null;
+  calculated_price: number | null;
 }
 
 export function useATOConfigurations(atoId: string | undefined) {

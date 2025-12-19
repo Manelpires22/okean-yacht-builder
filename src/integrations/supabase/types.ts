@@ -161,41 +161,68 @@ export type Database = {
       ato_configurations: {
         Row: {
           ato_id: string
+          calculated_price: number | null
           configuration_details: Json | null
           created_at: string | null
           created_by: string | null
+          delivery_impact_days: number | null
           discount_percentage: number | null
           id: string
           item_id: string | null
           item_type: string
+          labor_cost_per_hour: number | null
+          labor_hours: number | null
+          materials: Json | null
           notes: string | null
           original_price: number | null
+          pm_notes: string | null
+          pm_reviewed_at: string | null
+          pm_reviewed_by: string | null
+          pm_status: string | null
           sub_items: Json | null
         }
         Insert: {
           ato_id: string
+          calculated_price?: number | null
           configuration_details?: Json | null
           created_at?: string | null
           created_by?: string | null
+          delivery_impact_days?: number | null
           discount_percentage?: number | null
           id?: string
           item_id?: string | null
           item_type: string
+          labor_cost_per_hour?: number | null
+          labor_hours?: number | null
+          materials?: Json | null
           notes?: string | null
           original_price?: number | null
+          pm_notes?: string | null
+          pm_reviewed_at?: string | null
+          pm_reviewed_by?: string | null
+          pm_status?: string | null
           sub_items?: Json | null
         }
         Update: {
           ato_id?: string
+          calculated_price?: number | null
           configuration_details?: Json | null
           created_at?: string | null
           created_by?: string | null
+          delivery_impact_days?: number | null
           discount_percentage?: number | null
           id?: string
           item_id?: string | null
           item_type?: string
+          labor_cost_per_hour?: number | null
+          labor_hours?: number | null
+          materials?: Json | null
           notes?: string | null
           original_price?: number | null
+          pm_notes?: string | null
+          pm_reviewed_at?: string | null
+          pm_reviewed_by?: string | null
+          pm_status?: string | null
           sub_items?: Json | null
         }
         Relationships: [

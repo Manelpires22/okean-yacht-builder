@@ -25,6 +25,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useATO, useApproveATO, useCancelATO, useDeleteATO } from "@/hooks/useATOs";
 import { useATOConfigurations, useRemoveATOConfiguration } from "@/hooks/useATOConfigurations";
+import { calculateApprovalProgress } from "@/hooks/useApproveATOItem";
+import { ATOItemReviewCard } from "./ATOItemReviewCard";
 import { useSendATO } from "@/hooks/useSendATO";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -427,148 +429,235 @@ export function ATODetailDialog({
                 </TabsContent>
 
                 <TabsContent value="items" className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">Itens Vinculados</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Opcionais e itens do memorial vinculados a esta ATO
-                      </p>
-                    </div>
-                    {ato.status === "draft" && (
-                      <Button size="sm" onClick={() => setShowConfigDialog(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Adicionar Item
-                      </Button>
-                    )}
-                  </div>
+                  {(() => {
+                    const isPMReviewPhase = ato.workflow_status === "pending_pm_review" || currentStep?.step_type === "pm_review";
+                    const approvalProgress = calculateApprovalProgress(configurations);
+                    
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">Itens Vinculados</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {isPMReviewPhase && configurations && configurations.length > 0
+                                ? `Aprove cada item individualmente (${approvalProgress.approved}/${approvalProgress.total} aprovados)`
+                                : "Opcionais e itens do memorial vinculados a esta ATO"}
+                            </p>
+                          </div>
+                          {ato.status === "draft" && (
+                            <Button size="sm" onClick={() => setShowConfigDialog(true)}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Adicionar Item
+                            </Button>
+                          )}
+                        </div>
 
-                  {loadingConfigurations ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : !configurations || configurations.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-semibold mb-2">Nenhum item configurado</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Adicione opcionais ou itens do memorial a esta ATO
-                      </p>
-                      {ato.status === "draft" && (
-                        <Button onClick={() => setShowConfigDialog(true)}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Adicionar Primeiro Item
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {configurations.map((config) => {
-                        let itemName =
-                          config.configuration_details?.item_name ||
-                          config.notes ||
-                          `Item (${config.item_type})`;
-                        let itemDescription = config.configuration_details?.description || "";
-                        let badgeLabel = "";
-                        let badgeVariant: "default" | "secondary" | "outline" = "outline";
-                        let ItemIcon = Package;
+                        {/* Barra de progresso de aprovação */}
+                        {isPMReviewPhase && configurations && configurations.length > 0 && (
+                          <div className="bg-muted/50 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Progresso da Aprovação</span>
+                              <span className="text-sm text-muted-foreground">
+                                {approvalProgress.approved} de {approvalProgress.total}
+                              </span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full transition-all"
+                                style={{ width: `${(approvalProgress.approved / approvalProgress.total) * 100}%` }}
+                              />
+                            </div>
+                            {approvalProgress.rejected > 0 && (
+                              <p className="text-sm text-destructive mt-2 flex items-center gap-1">
+                                <XCircle className="h-3 w-3" />
+                                {approvalProgress.rejected} item(s) rejeitado(s)
+                              </p>
+                            )}
+                            {approvalProgress.allApproved && (
+                              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Todos os itens aprovados! O workflow será avançado automaticamente.
+                              </p>
+                            )}
+                          </div>
+                        )}
 
-                        switch (config.item_type) {
-                          case "option":
-                            badgeLabel = "Opcional";
-                            ItemIcon = Package;
-                            break;
-                          case "memorial_item":
-                            badgeLabel = "Memorial";
-                            ItemIcon = Wrench;
-                            break;
-                          case "upgrade":
-                            badgeLabel = "Upgrade";
-                            ItemIcon = ArrowUpCircle;
-                            break;
-                          case "ato_item":
-                            badgeLabel = "Item ATO";
-                            ItemIcon = FileEdit;
-                            break;
-                          case "free_customization":
-                            badgeLabel = "Customização";
-                            ItemIcon = Pencil;
-                            break;
-                          case "definable_item":
-                            badgeLabel = "Definição";
-                            ItemIcon = Settings;
-                            break;
-                          default:
-                            badgeLabel = String(config.item_type || "Item");
-                        }
+                        {loadingConfigurations ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : !configurations || configurations.length === 0 ? (
+                          <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="font-semibold mb-2">Nenhum item configurado</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              Adicione opcionais ou itens do memorial a esta ATO
+                            </p>
+                            {ato.status === "draft" && (
+                              <Button onClick={() => setShowConfigDialog(true)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Adicionar Primeiro Item
+                              </Button>
+                            )}
+                          </div>
+                        ) : isPMReviewPhase && canActOnWorkflow ? (
+                          /* Modo de Review - Cards de aprovação item a item */
+                          <div className="space-y-3">
+                            {configurations.map((config) => (
+                              <ATOItemReviewCard
+                                key={config.id}
+                                config={config}
+                                atoId={ato.id}
+                                isReadOnly={!canActOnWorkflow}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          /* Modo visualização normal */
+                          <div className="space-y-3">
+                            {configurations.map((config) => {
+                              let itemName =
+                                config.configuration_details?.item_name ||
+                                config.notes ||
+                                `Item (${config.item_type})`;
+                              let itemDescription = config.configuration_details?.description || "";
+                              let badgeLabel = "";
+                              let badgeVariant: "default" | "secondary" | "outline" = "outline";
+                              let ItemIcon = Package;
 
-                        const hasDiscount = (config.discount_percentage || 0) > 0;
-                        const originalPrice = config.original_price || 0;
-                        const finalPrice = originalPrice * (1 - (config.discount_percentage || 0) / 100);
+                              switch (config.item_type) {
+                                case "option":
+                                  badgeLabel = "Opcional";
+                                  ItemIcon = Package;
+                                  break;
+                                case "memorial_item":
+                                  badgeLabel = "Memorial";
+                                  ItemIcon = Wrench;
+                                  break;
+                                case "upgrade":
+                                  badgeLabel = "Upgrade";
+                                  ItemIcon = ArrowUpCircle;
+                                  break;
+                                case "ato_item":
+                                  badgeLabel = "Item ATO";
+                                  ItemIcon = FileEdit;
+                                  break;
+                                case "free_customization":
+                                  badgeLabel = "Customização";
+                                  ItemIcon = Pencil;
+                                  break;
+                                case "definable_item":
+                                  badgeLabel = "Definição";
+                                  ItemIcon = Settings;
+                                  break;
+                                default:
+                                  badgeLabel = String(config.item_type || "Item");
+                              }
 
-                        return (
-                          <div
-                            key={config.id}
-                            className="border rounded-lg p-4 hover:bg-accent transition-colors"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <ItemIcon className="h-4 w-4 text-primary" />
-                                  <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-                                </div>
+                              const hasDiscount = (config.discount_percentage || 0) > 0;
+                              const originalPrice = config.original_price || 0;
+                              const finalPrice = originalPrice * (1 - (config.discount_percentage || 0) / 100);
 
-                                <h4 className="font-semibold mb-1">{itemName}</h4>
+                              // Status badge para itens revisados
+                              const pmStatusBadge = config.pm_status === "approved" ? (
+                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Aprovado PM
+                                </Badge>
+                              ) : config.pm_status === "rejected" ? (
+                                <Badge variant="destructive" className="text-xs">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Rejeitado
+                                </Badge>
+                              ) : null;
 
-                                {itemDescription && (
-                                  <p className="text-sm text-muted-foreground">{itemDescription}</p>
-                                )}
+                              return (
+                                <div
+                                  key={config.id}
+                                  className={`border rounded-lg p-4 hover:bg-accent transition-colors ${
+                                    config.pm_status === "rejected" ? "border-destructive/50" : 
+                                    config.pm_status === "approved" ? "border-green-500/30" : ""
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <ItemIcon className="h-4 w-4 text-primary" />
+                                        <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+                                        {pmStatusBadge}
+                                      </div>
 
-                                {originalPrice > 0 && (
-                                  <div className="flex items-center gap-2 mt-2">
-                                    {hasDiscount ? (
-                                      <>
-                                        <span className="text-sm line-through text-muted-foreground">
-                                          {formatCurrency(originalPrice)}
-                                        </span>
-                                        <span className="text-sm font-medium text-green-600">
-                                          {formatCurrency(finalPrice)}
-                                        </span>
-                                        <Badge variant="secondary" className="text-xs">
-                                          -{config.discount_percentage}%
-                                        </Badge>
-                                      </>
-                                    ) : (
-                                      <span className="text-sm font-medium">{formatCurrency(originalPrice)}</span>
+                                      <h4 className="font-semibold mb-1">{itemName}</h4>
+
+                                      {itemDescription && (
+                                        <p className="text-sm text-muted-foreground">{itemDescription}</p>
+                                      )}
+
+                                      {originalPrice > 0 && (
+                                        <div className="flex items-center gap-2 mt-2">
+                                          {hasDiscount ? (
+                                            <>
+                                              <span className="text-sm line-through text-muted-foreground">
+                                                {formatCurrency(originalPrice)}
+                                              </span>
+                                              <span className="text-sm font-medium text-green-600">
+                                                {formatCurrency(finalPrice)}
+                                              </span>
+                                              <Badge variant="secondary" className="text-xs">
+                                                -{config.discount_percentage}%
+                                              </Badge>
+                                            </>
+                                          ) : (
+                                            <span className="text-sm font-medium">{formatCurrency(originalPrice)}</span>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Impacto no prazo aprovado */}
+                                      {config.pm_status === "approved" && config.delivery_impact_days && config.delivery_impact_days > 0 && (
+                                        <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
+                                          <Clock className="h-3 w-3" />
+                                          +{config.delivery_impact_days} dias no prazo
+                                        </div>
+                                      )}
+
+                                      {config.notes && (
+                                        <p className="text-xs text-muted-foreground mt-2 italic">{config.notes}</p>
+                                      )}
+
+                                      {/* Notas do PM se rejeitado */}
+                                      {config.pm_status === "rejected" && config.pm_notes && (
+                                        <div className="mt-2 p-2 bg-destructive/10 rounded text-sm">
+                                          <span className="font-medium text-destructive">Motivo: </span>
+                                          {config.pm_notes}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {ato.status === "draft" && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                          removeConfiguration({
+                                            configId: config.id,
+                                            atoId: ato.id,
+                                          })
+                                        }
+                                        disabled={isRemoving}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
                                     )}
                                   </div>
-                                )}
-
-                                {config.notes && (
-                                  <p className="text-xs text-muted-foreground mt-2 italic">{config.notes}</p>
-                                )}
-                              </div>
-
-                              {ato.status === "draft" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    removeConfiguration({
-                                      configId: config.id,
-                                      atoId: ato.id,
-                                    })
-                                  }
-                                  disabled={isRemoving}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              )}
-                            </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                 </TabsContent>
 
                 {hasActiveWorkflow && (
