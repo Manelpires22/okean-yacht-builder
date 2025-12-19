@@ -176,8 +176,15 @@ export function UpgradesTab({
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{upgrade.name}</span>
-                          <span className="font-semibold text-success">
-                            +{formatCurrency(upgrade.price)}
+                          <span className={`font-semibold ${
+                            upgrade.price > 0 
+                              ? 'text-success' 
+                              : upgrade.price < 0 
+                                ? 'text-blue-600' 
+                                : 'text-muted-foreground'
+                          }`}>
+                            {upgrade.price > 0 && '+'}
+                            {upgrade.price !== 0 ? formatCurrency(upgrade.price) : 'Incluso'}
                           </span>
                         </div>
                         {(upgrade.brand || upgrade.model) && (
