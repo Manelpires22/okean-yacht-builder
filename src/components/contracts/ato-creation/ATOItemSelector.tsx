@@ -14,9 +14,9 @@ export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
             <Edit className="h-5 w-5 text-primary" />
             Editar Item Existente
           </CardTitle>
-          <CardDescription>
-            Modificar opcionais ou itens do memorial que já estão no contrato base
-          </CardDescription>
+        <CardDescription>
+          Modificar opcionais, upgrades, itens do memorial ou itens de ATOs anteriores
+        </CardDescription>
         </CardHeader>
       </Card>
 
