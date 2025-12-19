@@ -59,13 +59,29 @@ export default function Configurator() {
   // Carregar cotação se estiver editando
   const { data: existingQuotation, isLoading: isLoadingQuotation } = useQuotation(editQuotationId || '');
 
+  // Verificar se cotação é contratada/aceita (imutável)
+  // Nota: status 'accepted' e 'approved' indicam que a cotação está contratada
+  const isQuotationImmutable = existingQuotation && (
+    existingQuotation.status === 'accepted' ||
+    existingQuotation.status === 'approved'
+  );
+
   // Carregar dados da cotação existente no estado
   useEffect(() => {
     if (existingQuotation && editQuotationId && !isLoadingQuotation) {
+      // Bloquear edição de cotações contratadas/aceitas
+      if (isQuotationImmutable) {
+        toast.error("Esta cotação não pode ser editada", {
+          description: "Cotações contratadas são imutáveis. Alterações devem ser feitas via ATOs no contrato."
+        });
+        navigate(`/quotations/${editQuotationId}`);
+        return;
+      }
+      
       loadFromQuotation(existingQuotation);
       toast.success(`Editando cotação ${existingQuotation.quotation_number}`);
     }
-  }, [existingQuotation, editQuotationId, isLoadingQuotation]);
+  }, [existingQuotation, editQuotationId, isLoadingQuotation, isQuotationImmutable, navigate]);
 
   // Filtrar categorias que têm opções para o modelo selecionado
   const categoriesWithOptions = useMemo(() => {

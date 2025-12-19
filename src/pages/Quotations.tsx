@@ -65,12 +65,20 @@ export default function Quotations() {
 
   const isAdmin = userRoles?.roles?.includes('administrador');
 
-  const canEditQuotation = (quotation: any) => {
+  const canEditQuotation = (quotation: any, hasContract: boolean) => {
+    // Cotações contratadas ou aceitas NUNCA podem ser editadas
+    if (hasContract || quotation.status === 'accepted' || quotation.status === 'approved') {
+      return false;
+    }
+    
     if (isAdmin) return true;
     return quotation.sales_representative_id === user?.id && quotation.status === 'draft';
   };
 
-  const canDeleteQuotation = (quotation: any) => {
+  const canDeleteQuotation = (quotation: any, hasContract: boolean) => {
+    // Cotações contratadas NUNCA podem ser deletadas
+    if (hasContract) return false;
+    
     if (isAdmin) return true;
     return quotation.sales_representative_id === user?.id && quotation.status === 'draft';
   };
@@ -186,8 +194,8 @@ export default function Quotations() {
                     onEdit={(id) => navigate(`/configurator?edit=${id}`)}
                     onDelete={(id) => deleteQuotation.mutate(id)}
                     onDuplicate={(id) => handleDuplicate(id)}
-                    canEdit={canEditQuotation(group.latestVersion)}
-                    canDelete={canDeleteQuotation(group.latestVersion)}
+                    canEdit={canEditQuotation(group.latestVersion, group.hasContract)}
+                    canDelete={canDeleteQuotation(group.latestVersion, group.hasContract)}
                   />
                 ))
               )}
