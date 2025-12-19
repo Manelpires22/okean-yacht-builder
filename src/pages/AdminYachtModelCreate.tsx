@@ -258,7 +258,7 @@ export default function AdminYachtModelCreate() {
 
           <Form {...form}>
             <TabsContent value="basic" className="space-y-4">
-              <YachtModelBasicForm form={form} onSpecsExtracted={handleSpecsExtracted} />
+              <YachtModelBasicForm form={form} />
             </TabsContent>
 
             <TabsContent value="specs" className="space-y-4">

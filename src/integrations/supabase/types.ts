@@ -1579,6 +1579,7 @@ export type Database = {
           draft: number | null
           dry_weight: number | null
           engines: string | null
+          exterior_images: Json | null
           fuel_capacity: number | null
           gallery_images: Json | null
           height_from_waterline: number | null
@@ -1586,6 +1587,7 @@ export type Database = {
           hull_length: number | null
           id: string
           image_url: string | null
+          interior_images: Json | null
           is_active: boolean | null
           length_overall: number | null
           max_speed: number | null
@@ -1617,6 +1619,7 @@ export type Database = {
           draft?: number | null
           dry_weight?: number | null
           engines?: string | null
+          exterior_images?: Json | null
           fuel_capacity?: number | null
           gallery_images?: Json | null
           height_from_waterline?: number | null
@@ -1624,6 +1627,7 @@ export type Database = {
           hull_length?: number | null
           id?: string
           image_url?: string | null
+          interior_images?: Json | null
           is_active?: boolean | null
           length_overall?: number | null
           max_speed?: number | null
@@ -1655,6 +1659,7 @@ export type Database = {
           draft?: number | null
           dry_weight?: number | null
           engines?: string | null
+          exterior_images?: Json | null
           fuel_capacity?: number | null
           gallery_images?: Json | null
           height_from_waterline?: number | null
@@ -1662,6 +1667,7 @@ export type Database = {
           hull_length?: number | null
           id?: string
           image_url?: string | null
+          interior_images?: Json | null
           is_active?: boolean | null
           length_overall?: number | null
           max_speed?: number | null
