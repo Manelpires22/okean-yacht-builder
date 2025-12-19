@@ -112,6 +112,16 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
       fieldsUpdated++;
     }
 
+    // Motorização e outros campos de texto
+    if (specs.engines) {
+      form.setValue("engines", String(specs.engines));
+      fieldsUpdated++;
+    }
+    if (specs.hull_color) {
+      form.setValue("hull_color", String(specs.hull_color));
+      fieldsUpdated++;
+    }
+
     if (fieldsUpdated > 0) {
       toast.success(`${fieldsUpdated} campo(s) de especificações preenchido(s)`);
     } else {
@@ -138,6 +148,8 @@ export function YachtModelSpecsForm({ form }: YachtModelSpecsFormProps) {
       max_speed: 'max_speed',
       cruise_speed: 'cruise_speed',
       range_nautical_miles: 'range_nautical_miles',
+      engines: 'engines',
+      hull_color: 'hull_color',
     };
 
     const formField = fieldMap[field];

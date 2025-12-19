@@ -48,6 +48,8 @@ const FIELD_LABELS: Record<string, string> = {
   max_speed: 'Velocidade Máxima',
   cruise_speed: 'Velocidade Cruzeiro',
   range_nautical_miles: 'Autonomia',
+  engines: 'Motorização',
+  hull_color: 'Cor do Casco',
 };
 
 export function SpecsUrlExtractor({ 
