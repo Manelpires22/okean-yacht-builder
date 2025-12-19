@@ -36,6 +36,7 @@ export default function Configurator() {
     setYachtModel,
     addOption,
     removeOption,
+    updateOptionQuantity,
     updateOptionCustomization,
     selectUpgrade,
     removeUpgrade,
@@ -112,6 +113,10 @@ export default function Configurator() {
     } else {
       toast.success("Customização do opcional removida");
     }
+  };
+
+  const handleQuantityChange = (optionId: string, quantity: number) => {
+    updateOptionQuantity(optionId, quantity);
   };
 
   const handleAddFreeCustomization = (data: {
@@ -303,6 +308,7 @@ export default function Configurator() {
                     selectedOptions={state.selected_options}
                     onToggleOption={handleToggleOption}
                     onCustomizeOption={handleCustomizeOption}
+                    onQuantityChange={handleQuantityChange}
                     yachtModelId={state.yacht_model_id}
                   />
                 ) : (

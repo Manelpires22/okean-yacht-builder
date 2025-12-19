@@ -79,6 +79,7 @@ const optionSchema = z.object({
   is_customizable: z.boolean().default(true),
   is_configurable: z.boolean().default(false),
   is_active: z.boolean().default(true),
+  allow_multiple: z.boolean().default(false),
   job_stop_id: z.string().uuid().nullable().optional(),
   configurable_sub_items: z.string().optional(),
 });
@@ -229,6 +230,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      allow_multiple: false,
       job_stop_id: null,
       configurable_sub_items: "",
     },
@@ -247,6 +249,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           image_url: newOption.image_url || null,
           brand: newOption.brand || null,
           model: newOption.model || null,
+          allow_multiple: newOption.allow_multiple || false,
           configurable_sub_items: configurable_sub_items 
             ? JSON.parse(configurable_sub_items) 
             : [],
@@ -280,6 +283,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           image_url: data.image_url || null,
           brand: data.brand || null,
           model: data.model || null,
+          allow_multiple: data.allow_multiple || false,
           configurable_sub_items: configurable_sub_items 
             ? JSON.parse(configurable_sub_items) 
             : [],
@@ -335,6 +339,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: true,
       is_configurable: false,
       is_active: true,
+      allow_multiple: false,
       job_stop_id: null,
       configurable_sub_items: "",
     });
@@ -355,6 +360,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       is_customizable: option.is_customizable ?? true,
       is_configurable: option.is_configurable ?? false,
       is_active: option.is_active,
+      allow_multiple: option.allow_multiple ?? false,
       job_stop_id: option.job_stop_id || null,
       configurable_sub_items: Array.isArray(option.configurable_sub_items)
         ? JSON.stringify(option.configurable_sub_items)
@@ -805,6 +811,19 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                   </div>
                 </>
               )}
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Permite Múltiplos</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Cliente pode selecionar quantidade maior que 1 (ex: 2 pares de luzes)
+                  </p>
+                </div>
+                <Switch
+                  checked={watch("allow_multiple")}
+                  onCheckedChange={(checked) => setValue("allow_multiple", checked)}
+                />
+              </div>
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="space-y-0.5">

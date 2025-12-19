@@ -67,6 +67,7 @@ const upgradeSchema = z.object({
   is_configurable: z.boolean().default(false),
   configurable_sub_items: z.string().optional(),
   is_customizable: z.boolean().default(true),
+  allow_multiple: z.boolean().default(false),
   is_active: z.boolean().default(true),
   display_order: z.number().int().default(0),
 });
@@ -121,6 +122,7 @@ export function UpgradeDialog({
       is_configurable: false,
       configurable_sub_items: "",
       is_customizable: true,
+      allow_multiple: false,
       is_active: true,
       display_order: 0,
     },
@@ -144,6 +146,7 @@ export function UpgradeDialog({
             ? JSON.stringify(initialData.configurable_sub_items, null, 2)
             : (initialData.configurable_sub_items || ""),
           is_customizable: initialData.is_customizable ?? true,
+          allow_multiple: initialData.allow_multiple ?? false,
           is_active: initialData.is_active ?? true,
           display_order: initialData.display_order || 0,
         });
@@ -161,6 +164,7 @@ export function UpgradeDialog({
           is_configurable: false,
           configurable_sub_items: "",
           is_customizable: true,
+          allow_multiple: false,
           is_active: true,
           display_order: 0,
         });
@@ -569,6 +573,24 @@ export function UpgradeDialog({
                   )}
                 />
               )}
+
+              <FormField
+                control={form.control}
+                name="allow_multiple"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Permite Múltiplos</FormLabel>
+                      <FormDescription>
+                        Cliente pode selecionar quantidade maior que 1
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

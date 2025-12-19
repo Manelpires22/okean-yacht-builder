@@ -14,10 +14,12 @@ interface OptionCategorySectionProps {
   }>;
   selectedOptions: Array<{
     option_id: string;
+    quantity?: number;
     customization_notes?: string;
   }>;
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
   onCustomizeOption: (optionId: string, notes: string) => void;
+  onQuantityChange?: (optionId: string, quantity: number) => void;
   yachtModelId?: string;
 }
 
@@ -26,6 +28,7 @@ export function OptionCategorySection({
   selectedOptions,
   onToggleOption,
   onCustomizeOption,
+  onQuantityChange,
   yachtModelId,
 }: OptionCategorySectionProps) {
   return (
@@ -37,6 +40,7 @@ export function OptionCategorySection({
           selectedOptions={selectedOptions}
           onToggleOption={onToggleOption}
           onCustomizeOption={onCustomizeOption}
+          onQuantityChange={onQuantityChange}
           yachtModelId={yachtModelId}
         />
       ))}
@@ -49,15 +53,18 @@ function CategoryAccordionItem({
   selectedOptions,
   onToggleOption,
   onCustomizeOption,
+  onQuantityChange,
   yachtModelId,
 }: {
   category: { id: string; label: string; description?: string };
   selectedOptions: Array<{
     option_id: string;
+    quantity?: number;
     customization_notes?: string;
   }>;
   onToggleOption: (optionId: string, unitPrice: number, deliveryDaysImpact: number) => void;
   onCustomizeOption: (optionId: string, notes: string) => void;
+  onQuantityChange?: (optionId: string, quantity: number) => void;
   yachtModelId?: string;
 }) {
   const [customizingOption, setCustomizingOption] = useState<{ id: string; name: string } | null>(null);
@@ -101,6 +108,7 @@ function CategoryAccordionItem({
                     key={option.id}
                     option={option}
                     isSelected={!!selectedOption}
+                    quantity={selectedOption?.quantity || 1}
                     customizationNotes={selectedOption?.customization_notes}
                     onToggle={() =>
                       onToggleOption(
@@ -110,6 +118,11 @@ function CategoryAccordionItem({
                       )
                     }
                     onCustomize={() => setCustomizingOption({ id: option.id, name: option.name })}
+                    onQuantityChange={
+                      option.allow_multiple && onQuantityChange
+                        ? (qty) => onQuantityChange(option.id, qty)
+                        : undefined
+                    }
                   />
                 );
               })}

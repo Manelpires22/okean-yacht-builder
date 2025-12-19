@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/quotation-utils";
-import { Check, Plus, MessageSquare, Edit } from "lucide-react";
+import { Check, Plus, MessageSquare, Edit, Minus } from "lucide-react";
 
 interface OptionCardProps {
   option: {
@@ -13,14 +13,29 @@ interface OptionCardProps {
     base_price: number;
     delivery_days_impact?: number;
     image_url?: string;
+    allow_multiple?: boolean;
   };
   isSelected: boolean;
+  quantity?: number;
   customizationNotes?: string;
   onToggle: () => void;
   onCustomize?: () => void;
+  onQuantityChange?: (quantity: number) => void;
 }
 
-export function OptionCard({ option, isSelected, customizationNotes, onToggle, onCustomize }: OptionCardProps) {
+export function OptionCard({ 
+  option, 
+  isSelected, 
+  quantity = 1,
+  customizationNotes, 
+  onToggle, 
+  onCustomize,
+  onQuantityChange,
+}: OptionCardProps) {
+  const displayPrice = option.allow_multiple && isSelected 
+    ? Number(option.base_price) * quantity 
+    : Number(option.base_price);
+
   return (
     <Card className={isSelected ? "border-primary w-full" : "w-full"}>
       <CardHeader>
@@ -43,7 +58,7 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
           {isSelected && (
             <Badge variant="default" className="shrink-0 text-sm">
               <Check className="h-4 w-4 mr-1" />
-              Selecionado
+              {quantity > 1 ? `${quantity}x Selecionado` : 'Selecionado'}
             </Badge>
           )}
         </div>
@@ -69,8 +84,13 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-lg md:text-xl font-bold">
-              {formatCurrency(Number(option.base_price))}
+              {formatCurrency(displayPrice)}
             </p>
+            {option.allow_multiple && isSelected && quantity > 1 && (
+              <p className="text-xs text-muted-foreground">
+                {formatCurrency(Number(option.base_price))} × {quantity}
+              </p>
+            )}
             {option.delivery_days_impact && option.delivery_days_impact > 0 ? (
               <p className="text-xs md:text-sm text-muted-foreground">
                 +{option.delivery_days_impact} dias
@@ -78,37 +98,70 @@ export function OptionCard({ option, isSelected, customizationNotes, onToggle, o
             ) : null}
           </div>
           
-          <div className="flex gap-2 w-full sm:w-auto">
-            {isSelected && onCustomize && (
+          <div className="flex flex-col gap-2 w-full sm:w-auto">
+            {/* Quantity selector - only when selected and allow_multiple */}
+            {isSelected && option.allow_multiple && onQuantityChange && (
+              <div className="flex items-center justify-center gap-2 p-2 rounded-lg border bg-muted/50">
+                <span className="text-sm font-medium mr-2">Qtd:</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(Math.max(1, quantity - 1));
+                  }}
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="w-8 text-center font-semibold text-lg">{quantity}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuantityChange(quantity + 1);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            
+            <div className="flex gap-2 w-full sm:w-auto">
+              {isSelected && onCustomize && (
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={onCustomize}
+                  title="Customizar opcional"
+                  className="flex-1 sm:flex-initial"
+                >
+                  <Edit className="h-5 w-5 sm:mr-0" />
+                  <span className="sm:hidden ml-2">Editar</span>
+                </Button>
+              )}
               <Button
-                variant="outline"
+                variant={isSelected ? "outline" : "default"}
                 size="default"
-                onClick={onCustomize}
-                title="Customizar opcional"
+                onClick={onToggle}
                 className="flex-1 sm:flex-initial"
               >
-                <Edit className="h-5 w-5 sm:mr-0" />
-                <span className="sm:hidden ml-2">Editar</span>
+                {isSelected ? (
+                  <>
+                    <Check className="h-5 w-5 mr-1" />
+                    Remover
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-5 w-5 mr-1" />
+                    Adicionar
+                  </>
+                )}
               </Button>
-            )}
-            <Button
-              variant={isSelected ? "outline" : "default"}
-              size="default"
-              onClick={onToggle}
-              className="flex-1 sm:flex-initial"
-            >
-              {isSelected ? (
-                <>
-                  <Check className="h-5 w-5 mr-1" />
-                  Remover
-                </>
-              ) : (
-                <>
-                  <Plus className="h-5 w-5 mr-1" />
-                  Adicionar
-                </>
-              )}
-            </Button>
+            </div>
           </div>
         </div>
       </CardContent>
