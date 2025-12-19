@@ -46,12 +46,11 @@ export default function AdminYachtModelEdit() {
     values: model ? {
       code: model.code || "",
       name: model.name || "",
+      brand: model.brand || "",
+      model: model.model || "",
       description: model.description || "",
       image_url: model.image_url || "",
       base_price: model.base_price ? model.base_price.toString() : "",
-      base_delivery_days: model.base_delivery_days ? model.base_delivery_days.toString() : "",
-      registration_number: model.registration_number || "",
-      delivery_date: model.delivery_date || "",
       is_active: model.is_active ?? true,
       
       // Specifications - Dimensions
@@ -91,12 +90,11 @@ export default function AdminYachtModelEdit() {
         .update({
           code: values.code,
           name: values.name,
+          brand: values.brand || null,
+          model: values.model || null,
           description: values.description || null,
           image_url: values.image_url || null,
           base_price: values.base_price ? parseFloat(values.base_price) : null,
-          base_delivery_days: values.base_delivery_days ? parseInt(values.base_delivery_days) : null,
-          registration_number: values.registration_number || null,
-          delivery_date: values.delivery_date || null,
           is_active: values.is_active,
           
           // Specifications - Dimensions
@@ -151,11 +149,10 @@ export default function AdminYachtModelEdit() {
       const basicData = extractedData.basic_data;
       if (basicData.code) form.setValue('code', basicData.code);
       if (basicData.name) form.setValue('name', basicData.name);
+      if (basicData.brand) form.setValue('brand', basicData.brand);
+      if (basicData.model) form.setValue('model', basicData.model);
       if (basicData.description) form.setValue('description', basicData.description);
       if (basicData.base_price) form.setValue('base_price', basicData.base_price.toString());
-      if (basicData.base_delivery_days) form.setValue('base_delivery_days', basicData.base_delivery_days.toString());
-      if (basicData.registration_number) form.setValue('registration_number', basicData.registration_number);
-      if (basicData.delivery_date) form.setValue('delivery_date', basicData.delivery_date);
     }
 
     // Aplicar especificações
@@ -182,6 +179,14 @@ export default function AdminYachtModelEdit() {
     }
 
     toast.success(`Dados importados com sucesso! ${Object.keys(extractedData.basic_data || {}).length + Object.keys(extractedData.specifications || {}).length} campos preenchidos.`);
+  };
+
+  const handleSpecsExtracted = (specs: Record<string, any>) => {
+    Object.entries(specs).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        form.setValue(key as any, value.toString());
+      }
+    });
   };
 
   if (isLoading) {
@@ -243,7 +248,7 @@ export default function AdminYachtModelEdit() {
 
           <Form {...form}>
             <TabsContent value="basic" className="space-y-4">
-              <YachtModelBasicForm form={form} />
+              <YachtModelBasicForm form={form} onSpecsExtracted={handleSpecsExtracted} />
             </TabsContent>
 
             <TabsContent value="specs" className="space-y-4">
