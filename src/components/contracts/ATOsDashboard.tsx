@@ -52,7 +52,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{pendingPMReview}</div>
+          <div className="text-2xl font-bold truncate" title={pendingPMReview.toString()}>{pendingPMReview}</div>
           <p className="text-xs text-muted-foreground">
             Aguardando escopo técnico
           </p>
@@ -73,7 +73,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
           <DollarSign className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{pendingCommercialValidation}</div>
+          <div className="text-2xl font-bold text-blue-600 truncate" title={pendingCommercialValidation.toString()}>{pendingCommercialValidation}</div>
           <p className="text-xs text-muted-foreground">
             PM concluído, aguardando vendedor
           </p>
@@ -94,7 +94,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
           <Send className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{pendingClientApproval}</div>
+          <div className="text-2xl font-bold truncate" title={pendingClientApproval.toString()}>{pendingClientApproval}</div>
           <p className="text-xs text-muted-foreground">
             Enviadas para aprovação
           </p>
@@ -115,7 +115,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
           <CheckCircle2 className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{approved}</div>
+          <div className="text-2xl font-bold text-green-600 truncate" title={approved.toString()}>{approved}</div>
           <p className="text-xs text-muted-foreground">
             Aceitas pelo cliente
           </p>
@@ -131,7 +131,7 @@ export function ATOsDashboard({ atos, isLoading }: ATOsDashboardProps) {
           <XCircle className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-destructive">{rejected}</div>
+          <div className="text-2xl font-bold text-destructive truncate" title={rejected.toString()}>{rejected}</div>
           <p className="text-xs text-muted-foreground">
             Recusadas pelo cliente
           </p>

@@ -33,6 +33,27 @@ export function formatCurrency(value: number): string {
 }
 
 /**
+ * Formata valor como moeda brasileira de forma compacta
+ * Exemplo: 14900000 -> "R$ 14,9M"
+ * Exemplo: 250000 -> "R$ 250K"
+ */
+export function formatCurrencyCompact(value: number): string {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  
+  if (absValue >= 1_000_000_000) {
+    return `${sign}R$ ${(absValue / 1_000_000_000).toFixed(1).replace('.', ',')}B`;
+  }
+  if (absValue >= 1_000_000) {
+    return `${sign}R$ ${(absValue / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  }
+  if (absValue >= 100_000) {
+    return `${sign}R$ ${(absValue / 1_000).toFixed(0)}K`;
+  }
+  return formatCurrency(value);
+}
+
+/**
  * Formata data para formato brasileiro
  * Exemplo: "2025-12-31" -> "31/12/2025"
  */
