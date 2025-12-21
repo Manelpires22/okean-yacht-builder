@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { useATO, useApproveATO, useCancelATO, useDeleteATO } from "@/hooks/useATOs";
 import { useATOConfigurations, useRemoveATOConfiguration } from "@/hooks/useATOConfigurations";
 import { calculateApprovalProgress } from "@/hooks/useApproveATOItem";
@@ -61,7 +62,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 import { ATOConfigurationDialog } from "./ATOConfigurationDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
-import { ATOPMReviewForm } from "./ATOPMReviewForm";
 import { EditATODialog } from "./EditATODialog";
 import { SendATOToClientDialog } from "./SendATOToClientDialog";
 import { CreateATODialog } from "./CreateATODialog";
@@ -102,6 +102,7 @@ export function ATODetailDialog({
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   const isAdmin = userRoleData?.roles?.includes('administrador');
+  const isPM = userRoleData?.roles?.includes('pm_engenharia');
   
   const canApprove =
     userRoleData?.roles?.some((r: string) =>
@@ -122,17 +123,14 @@ export function ATODetailDialog({
   const canCreateReversal = ato?.status === 'approved' && (isAdmin || userRoleData?.roles?.includes('gerente_comercial'));
   
   // ✅ Pode enviar ao cliente quando workflow completo e desconto ≤ 10%
-  // Aceita tanto 'draft' quanto 'pending_approval' (caso sistema tenha marcado errado)
   const canSendToClient = 
     ato?.workflow_status === 'completed' && 
     (ato?.discount_percentage || 0) <= 10 &&
     (ato?.status === 'draft' || ato?.status === 'pending_approval');
 
-  // Workflow logic
-  const currentStep = workflowData?.workflow_steps?.find(
-    (step) => step.status === "pending"
-  );
-  const canActOnWorkflow = currentStep?.assigned_to === user?.id || isAdmin;
+  // Workflow logic - PM pode agir se está na fase de PM review
+  const isPMReviewPhase = ato?.workflow_status === 'pending_pm_review' || ato?.workflow_status === 'needs_revision';
+  const canActOnItems = isPMReviewPhase && (isAdmin || isPM);
   const hasActiveWorkflow = ato?.workflow_status && ato.workflow_status !== "completed" && ato.workflow_status !== "rejected";
 
   // Sincronizar activeTab com defaultTab quando dialog abre
@@ -240,6 +238,8 @@ export function ATODetailDialog({
 
   if (!open || !atoId) return null;
 
+  const approvalProgress = calculateApprovalProgress(configurations);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -297,20 +297,28 @@ export function ATODetailDialog({
                         {configurations.length}
                       </Badge>
                     )}
+                    {isPMReviewPhase && approvalProgress.pending > 0 && (
+                      <Badge variant="default" className="ml-1">
+                        {approvalProgress.pending} pendente{approvalProgress.pending > 1 ? 's' : ''}
+                      </Badge>
+                    )}
                   </TabsTrigger>
-                  {hasActiveWorkflow && (
-                    <TabsTrigger value="workflow">
-                      Workflow
-                      {canActOnWorkflow && (
-                        <Badge variant="default" className="ml-2">
-                          Aguardando Ação
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                  )}
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-6">
+                  {/* Workflow Timeline - Movido para aba Detalhes */}
+                  {hasActiveWorkflow && (
+                    <div>
+                      <h3 className="font-semibold mb-4">Progresso do Workflow</h3>
+                      <ATOWorkflowTimeline 
+                        status={ato.status}
+                        workflowStatus={ato.workflow_status}
+                      />
+                    </div>
+                  )}
+
+                  {hasActiveWorkflow && <Separator />}
+
                   {/* Description */}
                   {ato.description && (
                     <div>
@@ -429,352 +437,226 @@ export function ATODetailDialog({
                 </TabsContent>
 
                 <TabsContent value="items" className="space-y-4">
-                  {(() => {
-                    const isPMReviewPhase = ato.workflow_status === "pending_pm_review" || currentStep?.step_type === "pm_review";
-                    const approvalProgress = calculateApprovalProgress(configurations);
-                    
-                    return (
-                      <>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold">Itens Vinculados</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {isPMReviewPhase && configurations && configurations.length > 0
-                                ? `Aprove cada item individualmente (${approvalProgress.approved}/${approvalProgress.total} aprovados)`
-                                : "Opcionais e itens do memorial vinculados a esta ATO"}
-                            </p>
-                          </div>
-                          {ato.status === "draft" && (
-                            <Button size="sm" onClick={() => setShowConfigDialog(true)}>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Adicionar Item
-                            </Button>
-                          )}
-                        </div>
-
-                        {/* Barra de progresso de aprovação */}
-                        {isPMReviewPhase && configurations && configurations.length > 0 && (
-                          <div className="bg-muted/50 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium">Progresso da Aprovação</span>
-                              <span className="text-sm text-muted-foreground">
-                                {approvalProgress.approved} de {approvalProgress.total}
-                              </span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div 
-                                className="bg-green-500 h-2 rounded-full transition-all"
-                                style={{ width: `${(approvalProgress.approved / approvalProgress.total) * 100}%` }}
-                              />
-                            </div>
-                            {approvalProgress.rejected > 0 && (
-                              <p className="text-sm text-destructive mt-2 flex items-center gap-1">
-                                <XCircle className="h-3 w-3" />
-                                {approvalProgress.rejected} item(s) rejeitado(s)
-                              </p>
-                            )}
-                            {approvalProgress.allApproved && (
-                              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Todos os itens aprovados! O workflow será avançado automaticamente.
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {loadingConfigurations ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                          </div>
-                        ) : !configurations || configurations.length === 0 ? (
-                          <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                            <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="font-semibold mb-2">Nenhum item configurado</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Adicione opcionais ou itens do memorial a esta ATO
-                            </p>
-                            {ato.status === "draft" && (
-                              <Button onClick={() => setShowConfigDialog(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Adicionar Primeiro Item
-                              </Button>
-                            )}
-                          </div>
-                        ) : isPMReviewPhase && canActOnWorkflow ? (
-                          /* Modo de Review - Cards de aprovação item a item */
-                          <div className="space-y-3">
-                            {configurations.map((config) => (
-                              <ATOItemReviewCard
-                                key={config.id}
-                                config={config}
-                                atoId={ato.id}
-                                isReadOnly={!canActOnWorkflow}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          /* Modo visualização normal */
-                          <div className="space-y-3">
-                            {configurations.map((config) => {
-                              let itemName =
-                                config.configuration_details?.item_name ||
-                                config.notes ||
-                                `Item (${config.item_type})`;
-                              let itemDescription = config.configuration_details?.description || "";
-                              let badgeLabel = "";
-                              let badgeVariant: "default" | "secondary" | "outline" = "outline";
-                              let ItemIcon = Package;
-
-                              switch (config.item_type) {
-                                case "option":
-                                  badgeLabel = "Opcional";
-                                  ItemIcon = Package;
-                                  break;
-                                case "memorial_item":
-                                  badgeLabel = "Memorial";
-                                  ItemIcon = Wrench;
-                                  break;
-                                case "upgrade":
-                                  badgeLabel = "Upgrade";
-                                  ItemIcon = ArrowUpCircle;
-                                  break;
-                                case "ato_item":
-                                  badgeLabel = "Item ATO";
-                                  ItemIcon = FileEdit;
-                                  break;
-                                case "free_customization":
-                                  badgeLabel = "Customização";
-                                  ItemIcon = Pencil;
-                                  break;
-                                case "definable_item":
-                                  badgeLabel = "Definição";
-                                  ItemIcon = Settings;
-                                  break;
-                                default:
-                                  badgeLabel = String(config.item_type || "Item");
-                              }
-
-                              const hasDiscount = (config.discount_percentage || 0) > 0;
-                              const originalPrice = config.original_price || 0;
-                              const finalPrice = originalPrice * (1 - (config.discount_percentage || 0) / 100);
-
-                              // Status badge para itens revisados
-                              const pmStatusBadge = config.pm_status === "approved" ? (
-                                <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                  Aprovado PM
-                                </Badge>
-                              ) : config.pm_status === "rejected" ? (
-                                <Badge variant="destructive" className="text-xs">
-                                  <XCircle className="h-3 w-3 mr-1" />
-                                  Rejeitado
-                                </Badge>
-                              ) : null;
-
-                              return (
-                                <div
-                                  key={config.id}
-                                  className={`border rounded-lg p-4 hover:bg-accent transition-colors ${
-                                    config.pm_status === "rejected" ? "border-destructive/50" : 
-                                    config.pm_status === "approved" ? "border-green-500/30" : ""
-                                  }`}
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <ItemIcon className="h-4 w-4 text-primary" />
-                                        <Badge variant={badgeVariant}>{badgeLabel}</Badge>
-                                        {pmStatusBadge}
-                                      </div>
-
-                                      <h4 className="font-semibold mb-1">{itemName}</h4>
-
-                                      {itemDescription && (
-                                        <p className="text-sm text-muted-foreground">{itemDescription}</p>
-                                      )}
-
-                                      {originalPrice > 0 && (
-                                        <div className="flex items-center gap-2 mt-2">
-                                          {hasDiscount ? (
-                                            <>
-                                              <span className="text-sm line-through text-muted-foreground">
-                                                {formatCurrency(originalPrice)}
-                                              </span>
-                                              <span className="text-sm font-medium text-green-600">
-                                                {formatCurrency(finalPrice)}
-                                              </span>
-                                              <Badge variant="secondary" className="text-xs">
-                                                -{config.discount_percentage}%
-                                              </Badge>
-                                            </>
-                                          ) : (
-                                            <span className="text-sm font-medium">{formatCurrency(originalPrice)}</span>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Impacto no prazo aprovado */}
-                                      {config.pm_status === "approved" && config.delivery_impact_days && config.delivery_impact_days > 0 && (
-                                        <div className="flex items-center gap-1 mt-2 text-sm text-muted-foreground">
-                                          <Clock className="h-3 w-3" />
-                                          +{config.delivery_impact_days} dias no prazo
-                                        </div>
-                                      )}
-
-                                      {config.notes && (
-                                        <p className="text-xs text-muted-foreground mt-2 italic">{config.notes}</p>
-                                      )}
-
-                                      {/* Notas do PM se rejeitado */}
-                                      {config.pm_status === "rejected" && config.pm_notes && (
-                                        <div className="mt-2 p-2 bg-destructive/10 rounded text-sm">
-                                          <span className="font-medium text-destructive">Motivo: </span>
-                                          {config.pm_notes}
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {ato.status === "draft" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                          removeConfiguration({
-                                            configId: config.id,
-                                            atoId: ato.id,
-                                          })
-                                        }
-                                        disabled={isRemoving}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
-                </TabsContent>
-
-                {hasActiveWorkflow && (
-                  <TabsContent value="workflow" className="space-y-6">
-                    {/* Workflow Timeline */}
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold mb-4">Progresso do Workflow</h3>
-                      <ATOWorkflowTimeline 
-                        status={ato.status}
-                        workflowStatus={ato.workflow_status}
-                      />
+                      <h3 className="font-semibold">Itens Vinculados</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {isPMReviewPhase && configurations && configurations.length > 0
+                          ? "Aprove cada item individualmente"
+                          : "Opcionais e itens do memorial vinculados a esta ATO"}
+                      </p>
                     </div>
-
-                    <Separator />
-
-                    {/* Current Step Form */}
-                    {loadingWorkflow ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : currentStep && canActOnWorkflow && workflowData ? (
-                      <div>
-                        <h3 className="font-semibold mb-4">Sua Ação Requerida</h3>
-                        {currentStep.step_type === "pm_review" && (
-                          <ATOPMReviewForm
-                            atoWorkflow={workflowData}
-                            currentStep={currentStep}
-                          />
-                        )}
-                      </div>
-                    ) : currentStep ? (
-                      <div className="text-center py-8 border-2 border-dashed rounded-lg">
-                        <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="font-semibold mb-2">Aguardando Outro Responsável</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Esta etapa está atribuída a{" "}
-                          <span className="font-medium">{currentStep.assigned_to}</span>
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <CheckCircle2 className="h-12 w-12 mx-auto text-green-600 mb-4" />
-                        <h3 className="font-semibold mb-2">Workflow Concluído</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Todas as etapas foram finalizadas com sucesso
-                        </p>
-                      </div>
+                    {ato.status === "draft" && (
+                      <Button size="sm" onClick={() => setShowConfigDialog(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Adicionar Item
+                      </Button>
                     )}
+                  </div>
 
-                    {/* Workflow History */}
-                    {workflowData?.workflow_steps && workflowData.workflow_steps.length > 0 && (
-                      <>
-                        <Separator />
-                        <div>
-                          <h3 className="font-semibold mb-4">Histórico de Etapas</h3>
-                          <div className="space-y-3">
-                            {workflowData.workflow_steps
-                              .filter((step) => step.status === "completed")
-                              .map((step) => (
-                                <div
-                                  key={step.id}
-                                  className="border rounded-lg p-4 bg-muted/50"
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                      <span className="font-medium">
-                                        {step.step_type === "pm_review" && "Análise PM"}
-                                        {step.step_type === "supply_quote" && "Cotação Supply"}
-                                        {step.step_type === "planning_validation" &&
-                                          "Validação Planning"}
-                                        {step.step_type === "pm_final" && "Aprovação Final PM"}
-                                      </span>
-                                    </div>
-                                    {step.completed_at && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {format(new Date(step.completed_at), "dd/MM/yyyy HH:mm", {
-                                          locale: ptBR,
-                                        })}
+                  {/* Barra de progresso de aprovação - Visível durante PM Review */}
+                  {isPMReviewPhase && configurations && configurations.length > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Progresso da Análise PM</span>
+                        <span className="text-sm text-muted-foreground">
+                          {approvalProgress.approved} de {approvalProgress.total} aprovados
+                        </span>
+                      </div>
+                      <Progress 
+                        value={(approvalProgress.approved / approvalProgress.total) * 100} 
+                        className="h-2"
+                      />
+                      
+                      {approvalProgress.rejected > 0 && (
+                        <p className="text-sm text-destructive flex items-center gap-1">
+                          <XCircle className="h-3 w-3" />
+                          {approvalProgress.rejected} item(s) rejeitado(s)
+                        </p>
+                      )}
+                      
+                      {approvalProgress.allApproved && (
+                        <p className="text-sm text-green-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Todos os itens aprovados! Workflow avançado automaticamente.
+                        </p>
+                      )}
+
+                      {!canActOnItems && isPMReviewPhase && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Aguardando análise do PM
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {loadingConfigurations ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : !configurations || configurations.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                      <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="font-semibold mb-2">Nenhum item configurado</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Adicione opcionais ou itens do memorial a esta ATO
+                      </p>
+                      {ato.status === "draft" && (
+                        <Button onClick={() => setShowConfigDialog(true)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Adicionar Primeiro Item
+                        </Button>
+                      )}
+                    </div>
+                  ) : isPMReviewPhase ? (
+                    /* Modo de Review - Cards de aprovação item a item */
+                    <div className="space-y-3">
+                      {configurations.map((config) => (
+                        <ATOItemReviewCard
+                          key={config.id}
+                          config={config}
+                          atoId={ato.id}
+                          isReadOnly={!canActOnItems}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    /* Modo visualização normal */
+                    <div className="space-y-3">
+                      {configurations.map((config) => {
+                        let itemName =
+                          config.configuration_details?.item_name ||
+                          config.notes ||
+                          `Item (${config.item_type})`;
+                        let itemDescription = config.configuration_details?.description || "";
+                        let badgeLabel = "";
+                        let badgeVariant: "default" | "secondary" | "outline" = "outline";
+                        let ItemIcon = Package;
+
+                        switch (config.item_type) {
+                          case "option":
+                            badgeLabel = "Opcional";
+                            ItemIcon = Package;
+                            break;
+                          case "memorial_item":
+                            badgeLabel = "Memorial";
+                            ItemIcon = Wrench;
+                            break;
+                          case "upgrade":
+                            badgeLabel = "Upgrade";
+                            ItemIcon = ArrowUpCircle;
+                            break;
+                          case "ato_item":
+                            badgeLabel = "Item ATO";
+                            ItemIcon = FileEdit;
+                            break;
+                          case "free_customization":
+                            badgeLabel = "Customização";
+                            ItemIcon = Pencil;
+                            break;
+                          case "definable_item":
+                            badgeLabel = "Definição";
+                            ItemIcon = Settings;
+                            break;
+                          default:
+                            badgeLabel = String(config.item_type || "Item");
+                        }
+
+                        const hasDiscount = (config.discount_percentage || 0) > 0;
+                        const originalPrice = config.original_price || 0;
+                        const finalPrice = originalPrice * (1 - (config.discount_percentage || 0) / 100);
+
+                        // Status badge para itens revisados
+                        const pmStatusBadge = config.pm_status === "approved" ? (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Aprovado PM
+                          </Badge>
+                        ) : config.pm_status === "rejected" ? (
+                          <Badge variant="destructive" className="text-xs">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Rejeitado
+                          </Badge>
+                        ) : null;
+
+                        return (
+                          <div
+                            key={config.id}
+                            className={`border rounded-lg p-4 hover:bg-accent transition-colors ${
+                              config.pm_status === "rejected" ? "border-destructive/50" : 
+                              config.pm_status === "approved" ? "border-green-500/30" : ""
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <ItemIcon className="h-4 w-4 text-primary" />
+                                  <Badge variant={badgeVariant}>{badgeLabel}</Badge>
+                                  {pmStatusBadge}
+                                </div>
+
+                                <h4 className="font-semibold mb-1">{itemName}</h4>
+
+                                {itemDescription && (
+                                  <p className="text-sm text-muted-foreground">{itemDescription}</p>
+                                )}
+
+                                {originalPrice > 0 && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    {hasDiscount ? (
+                                      <>
+                                        <span className="text-sm line-through text-muted-foreground">
+                                          {formatCurrency(originalPrice)}
+                                        </span>
+                                        <span className="font-bold text-green-600">
+                                          {formatCurrency(finalPrice)}
+                                        </span>
+                                        <Badge variant="secondary" className="text-xs">
+                                          -{config.discount_percentage}%
+                                        </Badge>
+                                      </>
+                                    ) : (
+                                      <span className="font-bold">
+                                        {formatCurrency(originalPrice)}
                                       </span>
                                     )}
                                   </div>
-                                  {step.notes && (
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                      {step.notes}
-                                    </p>
-                                  )}
-                                  {step.response_data && (
-                                    <div className="mt-2 text-xs space-y-1">
-                                      {(step.response_data as any).supply_cost && (
-                                        <div>
-                                          <span className="text-muted-foreground">Custo: </span>
-                                          <span className="font-medium">
-                                            {formatCurrency((step.response_data as any).supply_cost)}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {(step.response_data as any).planning_delivery_impact_days !==
-                                        undefined && (
-                                        <div>
-                                          <span className="text-muted-foreground">Prazo: </span>
-                                          <span className="font-medium">
-                                            {(step.response_data as any).planning_delivery_impact_days}{" "}
-                                            dias
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                )}
+
+                                {config.delivery_impact_days && config.delivery_impact_days > 0 && (
+                                  <div className="flex items-center gap-1 mt-1 text-sm text-orange-600">
+                                    <Clock className="h-3 w-3" />
+                                    +{config.delivery_impact_days} dias
+                                  </div>
+                                )}
+
+                                {config.pm_notes && (
+                                  <p className="text-xs text-muted-foreground mt-2 italic">
+                                    PM: {config.pm_notes}
+                                  </p>
+                                )}
+                              </div>
+
+                              {ato.status === "draft" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    removeConfiguration({ configId: config.id, atoId: ato.id })
+                                  }
+                                  disabled={isRemoving}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
-                  </TabsContent>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
               </Tabs>
 
               <DialogFooter className="flex items-center justify-between">
@@ -928,25 +810,6 @@ export function ATODetailDialog({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Configuration Dialog */}
-      {atoId && (
-        <ATOConfigurationDialog
-          open={showConfigDialog}
-          onOpenChange={setShowConfigDialog}
-          atoId={atoId}
-          contractId={ato?.contract_id || ""}
-        />
-      )}
-
-      {/* Edit ATO Dialog */}
-      {ato && (
-        <EditATODialog
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          ato={ato}
-        />
-      )}
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
@@ -973,17 +836,17 @@ export function ATODetailDialog({
       </AlertDialog>
 
       {/* Configuration Dialog */}
-      {showConfigDialog && ato && (
+      {atoId && ato && (
         <ATOConfigurationDialog
           open={showConfigDialog}
           onOpenChange={setShowConfigDialog}
-          atoId={atoId!}
+          atoId={atoId}
           contractId={ato.contract_id}
         />
       )}
 
-      {/* Edit Dialog */}
-      {ato && showEditDialog && (
+      {/* Edit ATO Dialog */}
+      {ato && (
         <EditATODialog
           open={showEditDialog}
           onOpenChange={setShowEditDialog}

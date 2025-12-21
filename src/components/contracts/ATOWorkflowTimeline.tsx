@@ -16,15 +16,32 @@ const WORKFLOW_STEPS = [
 
 // Determina qual etapa está ativa baseado em status + workflow_status
 function getCurrentStepKey(status: string, workflowStatus: string | null): string {
+  // Status finais primeiro
   if (status === 'rejected' || status === 'cancelled') return 'rejected';
   if (status === 'approved') return 'approved';
-  if (status === 'pending_approval') return 'sent_to_client';
-  if (workflowStatus === 'completed' && status === 'draft') return 'commercial_review';
-  if (workflowStatus === 'pending_pm_review') return 'pm_review';
-  return 'pm_review'; // fallback
+  
+  // Priorizar workflow_status para determinar etapa atual
+  switch (workflowStatus) {
+    case 'pending_pm_review':
+      return 'pm_review';
+    case 'needs_revision':
+      return 'pm_review'; // Volta para PM
+    case 'pending_commercial_review':
+      return 'commercial_review';
+    case 'completed':
+      // Workflow completo, próximo passo é enviar ao cliente
+      if (status === 'pending_approval') return 'sent_to_client';
+      return 'commercial_review'; // Ainda não enviado
+    default:
+      // Se não tem workflow_status definido
+      if (status === 'pending_approval') return 'sent_to_client';
+      if (status === 'draft') return 'pm_review';
+      return 'pm_review';
+  }
 }
 
 export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWorkflowTimelineProps) {
+  // Se não tem workflow iniciado e está em draft, não mostrar timeline
   if (!workflowStatus && status === 'draft') {
     return (
       <div className={cn("text-center py-4", className)}>
@@ -36,6 +53,7 @@ export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWo
   const currentStepKey = getCurrentStepKey(status, workflowStatus);
   const currentIndex = WORKFLOW_STEPS.findIndex(step => step.key === currentStepKey);
   const isRejected = status === 'rejected' || status === 'cancelled';
+  const isNeedsRevision = workflowStatus === 'needs_revision';
 
   return (
     <div className={cn("relative", className)}>
@@ -44,7 +62,9 @@ export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWo
         <div 
           className={cn(
             "h-full transition-all duration-500",
-            isRejected ? "bg-destructive" : "bg-primary"
+            isRejected ? "bg-destructive" : 
+            isNeedsRevision ? "bg-orange-500" : 
+            "bg-primary"
           )}
           style={{ 
             width: isRejected ? '100%' : `${(currentIndex / (WORKFLOW_STEPS.length - 1)) * 100}%` 
@@ -66,7 +86,8 @@ export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWo
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center border-2 bg-background transition-all",
                   isPast && "border-primary bg-primary text-primary-foreground",
-                  isCurrent && !isRejected && "border-primary text-primary animate-pulse",
+                  isCurrent && !isRejected && !isNeedsRevision && "border-primary text-primary animate-pulse",
+                  isCurrent && isNeedsRevision && "border-orange-500 text-orange-500 animate-pulse",
                   isComplete && "border-success bg-success text-success-foreground",
                   !isPast && !isCurrent && !isComplete && "border-muted-foreground/30 text-muted-foreground",
                   isRejected && isCurrent && "border-destructive bg-destructive text-destructive-foreground"
@@ -102,6 +123,13 @@ export function ATOWorkflowTimeline({ status, workflowStatus, className }: ATOWo
         <div className="mt-4 flex items-center justify-center gap-2 text-destructive">
           <XCircle className="h-4 w-4" />
           <span className="text-sm font-medium">Workflow Rejeitado</span>
+        </div>
+      )}
+
+      {isNeedsRevision && (
+        <div className="mt-4 flex items-center justify-center gap-2 text-orange-600">
+          <Clock className="h-4 w-4" />
+          <span className="text-sm font-medium">Itens precisam de revisão</span>
         </div>
       )}
     </div>
