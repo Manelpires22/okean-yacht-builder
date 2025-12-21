@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useATOs, useReopenATOForCommercialReview } from "@/hooks/useATOs";
-import { useSendATO } from "@/hooks/useSendATO";
+import { useATOs } from "@/hooks/useATOs";
 import { useATOWorkflowTasks } from "@/hooks/useATOWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -11,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send, AlertCircle, Wrench } from "lucide-react";
+import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, AlertCircle, Wrench } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -20,10 +19,6 @@ import { CreateATODialog } from "./CreateATODialog";
 import { ATODetailDialog } from "./ATODetailDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOsDashboard } from "./ATOsDashboard";
-import { SendATOToClientDialog, SendATOData } from "./SendATOToClientDialog";
-import { ATOCommercialReviewDialog } from "./ATOCommercialReviewDialog";
-
-import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 
 interface ATOsListProps {
   contractId: string;
@@ -35,43 +30,11 @@ export function ATOsList({ contractId }: ATOsListProps) {
   const isAdmin = userRoleData?.roles?.includes('administrador');
   const { data: atos, isLoading } = useATOs(contractId);
   const { data: userTasks } = useATOWorkflowTasks(user?.id, isAdmin);
-  const { mutateAsync: sendATO } = useSendATO();
-  const { mutateAsync: reopenATO } = useReopenATOForCommercialReview();
   
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined);
-  const [sendATODialog, setSendATODialog] = useState<{
-    open: boolean;
-    ato?: any;
-  }>({ open: false });
-  const [commercialReviewDialog, setCommercialReviewDialog] = useState<{
-    open: boolean;
-    ato?: any;
-  }>({ open: false });
-  const [pendingDiscount, setPendingDiscount] = useState(0);
   const [filterTab, setFilterTab] = useState<string>("workflow");
-
-  // Buscar dados do workflow quando abrindo revisão comercial
-  const { data: workflowData } = useATOWorkflow(commercialReviewDialog.ato?.id);
-
-  const handleCommercialReview = (discountPercentage: number) => {
-    setPendingDiscount(discountPercentage);
-    setCommercialReviewDialog({ open: false });
-    setSendATODialog({ open: true, ato: commercialReviewDialog.ato });
-  };
-
-  const handleSendATO = async (data: SendATOData) => {
-    if (!sendATODialog.ato) return;
-    
-    await sendATO({
-      atoId: sendATODialog.ato.id,
-      discountPercentage: pendingDiscount,
-      ...data
-    });
-    
-    setPendingDiscount(0);
-  };
 
   // Filtrar ATOs baseado na tab selecionada
   const filteredATOs = atos?.filter((ato) => {
@@ -322,34 +285,6 @@ export function ATOsList({ contractId }: ATOsListProps) {
                           </Button>
                         )}
                         
-                        {/* Botão "Revisar e Enviar" quando workflow completo */}
-                        {ato.workflow_status === 'completed' && ato.status === 'draft' && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => setCommercialReviewDialog({ open: true, ato })}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <DollarSign className="mr-1 h-3 w-3" />
-                            Revisar e Enviar
-                          </Button>
-                        )}
-
-                        {/* Botão "Aplicar Desconto / Enviar" para ATOs aprovadas legadas (sem validação comercial) */}
-                        {ato.status === 'approved' && ato.workflow_status === 'approved' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={async () => {
-                              await reopenATO(ato.id);
-                              setCommercialReviewDialog({ open: true, ato });
-                            }}
-                            className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                          >
-                            <DollarSign className="mr-1 h-3 w-3" />
-                            Aplicar Desconto / Enviar
-                          </Button>
-                        )}
 
                         
                         <Button
@@ -391,40 +326,6 @@ export function ATOsList({ contractId }: ATOsListProps) {
         atoId={selectedATO}
         defaultTab={detailsTab}
       />
-
-      {commercialReviewDialog.ato && workflowData && (
-        <ATOCommercialReviewDialog
-          open={commercialReviewDialog.open}
-          onOpenChange={(open) => setCommercialReviewDialog({ open, ato: undefined })}
-          ato={commercialReviewDialog.ato}
-          pmAnalysis={workflowData.workflow_steps?.find((s: any) => s.step_type === 'pm_review')?.response_data || {
-            materials: [],
-            total_materials_cost: 0,
-            labor_hours: 0,
-            labor_cost_per_hour: 55,
-            total_labor_cost: 0,
-            total_cost: 0,
-            suggested_price: 0,
-            final_price: commercialReviewDialog.ato.price_impact || 0,
-          }}
-          onProceedToSend={handleCommercialReview}
-        />
-      )}
-
-      {sendATODialog.ato && (
-        <SendATOToClientDialog
-          open={sendATODialog.open}
-          onOpenChange={(open) => {
-            setSendATODialog({ open, ato: undefined });
-            if (!open) setPendingDiscount(0);
-          }}
-          atoNumber={sendATODialog.ato.ato_number}
-          atoTitle={sendATODialog.ato.title}
-          clientName={sendATODialog.ato.contract?.client?.name}
-          clientEmail={sendATODialog.ato.contract?.client?.email}
-          onSend={handleSendATO}
-        />
-      )}
 
     </div>
   );
