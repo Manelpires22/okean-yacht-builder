@@ -20,6 +20,9 @@ function getCurrentStepKey(status: string, workflowStatus: string | null): strin
   if (status === 'rejected' || status === 'cancelled') return 'rejected';
   if (status === 'approved') return 'approved';
   
+  // Se foi enviada ao cliente (pending_approval), o passo atual é "Aprovada" (aguardando)
+  if (status === 'pending_approval') return 'approved';
+  
   // Priorizar workflow_status para determinar etapa atual
   switch (workflowStatus) {
     case 'pending_pm_review':
@@ -29,12 +32,9 @@ function getCurrentStepKey(status: string, workflowStatus: string | null): strin
     case 'pending_commercial_review':
       return 'commercial_review';
     case 'completed':
-      // Workflow completo, próximo passo é enviar ao cliente
-      if (status === 'pending_approval') return 'sent_to_client';
-      return 'commercial_review'; // Ainda não enviado
+      // Workflow completo, pronto para enviar ao cliente
+      return 'sent_to_client';
     default:
-      // Se não tem workflow_status definido
-      if (status === 'pending_approval') return 'sent_to_client';
       if (status === 'draft') return 'pm_review';
       return 'pm_review';
   }
