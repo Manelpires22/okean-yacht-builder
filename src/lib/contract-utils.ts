@@ -80,9 +80,9 @@ export function getATOStatusLabel(
 ): string {
   const labels = {
     draft: "Rascunho",
-    pending_approval: "Aguardando Aprovação",
-    approved: "Aprovada",
-    rejected: "Rejeitada",
+    pending_approval: "Enviada ao Cliente",
+    approved: "Aprovada pelo Cliente",
+    rejected: "Rejeitada pelo Cliente",
     cancelled: "Cancelada",
   };
   return labels[status] || status;

@@ -683,6 +683,74 @@ export function useReopenATOForCommercialReview() {
 }
 
 /**
+ * Hook para reabrir ATO enviada ao cliente para edição
+ * 
+ * @description
+ * Permite reabrir uma ATO que já foi enviada ao cliente (status = 'pending_approval')
+ * para poder editar ou corrigir antes de reenviar.
+ * 
+ * **Mudanças aplicadas:**
+ * - status → 'draft'
+ * - workflow_status mantém 'completed' (não precisa passar pelo PM novamente)
+ * - Limpa approved_at e approved_by
+ * 
+ * @param {string} atoId - UUID da ATO
+ * @returns {UseMutationResult} Mutation do React Query
+ * 
+ * @example
+ * ```typescript
+ * function ReverATOButton({ ato }) {
+ *   const { mutate: reopenForEditing, isPending } = useReopenATOForEditing();
+ *   
+ *   if (ato.status !== 'pending_approval') return null;
+ *   
+ *   return (
+ *     <Button 
+ *       variant="outline"
+ *       onClick={() => reopenForEditing(ato.id)}
+ *       disabled={isPending}
+ *     >
+ *       Rever ATO
+ *     </Button>
+ *   );
+ * }
+ * ```
+ */
+export function useReopenATOForEditing() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (atoId: string) => {
+      const { data, error } = await supabase
+        .from("additional_to_orders")
+        .update({
+          status: 'draft',
+          // Mantém workflow_status 'completed' - não precisa voltar para PM
+          approved_at: null,
+          approved_by: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", atoId)
+        .eq("status", "pending_approval") // Só pode reabrir se estava enviada ao cliente
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["atos", data.contract_id] });
+      queryClient.invalidateQueries({ queryKey: ["ato", data.id] });
+      toast.success("ATO reaberta para edição");
+    },
+    onError: (error: Error) => {
+      console.error("Error reopening ATO for editing:", error);
+      toast.error("Erro ao reabrir ATO: " + error.message);
+    },
+  });
+}
+
+/**
  * Hook para deletar permanentemente uma ATO
  * 
  * @description

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useATOs, useReopenATOForCommercialReview } from "@/hooks/useATOs";
+import { useATOs, useReopenATOForCommercialReview, useReopenATOForEditing } from "@/hooks/useATOs";
 import { useSendATO } from "@/hooks/useSendATO";
 import { useATOWorkflowTasks } from "@/hooks/useATOWorkflow";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send, AlertCircle, Wrench } from "lucide-react";
+import { Plus, FileText, DollarSign, Calendar, ChevronRight, Package, Send, AlertCircle, Wrench, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -22,6 +22,7 @@ import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOsDashboard } from "./ATOsDashboard";
 import { SendATOToClientDialog, SendATOData } from "./SendATOToClientDialog";
 import { ATOCommercialReviewDialog } from "./ATOCommercialReviewDialog";
+import { EditATODialog } from "./EditATODialog";
 import { useATOWorkflow } from "@/hooks/useATOWorkflow";
 
 interface ATOsListProps {
@@ -36,6 +37,7 @@ export function ATOsList({ contractId }: ATOsListProps) {
   const { data: userTasks } = useATOWorkflowTasks(user?.id, isAdmin);
   const { mutateAsync: sendATO } = useSendATO();
   const { mutateAsync: reopenATO } = useReopenATOForCommercialReview();
+  const { mutateAsync: reopenForEditing } = useReopenATOForEditing();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedATO, setSelectedATO] = useState<string | null>(null);
   const [detailsTab, setDetailsTab] = useState<string | undefined>(undefined);
@@ -44,6 +46,10 @@ export function ATOsList({ contractId }: ATOsListProps) {
     ato?: any;
   }>({ open: false });
   const [commercialReviewDialog, setCommercialReviewDialog] = useState<{
+    open: boolean;
+    ato?: any;
+  }>({ open: false });
+  const [editATODialog, setEditATODialog] = useState<{
     open: boolean;
     ato?: any;
   }>({ open: false });
@@ -348,6 +354,22 @@ export function ATOsList({ contractId }: ATOsListProps) {
                             Aplicar Desconto / Enviar
                           </Button>
                         )}
+
+                        {/* Botão "Rever ATO" para ATOs enviadas ao cliente */}
+                        {ato.status === 'pending_approval' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              await reopenForEditing(ato.id);
+                              setEditATODialog({ open: true, ato });
+                            }}
+                            className="border-purple-600 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Rever ATO
+                          </Button>
+                        )}
                         
                         <Button
                           variant="ghost"
@@ -420,6 +442,14 @@ export function ATOsList({ contractId }: ATOsListProps) {
           clientName={sendATODialog.ato.contract?.client?.name}
           clientEmail={sendATODialog.ato.contract?.client?.email}
           onSend={handleSendATO}
+        />
+      )}
+
+      {editATODialog.ato && (
+        <EditATODialog
+          open={editATODialog.open}
+          onOpenChange={(open) => setEditATODialog({ open, ato: undefined })}
+          ato={editATODialog.ato}
         />
       )}
     </div>
