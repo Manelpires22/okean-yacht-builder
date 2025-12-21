@@ -17,9 +17,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { useApproveATOItem } from "@/hooks/useApproveATOItem";
-import { ATOConfiguration, ATOConfigurationItemType } from "@/hooks/useATOConfigurations";
+import { ATOConfigurationWithOrigin, ATOConfigurationItemType } from "@/hooks/useATOConfigurations";
 import {
   CheckCircle2,
   XCircle,
@@ -36,6 +42,9 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
+  Eye,
+  EyeOff,
+  Layers,
 } from "lucide-react";
 
 interface Material {
@@ -46,7 +55,7 @@ interface Material {
 }
 
 interface ATOItemReviewCardProps {
-  config: ATOConfiguration;
+  config: ATOConfigurationWithOrigin;
   atoId: string;
   isReadOnly?: boolean;
 }
@@ -69,6 +78,7 @@ export function ATOItemReviewCard({
   isReadOnly = false,
 }: ATOItemReviewCardProps) {
   const [isOpen, setIsOpen] = useState(config.pm_status === "pending");
+  const [showOrigin, setShowOrigin] = useState(false);
   const [deliveryImpactDays, setDeliveryImpactDays] = useState(
     config.delivery_impact_days || 0
   );
@@ -83,6 +93,8 @@ export function ATOItemReviewCard({
   const [laborCostPerHour, setLaborCostPerHour] = useState(
     config.labor_cost_per_hour || 55
   );
+
+  const hasOriginData = config.item_type === "upgrade" && config.upgrade_origin?.memorial_item_name;
 
   const { mutate: approveItem, isPending } = useApproveATOItem();
 
@@ -209,6 +221,32 @@ export function ATOItemReviewCard({
                     <Badge variant="outline" className="text-xs">
                       {typeConfig.label}
                     </Badge>
+                    {hasOriginData && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowOrigin(!showOrigin);
+                              }}
+                            >
+                              {showOrigin ? (
+                                <EyeOff className="h-4 w-4 text-primary" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{showOrigin ? "Ocultar origem" : "Ver item original"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                   {config.original_price && config.original_price > 0 && (
                     <span className="text-sm text-muted-foreground">
@@ -232,6 +270,28 @@ export function ATOItemReviewCard({
               </div>
             </div>
           </CollapsibleTrigger>
+
+          {/* Seção de origem do upgrade */}
+          {showOrigin && hasOriginData && (
+            <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mt-2 mx-2">
+              <div className="flex items-start gap-2">
+                <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                    Substitui item padrão:
+                  </p>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    {config.upgrade_origin?.memorial_item_name}
+                  </p>
+                  {config.upgrade_origin?.category_label && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Categoria: {config.upgrade_origin.category_label}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </CardHeader>
 
         <CollapsibleContent>
