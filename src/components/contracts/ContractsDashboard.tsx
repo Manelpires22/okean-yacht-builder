@@ -11,8 +11,9 @@ import {
   Clock,
   FileSignature
 } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
+import { AutoSizedValue } from "@/components/ui/auto-sized-value";
 
 export function ContractsDashboard() {
   const { data: stats, isLoading } = useContractStats();
@@ -67,9 +68,9 @@ export function ContractsDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Média: {formatCurrency(stats.averageContractValue)}
+            <AutoSizedValue value={formatCurrency(stats.totalRevenue)} />
+            <p className="text-xs text-muted-foreground mt-1 truncate" title={formatCurrency(stats.averageContractValue)}>
+              Média: {formatCurrencyCompact(stats.averageContractValue)}
             </p>
           </CardContent>
         </Card>
@@ -142,9 +143,10 @@ export function ContractsDashboard() {
             <CardDescription>Adicional aos contratos base</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold mb-2">
-              {formatCurrency(stats.totalATORevenue)}
-            </div>
+            <AutoSizedValue 
+              value={formatCurrency(stats.totalATORevenue)} 
+              className="mb-2"
+            />
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Aprovadas</span>
@@ -186,8 +188,8 @@ export function ContractsDashboard() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">Contratos Base</span>
-                <span className="text-sm font-bold">
-                  {formatCurrency(stats.totalRevenue - stats.totalATORevenue)}
+                <span className="text-sm font-bold truncate max-w-[150px]" title={formatCurrency(stats.totalRevenue - stats.totalATORevenue)}>
+                  {formatCurrencyCompact(stats.totalRevenue - stats.totalATORevenue)}
                 </span>
               </div>
               <Progress 
@@ -202,8 +204,8 @@ export function ContractsDashboard() {
                   <TrendingUp className="h-4 w-4 text-green-500" />
                   <span className="text-sm font-medium">ATOs Adicionais</span>
                 </div>
-                <span className="text-sm font-bold text-green-600">
-                  {formatCurrency(stats.totalATORevenue)}
+                <span className="text-sm font-bold text-green-600 truncate max-w-[150px]" title={formatCurrency(stats.totalATORevenue)}>
+                  {formatCurrencyCompact(stats.totalATORevenue)}
                 </span>
               </div>
               <Progress 
