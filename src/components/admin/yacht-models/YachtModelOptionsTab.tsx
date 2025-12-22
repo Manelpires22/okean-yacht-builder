@@ -1,6 +1,3 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -23,11 +20,9 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Trash2, Pencil, Package, AlertTriangle, Loader2, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, Package, AlertTriangle, Search } from "lucide-react";
 import { AIEnrichmentButton, EnrichmentData } from "@/components/admin/AIEnrichmentButton";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { useDebounce } from "@/hooks/useDebounce";
-import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -47,10 +42,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,326 +54,40 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExportOptionsButton } from "./ExportOptionsButton";
 import { ImportOptionsDialog } from "./ImportOptionsDialog";
-import { useJobStops } from "@/hooks/useJobStops";
 import { ConfigurableSubItemsEditor, parseSubItems } from "@/components/admin/ConfigurableSubItemsEditor";
-
-const optionSchema = z.object({
-  code: z.string().min(1, "Código é obrigatório"),
-  name: z.string().min(1, "Nome é obrigatório"),
-  description: z.string().optional(),
-  brand: z.string().optional(),
-  model: z.string().optional(),
-  image_url: z.string().optional(),
-  category_id: z.string().min(1, "Categoria é obrigatória"),
-  base_price: z.number().min(0, "Preço deve ser positivo"),
-  delivery_days_impact: z.number().int().min(0).default(0),
-  is_customizable: z.boolean().default(true),
-  is_configurable: z.boolean().default(false),
-  is_active: z.boolean().default(true),
-  allow_multiple: z.boolean().default(false),
-  job_stop_id: z.string().uuid().nullable().optional(),
-  configurable_sub_items: z.string().optional(),
-});
-
-type OptionFormData = z.infer<typeof optionSchema>;
+import { useManageYachtOptions } from "@/hooks/admin/useManageYachtOptions";
 
 interface YachtModelOptionsTabProps {
   yachtModelId: string;
 }
 
 export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps) {
-  const queryClient = useQueryClient();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editingOption, setEditingOption] = useState<any | null>(null);
-  const [deletingOptionId, setDeletingOptionId] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearch = useDebounce(searchTerm, 300);
-
-  const { data: categories } = useMemorialCategories();
-  const { data: jobStops } = useJobStops();
-
-  // Delete all options mutation
-  const deleteAllMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from('options')
-        .delete()
-        .eq('yacht_model_id', yachtModelId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['yacht-model-options-v2'] });
-      queryClient.invalidateQueries({ queryKey: ['options'] });
-      toast.success('Todos os opcionais foram apagados com sucesso!');
-      setShowDeleteAllDialog(false);
-    },
-    onError: (error: Error) => {
-      toast.error('Erro ao apagar opcionais: ' + error.message);
-    },
-  });
-
-  // Fetch ALL options for this yacht model (model-specific only)
-  const { data: options, isLoading } = useQuery({
-    queryKey: ['yacht-model-options-v2', yachtModelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('options')
-        .select(`
-          *,
-          category:memorial_categories!options_category_id_fkey(id, label, value),
-          job_stop:job_stops!options_job_stop_id_fkey(id, stage, days_limit, item_name)
-        `)
-        .eq('yacht_model_id', yachtModelId)
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Filter options based on showInactive toggle and search
-  const filteredOptions = useMemo(() => {
-    if (!options) return [];
-    let filtered = showInactive ? options : options.filter(opt => opt.is_active);
-    
-    // Apply search filter (only if >= 3 characters)
-    if (debouncedSearch.length >= 3) {
-      const searchLower = debouncedSearch.toLowerCase();
-      filtered = filtered.filter(opt =>
-        opt.name?.toLowerCase().includes(searchLower) ||
-        opt.code?.toLowerCase().includes(searchLower) ||
-        opt.description?.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    return filtered;
-  }, [options, showInactive, debouncedSearch]);
-
-  // Fetch yacht model code for export filename
-  const { data: yachtModel } = useQuery({
-    queryKey: ['yacht-model-code', yachtModelId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('yacht_models')
-        .select('code')
-        .eq('id', yachtModelId)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Group filtered options by category
-  const optionsByCategory = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
-    
-    categories?.forEach(cat => {
-      grouped[cat.id] = [];
-    });
-
-    filteredOptions?.forEach(opt => {
-      if (opt.category && grouped[opt.category.id]) {
-        grouped[opt.category.id].push(opt);
-      }
-    });
-
-    return grouped;
-  }, [filteredOptions, categories]);
-
-  // Count active options per category (for display when showing inactive)
-  const activeCountByCategory = useMemo(() => {
-    const counts: Record<string, number> = {};
-    categories?.forEach(cat => {
-      counts[cat.id] = options?.filter(opt => opt.category_id === cat.id && opt.is_active).length || 0;
-    });
-    return counts;
-  }, [options, categories]);
-
-  // Find first category with options for default open
-  const defaultOpenCategory = useMemo(() => {
-    const catWithOptions = categories?.find(cat => 
-      optionsByCategory[cat.id]?.length > 0
-    );
-    return catWithOptions?.id || categories?.[0]?.id;
-  }, [optionsByCategory, categories]);
-
   const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-    reset,
-  } = useForm<OptionFormData>({
-    resolver: zodResolver(optionSchema),
-    defaultValues: {
-      code: "",
-      name: "",
-      description: "",
-      brand: "",
-      model: "",
-      image_url: "",
-      category_id: "",
-      base_price: 0,
-      delivery_days_impact: 0,
-      is_customizable: true,
-      is_configurable: false,
-      is_active: true,
-      allow_multiple: false,
-      job_stop_id: null,
-      configurable_sub_items: "",
-    },
-  });
+    options,
+    filteredOptions,
+    optionsByCategory,
+    activeCountByCategory,
+    defaultOpenCategory,
+    categories,
+    jobStops,
+    yachtModel,
+    isLoading,
+    dialogState,
+    openCreateDialog,
+    openEditDialog,
+    closeDialog,
+    setDeletingOptionId,
+    setShowDeleteAllDialog,
+    filters,
+    form,
+    onSubmit,
+    mutations,
+    handleDeleteConfirm,
+    handleDeleteAllConfirm,
+    formatCurrency,
+  } = useManageYachtOptions(yachtModelId);
 
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (newOption: OptionFormData) => {
-      const { configurable_sub_items, ...rest } = newOption;
-      const { data, error } = await supabase
-        .from('options')
-        .insert({
-          ...rest,
-          yacht_model_id: yachtModelId,
-          job_stop_id: newOption.job_stop_id || null,
-          image_url: newOption.image_url || null,
-          brand: newOption.brand || null,
-          model: newOption.model || null,
-          allow_multiple: newOption.allow_multiple || false,
-          configurable_sub_items: configurable_sub_items 
-            ? JSON.parse(configurable_sub_items) 
-            : [],
-        } as any)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['yacht-model-options-v2'] });
-      queryClient.invalidateQueries({ queryKey: ['options'] });
-      toast.success('Opcional criado com sucesso!');
-      setCreateDialogOpen(false);
-      reset();
-    },
-    onError: (error: Error) => {
-      toast.error('Erro ao criar opcional: ' + error.message);
-    },
-  });
-
-  // Update mutation
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: OptionFormData }) => {
-      const { configurable_sub_items, ...rest } = data;
-      const { error } = await supabase
-        .from('options')
-        .update({
-          ...rest,
-          job_stop_id: data.job_stop_id || null,
-          image_url: data.image_url || null,
-          brand: data.brand || null,
-          model: data.model || null,
-          allow_multiple: data.allow_multiple || false,
-          configurable_sub_items: configurable_sub_items 
-            ? JSON.parse(configurable_sub_items) 
-            : [],
-        })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['yacht-model-options-v2'] });
-      queryClient.invalidateQueries({ queryKey: ['options'] });
-      toast.success('Opcional atualizado com sucesso!');
-      setEditingOption(null);
-      reset();
-    },
-    onError: (error: Error) => {
-      toast.error('Erro ao atualizar opcional: ' + error.message);
-    },
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (optionId: string) => {
-      const { error } = await supabase
-        .from('options')
-        .delete()
-        .eq('id', optionId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['yacht-model-options-v2'] });
-      queryClient.invalidateQueries({ queryKey: ['options'] });
-      toast.success('Opcional deletado com sucesso!');
-      setDeletingOptionId(null);
-    },
-    onError: (error: Error) => {
-      toast.error('Erro ao deletar opcional: ' + error.message);
-    },
-  });
-
-  const handleCreateClick = () => {
-    reset({
-      code: "",
-      name: "",
-      description: "",
-      brand: "",
-      model: "",
-      image_url: "",
-      category_id: "",
-      base_price: 0,
-      delivery_days_impact: 0,
-      is_customizable: true,
-      is_configurable: false,
-      is_active: true,
-      allow_multiple: false,
-      job_stop_id: null,
-      configurable_sub_items: "",
-    });
-    setCreateDialogOpen(true);
-  };
-
-  const handleEditClick = (option: any) => {
-    reset({
-      code: option.code,
-      name: option.name,
-      description: option.description || "",
-      brand: option.brand || "",
-      model: option.model || "",
-      image_url: option.image_url || "",
-      category_id: option.category_id,
-      base_price: Number(option.base_price),
-      delivery_days_impact: Number(option.delivery_days_impact),
-      is_customizable: option.is_customizable ?? true,
-      is_configurable: option.is_configurable ?? false,
-      is_active: option.is_active,
-      allow_multiple: option.allow_multiple ?? false,
-      job_stop_id: option.job_stop_id || null,
-      configurable_sub_items: Array.isArray(option.configurable_sub_items)
-        ? JSON.stringify(option.configurable_sub_items)
-        : (option.configurable_sub_items || ""),
-    });
-    setEditingOption(option);
-  };
-
-  const onSubmit = (data: OptionFormData) => {
-    if (editingOption) {
-      updateMutation.mutate({ id: editingOption.id, data });
-    } else {
-      createMutation.mutate(data);
-    }
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
+  const { register, setValue, watch, formState: { errors } } = form;
 
   if (isLoading) {
     return (
@@ -413,12 +118,12 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar opcionais..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.searchTerm}
+                onChange={(e) => filters.setSearchTerm(e.target.value)}
                 className="pl-9 w-48"
               />
             </div>
-            {searchTerm.length > 0 && searchTerm.length < 3 && (
+            {filters.searchTerm.length > 0 && filters.searchTerm.length < 3 && (
               <span className="text-xs text-muted-foreground">
                 Digite ao menos 3 caracteres
               </span>
@@ -426,8 +131,8 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
             <div className="flex items-center gap-2 mr-2">
               <Switch
                 id="show-inactive"
-                checked={showInactive}
-                onCheckedChange={setShowInactive}
+                checked={filters.showInactive}
+                onCheckedChange={filters.setShowInactive}
               />
               <Label htmlFor="show-inactive" className="text-sm cursor-pointer">
                 Mostrar inativos
@@ -455,7 +160,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               yachtModelId={yachtModelId} 
               categories={categories || []} 
             />
-            <Button size="sm" onClick={handleCreateClick}>
+            <Button size="sm" onClick={openCreateDialog}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Novo Opcional
             </Button>
@@ -466,10 +171,10 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           <div className="text-center py-12 border-2 border-dashed rounded-lg">
             <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {showInactive ? "Nenhum opcional cadastrado" : "Nenhum opcional ativo"}
+              {filters.showInactive ? "Nenhum opcional cadastrado" : "Nenhum opcional ativo"}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {showInactive 
+              {filters.showInactive 
                 ? "Este modelo ainda não possui opcionais. Clique no botão acima para criar o primeiro opcional."
                 : "Este modelo não possui opcionais ativos. Ative o toggle 'Mostrar inativos' para ver todos os opcionais."}
             </p>
@@ -489,7 +194,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                     <div className="flex items-center gap-3 w-full">
                       <span>{cat.label}</span>
                       <Badge variant="outline" className="ml-auto mr-2">
-                        {showInactive 
+                        {filters.showInactive 
                           ? `${activeCount} ativos / ${optionCount} total`
                           : `${optionCount} ${optionCount === 1 ? 'opcional' : 'opcionais'}`}
                       </Badge>
@@ -564,7 +269,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => handleEditClick(option)}
+                                      onClick={() => openEditDialog(option)}
                                     >
                                       <Pencil className="h-4 w-4" />
                                     </Button>
@@ -591,7 +296,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                         <p className="text-muted-foreground mb-4">
                           Adicione opcionais à categoria {cat.label}
                         </p>
-                        <Button onClick={handleCreateClick}>
+                        <Button onClick={openCreateDialog}>
                           <Plus className="mr-2 h-4 w-4" />
                           Adicionar Primeiro Opcional
                         </Button>
@@ -606,24 +311,20 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       </div>
 
       {/* Create/Edit Dialog */}
-      <Dialog open={createDialogOpen || !!editingOption} onOpenChange={(open) => {
-        if (!open) {
-          setCreateDialogOpen(false);
-          setEditingOption(null);
-          reset();
-        }
+      <Dialog open={dialogState.isDialogOpen} onOpenChange={(open) => {
+        if (!open) closeDialog();
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingOption ? "Editar Opcional" : "Criar Novo Opcional"}
+              {dialogState.editingOption ? "Editar Opcional" : "Criar Novo Opcional"}
             </DialogTitle>
             <DialogDescription>
               Este opcional será exclusivo deste modelo de iate.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Código *</Label>
@@ -843,19 +544,13 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setCreateDialogOpen(false);
-                  setEditingOption(null);
-                  reset();
-                }}
+                onClick={closeDialog}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <span className="mr-2">⏳</span>
-                )}
-                {editingOption ? "Atualizar" : "Criar"}
+              <Button type="submit" disabled={mutations.isSaving}>
+                {mutations.isSaving && <span className="mr-2">⏳</span>}
+                {dialogState.editingOption ? "Atualizar" : "Criar"}
               </Button>
             </DialogFooter>
           </form>
@@ -863,7 +558,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingOptionId} onOpenChange={(open) => !open && setDeletingOptionId(null)}>
+      <AlertDialog open={!!dialogState.deletingOptionId} onOpenChange={(open) => !open && setDeletingOptionId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
@@ -875,7 +570,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingOptionId && deleteMutation.mutate(deletingOptionId)}
+              onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Deletar
@@ -885,7 +580,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
       </AlertDialog>
 
       {/* Delete All Confirmation Dialog */}
-      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+      <AlertDialog open={dialogState.showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -900,16 +595,11 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteAllMutation.mutate()}
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={deleteAllMutation.isPending}
+              onClick={handleDeleteAllConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={mutations.isDeletingAll}
             >
-              {deleteAllMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="mr-2 h-4 w-4" />
-              )}
-              Apagar Tudo
+              {mutations.isDeletingAll ? "Apagando..." : "Sim, Apagar Tudo"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
