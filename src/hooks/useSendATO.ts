@@ -90,7 +90,9 @@ export function useSendATO() {
         emailSent: sendEmail, 
         pdfGenerated: generatePDF,
         discountApplied: discountPercentage,
-        needsApproval: discountPercentage > 10 
+        // Descontos em ATOs agora são gerenciados via workflow simplificado
+        // O limite é definido pela lógica de negócio do workflow, não hardcoded
+        needsApproval: false
       };
     },
     onSuccess: (data) => {

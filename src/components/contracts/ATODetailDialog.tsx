@@ -106,12 +106,12 @@ export function ATODetailDialog({
   
   const canApprove =
     userRoleData?.roles?.some((r: string) =>
-      ["administrador", "gerente_comercial"].includes(r)
+      ["administrador", "gerente_comercial", "diretor_comercial"].includes(r)
     ) && ato?.status === "pending_approval";
 
   const canCancel =
     userRoleData?.roles?.some((r: string) =>
-      ["administrador", "gerente_comercial"].includes(r)
+      ["administrador", "gerente_comercial", "diretor_comercial"].includes(r)
     ) && ato?.status !== "cancelled";
 
   // Permissões de edição e exclusão
@@ -120,7 +120,7 @@ export function ATODetailDialog({
   const canDelete = isNotApproved && isAdmin;
   
   // Pode criar ATO de estorno apenas para ATOs aprovadas
-  const canCreateReversal = ato?.status === 'approved' && (isAdmin || userRoleData?.roles?.includes('gerente_comercial'));
+  const canCreateReversal = ato?.status === 'approved' && (isAdmin || userRoleData?.roles?.some((r: string) => ['gerente_comercial', 'diretor_comercial'].includes(r)));
   
   // ✅ Pode enviar ao cliente quando workflow completo e desconto ≤ 10%
   const canSendToClient = 

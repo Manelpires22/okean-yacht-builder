@@ -428,10 +428,12 @@ flowchart LR
 | Status | Descrição | Próximos Estados Válidos |
 |--------|-----------|--------------------------|
 | `draft` | Em edição ou aguardando análise PM | `pending_approval`, `rejected` |
-| `pending_approval` | Aguardando aprovação do cliente | `approved`, `rejected` |
+| `pending_approval` | **Enviada ao cliente** - aguardando aprovação do cliente (já passou por validação comercial interna) | `approved`, `rejected` |
 | `approved` | Cliente aprovou e contrato foi atualizado | - (estado final) |
 | `rejected` | Rejeitado pelo cliente ou PM | `draft`, `cancelled` |
 | `cancelled` | Cancelado definitivamente | - (estado final) |
+
+> **Nota:** O status `pending_approval` significa que a ATO já foi enviada ao cliente. A validação comercial de descontos ocorre **antes** do envio, durante o workflow interno (quando `workflow_status = 'completed'`).
 
 ### Workflow Status (customizations & ATOs)
 
