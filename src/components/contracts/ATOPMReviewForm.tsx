@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { CurrencyInput } from "@/components/ui/numeric-input";
+import { useSystemConfig, calculateSuggestedPrice, calculateMarkupBreakdown } from "@/hooks/useSystemConfig";
 
 interface ATOPMReviewFormProps {
   atoWorkflow: ATOWorkflow;
@@ -23,10 +24,12 @@ interface Material {
   quantity: number;
 }
 
-const DEFAULT_LABOR_COST_PER_HOUR = 55;
-const MARKUP_DIVISOR = 0.43; // 1 - 30% - 21% - 3% - 3%
-
 export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormProps) {
+  // Buscar configurações do sistema
+  const { data: systemConfig } = useSystemConfig();
+  const defaultLaborCost = systemConfig?.default_labor_cost_per_hour ?? 55;
+  const markupDivisor = systemConfig?.pricing_markup_divisor ?? 0.43;
+
   const [pmScope, setPmScope] = useState(atoWorkflow.notes || "");
   const [materials, setMaterials] = useState<Material[]>([]);
   const [newMaterialName, setNewMaterialName] = useState("");
@@ -34,7 +37,7 @@ export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormPro
   const [newMaterialQty, setNewMaterialQty] = useState(1);
   
   const [laborHours, setLaborHours] = useState(0);
-  const [laborCostPerHour, setLaborCostPerHour] = useState(DEFAULT_LABOR_COST_PER_HOUR);
+  const [laborCostPerHour, setLaborCostPerHour] = useState(defaultLaborCost);
   
   const [deliveryImpact, setDeliveryImpact] = useState(atoWorkflow.delivery_days_impact || 0);
   const [notes, setNotes] = useState("");
@@ -53,9 +56,8 @@ export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormPro
   }, [totalMaterialsCost, totalLaborCost]);
 
   const suggestedPrice = useMemo(() => {
-    const rawPrice = totalCost / MARKUP_DIVISOR;
-    return Math.round(rawPrice * 100) / 100;
-  }, [totalCost]);
+    return calculateSuggestedPrice(totalCost, markupDivisor);
+  }, [totalCost, markupDivisor]);
 
   const [finalPrice, setFinalPrice] = useState(0);
 
@@ -126,11 +128,12 @@ export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormPro
     });
   };
 
-  // Breakdown do markup
-  const marginValue = totalCost * 0.30;
-  const taxValue = totalCost * 0.21;
-  const warrantyValue = totalCost * 0.03;
-  const commissionValue = totalCost * 0.03;
+  // Breakdown do markup - usar config do sistema
+  const markupBreakdown = systemConfig 
+    ? calculateMarkupBreakdown(totalCost, systemConfig)
+    : { marginValue: totalCost * 0.30, taxValue: totalCost * 0.21, warrantyValue: totalCost * 0.03, commissionValue: totalCost * 0.03 };
+  
+  const { marginValue, taxValue, warrantyValue, commissionValue } = markupBreakdown;
 
   return (
     <Card>
@@ -277,9 +280,9 @@ export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormPro
                 min="0"
                 step="1"
                 value={laborCostPerHour}
-                onChange={(e) => setLaborCostPerHour(parseFloat(e.target.value) || DEFAULT_LABOR_COST_PER_HOUR)}
+                onChange={(e) => setLaborCostPerHour(parseFloat(e.target.value) || defaultLaborCost)}
               />
-              <p className="text-xs text-muted-foreground">Default: R$ 55/hora</p>
+              <p className="text-xs text-muted-foreground">Default: R$ {defaultLaborCost}/hora</p>
             </div>
           </div>
 

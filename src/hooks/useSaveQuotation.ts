@@ -12,6 +12,7 @@ import { validateQuotation } from "./quotations/useQuotationValidation";
 import { useQuotationOptions } from "./quotations/useQuotationOptions";
 import { useQuotationCustomizations } from "./quotations/useQuotationCustomizations";
 import { useUserRole } from "./useUserRole";
+import { useSystemConfig } from "./useSystemConfig";
 
 interface SaveQuotationData {
   quotationId?: string;
@@ -52,6 +53,10 @@ export function useSaveQuotation() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: userRoleData } = useUserRole();
+  const { data: systemConfig } = useSystemConfig();
+  
+  // Validade da cotação do config ou default 30 dias
+  const validityDays = systemConfig?.quotation_validity_days ?? 30;
   
   // Hooks de mutation
   const optionsMutation = useQuotationOptions();
@@ -296,7 +301,7 @@ export function useSaveQuotation() {
           discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,
-          valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          valid_until: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         } as any)
         .select()
         .single();

@@ -26,6 +26,7 @@ import {
 import { formatCurrency } from "@/lib/quotation-utils";
 import { useApproveATOItem } from "@/hooks/useApproveATOItem";
 import { ATOConfigurationWithOrigin, ATOConfigurationItemType } from "@/hooks/useATOConfigurations";
+import { useSystemConfig, calculateSuggestedPrice } from "@/hooks/useSystemConfig";
 import {
   CheckCircle2,
   XCircle,
@@ -77,6 +78,11 @@ export function ATOItemReviewCard({
   atoId,
   isReadOnly = false,
 }: ATOItemReviewCardProps) {
+  // Buscar configurações do sistema
+  const { data: systemConfig } = useSystemConfig();
+  const defaultLaborCost = systemConfig?.default_labor_cost_per_hour ?? 55;
+  const markupDivisor = systemConfig?.pricing_markup_divisor ?? 0.43;
+
   const [isOpen, setIsOpen] = useState(config.pm_status === "pending");
   const [showOrigin, setShowOrigin] = useState(false);
   const [deliveryImpactDays, setDeliveryImpactDays] = useState(
@@ -91,7 +97,7 @@ export function ATOItemReviewCard({
   );
   const [laborHours, setLaborHours] = useState(config.labor_hours || 0);
   const [laborCostPerHour, setLaborCostPerHour] = useState(
-    config.labor_cost_per_hour || 55
+    config.labor_cost_per_hour || defaultLaborCost
   );
 
   const hasOriginData = config.item_type === "upgrade" && config.upgrade_origin?.memorial_item_name;
@@ -112,11 +118,11 @@ export function ATOItemReviewCard({
     `Item (${config.item_type})`;
   const itemDescription = config.configuration_details?.description || "";
 
-  // Cálculos de preço para customizações
+  // Cálculos de preço para customizações - usando config do sistema
   const materialsCost = materials.reduce((sum, m) => sum + m.total, 0);
   const laborCost = laborHours * laborCostPerHour;
   const totalCost = materialsCost + laborCost;
-  const suggestedPrice = totalCost * 2.33; // Markup ~133%
+  const suggestedPrice = calculateSuggestedPrice(totalCost, markupDivisor);
 
   const handleApprove = () => {
     if (needsFullAnalysis && isFeasible !== "yes") {
