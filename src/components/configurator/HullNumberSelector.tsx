@@ -1,14 +1,16 @@
-import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarDays, Ship, Anchor, AlertCircle } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { CalendarDays, Ship, Anchor, AlertCircle, ChevronDown } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useAvailableHullNumbers, HullNumber } from "@/hooks/useHullNumbers";
-import { cn } from "@/lib/utils";
 
 interface HullNumberSelectorProps {
   yachtModelId: string;
@@ -24,12 +26,7 @@ export function HullNumberSelector({
   const { data: hullNumbers, isLoading, error } = useAvailableHullNumbers(yachtModelId);
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-      </div>
-    );
+    return <Skeleton className="h-10 w-full max-w-sm" />;
   }
 
   if (error) {
@@ -48,78 +45,78 @@ export function HullNumberSelector({
       <Alert>
         <Ship className="h-4 w-4" />
         <AlertDescription>
-          Não há matrículas disponíveis para este modelo. Entre em contato com o administrador.
+          Não há matrículas disponíveis para este modelo.
         </AlertDescription>
       </Alert>
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
-        Selecione a matrícula para esta configuração:
-      </div>
+  const selectedHull = hullNumbers.find(h => h.id === selectedHullNumberId);
 
-      <RadioGroup
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
+    } catch {
+      return "-";
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Matrícula</label>
+      <Select
         value={selectedHullNumberId || ""}
         onValueChange={(value) => {
           const selected = hullNumbers.find(h => h.id === value);
           if (selected) onSelect(selected);
         }}
-        className="space-y-3"
       >
-        {hullNumbers.map((hull) => (
-          <Label
-            key={hull.id}
-            htmlFor={hull.id}
-            className="cursor-pointer"
-          >
-            <Card className={cn(
-              "transition-all hover:border-primary/50",
-              selectedHullNumberId === hull.id && "border-primary bg-primary/5"
-            )}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <RadioGroupItem value={hull.id} id={hull.id} />
-                  
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Matrícula */}
-                    <div className="flex items-center gap-2">
-                      <Anchor className="h-4 w-4 text-primary" />
-                      <div>
-                        <div className="text-xs text-muted-foreground">Matrícula</div>
-                        <div className="font-bold text-lg">{hull.brand} {hull.hull_number}</div>
-                      </div>
-                    </div>
-
-                    {/* Data Entrada Casco */}
-                    <div className="flex items-center gap-2">
-                      <Ship className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div className="text-xs text-muted-foreground">Entrada Casco</div>
-                        <div className="font-medium">
-                          {format(new Date(hull.hull_entry_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Data Prevista Entrega */}
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-success" />
-                      <div>
-                        <div className="text-xs text-muted-foreground">Entrega Prevista</div>
-                        <div className="font-medium text-success">
-                          {format(new Date(hull.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        <SelectTrigger className="w-full max-w-md bg-background">
+          <SelectValue placeholder="Selecione a matrícula...">
+            {selectedHull && (
+              <div className="flex items-center gap-2">
+                <Anchor className="h-4 w-4 text-primary" />
+                <span className="font-medium">
+                  {selectedHull.brand} {selectedHull.hull_number}
+                </span>
+                <span className="text-muted-foreground text-xs">
+                  — Entrega: {formatDate(selectedHull.estimated_delivery_date)}
+                </span>
+              </div>
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent className="bg-popover z-50">
+          {hullNumbers.map((hull) => (
+            <SelectItem key={hull.id} value={hull.id} className="py-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+                <div className="flex items-center gap-2">
+                  <Anchor className="h-4 w-4 text-primary" />
+                  <span className="font-bold">
+                    {hull.brand} {hull.hull_number}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          </Label>
-        ))}
-      </RadioGroup>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Ship className="h-3 w-3" />
+                    {formatDate(hull.hull_entry_date)}
+                  </span>
+                  <span className="flex items-center gap-1 text-success">
+                    <CalendarDays className="h-3 w-3" />
+                    {formatDate(hull.estimated_delivery_date)}
+                  </span>
+                </div>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      {selectedHull && (
+        <p className="text-xs text-muted-foreground">
+          {hullNumbers.length} matrícula(s) disponível(is) para este modelo
+        </p>
+      )}
     </div>
   );
 }
