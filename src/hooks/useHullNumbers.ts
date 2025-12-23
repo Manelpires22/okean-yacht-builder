@@ -20,12 +20,13 @@ export interface HullNumber {
   };
 }
 
-interface HullNumberInsert {
+export interface HullNumberInsert {
   brand?: string;
   yacht_model_id: string;
   hull_number: string;
   hull_entry_date: string;
   estimated_delivery_date: string;
+  status?: 'available' | 'contracted';
 }
 
 // Buscar todas as matrículas
@@ -174,6 +175,7 @@ export function useImportHullNumbers() {
           hull_number: item.hull_number,
           hull_entry_date: item.hull_entry_date,
           estimated_delivery_date: item.estimated_delivery_date,
+          status: item.status || 'available',
         })))
         .select();
 

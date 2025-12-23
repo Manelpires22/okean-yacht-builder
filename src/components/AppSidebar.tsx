@@ -17,6 +17,7 @@ import {
   Calendar,
   FileSignature,
   ChevronRight,
+  Anchor,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -64,6 +65,7 @@ const navGroups = [
     icon: Ship,
     items: [
       { path: "/admin/yacht-models", icon: Ship, label: "Modelos de Iates" },
+      { path: "/admin/hull-numbers", icon: Anchor, label: "Matrículas (Hull Numbers)" },
       { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
     ],
   },

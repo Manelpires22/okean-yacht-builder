@@ -26,9 +26,30 @@ interface ImportRow {
   hull_number: string;
   hull_entry_date: string;
   estimated_delivery_date: string;
+  status: 'available' | 'contracted';
   yacht_model_id?: string;
   error?: string;
 }
+
+// Mapeamento de modelos da planilha para códigos do sistema
+const MODEL_MAPPING: Record<string, string> = {
+  'FY 550': 'FY550',
+  'FY550': 'FY550',
+  'FY 670': 'FY670',
+  'FY670': 'FY670',
+  'FY 720': 'FY720',
+  'FY720': 'FY720',
+  'FY 850': 'FY850',
+  'FY850': 'FY850',
+  'FY 1000': 'FY1000',
+  'FY1000': 'FY1000',
+  'OKEAN 52': 'OKEAN52',
+  'OKEAN52': 'OKEAN52',
+  'OKEAN 57': 'OKEAN57',
+  'OKEAN57': 'OKEAN57',
+  'OKEAN 80': 'OKEAN80',
+  'OKEAN80': 'OKEAN80',
+};
 
 interface ImportHullNumbersDialogProps {
   open: boolean;
@@ -72,6 +93,15 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
   const findModelId = useCallback((modelText: string): string | null => {
     if (!yachtModels || !modelText) return null;
     
+    // Primeiro tentar o mapeamento direto
+    const mappedCode = MODEL_MAPPING[modelText.trim()];
+    if (mappedCode) {
+      const byMappedCode = yachtModels.find(m => 
+        m.code.toUpperCase() === mappedCode.toUpperCase()
+      );
+      if (byMappedCode) return byMappedCode.id;
+    }
+    
     const normalized = modelText.toUpperCase().replace(/\s+/g, '');
     
     // Buscar por código exato
@@ -89,6 +119,14 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
     
     return null;
   }, [yachtModels]);
+  
+  const parseStatus = (statusText: string): 'available' | 'contracted' => {
+    const normalized = statusText.toLowerCase().trim();
+    if (normalized === 'disponivel' || normalized === 'disponível') {
+      return 'available';
+    }
+    return 'contracted';
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -113,9 +151,13 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
         
         const brand = String(row[0] || 'OKEAN').trim();
         const model = String(row[1] || '').trim();
-        const hull_number = String(row[2] || '').trim().padStart(2, '0').slice(-2);
+        // Manter código completo da matrícula (ex: F55008, OK5227)
+        const hull_number = String(row[2] || '').trim();
         const hull_entry_date = parseDate(row[3]);
         const estimated_delivery_date = parseDate(row[4]);
+        // Coluna 5 (índice 5) é o status: "Disponivel" ou "Vendida"
+        const statusText = String(row[5] || 'Disponivel').trim();
+        const status = parseStatus(statusText);
         
         const yacht_model_id = findModelId(model);
         
@@ -132,6 +174,7 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
           hull_number,
           hull_entry_date: hull_entry_date || '',
           estimated_delivery_date: estimated_delivery_date || '',
+          status,
           yacht_model_id: yacht_model_id || undefined,
           error,
         });
@@ -158,6 +201,7 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
         hull_number: r.hull_number,
         hull_entry_date: r.hull_entry_date,
         estimated_delivery_date: r.estimated_delivery_date,
+        status: r.status,
       }))
     );
     
@@ -219,12 +263,13 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Validação</TableHead>
                       <TableHead>Marca</TableHead>
                       <TableHead>Modelo</TableHead>
                       <TableHead>Matrícula</TableHead>
                       <TableHead>Entrada</TableHead>
                       <TableHead>Entrega</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -242,6 +287,11 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
                         <TableCell className="font-mono">{row.hull_number}</TableCell>
                         <TableCell>{row.hull_entry_date}</TableCell>
                         <TableCell>{row.estimated_delivery_date}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.status === 'available' ? 'default' : 'secondary'}>
+                            {row.status === 'available' ? 'Disponível' : 'Vendida'}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
