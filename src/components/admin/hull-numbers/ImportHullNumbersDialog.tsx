@@ -32,7 +32,18 @@ interface ImportRow {
 }
 
 // Mapeamento de modelos da planilha para códigos do sistema
+// Suporta formatos: "550", "FY550", "FY 550", etc.
 const MODEL_MAPPING: Record<string, string> = {
+  // Números simples (como vem na planilha)
+  '550': 'FY550',
+  '670': 'FY670',
+  '720': 'FY720',
+  '850': 'FY850',
+  '1000': 'FY1000',
+  '52': 'OKEAN52',
+  '57': 'OKEAN57',
+  '80': 'OKEAN80',
+  // Com prefixo FY
   'FY 550': 'FY550',
   'FY550': 'FY550',
   'FY 670': 'FY670',
@@ -43,6 +54,7 @@ const MODEL_MAPPING: Record<string, string> = {
   'FY850': 'FY850',
   'FY 1000': 'FY1000',
   'FY1000': 'FY1000',
+  // Com prefixo OKEAN
   'OKEAN 52': 'OKEAN52',
   'OKEAN52': 'OKEAN52',
   'OKEAN 57': 'OKEAN57',
@@ -90,11 +102,13 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
     return null;
   };
 
-  const findModelId = useCallback((modelText: string): string | null => {
+  const findModelId = useCallback((modelText: string, brand?: string): string | null => {
     if (!yachtModels || !modelText) return null;
     
+    const trimmedModel = modelText.trim();
+    
     // Primeiro tentar o mapeamento direto
-    const mappedCode = MODEL_MAPPING[modelText.trim()];
+    const mappedCode = MODEL_MAPPING[trimmedModel];
     if (mappedCode) {
       const byMappedCode = yachtModels.find(m => 
         m.code.toUpperCase() === mappedCode.toUpperCase()
@@ -102,7 +116,21 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
       if (byMappedCode) return byMappedCode.id;
     }
     
-    const normalized = modelText.toUpperCase().replace(/\s+/g, '');
+    // Se é só número, considerar a marca para determinar o prefixo
+    if (/^\d+$/.test(trimmedModel) && brand) {
+      const brandUpper = brand.toUpperCase();
+      let prefix = 'FY'; // Default para Ferretti
+      if (brandUpper.includes('OKEAN')) {
+        prefix = 'OKEAN';
+      }
+      const codeWithPrefix = `${prefix}${trimmedModel}`;
+      const byBrandPrefix = yachtModels.find(m => 
+        m.code.toUpperCase() === codeWithPrefix.toUpperCase()
+      );
+      if (byBrandPrefix) return byBrandPrefix.id;
+    }
+    
+    const normalized = trimmedModel.toUpperCase().replace(/\s+/g, '');
     
     // Buscar por código exato
     const byCode = yachtModels.find(m => 
@@ -147,26 +175,29 @@ export function ImportHullNumbersDialog({ open, onOpenChange }: ImportHullNumber
       
       for (let i = 1; i < jsonData.length; i++) {
         const row = jsonData[i];
-        if (!row || row.length < 5) continue;
+        if (!row || row.length < 4) continue;
         
+        // Mapeamento correto das colunas da planilha:
+        // [0] Marca, [1] Modelo, [2] Slot (ignorar), [3] Matrícula, 
+        // [4] Cliente (ignorar), [5] Entrada Casco, [6] Data Entrega, [7] Status
         const brand = String(row[0] || 'OKEAN').trim();
         const model = String(row[1] || '').trim();
-        // Manter código completo da matrícula (ex: F55008, OK5227)
-        const hull_number = String(row[2] || '').trim();
-        const hull_entry_date = parseDate(row[3]);
-        const estimated_delivery_date = parseDate(row[4]);
-        // Coluna 5 (índice 5) é o status: "Disponivel" ou "Vendida"
-        const statusText = String(row[5] || 'Disponivel').trim();
+        // row[2] = Slot (ignorar)
+        const hull_number = String(row[3] || '').trim();
+        // row[4] = Cliente (ignorar)
+        const hull_entry_date = parseDate(row[5]);
+        const estimated_delivery_date = parseDate(row[6]);
+        const statusText = String(row[7] || 'Disponivel').trim();
         const status = parseStatus(statusText);
         
-        const yacht_model_id = findModelId(model);
+        // Passar a marca para ajudar a determinar o prefixo do modelo
+        const yacht_model_id = findModelId(model, brand);
         
         let error: string | undefined;
         if (!model) error = 'Modelo não informado';
         else if (!yacht_model_id) error = `Modelo "${model}" não encontrado`;
         else if (!hull_number) error = 'Matrícula não informada';
-        else if (!hull_entry_date) error = 'Data de entrada inválida';
-        else if (!estimated_delivery_date) error = 'Data de entrega inválida';
+        // Datas são opcionais - não gerar erro se estiverem vazias
         
         parsedRows.push({
           brand,
