@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Ship, Calendar, DollarSign, User, FileText, ArrowLeft, MoreVertical, Download, Mail, Trash2 } from "lucide-react";
+import { Ship, Calendar, DollarSign, User, FileText, ArrowLeft, MoreVertical, Download, Mail, Trash2, Hash } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getContractStatusLabel, getContractStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
@@ -167,7 +167,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="bg-card rounded-lg p-4 border">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Ship className="h-4 w-4" />
@@ -200,11 +200,23 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
 
           <div className="bg-card rounded-lg p-4 border">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
-              <Calendar className="h-4 w-4" />
-              <span className="text-sm">Prazo Total</span>
+              <Hash className="h-4 w-4" />
+              <span className="text-sm">Matrícula</span>
             </div>
             <p className="font-semibold text-lg">
-              {contract.current_total_delivery_days} dias
+              {contract.hull_number?.hull_number || "N/A"}
+            </p>
+          </div>
+
+          <div className="bg-card rounded-lg p-4 border">
+            <div className="flex items-center gap-2 text-muted-foreground mb-2">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm">Entrega Prevista</span>
+            </div>
+            <p className="font-semibold text-lg">
+              {contract.hull_number?.estimated_delivery_date
+                ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy")
+                : `${contract.current_total_delivery_days} dias`}
             </p>
           </div>
         </div>
