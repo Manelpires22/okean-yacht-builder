@@ -118,7 +118,7 @@ export default function Contracts() {
                         <p className="font-semibold">
                           {contract.hull_number?.estimated_delivery_date
                             ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
-                            : `${contract.current_total_delivery_days} dias`}
+                            : "Sem data cadastrada"}
                         </p>
                       </div>
                     </div>

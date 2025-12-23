@@ -107,7 +107,8 @@ export function useContracts() {
           *,
           quotation:quotations(quotation_number, status),
           client:clients(name, email, phone),
-          yacht_model:yacht_models(name, code)
+          yacht_model:yacht_models(name, code),
+          hull_number:hull_numbers(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
         `)
         .order("created_at", { ascending: false });
 
