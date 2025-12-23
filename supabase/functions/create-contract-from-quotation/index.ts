@@ -127,6 +127,7 @@ serve(async (req) => {
         quotation_id: quotation.id,
         client_id: quotation.client_id,
         yacht_model_id: quotation.yacht_model_id,
+        hull_number_id: quotation.hull_number_id || null,
         contract_number: contractNumber,
         base_price: quotation.final_price,
         base_delivery_days: quotation.total_delivery_days,
@@ -147,7 +148,24 @@ serve(async (req) => {
       throw new Error("Failed to create contract: " + contractError.message);
     }
 
-    // 5. Marcar customizações aprovadas como incluídas no contrato
+    // 5. Atualizar hull_number como vendido e vincular ao contrato
+    if (quotation.hull_number_id) {
+      const { error: hullError } = await supabase
+        .from("hull_numbers")
+        .update({ 
+          status: 'sold',
+          contract_id: contract.id 
+        })
+        .eq("id", quotation.hull_number_id);
+
+      if (hullError) {
+        console.error("Error updating hull number status:", hullError);
+      } else {
+        console.log(`Hull number ${quotation.hull_number_id} marked as sold`);
+      }
+    }
+
+    // 6. Marcar customizações aprovadas como incluídas no contrato
     if (quotation.quotation_customizations && quotation.quotation_customizations.length > 0) {
       const approvedCustomizationIds = quotation.quotation_customizations
         .filter((c: any) => c.status === "approved")
@@ -167,7 +185,7 @@ serve(async (req) => {
       }
     }
 
-    // 6. Atualizar status da cotação
+    // 7. Atualizar status da cotação
     const { error: updateError } = await supabase
       .from("quotations")
       .update({ status: "converted_to_contract" })
@@ -177,7 +195,7 @@ serve(async (req) => {
       console.warn("Could not update quotation status:", updateError);
     }
 
-    // 7. Criar log de auditoria
+    // 8. Criar log de auditoria
     await supabase.from("audit_logs").insert({
       user_id: user.id,
       action: "CREATE_CONTRACT",
@@ -186,6 +204,7 @@ serve(async (req) => {
       new_values: {
         contract_number: contractNumber,
         quotation_id,
+        hull_number_id: quotation.hull_number_id,
       },
     });
 

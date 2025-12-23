@@ -8,7 +8,8 @@ import { ConfigurationSummary } from "@/components/configurator/ConfigurationSum
 import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDialog";
 import { FreeCustomizationDialog } from "@/components/configurator/FreeCustomizationDialog";
 import { UpgradesTab } from "@/components/configurator/UpgradesTab";
-import { useConfigurationState, SelectedUpgrade } from "@/hooks/useConfigurationState";
+import { useConfigurationState, SelectedUpgrade, HullNumberData } from "@/hooks/useConfigurationState";
+import { HullNumber } from "@/hooks/useHullNumbers";
 import { useOptions } from "@/hooks/useOptions";
 import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useYachtModels } from "@/hooks/useYachtModels";
@@ -99,9 +100,17 @@ export default function Configurator() {
   const handleSelectModel = (
     modelId: string,
     basePrice: number,
-    baseDeliveryDays: number
+    baseDeliveryDays: number,
+    hullNumber?: HullNumber
   ) => {
-    setYachtModel(modelId, basePrice, baseDeliveryDays);
+    const hullData: HullNumberData | undefined = hullNumber ? {
+      id: hullNumber.id,
+      hull_number: hullNumber.hull_number,
+      brand: hullNumber.brand,
+      hull_entry_date: hullNumber.hull_entry_date,
+      estimated_delivery_date: hullNumber.estimated_delivery_date,
+    } : undefined;
+    setYachtModel(modelId, basePrice, baseDeliveryDays, hullData);
   };
 
   const handleToggleOption = (
@@ -184,6 +193,7 @@ export default function Configurator() {
       base_discount_percentage: state.base_discount_percentage,
       options_discount_percentage: state.options_discount_percentage,
       notes: formData.notes,
+      hull_number_id: state.hull_number_data?.id,
     });
 
     setSaveDialogOpen(false);

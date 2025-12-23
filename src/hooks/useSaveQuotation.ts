@@ -37,6 +37,7 @@ interface SaveQuotationData {
   base_discount_percentage?: number;
   options_discount_percentage?: number;
   notes?: string;
+  hull_number_id?: string;
 }
 
 // Funções auxiliares
@@ -133,6 +134,7 @@ export function useSaveQuotation() {
             final_price: finalPrice,
             base_delivery_days: data.base_delivery_days,
             total_delivery_days: totalDeliveryDays,
+            hull_number_id: data.hull_number_id || null,
             updated_at: new Date().toISOString()
           })
           .eq('id', data.quotationId)
@@ -302,6 +304,7 @@ export function useSaveQuotation() {
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,
           valid_until: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          hull_number_id: data.hull_number_id || null,
         } as any)
         .select()
         .single();
