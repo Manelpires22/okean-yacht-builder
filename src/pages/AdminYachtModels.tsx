@@ -66,7 +66,6 @@ const AdminYachtModels = () => {
                 <TableHead>Código</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Preço Base</TableHead>
-                <TableHead>Prazo (dias)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -79,7 +78,6 @@ const AdminYachtModels = () => {
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -103,9 +101,6 @@ const AdminYachtModels = () => {
                     </TableCell>
                     <TableCell>
                       {model.base_price ? `R$${model.base_price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "A definir"}
-                    </TableCell>
-                    <TableCell>
-                      {model.base_delivery_days ? `${model.base_delivery_days}d` : "A definir"}
                     </TableCell>
                     <TableCell>
                       <Badge variant={model.is_active ? "default" : "secondary"}>
