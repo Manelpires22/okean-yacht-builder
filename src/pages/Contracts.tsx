@@ -114,9 +114,11 @@ export default function Contracts() {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Prazo Atual</p>
+                        <p className="text-sm text-muted-foreground">Entrega Prevista</p>
                         <p className="font-semibold">
-                          {contract.current_total_delivery_days} dias
+                          {contract.hull_number?.estimated_delivery_date
+                            ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
+                            : `${contract.current_total_delivery_days} dias`}
                         </p>
                       </div>
                     </div>
