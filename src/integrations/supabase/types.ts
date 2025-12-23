@@ -460,6 +460,7 @@ export type Database = {
           delivered_by: string | null
           delivery_notes: string | null
           delivery_status: string | null
+          hull_number_id: string | null
           id: string
           quotation_id: string
           signed_at: string | null
@@ -483,6 +484,7 @@ export type Database = {
           delivered_by?: string | null
           delivery_notes?: string | null
           delivery_status?: string | null
+          hull_number_id?: string | null
           id?: string
           quotation_id: string
           signed_at?: string | null
@@ -506,6 +508,7 @@ export type Database = {
           delivered_by?: string | null
           delivery_notes?: string | null
           delivery_status?: string | null
+          hull_number_id?: string | null
           id?: string
           quotation_id?: string
           signed_at?: string | null
@@ -521,6 +524,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_hull_number_id_fkey"
+            columns: ["hull_number_id"]
+            isOneToOne: false
+            referencedRelation: "hull_numbers"
             referencedColumns: ["id"]
           },
           {
@@ -622,6 +632,67 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      hull_numbers: {
+        Row: {
+          brand: string
+          contract_id: string | null
+          created_at: string | null
+          estimated_delivery_date: string
+          hull_entry_date: string
+          hull_number: string
+          id: string
+          status: string
+          updated_at: string | null
+          yacht_model_id: string
+        }
+        Insert: {
+          brand?: string
+          contract_id?: string | null
+          created_at?: string | null
+          estimated_delivery_date: string
+          hull_entry_date: string
+          hull_number: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+          yacht_model_id: string
+        }
+        Update: {
+          brand?: string
+          contract_id?: string | null
+          created_at?: string | null
+          estimated_delivery_date?: string
+          hull_entry_date?: string
+          hull_number?: string
+          id?: string
+          status?: string
+          updated_at?: string | null
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hull_numbers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hull_numbers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "hull_numbers_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_stops: {
         Row: {
@@ -1342,6 +1413,7 @@ export type Database = {
           final_base_price: number
           final_options_price: number | null
           final_price: number
+          hull_number_id: string | null
           id: string
           options_discount_percentage: number | null
           parent_quotation_id: string | null
@@ -1376,6 +1448,7 @@ export type Database = {
           final_base_price: number
           final_options_price?: number | null
           final_price: number
+          hull_number_id?: string | null
           id?: string
           options_discount_percentage?: number | null
           parent_quotation_id?: string | null
@@ -1410,6 +1483,7 @@ export type Database = {
           final_base_price?: number
           final_options_price?: number | null
           final_price?: number
+          hull_number_id?: string | null
           id?: string
           options_discount_percentage?: number | null
           parent_quotation_id?: string | null
@@ -1433,6 +1507,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_hull_number_id_fkey"
+            columns: ["hull_number_id"]
+            isOneToOne: false
+            referencedRelation: "hull_numbers"
             referencedColumns: ["id"]
           },
           {
