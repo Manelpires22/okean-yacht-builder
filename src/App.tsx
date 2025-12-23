@@ -52,6 +52,7 @@ const AdminWorkflowSettings = lazy(() => import("@/pages/AdminWorkflowSettings")
 const AdminRolesPermissions = lazy(() => import("@/pages/AdminRolesPermissions"));
 const AdminAuditLogs = lazy(() => import("@/pages/AdminAuditLogs"));
 const AdminJobStops = lazy(() => import("@/pages/AdminJobStops"));
+const AdminHullNumbers = lazy(() => import("@/pages/AdminHullNumbers"));
 
 // ==============================================
 // COMPONENTE DE LOADING
@@ -131,6 +132,7 @@ const App = () => (
               <Route path="/admin/roles-permissions" element={<ProtectedRoute requireAdmin><AdminRolesPermissions /></ProtectedRoute>} />
               <Route path="/admin/audit-logs" element={<ProtectedRoute requireAdmin><AdminAuditLogs /></ProtectedRoute>} />
               <Route path="/admin/job-stops" element={<ProtectedRoute requireAdmin><AdminJobStops /></ProtectedRoute>} />
+              <Route path="/admin/hull-numbers" element={<ProtectedRoute requireAdmin><AdminHullNumbers /></ProtectedRoute>} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

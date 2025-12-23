@@ -29,6 +29,14 @@ export interface SelectedUpgrade {
   customization_notes?: string;
 }
 
+export interface HullNumberData {
+  id: string;
+  hull_number: string;
+  brand: string;
+  hull_entry_date: string;
+  estimated_delivery_date: string;
+}
+
 export interface ConfigurationState {
   yacht_model_id: string | null;
   base_price: number;
@@ -38,6 +46,7 @@ export interface ConfigurationState {
   base_discount_percentage: number;
   options_discount_percentage: number;
   customizations: Customization[];
+  hull_number_data: HullNumberData | null;
 }
 
 const STORAGE_KEY = "yacht-configuration-draft";
@@ -51,6 +60,7 @@ const getInitialState = (): ConfigurationState => ({
   base_discount_percentage: 0,
   options_discount_percentage: 0,
   customizations: [],
+  hull_number_data: null,
 });
 
 export function useConfigurationState() {
@@ -77,12 +87,13 @@ export function useConfigurationState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
-  const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number) => {
+  const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number, hullNumberData?: HullNumberData) => {
     setState({
       ...getInitialState(),
       yacht_model_id: modelId,
       base_price: basePrice,
       base_delivery_days: baseDeliveryDays,
+      hull_number_data: hullNumberData || null,
     });
   }, []);
 
@@ -192,6 +203,13 @@ export function useConfigurationState() {
       base_delivery_days: quotation.base_delivery_days || 0,
       base_discount_percentage: quotation.base_discount_percentage || 0,
       options_discount_percentage: quotation.options_discount_percentage || 0,
+      hull_number_data: quotation.hull_number_id ? {
+        id: quotation.hull_number_id,
+        hull_number: quotation.hull_number?.hull_number || '',
+        brand: quotation.hull_number?.brand || 'OKEAN',
+        hull_entry_date: quotation.hull_number?.hull_entry_date || '',
+        estimated_delivery_date: quotation.hull_number?.estimated_delivery_date || '',
+      } : null,
       selected_options: quotation.quotation_options?.map((qo: any) => {
         const customization = optionCustomizations.find(
           (c: any) => c.option_id === qo.option_id
