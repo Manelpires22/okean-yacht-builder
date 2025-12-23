@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useContractStats } from "@/hooks/useContractStats";
+import { useContracts } from "@/hooks/useContracts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   FileText, 
@@ -8,15 +9,35 @@ import {
   Activity, 
   DollarSign, 
   TrendingUp,
-  Clock,
+  Calendar,
   FileSignature
 } from "lucide-react";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 import { AutoSizedValue } from "@/components/ui/auto-sized-value";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 export function ContractsDashboard() {
   const { data: stats, isLoading } = useContractStats();
+  const { data: contracts } = useContracts();
+
+  // Find next delivery date from active contracts
+  const nextDeliveryDate = useMemo(() => {
+    if (!contracts?.length) return null;
+    
+    const activeContracts = contracts.filter(c => c.status === 'active');
+    const contractsWithDate = (activeContracts.length > 0 ? activeContracts : contracts)
+      .filter(c => c.hull_number?.estimated_delivery_date)
+      .map(c => ({
+        date: new Date(c.hull_number!.estimated_delivery_date),
+        hullNumber: c.hull_number!.hull_number
+      }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+    
+    return contractsWithDate[0] || null;
+  }, [contracts]);
 
   if (isLoading) {
     return (
@@ -90,12 +111,18 @@ export function ContractsDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Prazo Médio</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Próxima Entrega</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{Math.round(stats.averageDeliveryDays)}</div>
-            <p className="text-xs text-muted-foreground mt-1">dias de entrega</p>
+            <div className="text-2xl font-bold">
+              {nextDeliveryDate 
+                ? format(nextDeliveryDate.date, "dd/MM/yyyy", { locale: ptBR })
+                : "N/A"}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {nextDeliveryDate ? nextDeliveryDate.hullNumber : "Sem data cadastrada"}
+            </p>
           </CardContent>
         </Card>
       </div>
