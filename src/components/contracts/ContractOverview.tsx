@@ -2,7 +2,7 @@ import { Contract } from "@/hooks/useContracts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Ship, User, Calendar } from "lucide-react";
+import { FileText, Ship, User, Calendar, Hash, Anchor } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,7 +21,7 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
           <CardDescription>Dados gerais do contrato de construção</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Número do Contrato</p>
               <p className="font-semibold flex items-center gap-2">
@@ -51,6 +51,24 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               <p className="font-semibold flex items-center gap-2">
                 <User className="h-4 w-4" />
                 {contract.client?.name || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Matrícula</p>
+              <p className="font-semibold flex items-center gap-2">
+                <Hash className="h-4 w-4" />
+                {contract.hull_number?.hull_number || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-sm text-muted-foreground mb-1">Entrega Prevista</p>
+              <p className="font-semibold flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {contract.hull_number?.estimated_delivery_date
+                  ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
+                  : `${contract.current_total_delivery_days} dias`}
               </p>
             </div>
           </div>

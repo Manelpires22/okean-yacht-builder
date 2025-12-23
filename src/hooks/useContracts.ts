@@ -32,6 +32,7 @@ export interface Contract {
   quotation_id: string;
   client_id: string;
   yacht_model_id: string;
+  hull_number_id: string | null;
   contract_number: string;
   base_price: number;
   base_delivery_days: number;
@@ -50,6 +51,14 @@ export interface Contract {
   quotation?: any;
   client?: any;
   yacht_model?: any;
+  hull_number?: {
+    id: string;
+    hull_number: string;
+    brand: string;
+    hull_entry_date: string | null;
+    estimated_delivery_date: string | null;
+    status: string;
+  };
 }
 
 /**
@@ -145,7 +154,8 @@ export function useContract(contractId: string | undefined) {
           *,
           quotation:quotations(*),
           client:clients(*),
-          yacht_model:yacht_models(*)
+          yacht_model:yacht_models(*),
+          hull_number:hull_numbers(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
         `)
         .eq("id", contractId)
         .single();
