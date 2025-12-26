@@ -136,7 +136,7 @@ export default function ContractDetail() {
 
           <TabsContent value="delivery" className="space-y-6">
             <DeliveryProgress progress={progress} />
-            <DeliveryChecklist items={checklistItems || []} isLoading={isLoadingChecklist} />
+            <DeliveryChecklist items={checklistItems || []} isLoading={isLoadingChecklist} contractId={contract.id} />
             {checklistItems && (
               <FinalizeDeliveryDialog 
                 contractId={contract.id}
