@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search, CheckCircle2, FileText } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, Search, CheckCircle2, FileText, AlertTriangle } from "lucide-react";
 import { useMemorialUpgrades } from "@/hooks/useMemorialUpgrades";
 import { useItemUsageCheck } from "@/hooks/useItemUsageCheck";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -40,13 +41,19 @@ export function SelectAvailableUpgradeDialog({
   const [notes, setNotes] = useState("");
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
-  const { getUpgradeStatus } = useItemUsageCheck(contractId);
+  const { getUpgradeStatus, getConflictingUpgrade } = useItemUsageCheck(contractId);
 
   const filteredUpgrades = upgrades?.filter(
     (upgrade) =>
       upgrade.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       upgrade.code.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Detectar conflito quando um upgrade é selecionado
+  const conflictingUpgrade = useMemo(() => {
+    if (!selectedUpgrade?.memorial_item_id) return null;
+    return getConflictingUpgrade(selectedUpgrade.memorial_item_id, selectedUpgrade.id);
+  }, [selectedUpgrade, getConflictingUpgrade]);
 
   const handleAdd = () => {
     if (!selectedUpgrade) return;
@@ -60,6 +67,12 @@ export function SelectAvailableUpgradeDialog({
       quantity,
       estimated_price: selectedUpgrade.price * quantity,
       estimated_days: selectedUpgrade.delivery_days_impact || 0,
+      // Incluir informação de conflito se existir
+      replaces_upgrade: conflictingUpgrade ? {
+        upgrade_id: conflictingUpgrade.upgradeId,
+        upgrade_name: conflictingUpgrade.upgradeName,
+        source: conflictingUpgrade.source
+      } : undefined,
     });
 
     setSelectedUpgrade(null);
@@ -174,6 +187,28 @@ export function SelectAvailableUpgradeDialog({
 
         {selectedUpgrade && (
           <div className="space-y-4 border-t pt-4">
+            {/* Alerta de conflito quando upgrade substitui outro */}
+            {conflictingUpgrade && (
+              <Alert variant="destructive" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle>Este upgrade substituirá outro</AlertTitle>
+                <AlertDescription className="mt-2">
+                  <p>
+                    O item <strong>{selectedUpgrade.memorial_item?.item_name || 'do memorial'}</strong> já possui o upgrade:
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="font-semibold">"{conflictingUpgrade.upgradeName}"</span>
+                    <Badge variant="outline" className="border-amber-500 text-amber-700">
+                      {conflictingUpgrade.source}
+                    </Badge>
+                  </div>
+                  <p className="text-sm mt-2 text-amber-700 dark:text-amber-300">
+                    Ao aprovar esta ATO, o upgrade anterior será substituído por este.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Quantidade</Label>
