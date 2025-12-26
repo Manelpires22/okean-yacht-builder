@@ -54,6 +54,7 @@ const AdminAuditLogs = lazy(() => import("@/pages/AdminAuditLogs"));
 const AdminJobStops = lazy(() => import("@/pages/AdminJobStops"));
 const AdminHullNumbers = lazy(() => import("@/pages/AdminHullNumbers"));
 const AdminPDFTemplates = lazy(() => import("@/pages/AdminPDFTemplates"));
+const AdminPDFTemplateEditor = lazy(() => import("@/pages/AdminPDFTemplateEditor"));
 
 // ==============================================
 // COMPONENTE DE LOADING
@@ -135,7 +136,7 @@ const App = () => (
               <Route path="/admin/job-stops" element={<ProtectedRoute requireAdmin><AdminJobStops /></ProtectedRoute>} />
               <Route path="/admin/hull-numbers" element={<ProtectedRoute requireAdmin><AdminHullNumbers /></ProtectedRoute>} />
               <Route path="/admin/pdf-templates" element={<ProtectedRoute requireAdmin><AdminPDFTemplates /></ProtectedRoute>} />
-              <Route path="/admin/pdf-templates/:id" element={<ProtectedRoute requireAdmin><AdminPDFTemplates /></ProtectedRoute>} />
+              <Route path="/admin/pdf-templates/:id" element={<ProtectedRoute requireAdmin><AdminPDFTemplateEditor /></ProtectedRoute>} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
