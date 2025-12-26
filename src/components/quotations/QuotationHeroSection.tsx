@@ -1,7 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
-import { Calendar, TrendingUp } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -80,25 +79,6 @@ export function QuotationHeroSection({
       {/* Resumo Financeiro Destacado */}
       <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20">
         <CardContent className="p-6 space-y-6">
-          {/* Valor Total */}
-          <div>
-            <p className="text-sm text-muted-foreground mb-1">Valor Final da Proposta</p>
-            <p className="text-4xl font-bold tracking-tight">
-              {formatCurrency(finalPrice)}
-            </p>
-            {savings > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="secondary" className="bg-green-600/10 text-green-600 border-green-600/20">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {savingsPercentage}% de economia
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Economia de {formatCurrency(savings)}
-                </span>
-              </div>
-            )}
-          </div>
-
           {/* Prazo de Entrega */}
           <div>
             <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
@@ -167,6 +147,12 @@ export function QuotationHeroSection({
                 <span className="font-medium">-{formatCurrency(savings)}</span>
               </div>
             )}
+            
+            {/* Valor Final da Proposta */}
+            <div className="flex justify-between pt-3 border-t mt-2">
+              <span className="font-semibold text-base">Valor Final da Proposta</span>
+              <span className="font-bold text-lg text-primary">{formatCurrency(finalPrice)}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
