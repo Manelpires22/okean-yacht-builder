@@ -1,0 +1,148 @@
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ItemUsageStatus {
+  inContract: boolean;
+  inATOs: string[]; // e.g., ["ATO 1", "ATO 2"]
+}
+
+interface ItemUsageMap {
+  options: Map<string, ItemUsageStatus>;
+  upgrades: Map<string, ItemUsageStatus>;
+  memorialItems: Map<string, ItemUsageStatus>;
+}
+
+export function useItemUsageCheck(contractId: string | undefined) {
+  // Buscar contrato com base_snapshot e ATOs
+  const { data: contract } = useQuery({
+    queryKey: ['contract-usage-check', contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('base_snapshot')
+        .eq('id', contractId!)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contractId,
+  });
+
+  // Buscar todas as ATOs do contrato com suas configurações
+  const { data: atos } = useQuery({
+    queryKey: ['ato-configurations-usage', contractId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('additional_to_orders')
+        .select(`
+          id,
+          ato_number,
+          ato_configurations (
+            item_id,
+            item_type,
+            configuration_details
+          )
+        `)
+        .eq('contract_id', contractId!);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contractId,
+  });
+
+  const usageMap = useMemo<ItemUsageMap>(() => {
+    const optionsMap = new Map<string, ItemUsageStatus>();
+    const upgradesMap = new Map<string, ItemUsageStatus>();
+    const memorialItemsMap = new Map<string, ItemUsageStatus>();
+
+    // Parse base_snapshot para itens do contrato original
+    if (contract?.base_snapshot) {
+      const snapshot = contract.base_snapshot as any;
+      
+      // Opções do contrato original
+      if (snapshot.options && Array.isArray(snapshot.options)) {
+        snapshot.options.forEach((opt: any) => {
+          const optionId = opt.option_id || opt.id;
+          if (optionId) {
+            optionsMap.set(optionId, { inContract: true, inATOs: [] });
+          }
+        });
+      }
+
+      // Upgrades do contrato original
+      if (snapshot.upgrades && Array.isArray(snapshot.upgrades)) {
+        snapshot.upgrades.forEach((upg: any) => {
+          const upgradeId = upg.upgrade_id || upg.id;
+          if (upgradeId) {
+            upgradesMap.set(upgradeId, { inContract: true, inATOs: [] });
+          }
+        });
+      }
+    }
+
+    // Adicionar itens das ATOs
+    if (atos) {
+      atos.forEach((ato) => {
+        const atoLabel = ato.ato_number || `ATO ${ato.id.slice(0, 6)}`;
+        
+        ato.ato_configurations?.forEach((config: any) => {
+          const itemId = config.item_id;
+          if (!itemId) return;
+
+          const itemType = config.item_type;
+
+          if (itemType === 'option') {
+            const existing = optionsMap.get(itemId);
+            if (existing) {
+              existing.inATOs.push(atoLabel);
+            } else {
+              optionsMap.set(itemId, { inContract: false, inATOs: [atoLabel] });
+            }
+          } else if (itemType === 'upgrade') {
+            const existing = upgradesMap.get(itemId);
+            if (existing) {
+              existing.inATOs.push(atoLabel);
+            } else {
+              upgradesMap.set(itemId, { inContract: false, inATOs: [atoLabel] });
+            }
+          } else if (itemType === 'memorial_item' || itemType === 'define_finishing') {
+            const existing = memorialItemsMap.get(itemId);
+            if (existing) {
+              existing.inATOs.push(atoLabel);
+            } else {
+              memorialItemsMap.set(itemId, { inContract: false, inATOs: [atoLabel] });
+            }
+          }
+        });
+      });
+    }
+
+    return {
+      options: optionsMap,
+      upgrades: upgradesMap,
+      memorialItems: memorialItemsMap,
+    };
+  }, [contract, atos]);
+
+  const getOptionStatus = (optionId: string): ItemUsageStatus | null => {
+    return usageMap.options.get(optionId) || null;
+  };
+
+  const getUpgradeStatus = (upgradeId: string): ItemUsageStatus | null => {
+    return usageMap.upgrades.get(upgradeId) || null;
+  };
+
+  const getMemorialItemStatus = (itemId: string): ItemUsageStatus | null => {
+    return usageMap.memorialItems.get(itemId) || null;
+  };
+
+  return {
+    getOptionStatus,
+    getUpgradeStatus,
+    getMemorialItemStatus,
+    isLoading: !contract && !atos,
+  };
+}

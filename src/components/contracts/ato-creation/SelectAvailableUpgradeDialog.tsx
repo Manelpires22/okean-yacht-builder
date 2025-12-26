@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, CheckCircle2, FileText } from "lucide-react";
 import { useMemorialUpgrades } from "@/hooks/useMemorialUpgrades";
+import { useItemUsageCheck } from "@/hooks/useItemUsageCheck";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { PendingATOItem } from "./ATOItemsList";
 
@@ -22,6 +23,7 @@ interface SelectAvailableUpgradeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   yachtModelId: string;
+  contractId?: string;
   onAdd: (item: PendingATOItem) => void;
 }
 
@@ -29,6 +31,7 @@ export function SelectAvailableUpgradeDialog({
   open,
   onOpenChange,
   yachtModelId,
+  contractId,
   onAdd,
 }: SelectAvailableUpgradeDialogProps) {
   const [selectedUpgrade, setSelectedUpgrade] = useState<any>(null);
@@ -37,6 +40,7 @@ export function SelectAvailableUpgradeDialog({
   const [notes, setNotes] = useState("");
 
   const { data: upgrades, isLoading } = useMemorialUpgrades(yachtModelId);
+  const { getUpgradeStatus } = useItemUsageCheck(contractId);
 
   const filteredUpgrades = upgrades?.filter(
     (upgrade) =>
@@ -105,46 +109,65 @@ export function SelectAvailableUpgradeDialog({
                   Nenhum upgrade encontrado
                 </div>
               )}
-              {filteredUpgrades?.map((upgrade) => (
-                <div
-                  key={upgrade.id}
-                  onClick={() => setSelectedUpgrade(upgrade)}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedUpgrade?.id === upgrade.id
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/50 hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold">{upgrade.name}</h4>
-                        <Badge variant="outline">{upgrade.code}</Badge>
+              {filteredUpgrades?.map((upgrade) => {
+                const usageStatus = getUpgradeStatus(upgrade.id);
+                return (
+                  <div
+                    key={upgrade.id}
+                    onClick={() => setSelectedUpgrade(upgrade)}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      selectedUpgrade?.id === upgrade.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-primary/50 hover:bg-accent"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-semibold">{upgrade.name}</h4>
+                          <Badge variant="outline">{upgrade.code}</Badge>
+                          {usageStatus?.inContract && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              No contrato
+                            </Badge>
+                          )}
+                          {usageStatus?.inATOs.map((atoLabel) => (
+                            <Badge 
+                              key={atoLabel} 
+                              variant="outline" 
+                              className="text-xs gap-1 border-amber-500 text-amber-600"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Já em {atoLabel}
+                            </Badge>
+                          ))}
+                        </div>
+                        {upgrade.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {upgrade.description}
+                          </p>
+                        )}
+                        {upgrade.memorial_item && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Item: {upgrade.memorial_item.item_name}
+                          </p>
+                        )}
                       </div>
-                      {upgrade.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {upgrade.description}
+                      <div className="text-right ml-4">
+                        <p className="font-bold text-primary">
+                          {formatCurrency(upgrade.price)}
                         </p>
-                      )}
-                      {upgrade.memorial_item && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Item: {upgrade.memorial_item.item_name}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right ml-4">
-                      <p className="font-bold text-primary">
-                        {formatCurrency(upgrade.price)}
-                      </p>
-                      {upgrade.delivery_days_impact > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          +{upgrade.delivery_days_impact} dias
-                        </p>
-                      )}
+                        {upgrade.delivery_days_impact > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            +{upgrade.delivery_days_impact} dias
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         )}

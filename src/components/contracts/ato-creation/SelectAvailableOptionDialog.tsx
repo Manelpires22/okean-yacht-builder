@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, CheckCircle2, FileText } from "lucide-react";
 import { useOptions } from "@/hooks/useOptions";
+import { useItemUsageCheck } from "@/hooks/useItemUsageCheck";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { PendingATOItem } from "./ATOItemsList";
 
@@ -22,6 +23,7 @@ interface SelectAvailableOptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   yachtModelId: string;
+  contractId?: string;
   onAdd: (item: PendingATOItem) => void;
 }
 
@@ -29,6 +31,7 @@ export function SelectAvailableOptionDialog({
   open,
   onOpenChange,
   yachtModelId,
+  contractId,
   onAdd,
 }: SelectAvailableOptionDialogProps) {
   const [selectedOption, setSelectedOption] = useState<any>(null);
@@ -37,6 +40,7 @@ export function SelectAvailableOptionDialog({
   const [notes, setNotes] = useState("");
 
   const { data: options, isLoading } = useOptions();
+  const { getOptionStatus } = useItemUsageCheck(contractId);
 
   const filteredOptions = options?.filter(
     (opt) =>
@@ -93,41 +97,60 @@ export function SelectAvailableOptionDialog({
         ) : (
           <ScrollArea className="h-[400px]">
             <div className="space-y-2">
-              {filteredOptions?.map((option) => (
-                <div
-                  key={option.id}
-                  onClick={() => setSelectedOption(option)}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedOption?.id === option.id
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/50 hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold">{option.name}</h4>
-                        <Badge variant="outline">{option.code}</Badge>
+              {filteredOptions?.map((option) => {
+                const usageStatus = getOptionStatus(option.id);
+                return (
+                  <div
+                    key={option.id}
+                    onClick={() => setSelectedOption(option)}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      selectedOption?.id === option.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-primary/50 hover:bg-accent"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-semibold">{option.name}</h4>
+                          <Badge variant="outline">{option.code}</Badge>
+                          {usageStatus?.inContract && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              No contrato
+                            </Badge>
+                          )}
+                          {usageStatus?.inATOs.map((atoLabel) => (
+                            <Badge 
+                              key={atoLabel} 
+                              variant="outline" 
+                              className="text-xs gap-1 border-amber-500 text-amber-600"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Já em {atoLabel}
+                            </Badge>
+                          ))}
+                        </div>
+                        {option.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {option.description}
+                          </p>
+                        )}
                       </div>
-                      {option.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {option.description}
+                      <div className="text-right ml-4">
+                        <p className="font-bold text-primary">
+                          {formatCurrency(option.base_price)}
                         </p>
-                      )}
-                    </div>
-                    <div className="text-right ml-4">
-                      <p className="font-bold text-primary">
-                        {formatCurrency(option.base_price)}
-                      </p>
-                      {option.delivery_days_impact > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          +{option.delivery_days_impact} dias
-                        </p>
-                      )}
+                        {option.delivery_days_impact > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            +{option.delivery_days_impact} dias
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         )}
