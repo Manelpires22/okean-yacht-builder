@@ -13,6 +13,9 @@ interface QuotationHeroSectionProps {
     image_url?: string;
   };
   basePrice: number;
+  upgradesPrice: number;
+  optionsPrice: number;
+  customizationsPrice: number;
   finalPrice: number;
   baseDeliveryDays: number;
   totalDeliveryDays: number;
@@ -24,6 +27,9 @@ interface QuotationHeroSectionProps {
 export function QuotationHeroSection({
   yachtModel,
   basePrice,
+  upgradesPrice,
+  optionsPrice,
+  customizationsPrice,
   finalPrice,
   baseDeliveryDays,
   totalDeliveryDays,
@@ -31,8 +37,12 @@ export function QuotationHeroSection({
   estimatedDeliveryDate,
   hullNumber
 }: QuotationHeroSectionProps) {
-  const savings = discountAmount || (basePrice - finalPrice);
-  const savingsPercentage = basePrice > 0 ? ((savings / basePrice) * 100).toFixed(1) : '0';
+  // Valor inicial = soma de todos os componentes (sem descontos)
+  const valorInicial = basePrice + upgradesPrice + optionsPrice + customizationsPrice;
+  
+  // Calcular economia/desconto real
+  const savings = discountAmount || (valorInicial - finalPrice);
+  const savingsPercentage = valorInicial > 0 ? ((savings / valorInicial) * 100).toFixed(1) : '0';
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -63,9 +73,6 @@ export function QuotationHeroSection({
                 <p className="text-sm mt-2 line-clamp-2">{yachtModel.description}</p>
               )}
             </div>
-            <Badge variant="outline" className="text-xs">
-              Base: {formatCurrency(basePrice)}
-            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +82,7 @@ export function QuotationHeroSection({
         <CardContent className="p-6 space-y-6">
           {/* Valor Total */}
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Valor Total da Proposta</p>
+            <p className="text-sm text-muted-foreground mb-1">Valor Final da Proposta</p>
             <p className="text-4xl font-bold tracking-tight">
               {formatCurrency(finalPrice)}
             </p>
@@ -115,12 +122,45 @@ export function QuotationHeroSection({
             )}
           </div>
 
-          {/* Breakdown Rápido */}
-          <div className="pt-4 border-t space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Preço base</span>
-              <span className="font-medium">{formatCurrency(basePrice)}</span>
+          {/* Breakdown Financeiro Detalhado */}
+          <div className="pt-4 border-t space-y-3 text-sm">
+            {/* Composição da Proposta */}
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Composição da Proposta
+            </p>
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Barco Base</span>
+                <span className="font-medium">{formatCurrency(basePrice)}</span>
+              </div>
+              {upgradesPrice > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Upgrades</span>
+                  <span className="font-medium">{formatCurrency(upgradesPrice)}</span>
+                </div>
+              )}
+              {optionsPrice > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Opcionais</span>
+                  <span className="font-medium">{formatCurrency(optionsPrice)}</span>
+                </div>
+              )}
+              {customizationsPrice > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Customizações</span>
+                  <span className="font-medium">{formatCurrency(customizationsPrice)}</span>
+                </div>
+              )}
             </div>
+            
+            {/* Valor Inicial */}
+            <div className="flex justify-between pt-2 border-t border-dashed">
+              <span className="font-medium">Valor Inicial</span>
+              <span className="font-semibold">{formatCurrency(valorInicial)}</span>
+            </div>
+            
+            {/* Descontos */}
             {savings > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Descontos aplicados</span>
