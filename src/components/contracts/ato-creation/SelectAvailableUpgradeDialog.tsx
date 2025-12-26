@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { Loader2, Search, CheckCircle2, FileText, AlertTriangle } from "lucide-react";
 import { useMemorialUpgrades } from "@/hooks/useMemorialUpgrades";
 import { useItemUsageCheck } from "@/hooks/useItemUsageCheck";
@@ -55,8 +56,24 @@ export function SelectAvailableUpgradeDialog({
     return getConflictingUpgrade(selectedUpgrade.memorial_item_id, selectedUpgrade.id);
   }, [selectedUpgrade, getConflictingUpgrade]);
 
+  // Calcular delta de preço quando há conflito
+  const priceDelta = useMemo(() => {
+    if (!selectedUpgrade || !conflictingUpgrade) return null;
+    const newPrice = selectedUpgrade.price * quantity;
+    const oldPrice = conflictingUpgrade.upgradePrice;
+    return {
+      value: newPrice - oldPrice,
+      isPositive: newPrice > oldPrice,
+      oldPrice,
+      newPrice
+    };
+  }, [selectedUpgrade, conflictingUpgrade, quantity]);
+
   const handleAdd = () => {
     if (!selectedUpgrade) return;
+
+    // Usar delta como preço estimado quando há conflito (substituição)
+    const estimatedPrice = priceDelta ? priceDelta.value : selectedUpgrade.price * quantity;
 
     onAdd({
       id: crypto.randomUUID(),
@@ -65,13 +82,16 @@ export function SelectAvailableUpgradeDialog({
       item_name: selectedUpgrade.name,
       notes: notes || undefined,
       quantity,
-      estimated_price: selectedUpgrade.price * quantity,
+      estimated_price: estimatedPrice,
+      original_price: selectedUpgrade.price * quantity, // Preço bruto do novo upgrade
       estimated_days: selectedUpgrade.delivery_days_impact || 0,
       // Incluir informação de conflito se existir
       replaces_upgrade: conflictingUpgrade ? {
         upgrade_id: conflictingUpgrade.upgradeId,
         upgrade_name: conflictingUpgrade.upgradeName,
-        source: conflictingUpgrade.source
+        upgrade_price: conflictingUpgrade.upgradePrice,
+        source: conflictingUpgrade.source,
+        delta: priceDelta?.value
       } : undefined,
     });
 
@@ -188,23 +208,40 @@ export function SelectAvailableUpgradeDialog({
         {selectedUpgrade && (
           <div className="space-y-4 border-t pt-4">
             {/* Alerta de conflito quando upgrade substitui outro */}
-            {conflictingUpgrade && (
+            {conflictingUpgrade && priceDelta && (
               <Alert variant="destructive" className="border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
                 <AlertTitle>Este upgrade substituirá outro</AlertTitle>
-                <AlertDescription className="mt-2">
+                <AlertDescription className="mt-2 space-y-3">
                   <p>
-                    O item <strong>{selectedUpgrade.memorial_item?.item_name || 'do memorial'}</strong> já possui o upgrade:
+                    O item <strong>{selectedUpgrade.memorial_item?.item_name || 'do memorial'}</strong> já possui:
                   </p>
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-2">
                     <span className="font-semibold">"{conflictingUpgrade.upgradeName}"</span>
                     <Badge variant="outline" className="border-amber-500 text-amber-700">
                       {conflictingUpgrade.source}
                     </Badge>
+                    <span className="text-muted-foreground">{formatCurrency(priceDelta.oldPrice)}</span>
                   </div>
-                  <p className="text-sm mt-2 text-amber-700 dark:text-amber-300">
-                    Ao aprovar esta ATO, o upgrade anterior será substituído por este.
-                  </p>
+                  
+                  {/* Breakdown de preço */}
+                  <div className="p-3 bg-background rounded border border-amber-300">
+                    <div className="flex justify-between text-sm">
+                      <span>Upgrade anterior:</span>
+                      <span className="text-muted-foreground">- {formatCurrency(priceDelta.oldPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Novo upgrade:</span>
+                      <span>+ {formatCurrency(priceDelta.newPrice)}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-bold">
+                      <span>Impacto líquido:</span>
+                      <span className={priceDelta.isPositive ? "text-destructive" : "text-green-600"}>
+                        {priceDelta.isPositive ? '+' : ''}{formatCurrency(priceDelta.value)}
+                      </span>
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
@@ -220,9 +257,16 @@ export function SelectAvailableUpgradeDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Total Estimado</Label>
-                <div className="h-10 px-3 py-2 bg-muted rounded-md flex items-center font-semibold text-primary">
-                  {formatCurrency(selectedUpgrade.price * quantity)}
+                <Label>{priceDelta ? 'Impacto Líquido' : 'Total Estimado'}</Label>
+                <div className={`h-10 px-3 py-2 bg-muted rounded-md flex items-center font-semibold ${
+                  priceDelta 
+                    ? priceDelta.isPositive ? "text-destructive" : "text-green-600"
+                    : "text-primary"
+                }`}>
+                  {priceDelta 
+                    ? `${priceDelta.isPositive ? '+' : ''}${formatCurrency(priceDelta.value)}`
+                    : formatCurrency(selectedUpgrade.price * quantity)
+                  }
                 </div>
               </div>
             </div>

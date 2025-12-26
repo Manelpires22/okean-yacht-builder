@@ -10,6 +10,7 @@ interface ItemUsageStatus {
 interface ConflictingUpgrade {
   upgradeId: string;
   upgradeName: string;
+  upgradePrice: number; // Preço do upgrade atual para cálculo de delta
   source: string; // 'No contrato' ou 'ATO 1', 'ATO 2', etc.
 }
 
@@ -91,10 +92,13 @@ export function useItemUsageCheck(contractId: string | undefined) {
           // Mapear por memorial_item_id para detecção de conflitos
           const memorialItemId = upg.memorial_item_id;
           const upgradeName = upg.upgrade?.name || upg.name || 'Upgrade';
+          // Extrair preço do upgrade (pode estar em diferentes propriedades)
+          const upgradePrice = upg.price || upg.upgrade?.price || 0;
           if (memorialItemId) {
             upgradesByMemorialItemMap.set(memorialItemId, {
               upgradeId,
               upgradeName,
+              upgradePrice,
               source: 'No contrato'
             });
           }
@@ -132,10 +136,13 @@ export function useItemUsageCheck(contractId: string | undefined) {
             // Mapear por memorial_item_id para detecção de conflitos
             const memorialItemId = configDetails.memorial_item_id;
             const upgradeName = configDetails.name || 'Upgrade';
+            // Extrair preço do upgrade da ATO
+            const upgradePrice = config.calculated_price || config.original_price || configDetails.price || 0;
             if (memorialItemId) {
               upgradesByMemorialItemMap.set(memorialItemId, {
                 upgradeId: itemId,
                 upgradeName,
+                upgradePrice,
                 source: atoLabel
               });
             }
