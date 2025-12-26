@@ -353,15 +353,17 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   <div key={upgrade.id || index} className="p-4 border rounded-lg bg-muted/30">
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium">{upgrade.upgrade_name || upgrade.name}</p>
-                        {upgrade.memorial_item_name && (
+                        <p className="font-medium">
+                          {upgrade.upgrade?.name || upgrade.upgrade_name || upgrade.name || 'Upgrade'}
+                        </p>
+                        {(upgrade.memorial_item?.item_name || upgrade.memorial_item_name) && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            Substitui: {upgrade.memorial_item_name}
+                            Substitui: {upgrade.memorial_item?.item_name || upgrade.memorial_item_name}
                           </p>
                         )}
-                        {upgrade.code && (
+                        {(upgrade.upgrade?.code || upgrade.code) && (
                           <Badge variant="outline" className="mt-2 text-xs">
-                            {upgrade.code}
+                            {upgrade.upgrade?.code || upgrade.code}
                           </Badge>
                         )}
                       </div>
@@ -413,16 +415,18 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   <div key={option.id || index} className="p-4 border rounded-lg bg-muted/30">
                     <div className="flex justify-between items-start gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium">{option.option_name || option.name}</p>
-                        {option.category_name && (
+                        <p className="font-medium">
+                          {option.option?.name || option.option_name || option.name || 'Opcional'}
+                        </p>
+                        {(option.option?.category?.name || option.category_name) && (
                           <p className="text-sm text-muted-foreground mt-1">
-                            {option.category_name}
+                            {option.option?.category?.name || option.category_name}
                           </p>
                         )}
                         <div className="flex gap-2 mt-2 flex-wrap">
-                          {option.code && (
+                          {(option.option?.code || option.code) && (
                             <Badge variant="outline" className="text-xs">
-                              {option.code}
+                              {option.option?.code || option.code}
                             </Badge>
                           )}
                           {option.quantity > 1 && (
@@ -480,36 +484,81 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               </div>
             ) : approvedATOs.length > 0 ? (
               <div className="space-y-3">
-                {approvedATOs.map((ato: any) => (
-                  <div key={ato.id} className="p-4 border rounded-lg bg-muted/30">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium">{ato.title}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {ato.ato_number}
-                        </p>
-                        {ato.description && (
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {ato.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className={`font-semibold ${(ato.price_impact || 0) >= 0 ? 'text-primary' : 'text-green-600'}`}>
-                          {(ato.price_impact || 0) >= 0 
-                            ? formatCurrency(ato.price_impact || 0)
-                            : `-${formatCurrency(Math.abs(ato.price_impact || 0))}`
-                          }
-                        </p>
-                        {ato.delivery_days_impact > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            +{ato.delivery_days_impact} dias
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {approvedATOs.map((ato: any) => {
+                  const breakdown = atosImpact?.atoBreakdown?.find((b) => b.atoId === ato.id);
+                  const netTotal = breakdown?.netTotal ?? ato.price_impact ?? 0;
+                  
+                  return (
+                    <Accordion type="single" collapsible key={ato.id}>
+                      <AccordionItem value={ato.id} className="border rounded-lg bg-muted/30">
+                        <AccordionTrigger className="px-4 hover:no-underline">
+                          <div className="flex justify-between w-full pr-4">
+                            <div className="text-left">
+                              <p className="font-medium">{ato.title}</p>
+                              <p className="text-sm text-muted-foreground">{ato.ato_number}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className={`font-semibold ${netTotal >= 0 ? 'text-primary' : 'text-green-600'}`}>
+                                {netTotal >= 0 
+                                  ? formatCurrency(netTotal)
+                                  : `-${formatCurrency(Math.abs(netTotal))}`}
+                              </p>
+                              {(breakdown?.deliveryDaysImpact || ato.delivery_days_impact) > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +{breakdown?.deliveryDaysImpact || ato.delivery_days_impact} dias
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          {breakdown?.items && breakdown.items.length > 0 ? (
+                            <div className="space-y-2">
+                              {breakdown.items.map((item, idx) => (
+                                <div key={idx} className="p-3 border rounded-lg bg-background">
+                                  <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm">{item.itemName}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {item.itemType === 'upgrade' ? 'Upgrade' : 
+                                         item.itemType === 'option' ? 'Opcional' : 'Customização'}
+                                        {item.itemCode && ` • ${item.itemCode}`}
+                                      </p>
+                                    </div>
+                                    <div className="text-right text-sm space-y-0.5">
+                                      <p className="text-muted-foreground">
+                                        Bruto: {formatCurrency(item.originalPrice)}
+                                      </p>
+                                      {item.discountAmount > 0 && (
+                                        <p className="text-green-600 text-xs">
+                                          Desconto: -{formatCurrency(item.discountAmount)}
+                                        </p>
+                                      )}
+                                      {item.replacementCredit !== 0 && (
+                                        <p className="text-green-600 text-xs">
+                                          Crédito: {formatCurrency(item.replacementCredit)}
+                                        </p>
+                                      )}
+                                      <p className={`font-semibold ${item.netPrice >= 0 ? '' : 'text-green-600'}`}>
+                                        Líquido: {item.netPrice >= 0 
+                                          ? formatCurrency(item.netPrice) 
+                                          : `-${formatCurrency(Math.abs(item.netPrice))}`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              {ato.description || 'Sem detalhes disponíveis'}
+                            </p>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  );
+                })}
                 <Separator />
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-semibold">Total ATOs</span>

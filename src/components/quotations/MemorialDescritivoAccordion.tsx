@@ -8,46 +8,55 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
 
-interface MemorialItem {
+// Interface flexível para aceitar diferentes formatos de categoria
+interface CategoryInfo {
+  id: string;
+  label: string;
+  display_order: number;
+}
+
+interface MemorialItemInput {
   id: string;
   item_name: string;
-  description?: string;
-  brand?: string;
-  model?: string;
+  description?: string | null;
+  brand?: string | null;
+  model?: string | null;
   quantity: number;
-  unit?: string;
+  unit?: string | null;
   category_id: string;
-  memorial_categories?: {
-    id: string;
-    label: string;
-    icon?: string;
-    display_order: number;
-  };
+  // Aceita tanto memorial_categories quanto category como objeto de categoria
+  memorial_categories?: CategoryInfo;
+  category?: CategoryInfo | string; // Pode ser objeto ou string (enum)
 }
 
 interface MemorialDescritivoAccordionProps {
-  items: MemorialItem[];
+  items: MemorialItemInput[];
 }
 
 export function MemorialDescritivoAccordion({ items }: MemorialDescritivoAccordionProps) {
   const [expanded, setExpanded] = useState<string[]>([]);
 
-  // Agrupar itens por categoria
+  // Agrupar itens por categoria usando memorial_categories ou category (se for objeto)
   const groupedItems = items.reduce((acc, item) => {
-    const categoryLabel = item.memorial_categories?.label || "Outros";
-    const categoryId = item.memorial_categories?.id || "outros";
+    // Priorizar memorial_categories, depois category se for objeto
+    const categoryData = item.memorial_categories || 
+      (typeof item.category === 'object' && item.category !== null ? item.category : null);
+    
+    const categoryLabel = categoryData?.label || "Outros";
+    const categoryId = categoryData?.id || item.category_id || "outros";
+    const displayOrder = categoryData?.display_order || 999;
     
     if (!acc[categoryId]) {
       acc[categoryId] = {
         label: categoryLabel,
-        display_order: item.memorial_categories?.display_order || 999,
+        display_order: displayOrder,
         items: []
       };
     }
     
     acc[categoryId].items.push(item);
     return acc;
-  }, {} as Record<string, { label: string; display_order: number; items: MemorialItem[] }>);
+  }, {} as Record<string, { label: string; display_order: number; items: MemorialItemInput[] }>);
 
   // Ordenar categorias por display_order
   const sortedCategories = Object.entries(groupedItems).sort(
