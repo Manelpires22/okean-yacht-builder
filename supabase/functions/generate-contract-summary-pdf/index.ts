@@ -592,7 +592,7 @@ serve(async (req) => {
         *,
         client:clients(*),
         yacht_model:yacht_models(*),
-        hull_number:hull_numbers(*)
+        hull_number:hull_numbers!contracts_hull_number_id_fkey(*)
       `)
       .eq("id", contract_id)
       .single();
