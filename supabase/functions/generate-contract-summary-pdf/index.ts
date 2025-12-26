@@ -60,6 +60,19 @@ function setupFont(doc: jsPDF, style: "normal" | "bold" | "italic" = "normal") {
   doc.setFont("helvetica", style);
 }
 
+// ===== CONVERSÃO DE UNIDADES =====
+function metersToFeet(meters: number): string {
+  const feet = meters * 3.28084;
+  return `${feet.toFixed(2)} ft`;
+}
+
+function formatNumberWithUnit(value: number | string | null | undefined, unit: string): string {
+  if (value === null || value === undefined || value === "") return "-";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "-";
+  return `${num.toLocaleString("pt-BR")} ${unit}`;
+}
+
 // ===== COMPONENTES DE LAYOUT =====
 
 function drawPageHeader(doc: jsPDF, title: string, subtitle: string, pageW: number, margin: number): number {
@@ -211,6 +224,142 @@ function checkPageBreak(doc: jsPDF, yPos: number, pageH: number, margin: number,
   return yPos;
 }
 
+// ===== ESPECIFICAÇÕES TÉCNICAS DO IATE =====
+
+function drawSpecSubsection(doc: jsPDF, title: string, yPos: number, margin: number): number {
+  doc.setFontSize(9);
+  setupFont(doc, "bold");
+  setColor(doc, COLORS.gold);
+  doc.text(title, margin, yPos);
+  return yPos + 6;
+}
+
+function drawSpecRow(doc: jsPDF, label: string, value: string, yPos: number, margin: number, pageW: number): number {
+  if (!value || value === "-") return yPos; // Não mostrar campos vazios
+  
+  doc.setFontSize(9);
+  setupFont(doc, "normal");
+  setColor(doc, COLORS.textMuted);
+  doc.text(label + ":", margin + 5, yPos);
+  
+  setColor(doc, COLORS.textDark);
+  doc.text(value, margin + 70, yPos);
+  
+  return yPos + 5;
+}
+
+function renderYachtSpecifications(
+  doc: jsPDF,
+  yachtModel: any,
+  yPos: number,
+  pageW: number,
+  pageH: number,
+  margin: number
+): number {
+  if (!yachtModel) return yPos;
+  
+  yPos = drawSectionTitle(doc, "Especificações Técnicas", yPos, margin, pageW);
+  
+  // --- Dimensões Principais ---
+  yPos = drawSpecSubsection(doc, "Dimensões Principais", yPos, margin);
+  
+  if (yachtModel.length_overall) {
+    const loa = parseFloat(yachtModel.length_overall);
+    yPos = drawSpecRow(doc, "Comprimento Total (LOA)", `${loa.toFixed(2)} m (${metersToFeet(loa)})`, yPos, margin, pageW);
+  }
+  if (yachtModel.hull_length) {
+    const hull = parseFloat(yachtModel.hull_length);
+    yPos = drawSpecRow(doc, "Comprimento do Casco", `${hull.toFixed(2)} m (${metersToFeet(hull)})`, yPos, margin, pageW);
+  }
+  if (yachtModel.beam) {
+    const beam = parseFloat(yachtModel.beam);
+    yPos = drawSpecRow(doc, "Boca (Beam)", `${beam.toFixed(2)} m (${metersToFeet(beam)})`, yPos, margin, pageW);
+  }
+  if (yachtModel.draft) {
+    const draft = parseFloat(yachtModel.draft);
+    yPos = drawSpecRow(doc, "Calado (Draft)", `${draft.toFixed(2)} m (${metersToFeet(draft)})`, yPos, margin, pageW);
+  }
+  
+  yPos += 3;
+  yPos = checkPageBreak(doc, yPos, pageH, margin, 40);
+  
+  // --- Pesos e Capacidades ---
+  yPos = drawSpecSubsection(doc, "Pesos e Capacidades", yPos, margin);
+  
+  if (yachtModel.displacement_loaded) {
+    yPos = drawSpecRow(doc, "Deslocamento Carregado", formatNumberWithUnit(yachtModel.displacement_loaded, "kg"), yPos, margin, pageW);
+  }
+  if (yachtModel.dry_weight) {
+    yPos = drawSpecRow(doc, "Peso Seco", formatNumberWithUnit(yachtModel.dry_weight, "kg"), yPos, margin, pageW);
+  }
+  if (yachtModel.fuel_capacity) {
+    yPos = drawSpecRow(doc, "Capacidade de Combustível", formatNumberWithUnit(yachtModel.fuel_capacity, "L"), yPos, margin, pageW);
+  }
+  if (yachtModel.water_capacity) {
+    yPos = drawSpecRow(doc, "Capacidade de Água", formatNumberWithUnit(yachtModel.water_capacity, "L"), yPos, margin, pageW);
+  }
+  
+  yPos += 3;
+  yPos = checkPageBreak(doc, yPos, pageH, margin, 40);
+  
+  // --- Acomodações ---
+  const hasCabins = yachtModel.cabins !== null && yachtModel.cabins !== undefined;
+  const hasBathrooms = yachtModel.bathrooms !== null && yachtModel.bathrooms !== undefined;
+  const hasPassengers = yachtModel.passengers_capacity !== null && yachtModel.passengers_capacity !== undefined;
+  
+  if (hasCabins || hasBathrooms || hasPassengers) {
+    yPos = drawSpecSubsection(doc, "Acomodações", yPos, margin);
+    
+    if (hasCabins) {
+      yPos = drawSpecRow(doc, "Camarotes", String(yachtModel.cabins), yPos, margin, pageW);
+    }
+    if (hasBathrooms) {
+      yPos = drawSpecRow(doc, "Banheiros", String(yachtModel.bathrooms), yPos, margin, pageW);
+    }
+    if (hasPassengers) {
+      yPos = drawSpecRow(doc, "Capacidade de Passageiros", String(yachtModel.passengers_capacity), yPos, margin, pageW);
+    }
+    
+    yPos += 3;
+  }
+  
+  yPos = checkPageBreak(doc, yPos, pageH, margin, 40);
+  
+  // --- Performance ---
+  const hasEngines = yachtModel.engines;
+  const hasMaxSpeed = yachtModel.max_speed !== null && yachtModel.max_speed !== undefined;
+  const hasCruiseSpeed = yachtModel.cruise_speed !== null && yachtModel.cruise_speed !== undefined;
+  const hasRange = yachtModel.range_nautical_miles !== null && yachtModel.range_nautical_miles !== undefined;
+  
+  if (hasEngines || hasMaxSpeed || hasCruiseSpeed || hasRange) {
+    yPos = drawSpecSubsection(doc, "Performance", yPos, margin);
+    
+    if (hasEngines) {
+      yPos = drawSpecRow(doc, "Motorização", yachtModel.engines, yPos, margin, pageW);
+    }
+    if (hasMaxSpeed) {
+      yPos = drawSpecRow(doc, "Velocidade Máxima", `${yachtModel.max_speed} nós`, yPos, margin, pageW);
+    }
+    if (hasCruiseSpeed) {
+      yPos = drawSpecRow(doc, "Velocidade de Cruzeiro", `${yachtModel.cruise_speed} nós`, yPos, margin, pageW);
+    }
+    if (hasRange) {
+      yPos = drawSpecRow(doc, "Autonomia", `${yachtModel.range_nautical_miles} milhas náuticas`, yPos, margin, pageW);
+    }
+    
+    yPos += 3;
+  }
+  
+  // --- Acabamento ---
+  if (yachtModel.hull_color) {
+    yPos = drawSpecSubsection(doc, "Acabamento", yPos, margin);
+    yPos = drawSpecRow(doc, "Cor do Casco", yachtModel.hull_color, yPos, margin, pageW);
+    yPos += 3;
+  }
+  
+  return yPos;
+}
+
 // ===== RENDERIZAÇÃO DO CONTRATO ORIGINAL =====
 
 async function renderOriginalContract(
@@ -234,6 +383,12 @@ async function renderOriginalContract(
   yPos = drawInfoRow(doc, "Assinado por", `${contract.signed_by_name || "-"} <${contract.signed_by_email || ""}>`, yPos, margin, pageW);
   
   yPos = drawDivider(doc, yPos + 5, margin, pageW);
+  
+  // Especificações Técnicas do Modelo
+  if (contract.yacht_model) {
+    yPos = renderYachtSpecifications(doc, contract.yacht_model, yPos, pageW, pageH, margin);
+    yPos = drawDivider(doc, yPos + 2, margin, pageW);
+  }
   
   // Modelo Base
   const baseSnapshot = contract.base_snapshot || {};
