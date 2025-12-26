@@ -153,7 +153,10 @@ export function useContract(contractId: string | undefined) {
         .from("contracts")
         .select(`
           *,
-          quotation:quotations(*),
+          quotation:quotations(
+            *,
+            sales_representative:users!quotations_sales_representative_id_fkey(id, full_name, email)
+          ),
           client:clients(*),
           yacht_model:yacht_models(*),
           hull_number:hull_numbers!contracts_hull_number_id_fkey(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
