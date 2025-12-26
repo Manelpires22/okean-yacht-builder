@@ -63,8 +63,8 @@ export function useItemUsageCheck(contractId: string | undefined) {
       const snapshot = contract.base_snapshot as any;
       
       // Opções do contrato original
-      if (snapshot.options && Array.isArray(snapshot.options)) {
-        snapshot.options.forEach((opt: any) => {
+      if (snapshot.selected_options && Array.isArray(snapshot.selected_options)) {
+        snapshot.selected_options.forEach((opt: any) => {
           const optionId = opt.option_id || opt.id;
           if (optionId) {
             optionsMap.set(optionId, { inContract: true, inATOs: [] });
@@ -73,8 +73,8 @@ export function useItemUsageCheck(contractId: string | undefined) {
       }
 
       // Upgrades do contrato original
-      if (snapshot.upgrades && Array.isArray(snapshot.upgrades)) {
-        snapshot.upgrades.forEach((upg: any) => {
+      if (snapshot.selected_upgrades && Array.isArray(snapshot.selected_upgrades)) {
+        snapshot.selected_upgrades.forEach((upg: any) => {
           const upgradeId = upg.upgrade_id || upg.id;
           if (upgradeId) {
             upgradesMap.set(upgradeId, { inContract: true, inATOs: [] });
