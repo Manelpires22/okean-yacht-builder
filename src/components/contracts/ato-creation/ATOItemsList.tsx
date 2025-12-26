@@ -20,7 +20,9 @@ export interface PendingATOItem {
   replaces_upgrade?: {
     upgrade_id: string;
     upgrade_name: string;
+    upgrade_price: number;
     source: string;
+    delta?: number;
   };
 }
 
