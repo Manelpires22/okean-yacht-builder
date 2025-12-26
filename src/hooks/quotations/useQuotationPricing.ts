@@ -23,9 +23,16 @@ interface PricingInput {
     /** Impacto no prazo de entrega em dias (opcional) */
     delivery_days_impact?: number;
   }>;
+  /** Lista de upgrades selecionados (recebem mesmo desconto dos opcionais) */
+  selectedUpgrades?: Array<{
+    /** Preço do upgrade em BRL */
+    price: number;
+    /** Impacto no prazo de entrega em dias (opcional) */
+    delivery_days_impact?: number;
+  }>;
   /** Percentual de desconto no preço base (0-30%) */
   baseDiscountPercentage?: number;
-  /** Percentual de desconto nos opcionais (0-30%) */
+  /** Percentual de desconto nos opcionais e upgrades (0-30%) */
   optionsDiscountPercentage?: number;
 }
 
@@ -36,6 +43,8 @@ interface PricingInput {
 interface PricingResult {
   /** Soma dos preços de todos os opcionais (sem desconto) */
   totalOptionsPrice: number;
+  /** Soma dos preços de todos os upgrades (sem desconto) */
+  totalUpgradesPrice: number;
   /** Valor do desconto aplicado ao preço base em BRL */
   baseDiscountAmount: number;
   /** Preço base após desconto em BRL */
@@ -44,7 +53,11 @@ interface PricingResult {
   optionsDiscountAmount: number;
   /** Preço total dos opcionais após desconto em BRL */
   finalOptionsPrice: number;
-  /** Preço final total (base + opcionais com descontos) em BRL */
+  /** Valor do desconto aplicado aos upgrades em BRL */
+  upgradesDiscountAmount: number;
+  /** Preço total dos upgrades após desconto em BRL */
+  finalUpgradesPrice: number;
+  /** Preço final total (base + opcionais + upgrades com descontos) em BRL */
   finalPrice: number;
   /** Prazo total de entrega em dias (base + maior impacto) */
   totalDeliveryDays: number;
@@ -98,37 +111,34 @@ export function calculateQuotationPricing(input: PricingInput): PricingResult {
     basePrice,
     baseDeliveryDays,
     selectedOptions,
+    selectedUpgrades = [],
     baseDiscountPercentage = 0,
     optionsDiscountPercentage = 0,
   } = input;
 
+  // Resultado padrão de erro
+  const errorResult = (error: string): PricingResult => ({
+    totalOptionsPrice: 0,
+    totalUpgradesPrice: 0,
+    baseDiscountAmount: 0,
+    finalBasePrice: basePrice,
+    optionsDiscountAmount: 0,
+    finalOptionsPrice: 0,
+    upgradesDiscountAmount: 0,
+    finalUpgradesPrice: 0,
+    finalPrice: basePrice,
+    totalDeliveryDays: baseDeliveryDays,
+    maxDeliveryImpact: 0,
+    error,
+  });
+
   // Validação de descontos
   if (baseDiscountPercentage > MAX_DISCOUNT_PERCENTAGE) {
-    return {
-      totalOptionsPrice: 0,
-      baseDiscountAmount: 0,
-      finalBasePrice: basePrice,
-      optionsDiscountAmount: 0,
-      finalOptionsPrice: 0,
-      finalPrice: basePrice,
-      totalDeliveryDays: baseDeliveryDays,
-      maxDeliveryImpact: 0,
-      error: `Desconto base não pode exceder ${MAX_DISCOUNT_PERCENTAGE}%`,
-    };
+    return errorResult(`Desconto base não pode exceder ${MAX_DISCOUNT_PERCENTAGE}%`);
   }
 
   if (optionsDiscountPercentage > MAX_DISCOUNT_PERCENTAGE) {
-    return {
-      totalOptionsPrice: 0,
-      baseDiscountAmount: 0,
-      finalBasePrice: basePrice,
-      optionsDiscountAmount: 0,
-      finalOptionsPrice: 0,
-      finalPrice: basePrice,
-      totalDeliveryDays: baseDeliveryDays,
-      maxDeliveryImpact: 0,
-      error: `Desconto de opcionais não pode exceder ${MAX_DISCOUNT_PERCENTAGE}%`,
-    };
+    return errorResult(`Desconto de opcionais não pode exceder ${MAX_DISCOUNT_PERCENTAGE}%`);
   }
 
   // Calcular preço total de opcionais
@@ -137,29 +147,48 @@ export function calculateQuotationPricing(input: PricingInput): PricingResult {
     0
   );
 
-  // Calcular maior impacto de prazo
-  const maxDeliveryImpact = selectedOptions.reduce(
-    (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
+  // Calcular preço total de upgrades
+  const totalUpgradesPrice = selectedUpgrades.reduce(
+    (sum, upg) => sum + (upg.price || 0),
     0
   );
 
-  // Calcular descontos
+  // Calcular maior impacto de prazo (opcionais + upgrades)
+  const maxOptionsImpact = selectedOptions.reduce(
+    (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
+    0
+  );
+  const maxUpgradesImpact = selectedUpgrades.reduce(
+    (max, upg) => Math.max(max, upg.delivery_days_impact || 0),
+    0
+  );
+  const maxDeliveryImpact = Math.max(maxOptionsImpact, maxUpgradesImpact);
+
+  // Calcular descontos - Base
   const baseDiscountAmount = basePrice * (baseDiscountPercentage / 100);
   const finalBasePrice = basePrice - baseDiscountAmount;
 
+  // Calcular descontos - Opcionais
   const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
   const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
 
-  // Calcular totais
-  const finalPrice = finalBasePrice + finalOptionsPrice;
+  // Calcular descontos - Upgrades (mesmo percentual dos opcionais)
+  const upgradesDiscountAmount = totalUpgradesPrice * (optionsDiscountPercentage / 100);
+  const finalUpgradesPrice = totalUpgradesPrice - upgradesDiscountAmount;
+
+  // Calcular totais (agora inclui upgrades!)
+  const finalPrice = finalBasePrice + finalOptionsPrice + finalUpgradesPrice;
   const totalDeliveryDays = baseDeliveryDays + maxDeliveryImpact;
 
   return {
     totalOptionsPrice,
+    totalUpgradesPrice,
     baseDiscountAmount,
     finalBasePrice,
     optionsDiscountAmount,
     finalOptionsPrice,
+    upgradesDiscountAmount,
+    finalUpgradesPrice,
     finalPrice,
     totalDeliveryDays,
     maxDeliveryImpact,
@@ -202,5 +231,6 @@ export function useQuotationPricing(input: PricingInput): PricingResult {
     input.optionsDiscountPercentage,
     // Usar JSON.stringify para arrays/objetos complexos
     JSON.stringify(input.selectedOptions),
+    JSON.stringify(input.selectedUpgrades),
   ]);
 }
