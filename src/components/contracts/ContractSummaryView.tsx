@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
-import { Calendar, Loader2, Info, FileText, ArrowUpCircle, Settings, DollarSign, FilePlus, User, Users } from "lucide-react";
+import { Calendar, Loader2, Info, FileText, ArrowUpCircle, Settings, DollarSign, FilePlus, User, Users, Download } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useContract, useLiveContract } from "@/hooks/useContracts";
@@ -9,15 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { MemorialDescritivoAccordion } from "@/components/quotations/MemorialDescritivoAccordion";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
 import { useATOs } from "@/hooks/useATOs";
+import { ExportContractPDFDialog } from "./ExportContractPDFDialog";
 
 interface ContractSummaryViewProps {
   contractId: string;
 }
 
 export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  
   const { data: contract, isLoading: isLoadingContract } = useContract(contractId);
   const { data: liveContract, isLoading: isLoadingLive } = useLiveContract(contractId);
   const { data: atosImpact, isLoading: isLoadingATOs } = useContractATOsAggregatedImpact(contractId);
@@ -121,14 +126,28 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   return (
     <div className="space-y-6">
       {/* Título da Seção */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-          Resumo do Contrato
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Configuração completa e valores da embarcação contratada
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            Resumo do Contrato
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Configuração completa e valores da embarcação contratada
+          </p>
+        </div>
+        <Button onClick={() => setExportDialogOpen(true)}>
+          <Download className="mr-2 h-4 w-4" />
+          Exportar PDF
+        </Button>
       </div>
+
+      <ExportContractPDFDialog
+        contractId={contractId}
+        contractNumber={contract.contract_number}
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        approvedATOs={approvedATOs}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Modelo do Iate */}
