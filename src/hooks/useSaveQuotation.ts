@@ -89,11 +89,15 @@ export function useSaveQuotation() {
 
       // ✅ MODO EDIÇÃO: Atualizar cotação existente
       if (data.quotationId) {
-        // Calcular pricing usando o hook extraído
+        // Calcular pricing usando o hook extraído (agora inclui upgrades!)
         const pricing = calculateQuotationPricing({
           basePrice: data.base_price,
           baseDeliveryDays: data.base_delivery_days,
           selectedOptions: data.selected_options,
+          selectedUpgrades: data.selected_upgrades?.map(u => ({
+            price: u.price,
+            delivery_days_impact: u.delivery_days_impact,
+          })),
           baseDiscountPercentage: data.base_discount_percentage,
           optionsDiscountPercentage: data.options_discount_percentage,
         });
@@ -106,10 +110,13 @@ export function useSaveQuotation() {
         // Usar os valores calculados
         const {
           totalOptionsPrice,
+          totalUpgradesPrice,
           baseDiscountAmount,
           finalBasePrice,
           optionsDiscountAmount,
           finalOptionsPrice,
+          upgradesDiscountAmount,
+          finalUpgradesPrice,
           finalPrice,
           totalDeliveryDays,
           maxDeliveryImpact,
@@ -129,7 +136,7 @@ export function useSaveQuotation() {
             total_options_price: totalOptionsPrice,
             options_discount_percentage: optionsDiscountPercentage,
             final_options_price: finalOptionsPrice,
-            discount_amount: baseDiscountAmount + optionsDiscountAmount,
+            discount_amount: baseDiscountAmount + optionsDiscountAmount + upgradesDiscountAmount,
             discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
             final_price: finalPrice,
             base_delivery_days: data.base_delivery_days,
@@ -234,11 +241,15 @@ export function useSaveQuotation() {
 
       const quotationNumber = generateQuotationNumberWithVersion(1);
       
-      // Calcular pricing usando o hook extraído
+      // Calcular pricing usando o hook extraído (agora inclui upgrades!)
       const pricing = calculateQuotationPricing({
         basePrice: data.base_price,
         baseDeliveryDays: data.base_delivery_days,
         selectedOptions: data.selected_options,
+        selectedUpgrades: data.selected_upgrades?.map(u => ({
+          price: u.price,
+          delivery_days_impact: u.delivery_days_impact,
+        })),
         baseDiscountPercentage: data.base_discount_percentage,
         optionsDiscountPercentage: data.options_discount_percentage,
       });
@@ -251,10 +262,13 @@ export function useSaveQuotation() {
       // Usar os valores calculados
       const {
         totalOptionsPrice,
+        totalUpgradesPrice,
         baseDiscountAmount,
         finalBasePrice,
         optionsDiscountAmount,
         finalOptionsPrice,
+        upgradesDiscountAmount,
+        finalUpgradesPrice,
         finalPrice,
         totalDeliveryDays,
         maxDeliveryImpact,
@@ -299,7 +313,7 @@ export function useSaveQuotation() {
           options_discount_percentage: optionsDiscountPercentage,
           final_options_price: finalOptionsPrice,
           total_customizations_price: 0,
-          discount_amount: baseDiscountAmount + optionsDiscountAmount,
+          discount_amount: baseDiscountAmount + optionsDiscountAmount + upgradesDiscountAmount,
           discount_percentage: Math.max(baseDiscountPercentage, optionsDiscountPercentage),
           final_price: finalPrice,
           total_delivery_days: totalDeliveryDays,

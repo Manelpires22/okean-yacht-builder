@@ -243,10 +243,12 @@ export default function QuotationDetail() {
   const totalOptionsPrice = quotation.total_options_price || 0;
   const totalCustomizationsPrice = quotation.total_customizations_price || 0;
 
-  // Calcular economia total
+  // Calcular economia total (inclui desconto de upgrades agora!)
+  const optionsDiscountPercentage = quotation.options_discount_percentage || 0;
   const totalDiscount = 
     (quotation.base_price * ((quotation.base_discount_percentage || 0) / 100)) +
-    (totalOptionsPrice * ((quotation.options_discount_percentage || 0) / 100));
+    (totalOptionsPrice * (optionsDiscountPercentage / 100)) +
+    (totalUpgradesPrice * (optionsDiscountPercentage / 100));
 
   // Determinar seções expandidas por padrão
   const defaultExpandedSections = [

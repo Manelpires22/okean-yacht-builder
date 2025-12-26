@@ -39,7 +39,8 @@ export function QuotationHeroSection({
   // Valor inicial = soma de todos os componentes (sem descontos)
   const valorInicial = basePrice + upgradesPrice + optionsPrice + customizationsPrice;
   
-  // Calcular economia/desconto real
+  // O finalPrice passado já inclui todos os descontos (base + opcionais + upgrades)
+  // Calcular economia/desconto real baseado na diferença
   const savings = discountAmount || (valorInicial - finalPrice);
   const savingsPercentage = valorInicial > 0 ? ((savings / valorInicial) * 100).toFixed(1) : '0';
   
