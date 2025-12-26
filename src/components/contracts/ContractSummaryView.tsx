@@ -188,78 +188,41 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               )}
             </div>
 
-            {/* Breakdown Financeiro Detalhado */}
+            {/* Breakdown Financeiro Simplificado */}
             <div className="pt-4 border-t space-y-3 text-sm">
-              {/* Composição do Contrato */}
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Composição do Contrato
               </p>
               
-              <div className="space-y-1.5">
-                {/* Preço base do contrato (já com descontos aplicados na assinatura) */}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Preço Base Contrato</span>
-                  <span className="font-medium">{formatCurrency(contractBasePrice)}</span>
-                </div>
-                {upgradesPrice > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Upgrades</span>
-                    <span className="font-medium">{formatCurrency(upgradesPrice)}</span>
-                  </div>
-                )}
-                {optionsPrice > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Opcionais</span>
-                    <span className="font-medium">{formatCurrency(optionsPrice)}</span>
-                  </div>
-                )}
-                {customizationsPrice > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Customizações</span>
-                    <span className="font-medium">{formatCurrency(customizationsPrice)}</span>
-                  </div>
-                )}
-                {/* ATOs Aprovadas - NOVO */}
-                {atosPrice !== 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      ATOs Aprovadas ({atosCount})
-                    </span>
-                    <span className={`font-medium ${atosPrice >= 0 ? '' : 'text-green-600'}`}>
-                      {atosPrice >= 0 ? formatCurrency(atosPrice) : `-${formatCurrency(Math.abs(atosPrice))}`}
-                    </span>
-                  </div>
-                )}
+              {/* Valor do Contrato Aprovado (FIXO - vem da cotação aceita) */}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor Contrato Aprovado</span>
+                <span className="font-medium">{formatCurrency(contractBasePrice)}</span>
               </div>
               
-              {/* Valor Inicial */}
-              <div className="flex justify-between pt-2 border-t border-dashed">
-                <span className="font-medium">Valor Inicial</span>
-                <span className="font-semibold">{formatCurrency(valorInicial)}</span>
-              </div>
-              
-              {/* ATOs como delta separado se houver */}
-              {atosPrice !== 0 && (
-                <div className={`flex justify-between ${atosPrice >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                  <span>Impacto ATOs</span>
-                  <span className="font-medium">
-                    {atosPrice >= 0 ? `+${formatCurrency(atosPrice)}` : `-${formatCurrency(Math.abs(atosPrice))}`}
+              {/* Lista cada ATO individualmente com seu resultado líquido */}
+              {atosImpact?.atoBreakdown?.map((ato) => (
+                <div key={ato.atoId} className="flex justify-between">
+                  <span className="text-muted-foreground truncate max-w-[200px]" title={ato.title}>
+                    {ato.atoNumber}
+                  </span>
+                  <span className={`font-medium ${ato.netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                    {ato.netTotal >= 0 
+                      ? `+${formatCurrency(ato.netTotal)}` 
+                      : `-${formatCurrency(Math.abs(ato.netTotal))}`}
                   </span>
                 </div>
-              )}
+              ))}
               
-              {/* Descontos */}
-              {totalDiscount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Descontos aplicados</span>
-                  <span className="font-medium">-{formatCurrency(totalDiscount)}</span>
-                </div>
-              )}
+              {/* Separador */}
+              <Separator className="my-2" />
               
-              {/* Valor Final do Contrato */}
-              <div className="flex justify-between pt-3 border-t mt-2">
-                <span className="font-semibold text-base">Valor Final do Contrato</span>
-                <span className="font-bold text-lg text-primary">{formatCurrency(finalPrice)}</span>
+              {/* Valor Total Atual */}
+              <div className="flex justify-between pt-1">
+                <span className="font-semibold text-base">Valor Total Atual</span>
+                <span className="font-bold text-lg text-primary">
+                  {formatCurrency(contractBasePrice + (atosImpact?.totalApprovedATOsPrice || 0))}
+                </span>
               </div>
             </div>
           </CardContent>

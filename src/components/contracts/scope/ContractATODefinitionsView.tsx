@@ -75,7 +75,7 @@ export function ContractATODefinitionsView({
         {approvedATOs.map((ato) => {
           // Pegar valores corretos do breakdown
           const breakdown = atoBreakdownMap.get(ato.id);
-          const displayPrice = breakdown?.priceImpact ?? (ato.price_impact || 0);
+          const displayPrice = breakdown?.netTotal ?? (ato.price_impact || 0);
           const displayDays = breakdown?.deliveryDaysImpact ?? (ato.delivery_days_impact || 0);
           const hasReplacements = breakdown?.hasReplacements ?? false;
           const discount = ato.discount_percentage || 0;

@@ -16,17 +16,38 @@ interface BaseSnapshot {
   [key: string]: any;
 }
 
+// Detalhes de cada item dentro de uma ATO
+interface ATOBreakdownItem {
+  itemType: string;
+  itemName: string;
+  itemCode?: string;
+  originalPrice: number;       // Valor bruto do item
+  discountPercentage: number;  // Desconto aplicado no item
+  discountAmount: number;      // Valor do desconto
+  replacementCredit: number;   // Crédito se substituição (negativo)
+  netPrice: number;            // Preço líquido final do item
+  deliveryDays: number;
+}
+
 interface ATOBreakdown {
   atoId: string;
   atoNumber: string;
   title: string;
-  priceImpact: number;      // Já com delta calculado
-  deliveryDaysImpact: number; // MAX do ATO
+  items: ATOBreakdownItem[];       // Detalhes de cada item da ATO
+  grossTotal: number;              // Soma dos originalPrice
+  totalDiscounts: number;          // Soma dos descontos
+  totalReplacementCredits: number; // Soma dos créditos de substituição (negativo)
+  netTotal: number;                // Resultado final da ATO (grossTotal - discounts + credits)
+  deliveryDaysImpact: number;      // MAX de dias da ATO
   hasReplacements: boolean;
 }
 
 interface ContractATOsAggregatedImpactResult {
-  totalApprovedATOsPrice: number;        // Soma de todos os deltas
+  // Valores agregados de todas as ATOs
+  totalApprovedATOsPrice: number;        // Soma de todos os netTotal
+  totalGrossPrice: number;               // Soma de todos os grossTotal
+  totalDiscounts: number;                // Soma de todos os descontos
+  totalReplacementCredits: number;       // Soma de todos os créditos
   maxApprovedATOsDeliveryDays: number;   // MAX de todos os MAX
   approvedATOsCount: number;
   atoBreakdown: ATOBreakdown[];
@@ -34,10 +55,9 @@ interface ContractATOsAggregatedImpactResult {
 
 /**
  * Hook que calcula o impacto consolidado de TODAS as ATOs aprovadas de um contrato:
- * - Preço: soma de todos os deltas (considerando substituições de upgrades)
+ * - Para cada ATO: calcula itens individuais com bruto, desconto, crédito e líquido
+ * - Preço: soma de todos os netTotal
  * - Dias: MAX de todos os dias (não soma)
- * 
- * @param contractId - ID do contrato
  */
 export function useContractATOsAggregatedImpact(contractId: string | undefined) {
   return useQuery({
@@ -69,7 +89,7 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
       // 3. Buscar ATOs aprovadas
       const { data: approvedATOs, error: atosError } = await supabase
         .from("additional_to_orders")
-        .select("id, ato_number, title, price_impact, delivery_days_impact")
+        .select("id, ato_number, title")
         .eq("contract_id", contractId)
         .eq("status", "approved");
 
@@ -85,7 +105,7 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
           .select("*")
           .eq("ato_id", ato.id);
 
-        let atoPriceImpact = 0;
+        const items: ATOBreakdownItem[] = [];
         let atoMaxDays = 0;
         let hasReplacements = false;
 
@@ -93,17 +113,26 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
           const deliveryDays = config.delivery_impact_days || 0;
           atoMaxDays = Math.max(atoMaxDays, deliveryDays);
 
+          const originalPrice = config.original_price || 0;
+          const discountPercentage = config.discount_percentage || 0;
+          const discountAmount = originalPrice * (discountPercentage / 100);
+          
+          let replacementCredit = 0;
+          let itemName = config.notes || 'Item';
+          let itemCode = '';
+
+          // Buscar nome do item baseado no tipo
           if (config.item_type === "upgrade" && config.item_id) {
-            // Buscar memorial_item_id deste upgrade
             const { data: upgradeData } = await supabase
               .from("memorial_upgrades")
-              .select("id, memorial_item_id, price")
+              .select("id, name, code, memorial_item_id, price")
               .eq("id", config.item_id)
               .single();
 
             if (upgradeData) {
+              itemName = upgradeData.name;
+              itemCode = upgradeData.code;
               const memorialItemId = upgradeData.memorial_item_id;
-              const newPrice = config.original_price || upgradeData.price || 0;
 
               // Verificar substituição
               const existingUpgrade = memorialItemId 
@@ -111,33 +140,67 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
                 : null;
 
               if (existingUpgrade) {
-                // Substituição: calcular delta
-                atoPriceImpact += newPrice - existingUpgrade.price;
+                // Substituição: o crédito é o preço do upgrade antigo (negativo)
+                replacementCredit = -existingUpgrade.price;
                 hasReplacements = true;
-              } else {
-                // Adição: preço cheio
-                atoPriceImpact += newPrice;
               }
             }
-          } else {
-            // Outros tipos: usar preço normal
-            const price = config.calculated_price || config.original_price || 0;
-            atoPriceImpact += price;
+          } else if (config.item_type === "option" && config.item_id) {
+            const { data: optionData } = await supabase
+              .from("options")
+              .select("id, name, code")
+              .eq("id", config.item_id)
+              .single();
+
+            if (optionData) {
+              itemName = optionData.name;
+              itemCode = optionData.code;
+            }
+          } else if (config.item_type === "customization") {
+            itemName = config.notes || 'Customização';
           }
+
+          // Preço líquido = bruto - desconto + crédito (crédito é negativo)
+          const netPrice = originalPrice - discountAmount + replacementCredit;
+
+          items.push({
+            itemType: config.item_type,
+            itemName,
+            itemCode,
+            originalPrice,
+            discountPercentage,
+            discountAmount,
+            replacementCredit,
+            netPrice,
+            deliveryDays,
+          });
         }
+
+        // Calcular totais da ATO
+        const grossTotal = items.reduce((sum, item) => sum + item.originalPrice, 0);
+        const totalDiscounts = items.reduce((sum, item) => sum + item.discountAmount, 0);
+        const totalReplacementCredits = items.reduce((sum, item) => sum + item.replacementCredit, 0);
+        const netTotal = items.reduce((sum, item) => sum + item.netPrice, 0);
 
         atoBreakdown.push({
           atoId: ato.id,
           atoNumber: ato.ato_number,
           title: ato.title,
-          priceImpact: atoPriceImpact,
+          items,
+          grossTotal,
+          totalDiscounts,
+          totalReplacementCredits,
+          netTotal,
           deliveryDaysImpact: atoMaxDays,
           hasReplacements,
         });
       }
 
       // 5. Calcular totais consolidados
-      const totalApprovedATOsPrice = atoBreakdown.reduce((sum, ato) => sum + ato.priceImpact, 0);
+      const totalApprovedATOsPrice = atoBreakdown.reduce((sum, ato) => sum + ato.netTotal, 0);
+      const totalGrossPrice = atoBreakdown.reduce((sum, ato) => sum + ato.grossTotal, 0);
+      const totalDiscounts = atoBreakdown.reduce((sum, ato) => sum + ato.totalDiscounts, 0);
+      const totalReplacementCredits = atoBreakdown.reduce((sum, ato) => sum + ato.totalReplacementCredits, 0);
       const maxApprovedATOsDeliveryDays = atoBreakdown.reduce(
         (max, ato) => Math.max(max, ato.deliveryDaysImpact), 
         0
@@ -145,6 +208,9 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
 
       return {
         totalApprovedATOsPrice,
+        totalGrossPrice,
+        totalDiscounts,
+        totalReplacementCredits,
         maxApprovedATOsDeliveryDays,
         approvedATOsCount: atoBreakdown.length,
         atoBreakdown,
