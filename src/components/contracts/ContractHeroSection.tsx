@@ -36,6 +36,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
   
   const { data: atosImpact } = useContractATOsAggregatedImpact(contract.id);
   const atoDeliveryDays = atosImpact?.maxApprovedATOsDeliveryDays || 0;
+  const realTotalPrice = contract.base_price + (atosImpact?.totalApprovedATOsPrice || 0);
 
   const canManageContract = userRoleData?.roles?.some((r: string) =>
     ["administrador", "gerente_comercial"].includes(r)
@@ -194,7 +195,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <DollarSign className="h-4 w-4" />
               <span className="text-sm">Valor Total</span>
             </div>
-            <AutoSizedValue value={formatCurrency(contract.current_total_price)} />
+            <AutoSizedValue value={formatCurrency(realTotalPrice)} />
           </div>
 
           <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
