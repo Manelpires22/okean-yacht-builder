@@ -1,11 +1,12 @@
-import { Edit, Plus, FileText, Palette, ArrowUpCircle } from "lucide-react";
+import { Edit, Plus, FileText, Palette, ArrowUpCircle, RotateCcw } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ATOItemSelectorProps {
-  onSelectType: (type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade") => void;
+  onSelectType: (type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade" | "reversal") => void;
+  showReversalOption?: boolean;
 }
 
-export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
+export function ATOItemSelector({ onSelectType, showReversalOption = false }: ATOItemSelectorProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <Card className="hover:border-primary transition-colors cursor-pointer" onClick={() => onSelectType("edit_existing")}>
@@ -67,6 +68,23 @@ export function ATOItemSelector({ onSelectType }: ATOItemSelectorProps) {
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {showReversalOption && (
+        <Card 
+          className="hover:border-orange-500 border-orange-200 dark:border-orange-900 transition-colors cursor-pointer" 
+          onClick={() => onSelectType("reversal")}
+        >
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-orange-600">
+              <RotateCcw className="h-5 w-5" />
+              Estornar Item
+            </CardTitle>
+            <CardDescription>
+              Cancelar e devolver valor de itens previamente aprovados
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
     </div>
   );
 }

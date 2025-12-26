@@ -1,4 +1,4 @@
-import { X, Edit, Plus, FileText, Palette, ArrowUpCircle, Percent, RefreshCw } from "lucide-react";
+import { X, Edit, Plus, FileText, Palette, ArrowUpCircle, Percent, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { cn } from "@/lib/utils";
+
 export interface PendingATOItem {
   id: string;
-  type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade";
+  type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade" | "reversal";
   item_id?: string;
   item_name: string;
   notes?: string;
@@ -24,6 +25,11 @@ export interface PendingATOItem {
     source: string;
     delta?: number;
   };
+  // Campos para estorno
+  is_reversal?: boolean;
+  reversal_of_configuration_id?: string;
+  reversal_percentage?: number;
+  reversal_reason?: string;
 }
 
 interface ATOItemsListProps {
@@ -39,6 +45,7 @@ const TYPE_ICONS = {
   new_customization: FileText,
   define_finishing: Palette,
   add_upgrade: ArrowUpCircle,
+  reversal: RotateCcw,
 };
 
 const TYPE_LABELS = {
@@ -47,6 +54,7 @@ const TYPE_LABELS = {
   new_customization: "Customização",
   define_finishing: "Definição",
   add_upgrade: "Upgrade",
+  reversal: "Estorno",
 };
 
 export function ATOItemsList({ items, onRemove, onUpdateDiscount, readOnly = false }: ATOItemsListProps) {

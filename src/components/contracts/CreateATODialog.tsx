@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, ChevronLeft, ChevronRight, Check, Plus, Percent, DollarSign } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight, Check, Plus, Percent, DollarSign, RotateCcw } from "lucide-react";
 import { useCreateATO } from "@/hooks/useATOs";
 import { useContractItems } from "@/hooks/useContractItems";
 import { ATOItemSelector } from "./ato-creation/ATOItemSelector";
@@ -36,6 +36,7 @@ import { SelectAvailableOptionDialog } from "./ato-creation/SelectAvailableOptio
 import { SelectAvailableUpgradeDialog } from "./ato-creation/SelectAvailableUpgradeDialog";
 import { NewCustomizationForm } from "./ato-creation/NewCustomizationForm";
 import { SelectDefinableItemDialog } from "./ato-creation/SelectDefinableItemDialog";
+import { SelectItemsForReversalDialog } from "./ato-creation/SelectItemsForReversalDialog";
 import { formatCurrency } from "@/lib/quotation-utils";
 
 // Schema simplificado - título agora é automático
@@ -52,6 +53,7 @@ interface CreateATODialogProps {
   onOpenChange: (open: boolean) => void;
   contractId: string;
   reversalOf?: {
+    atoId: string;
     atoNumber: string;
     title: string;
     priceImpact: number;
@@ -69,10 +71,14 @@ export function CreateATODialog({
   const [pendingItems, setPendingItems] = useState<PendingATOItem[]>([]);
   const [showItemSelector, setShowItemSelector] = useState(false);
   const [currentDialog, setCurrentDialog] = useState<string | null>(null);
+  const [showReversalDialog, setShowReversalDialog] = useState(false);
   
   // Estado para desconto da ATO
   const [discountType, setDiscountType] = useState<DiscountType>("percentage");
   const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Verificar se é uma ATO de estorno
+  const isReversalATO = !!reversalOf;
 
   const { mutate: createATO, isPending } = useCreateATO();
   const { data: contractData } = useContractItems(open ? contractId : undefined);
@@ -121,6 +127,12 @@ export function CreateATODialog({
       setPendingItems([]);
       setDiscountType("percentage");
       setDiscountValue(0);
+      setShowReversalDialog(false);
+      
+      // Se for estorno, abrir automaticamente o dialog de seleção de itens
+      if (reversalOf?.atoId) {
+        setShowReversalDialog(true);
+      }
     }
   }, [open, reversalOf, form]);
 
@@ -183,9 +195,18 @@ export function CreateATODialog({
     );
   };
 
-  const handleSelectType = (type: PendingATOItem["type"]) => {
+  const handleSelectType = (type: PendingATOItem["type"] | "reversal") => {
     setShowItemSelector(false);
-    setCurrentDialog(type);
+    if (type === "reversal" && reversalOf?.atoId) {
+      setShowReversalDialog(true);
+    } else if (type !== "reversal") {
+      setCurrentDialog(type);
+    }
+  };
+
+  const handleReversalItemsConfirm = (items: PendingATOItem[]) => {
+    setPendingItems((prev) => [...prev, ...items]);
+    setShowReversalDialog(false);
   };
 
   const onSubmit = (data: ATOFormData) => {
@@ -194,9 +215,9 @@ export function CreateATODialog({
       0
     );
 
-    // Criar configurações para os itens (com desconto individual)
+    // Criar configurações para os itens (com desconto individual e campos de estorno)
     const configurations = pendingItems.map((item) => ({
-      item_type: item.type === "add_optional" ? "option" : item.type === "add_upgrade" ? "upgrade" : "memorial_item",
+      item_type: item.type === "add_optional" ? "option" : item.type === "add_upgrade" ? "upgrade" : item.type === "reversal" ? "reversal" : "memorial_item",
       item_id: item.item_id || null,
       configuration_details: {
         type: item.type,
@@ -207,7 +228,12 @@ export function CreateATODialog({
       sub_items: [],
       notes: item.notes,
       discount_percentage: item.discount_percentage || 0,
-      original_price: item.original_price || item.estimated_price || 0,
+      original_price: item.original_price || Math.abs(item.estimated_price || 0),
+      // Campos de estorno
+      is_reversal: item.is_reversal || false,
+      reversal_of_configuration_id: item.reversal_of_configuration_id || null,
+      reversal_percentage: item.reversal_percentage || 100,
+      reversal_reason: item.reversal_reason || null,
     }));
 
     const payload: any = {
@@ -339,7 +365,7 @@ export function CreateATODialog({
                           Voltar para Lista
                         </Button>
                       </div>
-                      <ATOItemSelector onSelectType={handleSelectType} />
+                      <ATOItemSelector onSelectType={handleSelectType} showReversalOption={isReversalATO} />
                     </>
                   )}
                 </div>
@@ -555,6 +581,16 @@ export function CreateATODialog({
             onAdd={handleAddItem}
           />
         </>
+      )}
+
+      {/* Dialog para selecionar itens de estorno */}
+      {reversalOf?.atoId && (
+        <SelectItemsForReversalDialog
+          open={showReversalDialog}
+          onOpenChange={setShowReversalDialog}
+          originalAtoId={reversalOf.atoId}
+          onConfirm={handleReversalItemsConfirm}
+        />
       )}
     </>
   );

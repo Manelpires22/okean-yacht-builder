@@ -944,6 +944,7 @@ export function ATODetailDialog({
           onOpenChange={setShowCreateReversalDialog}
           contractId={ato.contract_id}
           reversalOf={{
+            atoId: ato.id,
             atoNumber: ato.ato_number,
             title: ato.title,
             priceImpact: ato.price_impact,
