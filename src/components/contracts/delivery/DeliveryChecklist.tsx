@@ -62,7 +62,7 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
 
     // Itens normais (não são de ATO)
     const normalItems = items.filter(
-      i => i.item_type !== "ato_item" && i.item_type !== "ato_config_item"
+      i => i.item_type !== "ato_config_item"
     );
 
     // Agrupar itens normais por tipo
@@ -74,39 +74,23 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
       return acc;
     }, {} as Record<string, DeliveryChecklistItem[]>);
 
-    // Agrupar ATOs e suas configurações
-    const atoItems = items.filter(i => i.item_type === "ato_item");
+    // Agrupar configurações de ATO pelo prefixo do código (ex: "ATO 1")
     const atoConfigItems = items.filter(i => i.item_type === "ato_config_item");
 
     const atoGroupsMap: Record<string, {
-      ato: DeliveryChecklistItem;
+      atoNumber: string;
       configs: DeliveryChecklistItem[];
     }> = {};
 
-    // Criar grupos por ATO
-    atoItems.forEach(ato => {
-      const atoNumber = ato.item_code || ato.item_name;
-      atoGroupsMap[atoNumber] = { ato, configs: [] };
-    });
-
-    // Associar configurações às suas ATOs
+    // Agrupar pelo prefixo do código
     atoConfigItems.forEach(config => {
       // Extrair número da ATO do código (formato: "ATO 1::OPT-001" ou apenas "ATO 1")
-      const atoNumber = config.item_code?.split("::")[0];
+      const atoNumber = config.item_code?.split("::")[0] || "ATO";
       
-      if (atoNumber && atoGroupsMap[atoNumber]) {
-        atoGroupsMap[atoNumber].configs.push(config);
-      } else {
-        // Fallback: tentar encontrar pelo nome
-        const matchingAto = Object.keys(atoGroupsMap).find(key => 
-          config.item_code?.startsWith(key) || 
-          config.item_name?.includes(key)
-        );
-        
-        if (matchingAto) {
-          atoGroupsMap[matchingAto].configs.push(config);
-        }
+      if (!atoGroupsMap[atoNumber]) {
+        atoGroupsMap[atoNumber] = { atoNumber, configs: [] };
       }
+      atoGroupsMap[atoNumber].configs.push(config);
     });
 
     return { normalGroupedItems: normalGrouped, atoGroups: atoGroupsMap };
@@ -209,10 +193,10 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
             ATOs Aprovadas
           </h3>
           
-          {Object.values(atoGroups).map(({ ato, configs }) => (
+          {Object.values(atoGroups).map(({ atoNumber, configs }) => (
             <ATOChecklistGroup
-              key={ato.id}
-              atoItem={ato}
+              key={atoNumber}
+              atoNumber={atoNumber}
               configItems={configs}
             />
           ))}

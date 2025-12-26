@@ -6,11 +6,11 @@ import { DeliveryChecklistItem } from "@/hooks/useContractDeliveryChecklist";
 import { FileText } from "lucide-react";
 
 interface ATOChecklistGroupProps {
-  atoItem: DeliveryChecklistItem;
+  atoNumber: string;
   configItems: DeliveryChecklistItem[];
 }
 
-export function ATOChecklistGroup({ atoItem, configItems }: ATOChecklistGroupProps) {
+export function ATOChecklistGroup({ atoNumber, configItems }: ATOChecklistGroupProps) {
   const verifiedCount = configItems.filter(item => item.is_verified).length;
   const totalCount = configItems.length;
   const progressPercentage = totalCount > 0 ? Math.round((verifiedCount / totalCount) * 100) : 0;
@@ -21,12 +21,7 @@ export function ATOChecklistGroup({ atoItem, configItems }: ATOChecklistGroupPro
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <FileText className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">{atoItem.item_name}</CardTitle>
-            {atoItem.item_code && (
-              <Badge variant="outline" className="text-xs">
-                {atoItem.item_code}
-              </Badge>
-            )}
+            <CardTitle className="text-lg">{atoNumber}</CardTitle>
           </div>
           <Badge variant={verifiedCount === totalCount && totalCount > 0 ? "default" : "secondary"}>
             {verifiedCount}/{totalCount} itens
