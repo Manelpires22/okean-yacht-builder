@@ -153,7 +153,7 @@ export function drawGoldLine(
 }
 
 /**
- * Desenha uma caixa premium com sombra
+ * Desenha uma caixa premium (sem sombra para compatibilidade)
  */
 export function drawPremiumBox(
   doc: jsPDF, 
@@ -163,39 +163,29 @@ export function drawPremiumBox(
   h: number, 
   style: "light" | "dark" | "gold" | "info" | "success" | "warning" = "light"
 ) {
-  // Sombra sutil
-  doc.setFillColor(0, 0, 0);
-  // @ts-ignore - GState existe no jsPDF
-  doc.saveGraphicsState();
-  // @ts-ignore
-  doc.setGState(new doc.GState({ opacity: 0.08 }));
-  doc.roundedRect(x + 2, y + 2, w, h, 3, 3, "F");
-  // @ts-ignore
-  doc.restoreGraphicsState();
-  
   // Preenchimento da caixa
   if (style === "dark") {
-    setColor(doc, COLORS.navy, "fill");
+    doc.setFillColor(COLORS.navy.r, COLORS.navy.g, COLORS.navy.b);
   } else if (style === "gold") {
-    setColor(doc, COLORS.gold, "fill");
+    doc.setFillColor(COLORS.gold.r, COLORS.gold.g, COLORS.gold.b);
   } else if (style === "info") {
-    setColor(doc, COLORS.infoLight, "fill");
+    doc.setFillColor(COLORS.infoLight.r, COLORS.infoLight.g, COLORS.infoLight.b);
   } else if (style === "success") {
-    setColor(doc, COLORS.successLight, "fill");
+    doc.setFillColor(COLORS.successLight.r, COLORS.successLight.g, COLORS.successLight.b);
   } else if (style === "warning") {
-    setColor(doc, COLORS.warningLight, "fill");
+    doc.setFillColor(COLORS.warningLight.r, COLORS.warningLight.g, COLORS.warningLight.b);
   } else {
-    setColor(doc, COLORS.champagne, "fill");
+    doc.setFillColor(COLORS.champagne.r, COLORS.champagne.g, COLORS.champagne.b);
   }
   doc.roundedRect(x, y, w, h, 3, 3, "F");
   
   // Borda
   if (style === "gold") {
-    setColor(doc, COLORS.goldDark, "draw");
+    doc.setDrawColor(COLORS.goldDark.r, COLORS.goldDark.g, COLORS.goldDark.b);
   } else if (style === "dark") {
-    setColor(doc, COLORS.navyLight, "draw");
+    doc.setDrawColor(COLORS.navyLight.r, COLORS.navyLight.g, COLORS.navyLight.b);
   } else {
-    setColor(doc, COLORS.platinum, "draw");
+    doc.setDrawColor(COLORS.platinum.r, COLORS.platinum.g, COLORS.platinum.b);
   }
   doc.setLineWidth(0.3);
   doc.roundedRect(x, y, w, h, 3, 3, "S");
@@ -328,16 +318,11 @@ export function addFootersToAllPages(
  * Adiciona marca d'água de rascunho
  */
 export function addDraftWatermark(doc: jsPDF, pageW: number, pageH: number) {
-  doc.setTextColor(200, 200, 200);
+  // Marca d'água simples (sem transparência para compatibilidade)
+  doc.setTextColor(230, 230, 230);
   doc.setFontSize(72);
   setupFont(doc, "bold");
-  // @ts-ignore
-  doc.saveGraphicsState();
-  // @ts-ignore
-  doc.setGState(new doc.GState({ opacity: 0.10 }));
   doc.text("RASCUNHO", pageW / 2, pageH / 2, { angle: 45, align: "center" });
-  // @ts-ignore
-  doc.restoreGraphicsState();
 }
 
 /**
@@ -363,18 +348,12 @@ export function drawPremiumCover(
   // Fundo gradiente
   drawGradientBackground(doc, pageW, 0, pageH);
   
-  // Padrão sutil de linhas
-  // @ts-ignore
-  doc.saveGraphicsState();
-  // @ts-ignore
-  doc.setGState(new doc.GState({ opacity: 0.03 }));
-  setColor(doc, COLORS.white, "draw");
-  doc.setLineWidth(0.5);
-  for (let i = 0; i < 20; i++) {
-    doc.line(0, i * 20, pageW, i * 20 + 50);
+  // Padrão sutil de linhas (com cor clara para simular transparência)
+  doc.setDrawColor(20, 45, 75); // Cor ligeiramente mais clara que o fundo
+  doc.setLineWidth(0.3);
+  for (let i = 0; i < 15; i++) {
+    doc.line(0, i * 25, pageW, i * 25 + 40);
   }
-  // @ts-ignore
-  doc.restoreGraphicsState();
   
   let yPos = 50;
   
