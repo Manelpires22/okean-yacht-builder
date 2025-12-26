@@ -40,7 +40,10 @@ export interface PDFBlock {
   config: PDFBlockConfig;
 }
 
+export type PDFStyle = 'clean' | 'premium';
+
 export interface PDFTemplateSettings {
+  style: PDFStyle;
   margins: {
     top: number;
     right: number;

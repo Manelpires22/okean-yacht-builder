@@ -20,11 +20,13 @@ import {
   usePDFTemplate,
   useUpdatePDFTemplate,
 } from "@/hooks/usePDFTemplates";
-import { PDFBlock, BlockDefinition, BLOCK_DEFINITIONS } from "@/types/pdf-builder";
-import { ArrowLeft, Save, Loader2, Eye } from "lucide-react";
+import { PDFBlock, BlockDefinition, BLOCK_DEFINITIONS, PDFStyle, PDFTemplateSettings } from "@/types/pdf-builder";
+import { ArrowLeft, Save, Loader2, Eye, FileText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function AdminPDFTemplateEditor() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +38,7 @@ export default function AdminPDFTemplateEditor() {
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [pdfStyle, setPdfStyle] = useState<PDFStyle>("clean");
 
   const debouncedBlocks = useDebounce(blocks, 1000);
 
@@ -47,10 +50,13 @@ export default function AdminPDFTemplateEditor() {
     })
   );
 
-  // Initialize blocks from template
+  // Initialize blocks and settings from template
   useEffect(() => {
     if (template?.template_json?.blocks) {
       setBlocks(template.template_json.blocks);
+    }
+    if (template?.template_json?.settings?.style) {
+      setPdfStyle(template.template_json.settings.style);
     }
   }, [template]);
 
@@ -65,11 +71,17 @@ export default function AdminPDFTemplateEditor() {
     if (!template) return;
 
     try {
+      const updatedSettings: PDFTemplateSettings = {
+        ...template.template_json.settings,
+        style: pdfStyle,
+      };
+
       await updateTemplate.mutateAsync({
         id: template.id,
         template_json: {
           ...template.template_json,
           blocks,
+          settings: updatedSettings,
         },
       });
       setHasChanges(false);
@@ -79,6 +91,11 @@ export default function AdminPDFTemplateEditor() {
     } catch (error) {
       toast.error("Erro ao salvar template");
     }
+  };
+
+  const handleStyleChange = (newStyle: PDFStyle) => {
+    setPdfStyle(newStyle);
+    setHasChanges(true);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -238,12 +255,58 @@ export default function AdminPDFTemplateEditor() {
 
           {/* Editor */}
           <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
-            {/* Block Library */}
-            <div className="col-span-3 border-r bg-background overflow-hidden">
-              <PDFBlockLibrary
-                documentType={template.document_type}
-                existingBlockTypes={existingBlockTypes}
-              />
+            {/* Block Library + Style Selector */}
+            <div className="col-span-3 border-r bg-background overflow-hidden flex flex-col">
+              {/* Style Selector */}
+              <div className="p-4 border-b">
+                <Label className="text-xs font-medium text-muted-foreground uppercase mb-3 block">
+                  Estilo do Documento
+                </Label>
+                <RadioGroup
+                  value={pdfStyle}
+                  onValueChange={(v) => handleStyleChange(v as PDFStyle)}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  <div>
+                    <RadioGroupItem
+                      value="clean"
+                      id="style-clean"
+                      className="peer sr-only"
+                    />
+                    <Label
+                      htmlFor="style-clean"
+                      className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    >
+                      <FileText className="h-5 w-5 mb-1" />
+                      <span className="text-xs font-medium">Clean</span>
+                      <span className="text-[10px] text-muted-foreground">Apenas texto</span>
+                    </Label>
+                  </div>
+                  <div>
+                    <RadioGroupItem
+                      value="premium"
+                      id="style-premium"
+                      className="peer sr-only"
+                    />
+                    <Label
+                      htmlFor="style-premium"
+                      className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    >
+                      <Sparkles className="h-5 w-5 mb-1" />
+                      <span className="text-xs font-medium">Premium</span>
+                      <span className="text-[10px] text-muted-foreground">Visual completo</span>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              {/* Block Library */}
+              <div className="flex-1 overflow-hidden">
+                <PDFBlockLibrary
+                  documentType={template.document_type}
+                  existingBlockTypes={existingBlockTypes}
+                />
+              </div>
             </div>
 
             {/* Canvas */}
