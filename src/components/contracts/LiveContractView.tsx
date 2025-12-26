@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLiveContract, useContract } from "@/hooks/useContracts";
 import { useConsolidatedContractScope } from "@/hooks/useConsolidatedContractScope";
+import { useContractATOsAggregatedImpact } from "@/hooks/useContractATOsAggregatedImpact";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +26,7 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
   const { data: liveContract, isLoading: liveLoading } = useLiveContract(contractId);
   const { data: contract, isLoading: contractLoading } = useContract(contractId);
   const { data: scopeData, isLoading: scopeLoading } = useConsolidatedContractScope(contractId);
+  const { data: aggregatedImpact, isLoading: impactLoading } = useContractATOsAggregatedImpact(contractId);
   const [selectedATOId, setSelectedATOId] = useState<string | null>(null);
   const [showATODialog, setShowATODialog] = useState(false);
 
@@ -54,8 +56,15 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
     );
   }
 
-  const priceVariation = liveContract.current_total_price - liveContract.base_price;
-  const daysVariation = liveContract.current_total_delivery_days - liveContract.base_delivery_days;
+  // ✅ Usar valores do hook de impacto agregado (com deltas e MAX)
+  const realATOsPrice = aggregatedImpact?.totalApprovedATOsPrice ?? liveContract.total_atos_price ?? 0;
+  const realATOsDeliveryDays = aggregatedImpact?.maxApprovedATOsDeliveryDays ?? liveContract.total_atos_delivery_days ?? 0;
+  
+  const realTotalPrice = liveContract.base_price + realATOsPrice;
+  const realTotalDeliveryDays = liveContract.base_delivery_days + realATOsDeliveryDays;
+  
+  const priceVariation = realATOsPrice;
+  const daysVariation = realATOsDeliveryDays;
 
   return (
     <>
@@ -112,10 +121,14 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                 
                 {/* 2. Valor ATOs */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Valor Total ATOs Aprovadas</p>
-                  <p className="text-2xl font-semibold text-green-600">
-                    + {formatCurrency(liveContract.total_atos_price || 0)}
-                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">Impacto ATOs Aprovadas</p>
+                  {impactLoading ? (
+                    <Skeleton className="h-8 w-32" />
+                  ) : (
+                    <p className={`text-2xl font-semibold ${realATOsPrice < 0 ? "text-green-600" : realATOsPrice > 0 ? "text-orange-600" : ""}`}>
+                      {realATOsPrice >= 0 ? "+" : ""}{formatCurrency(realATOsPrice)}
+                    </p>
+                  )}
                   <Badge className="mt-2" variant="secondary">
                     {liveContract.approved_atos_count} ATO(s) aprovada(s)
                   </Badge>
@@ -127,14 +140,18 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                 {/* 3. Total Consolidado */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Valor Total Atual</p>
-                  <p className="text-4xl font-bold text-primary">
-                    {formatCurrency(liveContract.current_total_price)}
-                  </p>
+                  {impactLoading ? (
+                    <Skeleton className="h-10 w-40" />
+                  ) : (
+                    <p className="text-4xl font-bold text-primary">
+                      {formatCurrency(realTotalPrice)}
+                    </p>
+                  )}
                   {priceVariation !== 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
                       Variação:{" "}
-                      <span className="text-green-600 font-semibold">
-                        +{formatCurrency(priceVariation)}
+                      <span className={priceVariation < 0 ? "text-green-600 font-semibold" : "text-orange-600 font-semibold"}>
+                        {priceVariation >= 0 ? "+" : ""}{formatCurrency(priceVariation)}
                       </span>
                     </p>
                   )}
@@ -156,9 +173,13 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                 {/* 2. Impacto ATOs */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Impacto ATOs no Prazo</p>
-                  <p className="text-2xl font-semibold text-orange-600">
-                    + {liveContract.total_atos_delivery_days || 0} dias
-                  </p>
+                  {impactLoading ? (
+                    <Skeleton className="h-8 w-24" />
+                  ) : (
+                    <p className="text-2xl font-semibold text-orange-600">
+                      +{realATOsDeliveryDays} dias
+                    </p>
+                  )}
                 </div>
                 
                 {/* Separador visual */}
@@ -167,19 +188,23 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                 {/* 3. Data Ajustada (data base + impacto) */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Data Ajustada</p>
-                  <p className="text-4xl font-bold text-primary">
-                    {contract?.hull_number?.estimated_delivery_date
-                      ? format(
-                          addDays(
-                            new Date(contract.hull_number.estimated_delivery_date),
-                            daysVariation
-                          ),
-                          "dd/MM/yyyy",
-                          { locale: ptBR }
-                        )
-                      : `${liveContract.current_total_delivery_days} dias`}
-                  </p>
-                  {daysVariation !== 0 && (
+                  {impactLoading ? (
+                    <Skeleton className="h-10 w-32" />
+                  ) : (
+                    <p className="text-4xl font-bold text-primary">
+                      {contract?.hull_number?.estimated_delivery_date
+                        ? format(
+                            addDays(
+                              new Date(contract.hull_number.estimated_delivery_date),
+                              daysVariation
+                            ),
+                            "dd/MM/yyyy",
+                            { locale: ptBR }
+                          )
+                        : `${realTotalDeliveryDays} dias`}
+                    </p>
+                  )}
+                  {daysVariation > 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
                       Variação:{" "}
                       <span className="text-orange-600 font-semibold">
@@ -249,6 +274,7 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
       <TabsContent value="atos">
         <ContractATODefinitionsView
           approvedATOs={scopeData?.approvedATOs || []}
+          contractId={contractId}
           onATOClick={handleATOClick}
         />
       </TabsContent>
