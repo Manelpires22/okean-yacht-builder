@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -818,8 +819,11 @@ export function ATODetailDialog({
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm">Impacto no Preço:</span>
-                <span className="font-bold text-green-600">
-                  +{formatCurrency(ato?.price_impact || 0)}
+                <span className={cn(
+                  "font-bold",
+                  displayPriceImpact >= 0 ? "text-destructive" : "text-green-600"
+                )}>
+                  {displayPriceImpact >= 0 ? '+' : '-'} {formatCurrency(Math.abs(displayPriceImpact))}
                 </span>
               </div>
               <div className="flex justify-between">
