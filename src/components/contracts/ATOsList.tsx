@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, FileText, Calendar, ChevronRight, Package, AlertCircle, Wrench } from "lucide-react";
+import { Plus, FileText, ChevronRight, Package, AlertCircle, Wrench } from "lucide-react";
 import { getATOStatusLabel, getATOStatusColor } from "@/lib/contract-utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,7 @@ import { ATODetailDialog } from "./ATODetailDialog";
 import { ATOWorkflowTimeline } from "./ATOWorkflowTimeline";
 import { ATOsDashboard } from "./ATOsDashboard";
 import { ATOPriceImpactCell } from "./ATOPriceImpactCell";
+import { ATODeliveryImpactCell } from "./ATODeliveryImpactCell";
 
 interface ATOsListProps {
   contractId: string;
@@ -236,19 +237,11 @@ export function ATOsList({ contractId }: ATOsListProps) {
                       />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span
-                          className={
-                            ato.delivery_days_impact > 0
-                              ? "text-orange-600 font-semibold"
-                              : ""
-                          }
-                        >
-                          {ato.delivery_days_impact > 0 ? "+" : ""}
-                          {ato.delivery_days_impact} dias
-                        </span>
-                      </div>
+                      <ATODeliveryImpactCell
+                        atoId={ato.id}
+                        contractId={contractId}
+                        storedDeliveryDays={ato.delivery_days_impact}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge className={getATOStatusColor(ato.status)}>
