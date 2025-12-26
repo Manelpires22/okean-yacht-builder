@@ -17,6 +17,11 @@ export interface PendingATOItem {
   estimated_days?: number;
   discount_percentage?: number;
   original_price?: number;
+  replaces_upgrade?: {
+    upgrade_id: string;
+    upgrade_name: string;
+    source: string;
+  };
 }
 
 interface ATOItemsListProps {

@@ -7,10 +7,17 @@ interface ItemUsageStatus {
   inATOs: string[]; // e.g., ["ATO 1", "ATO 2"]
 }
 
+interface ConflictingUpgrade {
+  upgradeId: string;
+  upgradeName: string;
+  source: string; // 'No contrato' ou 'ATO 1', 'ATO 2', etc.
+}
+
 interface ItemUsageMap {
   options: Map<string, ItemUsageStatus>;
   upgrades: Map<string, ItemUsageStatus>;
   memorialItems: Map<string, ItemUsageStatus>;
+  upgradesByMemorialItem: Map<string, ConflictingUpgrade>;
 }
 
 export function useItemUsageCheck(contractId: string | undefined) {
@@ -57,6 +64,7 @@ export function useItemUsageCheck(contractId: string | undefined) {
     const optionsMap = new Map<string, ItemUsageStatus>();
     const upgradesMap = new Map<string, ItemUsageStatus>();
     const memorialItemsMap = new Map<string, ItemUsageStatus>();
+    const upgradesByMemorialItemMap = new Map<string, ConflictingUpgrade>();
 
     // Parse base_snapshot para itens do contrato original
     if (contract?.base_snapshot) {
@@ -79,6 +87,17 @@ export function useItemUsageCheck(contractId: string | undefined) {
           if (upgradeId) {
             upgradesMap.set(upgradeId, { inContract: true, inATOs: [] });
           }
+          
+          // Mapear por memorial_item_id para detecção de conflitos
+          const memorialItemId = upg.memorial_item_id;
+          const upgradeName = upg.upgrade?.name || upg.name || 'Upgrade';
+          if (memorialItemId) {
+            upgradesByMemorialItemMap.set(memorialItemId, {
+              upgradeId,
+              upgradeName,
+              source: 'No contrato'
+            });
+          }
         });
       }
     }
@@ -93,6 +112,7 @@ export function useItemUsageCheck(contractId: string | undefined) {
           if (!itemId) return;
 
           const itemType = config.item_type;
+          const configDetails = config.configuration_details || {};
 
           if (itemType === 'option') {
             const existing = optionsMap.get(itemId);
@@ -107,6 +127,17 @@ export function useItemUsageCheck(contractId: string | undefined) {
               existing.inATOs.push(atoLabel);
             } else {
               upgradesMap.set(itemId, { inContract: false, inATOs: [atoLabel] });
+            }
+            
+            // Mapear por memorial_item_id para detecção de conflitos
+            const memorialItemId = configDetails.memorial_item_id;
+            const upgradeName = configDetails.name || 'Upgrade';
+            if (memorialItemId) {
+              upgradesByMemorialItemMap.set(memorialItemId, {
+                upgradeId: itemId,
+                upgradeName,
+                source: atoLabel
+              });
             }
           } else if (itemType === 'memorial_item' || itemType === 'define_finishing') {
             const existing = memorialItemsMap.get(itemId);
@@ -124,6 +155,7 @@ export function useItemUsageCheck(contractId: string | undefined) {
       options: optionsMap,
       upgrades: upgradesMap,
       memorialItems: memorialItemsMap,
+      upgradesByMemorialItem: upgradesByMemorialItemMap,
     };
   }, [contract, atos]);
 
@@ -139,10 +171,21 @@ export function useItemUsageCheck(contractId: string | undefined) {
     return usageMap.memorialItems.get(itemId) || null;
   };
 
+  // Nova função: verificar se já existe upgrade para o mesmo item do memorial
+  const getConflictingUpgrade = (memorialItemId: string, currentUpgradeId?: string): ConflictingUpgrade | null => {
+    const existing = usageMap.upgradesByMemorialItem.get(memorialItemId);
+    // Se existir e não for o mesmo upgrade
+    if (existing && existing.upgradeId !== currentUpgradeId) {
+      return existing;
+    }
+    return null;
+  };
+
   return {
     getOptionStatus,
     getUpgradeStatus,
     getMemorialItemStatus,
+    getConflictingUpgrade,
     isLoading: !contract && !atos,
   };
 }
