@@ -234,10 +234,19 @@ export default function QuotationDetail() {
     );
   }
 
+  // Calcular totais por tipo
+  const totalUpgradesPrice = quotation.quotation_upgrades?.reduce(
+    (sum: number, u: any) => sum + (u.price || 0), 
+    0
+  ) || 0;
+  
+  const totalOptionsPrice = quotation.total_options_price || 0;
+  const totalCustomizationsPrice = quotation.total_customizations_price || 0;
+
   // Calcular economia total
   const totalDiscount = 
-    (quotation.base_price * (quotation.base_discount_percentage / 100)) +
-    ((quotation.total_options_price || 0) * (quotation.options_discount_percentage / 100));
+    (quotation.base_price * ((quotation.base_discount_percentage || 0) / 100)) +
+    (totalOptionsPrice * ((quotation.options_discount_percentage || 0) / 100));
 
   // Determinar seções expandidas por padrão
   const defaultExpandedSections = [
@@ -287,6 +296,9 @@ export default function QuotationDetail() {
             image_url: quotation.yacht_models?.image_url,
           }}
           basePrice={quotation.base_price}
+          upgradesPrice={totalUpgradesPrice}
+          optionsPrice={totalOptionsPrice}
+          customizationsPrice={totalCustomizationsPrice}
           finalPrice={quotation.final_price}
           baseDeliveryDays={quotation.base_delivery_days}
           totalDeliveryDays={quotation.total_delivery_days}

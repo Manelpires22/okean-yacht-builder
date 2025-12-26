@@ -50,6 +50,13 @@ export default function PublicQuotationView() {
               base_price
             )
           ),
+          quotation_upgrades (
+            id,
+            price,
+            memorial_item_id,
+            upgrade_id,
+            delivery_days_impact
+          ),
           quotation_customizations (*),
           hull_number:hull_numbers (
             id,
@@ -121,9 +128,18 @@ export default function PublicQuotationView() {
     );
   }
 
+  // Calcular totais por tipo
+  const totalUpgradesPrice = quotation.quotation_upgrades?.reduce(
+    (sum: number, u: any) => sum + (u.price || 0), 
+    0
+  ) || 0;
+  
+  const totalOptionsPrice = quotation.total_options_price || 0;
+  const totalCustomizationsPrice = quotation.total_customizations_price || 0;
+
   const totalDiscount = 
-    (quotation.base_price * (quotation.base_discount_percentage / 100)) +
-    ((quotation.total_options_price || 0) * (quotation.options_discount_percentage / 100));
+    (quotation.base_price * ((quotation.base_discount_percentage || 0) / 100)) +
+    (totalOptionsPrice * ((quotation.options_discount_percentage || 0) / 100));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
@@ -155,6 +171,9 @@ export default function PublicQuotationView() {
             image_url: quotation.yacht_models?.image_url,
           }}
           basePrice={quotation.base_price}
+          upgradesPrice={totalUpgradesPrice}
+          optionsPrice={totalOptionsPrice}
+          customizationsPrice={totalCustomizationsPrice}
           finalPrice={quotation.final_price}
           baseDeliveryDays={quotation.base_delivery_days}
           totalDeliveryDays={quotation.total_delivery_days}
