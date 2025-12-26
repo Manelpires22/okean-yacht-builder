@@ -16,11 +16,13 @@ export function useFinalizeDelivery() {
 
   return useMutation({
     mutationFn: async ({ contractId, deliveryNotes }: FinalizeDeliveryParams) => {
-      // Verificar se todos os itens foram verificados
+      // Verificar se todos os itens verificáveis foram verificados
+      // Filtrar ato_item - são apenas agrupadores, não verificáveis
       const { data: items, error: checkError } = await supabase
         .from("contract_delivery_checklist")
-        .select("is_verified")
-        .eq("contract_id", contractId);
+        .select("is_verified, item_type")
+        .eq("contract_id", contractId)
+        .neq("item_type", "ato_item");
 
       if (checkError) throw checkError;
 
