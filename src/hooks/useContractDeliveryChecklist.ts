@@ -250,15 +250,21 @@ async function populateChecklist(contractId: string) {
             itemName = `Item ${config.item_type}`;
           }
 
-          // Determinar código do item
-          let itemCode = config.ato?.ato_number;
+          // Determinar código do item (prefixado com ato_number para agrupamento)
+          const atoNumber = config.ato?.ato_number || "ATO";
+          let specificCode = "";
           if (config.item_id) {
             if (config.item_type === "option" && namesMaps.options[config.item_id]?.code) {
-              itemCode = namesMaps.options[config.item_id].code;
+              specificCode = namesMaps.options[config.item_id].code;
             } else if (config.item_type === "upgrade" && namesMaps.upgrades[config.item_id]?.code) {
-              itemCode = namesMaps.upgrades[config.item_id].code;
+              specificCode = namesMaps.upgrades[config.item_id].code;
             }
           }
+
+          // Formato: "ATO 1::OPT-001" para permitir agrupamento no frontend
+          const itemCode = specificCode 
+            ? `${atoNumber}::${specificCode}` 
+            : atoNumber;
 
           items.push({
             contract_id: contractId,
