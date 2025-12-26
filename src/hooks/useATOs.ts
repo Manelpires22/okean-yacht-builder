@@ -86,13 +86,18 @@ export interface CreateATOInput {
   discount_amount?: number;
   original_price_impact?: number;
   configurations?: Array<{
-    item_type: "memorial_item" | "option" | "upgrade" | "ato_item" | "free_customization" | "definable_item";
+    item_type: "memorial_item" | "option" | "upgrade" | "ato_item" | "free_customization" | "definable_item" | "reversal";
     item_id: string | null;
     configuration_details: any;
     sub_items?: any[];
     notes?: string;
     discount_percentage?: number;
     original_price?: number;
+    // Campos de estorno
+    is_reversal?: boolean;
+    reversal_of_configuration_id?: string | null;
+    reversal_percentage?: number;
+    reversal_reason?: string | null;
   }>;
   notes?: string;
 }
@@ -324,6 +329,11 @@ export function useCreateATO() {
               created_by: user.id,
               discount_percentage: config.discount_percentage || 0,
               original_price: config.original_price || 0,
+              // Campos de estorno
+              is_reversal: config.is_reversal || false,
+              reversal_of_configuration_id: config.reversal_of_configuration_id || null,
+              reversal_percentage: config.reversal_percentage || 100,
+              reversal_reason: config.reversal_reason || null,
             }))
           );
 

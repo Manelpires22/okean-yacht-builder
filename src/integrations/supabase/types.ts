@@ -27,6 +27,7 @@ export type Database = {
           discount_amount: number | null
           discount_percentage: number | null
           id: string
+          is_reversal: boolean | null
           notes: string | null
           original_price_impact: number | null
           price_impact: number | null
@@ -34,6 +35,7 @@ export type Database = {
           requested_at: string | null
           requested_by: string
           requires_approval: boolean | null
+          reversal_of_ato_id: string | null
           sequence_number: number
           status: string
           technical_approval_status: string | null
@@ -53,6 +55,7 @@ export type Database = {
           discount_amount?: number | null
           discount_percentage?: number | null
           id?: string
+          is_reversal?: boolean | null
           notes?: string | null
           original_price_impact?: number | null
           price_impact?: number | null
@@ -60,6 +63,7 @@ export type Database = {
           requested_at?: string | null
           requested_by: string
           requires_approval?: boolean | null
+          reversal_of_ato_id?: string | null
           sequence_number: number
           status?: string
           technical_approval_status?: string | null
@@ -79,6 +83,7 @@ export type Database = {
           discount_amount?: number | null
           discount_percentage?: number | null
           id?: string
+          is_reversal?: boolean | null
           notes?: string | null
           original_price_impact?: number | null
           price_impact?: number | null
@@ -86,6 +91,7 @@ export type Database = {
           requested_at?: string | null
           requested_by?: string
           requires_approval?: boolean | null
+          reversal_of_ato_id?: string | null
           sequence_number?: number
           status?: string
           technical_approval_status?: string | null
@@ -107,6 +113,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "live_contracts"
             referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "additional_to_orders_reversal_of_ato_id_fkey"
+            columns: ["reversal_of_ato_id"]
+            isOneToOne: false
+            referencedRelation: "additional_to_orders"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -168,6 +181,7 @@ export type Database = {
           delivery_impact_days: number | null
           discount_percentage: number | null
           id: string
+          is_reversal: boolean | null
           item_id: string | null
           item_type: string
           labor_cost_per_hour: number | null
@@ -179,6 +193,9 @@ export type Database = {
           pm_reviewed_at: string | null
           pm_reviewed_by: string | null
           pm_status: string | null
+          reversal_of_configuration_id: string | null
+          reversal_percentage: number | null
+          reversal_reason: string | null
           sub_items: Json | null
         }
         Insert: {
@@ -190,6 +207,7 @@ export type Database = {
           delivery_impact_days?: number | null
           discount_percentage?: number | null
           id?: string
+          is_reversal?: boolean | null
           item_id?: string | null
           item_type: string
           labor_cost_per_hour?: number | null
@@ -201,6 +219,9 @@ export type Database = {
           pm_reviewed_at?: string | null
           pm_reviewed_by?: string | null
           pm_status?: string | null
+          reversal_of_configuration_id?: string | null
+          reversal_percentage?: number | null
+          reversal_reason?: string | null
           sub_items?: Json | null
         }
         Update: {
@@ -212,6 +233,7 @@ export type Database = {
           delivery_impact_days?: number | null
           discount_percentage?: number | null
           id?: string
+          is_reversal?: boolean | null
           item_id?: string | null
           item_type?: string
           labor_cost_per_hour?: number | null
@@ -223,6 +245,9 @@ export type Database = {
           pm_reviewed_at?: string | null
           pm_reviewed_by?: string | null
           pm_status?: string | null
+          reversal_of_configuration_id?: string | null
+          reversal_percentage?: number | null
+          reversal_reason?: string | null
           sub_items?: Json | null
         }
         Relationships: [
@@ -231,6 +256,13 @@ export type Database = {
             columns: ["ato_id"]
             isOneToOne: false
             referencedRelation: "additional_to_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ato_configurations_reversal_of_configuration_id_fkey"
+            columns: ["reversal_of_configuration_id"]
+            isOneToOne: false
+            referencedRelation: "ato_configurations"
             referencedColumns: ["id"]
           },
         ]
