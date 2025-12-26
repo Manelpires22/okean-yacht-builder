@@ -529,6 +529,7 @@ export function CreateATODialog({
             open={currentDialog === "add_optional"}
             onOpenChange={(open) => !open && setCurrentDialog(null)}
             yachtModelId={contractData.contract.yacht_model_id}
+            contractId={contractId}
             onAdd={handleAddItem}
           />
 
@@ -542,6 +543,7 @@ export function CreateATODialog({
             open={currentDialog === "add_upgrade"}
             onOpenChange={(open) => !open && setCurrentDialog(null)}
             yachtModelId={contractData.contract.yacht_model_id}
+            contractId={contractId}
             onAdd={handleAddItem}
           />
 
@@ -549,6 +551,7 @@ export function CreateATODialog({
             open={currentDialog === "define_finishing"}
             onOpenChange={(open) => !open && setCurrentDialog(null)}
             yachtModelId={contractData.contract.yacht_model_id}
+            contractId={contractId}
             onAdd={handleAddItem}
           />
         </>

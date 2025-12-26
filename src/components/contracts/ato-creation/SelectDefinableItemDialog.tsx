@@ -13,14 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Search, AlertCircle } from "lucide-react";
+import { Loader2, Search, AlertCircle, FileText } from "lucide-react";
 import { useMemorialItems } from "@/hooks/useMemorialItems";
+import { useItemUsageCheck } from "@/hooks/useItemUsageCheck";
 import { PendingATOItem } from "./ATOItemsList";
 
 interface SelectDefinableItemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   yachtModelId: string;
+  contractId?: string;
   onAdd: (item: PendingATOItem) => void;
 }
 
@@ -28,6 +30,7 @@ export function SelectDefinableItemDialog({
   open,
   onOpenChange,
   yachtModelId,
+  contractId,
   onAdd,
 }: SelectDefinableItemDialogProps) {
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -35,6 +38,7 @@ export function SelectDefinableItemDialog({
   const [definition, setDefinition] = useState("");
 
   const { data: memorialItems, isLoading } = useMemorialItems(yachtModelId);
+  const { getMemorialItemStatus } = useItemUsageCheck(contractId);
 
   // Filtrar apenas itens configuráveis (A Definir)
   const definableItems = memorialItems?.filter(
@@ -97,45 +101,58 @@ export function SelectDefinableItemDialog({
         ) : (
           <ScrollArea className="h-[400px]">
             <div className="space-y-2">
-              {definableItems?.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedItem(item)}
-                  className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedItem?.id === item.id
-                      ? "border-primary bg-primary/5"
-                      : "hover:border-primary/50 hover:bg-accent"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold">{item.item_name}</h4>
-                        <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                          A Definir
-                        </Badge>
-                      </div>
-                      {item.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {item.description}
-                        </p>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        {item.brand && (
-                          <Badge variant="secondary" className="text-xs">
-                            {item.brand}
+              {definableItems?.map((item) => {
+                const usageStatus = getMemorialItemStatus(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedItem(item)}
+                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                      selectedItem?.id === item.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:border-primary/50 hover:bg-accent"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-semibold">{item.item_name}</h4>
+                          <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                            A Definir
                           </Badge>
+                          {usageStatus?.inATOs.map((atoLabel) => (
+                            <Badge 
+                              key={atoLabel} 
+                              variant="outline" 
+                              className="text-xs gap-1 border-amber-500 text-amber-600"
+                            >
+                              <FileText className="h-3 w-3" />
+                              Definido em {atoLabel}
+                            </Badge>
+                          ))}
+                        </div>
+                        {item.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {item.description}
+                          </p>
                         )}
-                        {item.quantity && (
-                          <Badge variant="secondary" className="text-xs">
-                            Qtd: {item.quantity}
-                          </Badge>
-                        )}
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          {item.brand && (
+                            <Badge variant="secondary" className="text-xs">
+                              {item.brand}
+                            </Badge>
+                          )}
+                          {item.quantity && (
+                            <Badge variant="secondary" className="text-xs">
+                              Qtd: {item.quantity}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </ScrollArea>
         )}
