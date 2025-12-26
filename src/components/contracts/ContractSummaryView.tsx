@@ -587,10 +587,10 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
             </div>
           </AccordionTrigger>
           <AccordionContent className="pt-2 pb-4">
-            <div className="space-y-4">
+            <div className="space-y-3">
               
               {/* Bloco 1: Base */}
-              <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+              <div className="space-y-1">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Preço Base do Modelo</span>
                   <span className="font-medium">{formatCurrency(modelBasePrice)}</span>
@@ -603,7 +603,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   </div>
                 )}
                 
-                <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                <div className="flex justify-between font-semibold">
                   <span>Preço Base Final</span>
                   <span>{formatCurrency(modelBasePrice - baseDiscountAmount)}</span>
                 </div>
@@ -611,7 +611,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
 
               {/* Bloco 2: Opcionais */}
               {selectedOptions.length > 0 && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                <div className="pt-3 border-t space-y-1">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total de Opcionais ({selectedOptions.length} itens)</span>
                     <span className="font-medium">{formatCurrency(optionsPrice)}</span>
@@ -624,7 +624,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                     </div>
                   )}
                   
-                  <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                  <div className="flex justify-between font-semibold">
                     <span>Opcionais Final</span>
                     <span>{formatCurrency(optionsPrice - (optionsPrice * (optionsDiscountPercent / 100)))}</span>
                   </div>
@@ -633,7 +633,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
 
               {/* Bloco 3: Upgrades */}
               {selectedUpgrades.length > 0 && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                <div className="pt-3 border-t space-y-1">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total de Upgrades ({selectedUpgrades.length} itens)</span>
                     <span className="font-medium text-amber-600">{formatCurrency(upgradesPrice)}</span>
@@ -646,7 +646,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                     </div>
                   )}
                   
-                  <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                  <div className="flex justify-between font-semibold">
                     <span>Upgrades Final</span>
                     <span className="text-amber-600">{formatCurrency(upgradesPrice - (upgradesPrice * (optionsDiscountPercent / 100)))}</span>
                   </div>
@@ -655,7 +655,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
 
               {/* Bloco 4: Customizações (se houver) */}
               {customizationsPrice > 0 && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                <div className="pt-3 border-t">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Customizações ({customizations.length} itens)</span>
                     <span className="font-medium">{formatCurrency(customizationsPrice)}</span>
@@ -664,7 +664,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               )}
 
               {/* Subtotal: Valor Contrato Assinado */}
-              <div className="p-4 border-2 border-border rounded-lg bg-muted/50">
+              <div className="pt-3 border-t">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-lg">Valor Contrato Assinado</span>
                   <span className="font-bold text-xl">{formatCurrency(contractBasePrice)}</span>
@@ -673,7 +673,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
 
               {/* Bloco 5: ATOs Aprovadas (expansível com breakdown) */}
               {approvedATOs.length > 0 && (
-                <div className="space-y-3">
+                <div className="pt-4 border-t border-dashed space-y-3">
                   <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     Alterações Pós-Contrato (ATOs)
                   </p>
@@ -682,31 +682,31 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                     const netTotal = ato.netTotal ?? 0;
                     return (
                       <Accordion type="single" collapsible key={ato.atoId}>
-                        <AccordionItem value={ato.atoId} className="border rounded-lg bg-muted/20">
-                          <AccordionTrigger className="px-4 hover:no-underline">
+                        <AccordionItem value={ato.atoId} className="border-0 bg-muted/30 rounded-lg">
+                          <AccordionTrigger className="px-3 py-2 hover:no-underline">
                             <div className="flex justify-between w-full pr-4">
                               <div className="text-left">
-                                <p className="font-medium">{ato.atoNumber}</p>
-                                <p className="text-sm text-muted-foreground">{ato.title}</p>
+                                <p className="font-medium text-sm">{ato.atoNumber}</p>
+                                <p className="text-xs text-muted-foreground">{ato.title}</p>
                               </div>
-                              <span className={`font-semibold ${netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                              <span className={`font-semibold text-sm ${netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
                                 {netTotal >= 0 ? `+${formatCurrency(netTotal)}` : `-${formatCurrency(Math.abs(netTotal))}`}
                               </span>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent className="px-4 pb-4 space-y-2">
+                          <AccordionContent className="px-3 pb-3 space-y-2">
                             {ato.items?.map((item, idx) => (
-                              <div key={idx} className="p-3 border rounded bg-background">
+                              <div key={idx} className="p-2 bg-background rounded border border-border/50">
                                 <div className="flex justify-between gap-4">
                                   <div className="min-w-0 flex-1">
-                                    <p className="font-medium truncate">{item.itemName}</p>
+                                    <p className="font-medium text-sm truncate">{item.itemName}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {item.itemType === 'upgrade' ? 'Upgrade' : 
                                        item.itemType === 'option' ? 'Opcional' : 'Customização'}
                                       {item.itemCode && ` • ${item.itemCode}`}
                                     </p>
                                   </div>
-                                  <div className="text-right text-sm space-y-0.5 flex-shrink-0">
+                                  <div className="text-right text-xs space-y-0.5 flex-shrink-0">
                                     <p>Bruto: {formatCurrency(item.originalPrice)}</p>
                                     {item.discountAmount > 0 && (
                                       <p className="text-green-600">Desconto: -{formatCurrency(item.discountAmount)}</p>
@@ -728,7 +728,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   })}
                   
                   {/* Total das ATOs */}
-                  <div className={`p-3 border rounded-lg flex justify-between font-semibold ${atosPrice >= 0 ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600' : 'bg-green-50 dark:bg-green-900/10 text-green-600'}`}>
+                  <div className={`flex justify-between font-semibold ${atosPrice >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
                     <span>Total Alterações ({atosCount} ATOs)</span>
                     <span>{atosPrice >= 0 ? `+${formatCurrency(atosPrice)}` : `-${formatCurrency(Math.abs(atosPrice))}`}</span>
                   </div>
@@ -736,7 +736,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               )}
 
               {/* Valor Total Atual (destaque final) */}
-              <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
+              <div className="pt-3 border-t">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-lg">Valor Total Atual</span>
                   <span className="font-bold text-2xl text-primary">
