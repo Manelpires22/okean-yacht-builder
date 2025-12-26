@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { useNavigate } from "react-router-dom";
-import { useQuotationVersionChain } from "@/hooks/useQuotationVersionChain";
+import { useQuotationVersionChain, calculateCorrectFinalPrice } from "@/hooks/useQuotationVersionChain";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QuotationStatusBadge } from "./QuotationStatusBadge";
 
@@ -77,7 +77,7 @@ export function QuotationVersionHistory({ quotationId }: QuotationVersionHistory
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Valor Total</p>
-              <p className="font-medium text-lg">{formatCurrency(currentQuotation.final_price)}</p>
+              <p className="font-medium text-lg">{formatCurrency(calculateCorrectFinalPrice(currentQuotation))}</p>
             </div>
             <div>
               <p className="text-muted-foreground mb-1">Criada em</p>
@@ -120,7 +120,7 @@ export function QuotationVersionHistory({ quotationId }: QuotationVersionHistory
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
                         <div>
-                          <span className="font-medium">💰</span> {formatCurrency(version.final_price)}
+                          <span className="font-medium">💰</span> {formatCurrency(calculateCorrectFinalPrice(version))}
                         </div>
                         <div>
                           <span className="font-medium">📅</span> {format(new Date(version.created_at), 'dd/MM/yyyy', { locale: ptBR })}

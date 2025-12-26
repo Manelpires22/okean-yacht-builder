@@ -19,6 +19,7 @@ import {
 import { QuotationStatusBadge } from "./QuotationStatusBadge";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { calculateCorrectFinalPrice } from "@/hooks/useQuotationVersionChain";
 
 interface QuotationVersionRowProps {
   latestVersion: any;
@@ -123,7 +124,7 @@ export function QuotationVersionRow({
           {latestVersion.yacht_models?.name || "N/A"}
         </TableCell>
         
-        <TableCell>{formatCurrency(latestVersion.final_price)}</TableCell>
+        <TableCell>{formatCurrency(calculateCorrectFinalPrice(latestVersion))}</TableCell>
         
         <TableCell>
           <QuotationStatusBadge status={latestVersion.status} />
@@ -229,7 +230,7 @@ export function QuotationVersionRow({
             {version.yacht_models?.name || "N/A"}
           </TableCell>
           
-          <TableCell className="text-sm">{formatCurrency(version.final_price)}</TableCell>
+          <TableCell className="text-sm">{formatCurrency(calculateCorrectFinalPrice(version))}</TableCell>
           
           <TableCell>
             <QuotationStatusBadge status={version.status} />
