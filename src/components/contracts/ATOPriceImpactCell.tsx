@@ -31,9 +31,9 @@ export function ATOPriceImpactCell({ atoId, contractId, storedPriceImpact }: ATO
       <span
         className={
           displayPrice > 0
-            ? "text-destructive font-semibold"
+            ? "text-orange-600 font-semibold"
             : displayPrice < 0
-            ? "text-green-600 font-semibold"
+            ? "text-blue-600 font-semibold"
             : ""
         }
       >
