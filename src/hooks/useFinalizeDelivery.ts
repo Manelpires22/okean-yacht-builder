@@ -37,6 +37,7 @@ export function useFinalizeDelivery() {
       const { data, error } = await supabase
         .from("contracts")
         .update({
+          status: "completed",
           delivery_status: "delivered",
           delivered_at: new Date().toISOString(),
           delivered_by: user?.id,
