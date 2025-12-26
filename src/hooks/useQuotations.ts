@@ -117,6 +117,9 @@ export function useQuotations() {
           contracts!contracts_quotation_id_fkey (
             id,
             contract_number
+          ),
+          quotation_upgrades (
+            price
           )
         `)
         .order("created_at", { ascending: false });
