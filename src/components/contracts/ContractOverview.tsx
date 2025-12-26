@@ -2,17 +2,30 @@ import { Contract } from "@/hooks/useContracts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, Ship, User, Calendar, Hash, Anchor } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { FileText, Ship, User, Calendar, Hash } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LinkedCustomizationsCard } from "./LinkedCustomizationsCard";
+import { useContractATOsAggregatedImpact } from "@/hooks/useContractATOsAggregatedImpact";
+import { cn } from "@/lib/utils";
 
 interface ContractOverviewProps {
   contract: Contract;
 }
 
 export function ContractOverview({ contract }: ContractOverviewProps) {
+  // ✅ Usar hook de impacto agregado para valores corretos (deltas + MAX de dias)
+  const { data: aggregatedImpact, isLoading: impactLoading } = 
+    useContractATOsAggregatedImpact(contract.id);
+  
+  // Valores reais calculados com deltas e MAX
+  const realATOsPrice = aggregatedImpact?.totalApprovedATOsPrice ?? 0;
+  const realATOsDeliveryDays = aggregatedImpact?.maxApprovedATOsDeliveryDays ?? 0;
+  const realTotalPrice = contract.base_price + realATOsPrice;
+  const hasATOImpact = realATOsPrice !== 0 || realATOsDeliveryDays !== 0;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -96,13 +109,18 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               {/* Valor Total ATOs */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Valor Total em ATOs Aprovadas</p>
-                {contract.current_total_price !== contract.base_price ? (
+                {impactLoading ? (
+                  <Skeleton className="h-8 w-40" />
+                ) : hasATOImpact ? (
                   <>
-                    <p className="text-2xl font-semibold text-green-600">
-                      + {formatCurrency(contract.current_total_price - contract.base_price)}
+                    <p className={cn(
+                      "text-2xl font-semibold",
+                      realATOsPrice < 0 ? "text-green-600" : "text-orange-600"
+                    )}>
+                      {realATOsPrice >= 0 ? "+ " : ""}{formatCurrency(realATOsPrice)}
                     </p>
                     <Badge variant="secondary" className="mt-2">
-                      ATO(s) aprovada(s)
+                      {aggregatedImpact?.approvedATOsCount || 0} ATO(s) aprovada(s)
                     </Badge>
                   </>
                 ) : (
@@ -117,13 +135,22 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               {/* Valor Total Atual */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Valor Total Atual</p>
-                <p className="text-4xl font-bold text-primary">
-                  {formatCurrency(contract.current_total_price)}
-                </p>
-                {contract.current_total_price !== contract.base_price && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Variação: +{formatCurrency(contract.current_total_price - contract.base_price)}
-                  </p>
+                {impactLoading ? (
+                  <Skeleton className="h-10 w-48" />
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold text-primary">
+                      {formatCurrency(realTotalPrice)}
+                    </p>
+                    {hasATOImpact && (
+                      <p className={cn(
+                        "text-sm mt-1",
+                        realATOsPrice < 0 ? "text-green-600" : "text-muted-foreground"
+                      )}>
+                        Variação: {realATOsPrice >= 0 ? "+" : ""}{formatCurrency(realATOsPrice)}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -143,9 +170,11 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               {/* Impacto ATOs no Prazo */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Impacto ATOs no Prazo</p>
-                {contract.current_total_delivery_days !== contract.base_delivery_days ? (
+                {impactLoading ? (
+                  <Skeleton className="h-8 w-24" />
+                ) : realATOsDeliveryDays > 0 ? (
                   <p className="text-2xl font-semibold text-orange-600">
-                    + {contract.current_total_delivery_days - contract.base_delivery_days} dias
+                    + {realATOsDeliveryDays} dias
                   </p>
                 ) : (
                   <p className="text-2xl font-semibold text-muted-foreground">
@@ -159,22 +188,28 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               {/* Data Ajustada (data base + impacto) */}
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Data Ajustada</p>
-                <p className="text-4xl font-bold text-primary">
-                  {contract.hull_number?.estimated_delivery_date
-                    ? format(
-                        addDays(
-                          new Date(contract.hull_number.estimated_delivery_date),
-                          contract.current_total_delivery_days - contract.base_delivery_days
-                        ),
-                        "dd/MM/yyyy",
-                        { locale: ptBR }
-                      )
-                    : `${contract.current_total_delivery_days} dias`}
-                </p>
-                {contract.current_total_delivery_days !== contract.base_delivery_days && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Variação: +{contract.current_total_delivery_days - contract.base_delivery_days} dias
-                  </p>
+                {impactLoading ? (
+                  <Skeleton className="h-10 w-36" />
+                ) : (
+                  <>
+                    <p className="text-4xl font-bold text-primary">
+                      {contract.hull_number?.estimated_delivery_date
+                        ? format(
+                            addDays(
+                              new Date(contract.hull_number.estimated_delivery_date),
+                              realATOsDeliveryDays
+                            ),
+                            "dd/MM/yyyy",
+                            { locale: ptBR }
+                          )
+                        : `${contract.base_delivery_days + realATOsDeliveryDays} dias`}
+                    </p>
+                    {realATOsDeliveryDays > 0 && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Variação: +{realATOsDeliveryDays} dias
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
