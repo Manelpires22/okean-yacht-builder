@@ -201,18 +201,21 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               </div>
               
               {/* Lista cada ATO individualmente com seu resultado líquido */}
-              {atosImpact?.atoBreakdown?.map((ato) => (
-                <div key={ato.atoId} className="flex justify-between">
-                  <span className="text-muted-foreground truncate max-w-[200px]" title={ato.title}>
-                    {ato.atoNumber}
-                  </span>
-                  <span className={`font-medium ${ato.netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                    {ato.netTotal >= 0 
-                      ? `+${formatCurrency(ato.netTotal)}` 
-                      : `-${formatCurrency(Math.abs(ato.netTotal))}`}
-                  </span>
-                </div>
-              ))}
+              {atosImpact?.atoBreakdown?.map((ato) => {
+                const netTotal = ato.netTotal ?? 0;
+                return (
+                  <div key={ato.atoId} className="flex justify-between">
+                    <span className="text-muted-foreground truncate max-w-[200px]" title={ato.title}>
+                      {ato.atoNumber}
+                    </span>
+                    <span className={`font-medium ${netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      {netTotal >= 0 
+                        ? `+${formatCurrency(netTotal)}` 
+                        : `-${formatCurrency(Math.abs(netTotal))}`}
+                    </span>
+                  </div>
+                );
+              })}
               
               {/* Separador */}
               <Separator className="my-2" />
