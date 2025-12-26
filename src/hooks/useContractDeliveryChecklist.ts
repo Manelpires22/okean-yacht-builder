@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface DeliveryChecklistItem {
   id: string;
   contract_id: string;
-  item_type: "option" | "upgrade" | "customization" | "ato_item" | "ato_config_item" | "memorial_item";
+  item_type: "option" | "upgrade" | "customization" | "ato_config_item" | "memorial_item";
   item_id: string;
   item_name: string;
   item_code: string | null;
@@ -169,25 +169,15 @@ async function populateChecklist(contractId: string) {
     }
   }
 
-  // 4. Buscar ATOs aprovadas
+  // 4. Buscar ATOs aprovadas e suas configurações (NÃO criamos ato_item separado)
   const { data: atos, error: atosError } = await supabase
     .from("additional_to_orders")
     .select("id, title, ato_number")
     .eq("contract_id", contractId)
     .eq("status", "approved");
 
-  if (!atosError && atos) {
-    atos.forEach((ato: any) => {
-      items.push({
-        contract_id: contractId,
-        item_type: "ato_item",
-        item_id: ato.id,
-        item_name: ato.title,
-        item_code: ato.ato_number,
-      });
-    });
-
-    // 5. Buscar TODAS as configurações das ATOs (exceto rejeitadas)
+  if (!atosError && atos && atos.length > 0) {
+    // Buscar TODAS as configurações das ATOs (exceto rejeitadas)
     if (atos.length > 0) {
       const atoIds = atos.map((ato: any) => ato.id);
       
