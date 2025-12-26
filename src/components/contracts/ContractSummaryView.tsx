@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
-import { Calendar, Loader2, Info, FileText, ArrowUpCircle, Settings, DollarSign, FilePlus, User, Users, Download } from "lucide-react";
+import { Calendar, Loader2, Info, FileText, ArrowUpCircle, Settings, DollarSign, FilePlus, User, Users, Download, Ship } from "lucide-react";
+import { YachtSpecifications } from "@/components/quotations/YachtSpecifications";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useContract, useLiveContract } from "@/hooks/useContracts";
@@ -323,7 +324,24 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
           </AccordionContent>
         </AccordionItem>
 
-        {/* 2. Memorial Descritivo */}
+        {/* 2. Especificações Técnicas */}
+        {yachtModel && (
+          <AccordionItem value="specs" className="border rounded-lg px-4 bg-card">
+            <AccordionTrigger className="hover:no-underline py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Ship className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-semibold">Especificações Técnicas</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="pt-2 pb-4">
+              <YachtSpecifications model={yachtModel} />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {/* 3. Memorial Descritivo */}
         <AccordionItem value="memorial" className="border rounded-lg px-4 bg-card">
           <AccordionTrigger className="hover:no-underline py-4">
             <div className="flex items-center gap-3 flex-1">
