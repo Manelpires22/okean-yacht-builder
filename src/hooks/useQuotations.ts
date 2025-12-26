@@ -238,6 +238,12 @@ export function useQuotation(id: string) {
             memorial_items:memorial_item_id (
               item_name
             )
+          ),
+          hull_number:hull_numbers (
+            id,
+            hull_number,
+            brand,
+            estimated_delivery_date
           )
         `)
         .eq("id", id)
