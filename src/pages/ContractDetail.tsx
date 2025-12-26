@@ -11,7 +11,8 @@ import { LiveContractView } from "@/components/contracts/LiveContractView";
 import { ContractTimeline } from "@/components/contracts/ContractTimeline";
 import { ATODetailDialog } from "@/components/contracts/ATODetailDialog";
 import { CustomizationToATOCard } from "@/components/contracts/CustomizationToATOCard";
-import { FileText, Plus, TrendingUp, Clock, ArrowLeft, Package } from "lucide-react";
+import { FileText, Plus, TrendingUp, Clock, ArrowLeft, Package, ClipboardList } from "lucide-react";
+import { ContractSummaryView } from "@/components/contracts/ContractSummaryView";
 import { DeliveryProgress } from "@/components/contracts/delivery/DeliveryProgress";
 import { DeliveryChecklist } from "@/components/contracts/delivery/DeliveryChecklist";
 import { FinalizeDeliveryDialog } from "@/components/contracts/delivery/FinalizeDeliveryDialog";
@@ -95,7 +96,7 @@ export default function ContractDetail() {
           onDelete={() => setShowDeleteDialog(true)}
         />
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="gap-2">
               <FileText className="h-4 w-4" />
               Visão Geral
@@ -111,6 +112,10 @@ export default function ContractDetail() {
             <TabsTrigger value="delivery" className="gap-2">
               <Package className="h-4 w-4" />
               Entrega
+            </TabsTrigger>
+            <TabsTrigger value="summary" className="gap-2">
+              <ClipboardList className="h-4 w-4" />
+              Resumo Contrato
             </TabsTrigger>
             <TabsTrigger value="timeline" className="gap-2">
               <Clock className="h-4 w-4" />
@@ -143,6 +148,10 @@ export default function ContractDetail() {
                 isAllVerified={progress.percentage === 100}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="summary">
+            <ContractSummaryView contractId={contract.id} />
           </TabsContent>
 
           <TabsContent value="timeline">
