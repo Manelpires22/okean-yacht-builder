@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeliveryChecklistItemComponent } from "./DeliveryChecklistItem";
 import { DeliveryChecklistItem } from "@/hooks/useContractDeliveryChecklist";
-import { Package, Settings, Plus, FileText } from "lucide-react";
+import { Package, Settings, Plus, FileText, ArrowUpCircle, Wrench } from "lucide-react";
 
 interface DeliveryChecklistProps {
   items: DeliveryChecklistItem[];
@@ -14,6 +14,10 @@ const ITEM_TYPE_CONFIG = {
     label: "Opcionais Contratados",
     icon: Package,
   },
+  upgrade: {
+    label: "Upgrades do Memorial",
+    icon: ArrowUpCircle,
+  },
   customization: {
     label: "Customizações",
     icon: Settings,
@@ -21,6 +25,10 @@ const ITEM_TYPE_CONFIG = {
   ato_item: {
     label: "ATOs Aprovadas",
     icon: Plus,
+  },
+  ato_config_item: {
+    label: "Definições de ATOs",
+    icon: Wrench,
   },
   memorial_item: {
     label: "Itens de Memorial",

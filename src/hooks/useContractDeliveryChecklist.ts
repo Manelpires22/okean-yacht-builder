@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface DeliveryChecklistItem {
   id: string;
   contract_id: string;
-  item_type: "option" | "customization" | "ato_item" | "memorial_item";
+  item_type: "option" | "upgrade" | "customization" | "ato_item" | "ato_config_item" | "memorial_item";
   item_id: string;
   item_name: string;
   item_code: string | null;
@@ -98,28 +98,47 @@ async function populateChecklist(contractId: string) {
     });
   }
 
-  // 2. Buscar customizações incluídas no contrato
-  const { data: customizations, error: customError } = await supabase
-    .from("quotation_customizations")
-    .select("id, item_name, customization_code")
-    .eq("included_in_contract", true)
-    .in("quotation_id", [
-      (await supabase.from("contracts").select("quotation_id").eq("id", contractId).single()).data?.quotation_id
-    ]);
-
-  if (!customError && customizations) {
-    customizations.forEach((cust: any) => {
+  // 2. Adicionar upgrades do snapshot
+  if (baseSnapshot?.selected_upgrades) {
+    baseSnapshot.selected_upgrades.forEach((upg: any) => {
       items.push({
         contract_id: contractId,
-        item_type: "customization",
-        item_id: cust.id,
-        item_name: cust.item_name,
-        item_code: cust.customization_code,
+        item_type: "upgrade",
+        item_id: upg.upgrade_id || upg.upgrade?.id,
+        item_name: upg.upgrade?.name || "Upgrade",
+        item_code: upg.upgrade?.code,
       });
     });
   }
 
-  // 3. Buscar ATOs aprovadas
+  // 3. Buscar customizações incluídas no contrato
+  const { data: contractData } = await supabase
+    .from("contracts")
+    .select("quotation_id")
+    .eq("id", contractId)
+    .single();
+
+  if (contractData?.quotation_id) {
+    const { data: customizations, error: customError } = await supabase
+      .from("quotation_customizations")
+      .select("id, item_name, customization_code")
+      .eq("quotation_id", contractData.quotation_id)
+      .eq("included_in_contract", true);
+
+    if (!customError && customizations) {
+      customizations.forEach((cust: any) => {
+        items.push({
+          contract_id: contractId,
+          item_type: "customization",
+          item_id: cust.id,
+          item_name: cust.item_name,
+          item_code: cust.customization_code,
+        });
+      });
+    }
+  }
+
+  // 4. Buscar ATOs aprovadas
   const { data: atos, error: atosError } = await supabase
     .from("additional_to_orders")
     .select("id, title, ato_number")
@@ -136,6 +155,35 @@ async function populateChecklist(contractId: string) {
         item_code: ato.ato_number,
       });
     });
+
+    // 5. Buscar configurações das ATOs aprovadas
+    if (atos.length > 0) {
+      const atoIds = atos.map((ato: any) => ato.id);
+      
+      const { data: atoConfigs, error: configsError } = await supabase
+        .from("ato_configurations")
+        .select(`
+          id,
+          item_type,
+          configuration_details,
+          ato:additional_to_orders(ato_number)
+        `)
+        .in("ato_id", atoIds)
+        .eq("pm_status", "approved");
+
+      if (!configsError && atoConfigs) {
+        atoConfigs.forEach((config: any) => {
+          const details = config.configuration_details as any;
+          items.push({
+            contract_id: contractId,
+            item_type: "ato_config_item",
+            item_id: config.id,
+            item_name: details?.item_name || details?.name || `Item ${config.item_type}`,
+            item_code: config.ato?.ato_number,
+          });
+        });
+      }
+    }
   }
 
   // Inserir todos os itens no checklist
