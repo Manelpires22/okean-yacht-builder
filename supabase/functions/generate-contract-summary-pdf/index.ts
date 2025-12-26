@@ -373,7 +373,7 @@ function renderYachtSpecifications(
   return Math.max(leftY, rightY) + 5;
 }
 
-// ===== MEMORIAL DESCRITIVO (DUAS COLUNAS) =====
+// ===== MEMORIAL DESCRITIVO (DUAS COLUNAS SINCRONIZADAS) =====
 
 interface MemorialItem {
   id: string;
@@ -389,6 +389,96 @@ interface MemorialItem {
   };
 }
 
+interface CategoryData {
+  label: string;
+  order: number;
+  items: MemorialItem[];
+}
+
+// Estimar altura de uma categoria (título + itens)
+function estimateCategoryHeight(doc: jsPDF, cat: CategoryData, colWidth: number): number {
+  let height = 8; // Título + linha decorativa
+  
+  for (const item of cat.items) {
+    let itemText = `• ${item.item_name}`;
+    if (item.quantity && item.quantity > 1) {
+      const unitStr = item.unit ? ` ${item.unit}` : "";
+      itemText = `• (${item.quantity}${unitStr}) ${item.item_name}`;
+    }
+    const details: string[] = [];
+    if (item.brand) details.push(item.brand);
+    if (item.model) details.push(item.model);
+    if (details.length > 0) {
+      itemText += ` - ${details.join(" ")}`;
+    }
+    
+    const lines = doc.splitTextToSize(itemText, colWidth - 8);
+    height += lines.length * 3.5;
+  }
+  
+  return height + 6; // Espaço após categoria
+}
+
+// Desenhar uma categoria e seus itens
+function drawMemorialCategory(
+  doc: jsPDF,
+  cat: CategoryData,
+  yPos: number,
+  xPos: number,
+  colWidth: number
+): number {
+  // Título da categoria em dourado
+  doc.setFontSize(TYPOGRAPHY.body);
+  setupFont(doc, "bold");
+  setColor(doc, COLORS.gold);
+  
+  const titleLines = doc.splitTextToSize(cat.label.toUpperCase(), colWidth - 5);
+  for (let i = 0; i < titleLines.length; i++) {
+    doc.text(titleLines[i], xPos, yPos + (i * 4));
+  }
+  yPos += (titleLines.length * 4) + 2;
+  
+  // Linha decorativa sob o título
+  setColor(doc, COLORS.gold, "draw");
+  doc.setLineWidth(0.3);
+  doc.line(xPos, yPos, xPos + 30, yPos);
+  yPos += 4;
+  
+  // Itens da categoria
+  for (const item of cat.items) {
+    doc.setFontSize(TYPOGRAPHY.small);
+    setupFont(doc, "normal");
+    setColor(doc, COLORS.textDark);
+    
+    // Construir texto do item
+    let itemText = `• ${item.item_name}`;
+    
+    // Adicionar quantidade se > 1
+    if (item.quantity && item.quantity > 1) {
+      const unitStr = item.unit ? ` ${item.unit}` : "";
+      itemText = `• (${item.quantity}${unitStr}) ${item.item_name}`;
+    }
+    
+    // Adicionar marca/modelo se disponível
+    const details: string[] = [];
+    if (item.brand) details.push(item.brand);
+    if (item.model) details.push(item.model);
+    
+    if (details.length > 0) {
+      itemText += ` - ${details.join(" ")}`;
+    }
+    
+    // Quebrar texto longo
+    const lines = doc.splitTextToSize(itemText, colWidth - 8);
+    for (let i = 0; i < lines.length; i++) {
+      doc.text(lines[i], xPos + 2, yPos);
+      yPos += 3.5;
+    }
+  }
+  
+  return yPos + 4; // Espaço entre categorias
+}
+
 function renderMemorialDescritivo(
   doc: jsPDF,
   memorialItems: MemorialItem[],
@@ -402,7 +492,7 @@ function renderMemorialDescritivo(
   let yPos = drawPageHeader(doc, "MEMORIAL DESCRITIVO", "Equipamentos de Série", pageW, margin);
   
   // Agrupar por categoria
-  const grouped: Record<string, { label: string; order: number; items: MemorialItem[] }> = {};
+  const grouped: Record<string, CategoryData> = {};
   
   for (const item of memorialItems) {
     const catId = item.memorial_categories?.id;
@@ -430,124 +520,42 @@ function renderMemorialDescritivo(
   const leftColX = margin;
   const rightColX = margin + colWidth + colGap;
   
-  // Distribuir categorias entre colunas de forma equilibrada
-  // Estimar altura de cada categoria
-  const categoryHeights = sortedCategories.map(cat => {
-    const headerHeight = 8;
-    const itemHeight = 4;
-    return { 
-      category: cat, 
-      height: headerHeight + (cat.items.length * itemHeight) + 6 
-    };
-  });
-  
-  // Dividir em duas colunas tentando equilibrar alturas
-  const leftCategories: typeof categoryHeights = [];
-  const rightCategories: typeof categoryHeights = [];
-  let leftHeight = 0;
-  let rightHeight = 0;
-  
-  for (const cat of categoryHeights) {
-    if (leftHeight <= rightHeight) {
-      leftCategories.push(cat);
-      leftHeight += cat.height;
-    } else {
-      rightCategories.push(cat);
-      rightHeight += cat.height;
-    }
+  // Criar pares de categorias (esquerda + direita) para renderizar lado a lado
+  const pairs: Array<{ left: CategoryData | null; right: CategoryData | null }> = [];
+  for (let i = 0; i < sortedCategories.length; i += 2) {
+    pairs.push({
+      left: sortedCategories[i] || null,
+      right: sortedCategories[i + 1] || null
+    });
   }
   
-  // Renderizar colunas
-  let leftY = yPos;
-  let rightY = yPos;
-  
-  // Função para desenhar categoria e seus itens
-  const drawCategory = (
-    catData: { category: { label: string; items: MemorialItem[] }; height: number },
-    y: number,
-    xPos: number,
-    width: number,
-    isLeft: boolean
-  ): number => {
-    const cat = catData.category;
+  // Renderizar pares de categorias lado a lado
+  for (const pair of pairs) {
+    // Estimar altura do par
+    const leftHeight = pair.left ? estimateCategoryHeight(doc, pair.left, colWidth) : 0;
+    const rightHeight = pair.right ? estimateCategoryHeight(doc, pair.right, colWidth) : 0;
+    const pairHeight = Math.max(leftHeight, rightHeight);
     
-    // Verificar quebra de página
-    if (y > pageH - 40) {
+    // Verificar se o par cabe na página atual
+    if (yPos + pairHeight > pageH - 25) {
       doc.addPage();
-      y = margin + 10;
-      // Reset ambas colunas se uma quebrar
-      if (isLeft) {
-        leftY = y;
-        rightY = y;
-      }
+      yPos = margin + 10;
     }
     
-    // Título da categoria em dourado
-    doc.setFontSize(TYPOGRAPHY.body);
-    setupFont(doc, "bold");
-    setColor(doc, COLORS.gold);
+    // Renderizar lado a lado na mesma posição Y inicial
+    let leftY = yPos;
+    let rightY = yPos;
     
-    const titleLines = doc.splitTextToSize(cat.label.toUpperCase(), width - 5);
-    for (let i = 0; i < titleLines.length; i++) {
-      doc.text(titleLines[i], xPos, y + (i * 4));
-    }
-    y += (titleLines.length * 4) + 2;
-    
-    // Linha decorativa sob o título
-    setColor(doc, COLORS.gold, "draw");
-    doc.setLineWidth(0.3);
-    doc.line(xPos, y, xPos + 30, y);
-    y += 4;
-    
-    // Itens da categoria
-    for (const item of cat.items) {
-      // Verificar quebra de página
-      if (y > pageH - 25) {
-        doc.addPage();
-        y = margin + 10;
-      }
-      
-      doc.setFontSize(TYPOGRAPHY.small);
-      setupFont(doc, "normal");
-      setColor(doc, COLORS.textDark);
-      
-      // Construir texto do item
-      let itemText = `• ${item.item_name}`;
-      
-      // Adicionar quantidade se > 1
-      if (item.quantity && item.quantity > 1) {
-        const unitStr = item.unit ? ` ${item.unit}` : "";
-        itemText = `• (${item.quantity}${unitStr}) ${item.item_name}`;
-      }
-      
-      // Adicionar marca/modelo se disponível
-      const details: string[] = [];
-      if (item.brand) details.push(item.brand);
-      if (item.model) details.push(item.model);
-      
-      if (details.length > 0) {
-        itemText += ` - ${details.join(" ")}`;
-      }
-      
-      // Quebrar texto longo
-      const lines = doc.splitTextToSize(itemText, width - 8);
-      for (let i = 0; i < lines.length; i++) {
-        doc.text(lines[i], xPos + 2, y);
-        y += 3.5;
-      }
+    if (pair.left) {
+      leftY = drawMemorialCategory(doc, pair.left, yPos, leftColX, colWidth);
     }
     
-    return y + 4; // Espaço entre categorias
-  };
-  
-  // Renderizar coluna esquerda
-  for (const cat of leftCategories) {
-    leftY = drawCategory(cat, leftY, leftColX, colWidth, true);
-  }
-  
-  // Renderizar coluna direita
-  for (const cat of rightCategories) {
-    rightY = drawCategory(cat, rightY, rightColX, colWidth, false);
+    if (pair.right) {
+      rightY = drawMemorialCategory(doc, pair.right, yPos, rightColX, colWidth);
+    }
+    
+    // Sincronizar Y para o próximo par (usar o maior)
+    yPos = Math.max(leftY, rightY) + 2;
   }
 }
 
@@ -650,14 +658,29 @@ async function renderOriginalContract(
     }
   }
   
-  // Resumo Financeiro
-  yPos = checkPageBreak(doc, yPos, pageH, margin, 80);
-  yPos = drawDivider(doc, yPos + 5, margin, pageW);
-  yPos = drawSectionTitle(doc, "Resumo Financeiro", yPos, margin, pageW);
-  
+  // Resumo Financeiro - CALCULAR ALTURA PARA NUNCA DIVIDIR
   const upgradesTotal = upgrades.reduce((sum: number, u: any) => sum + (u.price || 0), 0);
   const optionsTotal = options.reduce((sum: number, o: any) => sum + (o.total_price || o.unit_price || 0), 0);
   const customizationsTotal = customizations.reduce((sum: number, c: any) => sum + (c.pm_final_price || c.additional_cost || 0), 0);
+  
+  // Calcular altura exata do bloco de resumo financeiro
+  let resumoLineCount = 2; // Título + Modelo Base (sempre presentes)
+  if (upgradesTotal > 0) resumoLineCount++;
+  if (optionsTotal > 0) resumoLineCount++;
+  if (customizationsTotal > 0) resumoLineCount++;
+  if (baseDiscountAmount > 0) resumoLineCount++;
+  resumoLineCount += 2; // Espaço + Total
+  
+  const resumoHeight = 15 + (resumoLineCount * 10) + 20; // divider + título + linhas + total com destaque
+  
+  // FORÇAR nova página se o bloco inteiro não couber
+  if (yPos + resumoHeight > pageH - 25) {
+    doc.addPage();
+    yPos = margin + 10;
+  }
+  
+  yPos = drawDivider(doc, yPos + 5, margin, pageW);
+  yPos = drawSectionTitle(doc, "Resumo Financeiro", yPos, margin, pageW);
   
   yPos = drawPriceRow(doc, "Modelo Base", modelBasePrice, yPos, margin, pageW);
   if (upgradesTotal > 0) {
@@ -917,14 +940,29 @@ async function renderTotalContract(
     }
   }
   
-  // Resumo Financeiro
-  yPos = checkPageBreak(doc, yPos, pageH, margin, 80);
-  yPos = drawDivider(doc, yPos + 5, margin, pageW);
-  yPos = drawSectionTitle(doc, "Resumo Financeiro", yPos, margin, pageW);
-  
+  // Resumo Financeiro - CALCULAR ALTURA PARA NUNCA DIVIDIR
   const upgradesTotal = upgrades.reduce((sum: number, u: any) => sum + (u.price || 0), 0);
   const optionsTotal = options.reduce((sum: number, o: any) => sum + (o.total_price || o.unit_price || 0), 0);
   const customizationsTotal = customizations.reduce((sum: number, c: any) => sum + (c.pm_final_price || c.additional_cost || 0), 0);
+  
+  // Calcular altura exata do bloco de resumo financeiro
+  let resumoLineCount = 2; // Título + Modelo Base (sempre presentes)
+  if (upgradesTotal > 0) resumoLineCount++;
+  if (optionsTotal > 0) resumoLineCount++;
+  if (customizationsTotal > 0) resumoLineCount++;
+  if (baseDiscountAmount > 0) resumoLineCount++;
+  resumoLineCount += 2; // Espaço + Total
+  
+  const resumoHeight = 15 + (resumoLineCount * 10) + 20; // divider + título + linhas + total com destaque
+  
+  // FORÇAR nova página se o bloco inteiro não couber
+  if (yPos + resumoHeight > pageH - 25) {
+    doc.addPage();
+    yPos = margin + 10;
+  }
+  
+  yPos = drawDivider(doc, yPos + 5, margin, pageW);
+  yPos = drawSectionTitle(doc, "Resumo Financeiro", yPos, margin, pageW);
   
   yPos = drawPriceRow(doc, "Modelo Base", modelBasePrice, yPos, margin, pageW);
   if (upgradesTotal > 0) {
