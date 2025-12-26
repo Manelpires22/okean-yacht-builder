@@ -41,22 +41,51 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   const yachtModel = contract.yacht_model;
   const baseSnapshot = contract.base_snapshot as any;
   
-  // Extrair valores do snapshot base
-  const basePrice = contract.base_price || 0;
-  const upgradesPrice = baseSnapshot?.total_upgrades_price || 0;
-  const optionsPrice = baseSnapshot?.total_options_price || 0;
-  const customizationsPrice = baseSnapshot?.total_customizations_price || 0;
-  const discountAmount = baseSnapshot?.discount_amount || 0;
+  // Extrair arrays do snapshot
+  const selectedOptions = baseSnapshot?.selected_options || [];
+  const selectedUpgrades = baseSnapshot?.selected_upgrades || [];
+  const customizations = baseSnapshot?.customizations || [];
+  
+  // Preço base do modelo
+  const basePrice = baseSnapshot?.base_price || contract.base_price || 0;
+  
+  // Calcular soma dos opcionais (ANTES do desconto)
+  const optionsPrice = selectedOptions.reduce(
+    (sum: number, opt: any) => sum + (opt.total_price || opt.unit_price || 0), 0
+  );
+  
+  // Calcular soma dos upgrades (ANTES do desconto)
+  const upgradesPrice = selectedUpgrades.reduce(
+    (sum: number, upg: any) => sum + (upg.price || 0), 0
+  );
+  
+  // Calcular soma das customizações
+  const customizationsPrice = customizations.reduce(
+    (sum: number, cust: any) => sum + (cust.pm_final_price || cust.additional_cost || 0), 0
+  );
+  
+  // Percentuais de desconto
+  const baseDiscountPercent = baseSnapshot?.discount_percentage || baseSnapshot?.base_discount_percentage || 0;
+  const optionsDiscountPercent = baseSnapshot?.options_discount_percentage || 0;
+  
+  // Calcular desconto no barco base
+  const baseDiscountAmount = basePrice * (baseDiscountPercent / 100);
+  
+  // Calcular desconto nos opcionais/upgrades
+  const optionsDiscountAmount = (optionsPrice + upgradesPrice) * (optionsDiscountPercent / 100);
+  
+  // Total de descontos
+  const totalDiscount = baseDiscountAmount + optionsDiscountAmount;
+  
+  // Valor Inicial (ANTES dos descontos)
+  const valorInicial = basePrice + upgradesPrice + optionsPrice + customizationsPrice;
   
   // ATOs aprovadas
   const atosPrice = atosImpact?.totalApprovedATOsPrice || 0;
   const atosCount = atosImpact?.approvedATOsCount || 0;
   
-  // Cálculos finais
-  const valorInicial = basePrice + upgradesPrice + optionsPrice + customizationsPrice;
-  const valorComATOs = valorInicial + atosPrice;
-  const finalPrice = liveContract?.current_total_price || contract.current_total_price || valorComATOs - discountAmount;
-  const savings = discountAmount;
+  // Valor Final
+  const finalPrice = liveContract?.current_total_price || contract.current_total_price || (valorInicial - totalDiscount + atosPrice);
   
   // Delivery
   const baseDeliveryDays = contract.base_delivery_days;
@@ -194,10 +223,10 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               )}
               
               {/* Descontos */}
-              {savings > 0 && (
+              {totalDiscount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Descontos aplicados</span>
-                  <span className="font-medium">-{formatCurrency(savings)}</span>
+                  <span className="font-medium">-{formatCurrency(totalDiscount)}</span>
                 </div>
               )}
               
