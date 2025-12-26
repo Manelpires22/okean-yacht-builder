@@ -48,6 +48,10 @@ interface ModelBaseTabProps {
 }
 
 export function ModelBaseTab({ model, hullNumberData }: ModelBaseTabProps) {
+  // DEBUG: Verificar se hullNumberData está chegando
+  console.log('🔍 ModelBaseTab - hullNumberData:', hullNumberData);
+  console.log('🔍 ModelBaseTab - model:', model?.name);
+
   const formatNumber = (value?: number | null, unit?: string) => {
     if (!value) return "N/A";
     return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}`;
