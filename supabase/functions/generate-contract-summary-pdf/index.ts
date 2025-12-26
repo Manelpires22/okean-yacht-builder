@@ -138,13 +138,24 @@ function drawPriceRow(doc: jsPDF, description: string, price: number, yPos: numb
     setColor(doc, COLORS.navy);
     doc.text(formatCurrency(price), priceX, yPos, { align: "right" });
   } else {
+    const lineHeight = 4.5;
+    const priceColWidth = 80; // Espaço reservado para preço à direita
+    const textX = options?.isSubItem ? margin + 8 : margin;
+    const maxTextWidth = pageW - margin - priceColWidth - (options?.isSubItem ? 8 : 0);
+    
     doc.setFontSize(10);
     setupFont(doc, options?.isSubItem ? "italic" : "normal");
     setColor(doc, options?.isSubItem ? COLORS.textMuted : COLORS.textDark);
     
-    const textX = options?.isSubItem ? margin + 5 : margin;
-    doc.text(description, textX, yPos);
+    // Quebrar texto em múltiplas linhas automaticamente
+    const lines: string[] = doc.splitTextToSize(description, maxTextWidth);
     
+    // Desenhar todas as linhas da descrição
+    lines.forEach((line: string, index: number) => {
+      doc.text(line, textX, yPos + (index * lineHeight));
+    });
+    
+    // Preço SEMPRE na primeira linha, alinhado à borda direita
     if (options?.isNegative) {
       setColor(doc, { r: 34, g: 140, b: 90 }); // Green for credits/discounts
       doc.text(`-${formatCurrency(Math.abs(price))}`, priceX, yPos, { align: "right" });
@@ -152,9 +163,13 @@ function drawPriceRow(doc: jsPDF, description: string, price: number, yPos: numb
       setColor(doc, COLORS.textDark);
       doc.text(formatCurrency(price), priceX, yPos, { align: "right" });
     }
+    
+    // Retornar nova posição Y considerando todas as linhas + espaçamento
+    const totalHeight = lines.length * lineHeight;
+    return yPos + Math.max(totalHeight, 7) + 3;
   }
   
-  return yPos + (options?.isTotal ? 10 : 7);
+  return yPos + 10;
 }
 
 function drawDivider(doc: jsPDF, yPos: number, margin: number, pageW: number): number {
