@@ -112,9 +112,9 @@ export function WorkflowDecisionPanel({ customization }: WorkflowDecisionPanelPr
                   </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Prazo Total:</span>
+                  <span className="text-muted-foreground">Impacto na Entrega:</span>
                   <p className="text-lg font-bold">
-                    {customization.quotations.base_delivery_days + estimatedDelivery} dias
+                    +{estimatedDelivery} dias
                   </p>
                 </div>
               </div>

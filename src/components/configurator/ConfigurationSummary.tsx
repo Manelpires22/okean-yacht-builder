@@ -6,9 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { formatCurrency, formatDays } from "@/lib/quotation-utils";
+import { formatCurrency } from "@/lib/quotation-utils";
 import { getDiscountLimitsSync } from "@/lib/approval-utils";
-import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil, CheckCircle, Clock } from "lucide-react";
+import { Save, Ship, Percent, AlertCircle, Edit, ChevronDown, X, Pencil, CheckCircle, Clock, CalendarCheck } from "lucide-react";
+import { format, parseISO, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Customization } from "@/hooks/useConfigurationState";
 import { MessageSquare, Package } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
@@ -26,6 +28,8 @@ interface ConfigurationSummaryProps {
   optionsDiscountPercentage: number;
   finalBasePrice: number;
   finalOptionsPrice: number;
+  estimatedDeliveryDate?: string;
+  hullNumber?: string;
   selectedOptions: Array<{
     option_id: string;
     quantity: number;
@@ -66,6 +70,8 @@ export function ConfigurationSummary({
   optionsDiscountPercentage,
   finalBasePrice,
   finalOptionsPrice,
+  estimatedDeliveryDate,
+  hullNumber,
   selectedOptions,
   selectedUpgrades = [],
   optionsData,
@@ -470,16 +476,26 @@ export function ConfigurationSummary({
         <Separator />
 
         <div className="space-y-1">
-          <div className="flex justify-between text-xs md:text-sm gap-2">
-            <span className="text-muted-foreground">Prazo Base</span>
-            <span>{formatDays(baseDeliveryDays)}</span>
-          </div>
           <div className="flex justify-between items-baseline gap-2">
-            <span className="text-sm md:text-base font-medium">Prazo Total</span>
+            <span className="text-sm md:text-base font-medium flex items-center gap-1.5">
+              <CalendarCheck className="h-4 w-4" />
+              Entrega Prevista
+            </span>
             <span className="text-base md:text-lg font-semibold">
-              {formatDays(totalDeliveryDays)}
+              {estimatedDeliveryDate 
+                ? format(parseISO(estimatedDeliveryDate), "dd/MM/yyyy", { locale: ptBR })
+                : "Não definida"}
             </span>
           </div>
+          {/* Mostrar impacto de customizações se houver */}
+          {totalDeliveryDays > baseDeliveryDays && estimatedDeliveryDate && (
+            <div className="text-xs text-warning">
+              +{totalDeliveryDays - baseDeliveryDays} dias por customizações → {" "}
+              <span className="font-medium">
+                {format(addDays(parseISO(estimatedDeliveryDate), totalDeliveryDays - baseDeliveryDays), "dd/MM/yyyy", { locale: ptBR })}
+              </span>
+            </div>
+          )}
         </div>
 
         <Separator />

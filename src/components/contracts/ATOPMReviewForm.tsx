@@ -375,7 +375,7 @@ export function ATOPMReviewForm({ atoWorkflow, currentStep }: ATOPMReviewFormPro
             onChange={(e) => setDeliveryImpact(parseInt(e.target.value) || 0)}
           />
           <p className="text-xs text-muted-foreground">
-            Dias adicionais ao prazo base
+            Dias adicionais à data de entrega prevista
           </p>
         </div>
 
