@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
 import { Calendar, Loader2, Info, FileText, ArrowUpCircle, Settings, DollarSign, FilePlus, User, Users } from "lucide-react";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useContract, useLiveContract } from "@/hooks/useContracts";
 import { useContractATOsAggregatedImpact } from "@/hooks/useContractATOsAggregatedImpact";
@@ -61,8 +61,12 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   const selectedUpgrades = baseSnapshot?.selected_upgrades || [];
   const customizations = baseSnapshot?.customizations || [];
   
-  // Preço base do modelo
-  const basePrice = baseSnapshot?.base_price || contract.base_price || 0;
+  // Preço base do CONTRATO (com descontos já aplicados na assinatura)
+  // Usar contract.base_price, não o preço do modelo do snapshot
+  const contractBasePrice = contract.base_price || 0;
+  
+  // Preço base do MODELO (para referência no breakdown)
+  const modelBasePrice = baseSnapshot?.base_price || yachtModel?.base_price || 0;
   
   // Calcular soma dos opcionais (ANTES do desconto)
   const optionsPrice = selectedOptions.reduce(
@@ -83,8 +87,8 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   const baseDiscountPercent = baseSnapshot?.discount_percentage || baseSnapshot?.base_discount_percentage || 0;
   const optionsDiscountPercent = baseSnapshot?.options_discount_percentage || 0;
   
-  // Calcular desconto no barco base
-  const baseDiscountAmount = basePrice * (baseDiscountPercent / 100);
+  // Calcular desconto no barco base (usando preço do modelo)
+  const baseDiscountAmount = modelBasePrice * (baseDiscountPercent / 100);
   
   // Calcular desconto nos opcionais/upgrades
   const optionsDiscountAmount = (optionsPrice + upgradesPrice) * (optionsDiscountPercent / 100);
@@ -92,8 +96,8 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   // Total de descontos
   const totalDiscount = baseDiscountAmount + optionsDiscountAmount;
   
-  // Valor Inicial (ANTES dos descontos)
-  const valorInicial = basePrice + upgradesPrice + optionsPrice + customizationsPrice;
+  // Valor Inicial (ANTES dos descontos) - usando preço do modelo
+  const valorInicial = modelBasePrice + upgradesPrice + optionsPrice + customizationsPrice;
   
   // ATOs aprovadas
   const atosPrice = atosImpact?.totalApprovedATOsPrice || 0;
@@ -106,7 +110,13 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
   const baseDeliveryDays = contract.base_delivery_days;
   const totalDeliveryDays = liveContract?.current_total_delivery_days || contract.current_total_delivery_days;
   const hullNumber = contract.hull_number?.hull_number;
-  const estimatedDeliveryDate = contract.hull_number?.estimated_delivery_date;
+  const baseEstimatedDeliveryDate = contract.hull_number?.estimated_delivery_date;
+  
+  // Calcular data de entrega AJUSTADA (considerando impacto das ATOs)
+  const atosDeliveryDays = atosImpact?.maxApprovedATOsDeliveryDays || 0;
+  const adjustedDeliveryDate = baseEstimatedDeliveryDate 
+    ? addDays(new Date(baseEstimatedDeliveryDate), atosDeliveryDays)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -159,11 +169,11 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
             <div>
               <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                {estimatedDeliveryDate ? "Entrega Prevista" : "Prazo de Entrega"}
+                {adjustedDeliveryDate ? "Entrega Prevista" : "Prazo de Entrega"}
               </p>
               <p className="text-2xl font-bold">
-                {estimatedDeliveryDate 
-                  ? format(new Date(estimatedDeliveryDate), "dd/MM/yyyy", { locale: ptBR })
+                {adjustedDeliveryDate 
+                  ? format(adjustedDeliveryDate, "dd/MM/yyyy", { locale: ptBR })
                   : formatDays(totalDeliveryDays)}
               </p>
               {hullNumber && (
@@ -171,9 +181,9 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   Matrícula: {hullNumber}
                 </p>
               )}
-              {!estimatedDeliveryDate && totalDeliveryDays > baseDeliveryDays && (
+              {atosDeliveryDays > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Base: {formatDays(baseDeliveryDays)} (+{totalDeliveryDays - baseDeliveryDays} dias adicionais)
+                  (+{atosDeliveryDays} dias de impacto ATOs)
                 </p>
               )}
             </div>
@@ -186,9 +196,10 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
               </p>
               
               <div className="space-y-1.5">
+                {/* Preço base do contrato (já com descontos aplicados na assinatura) */}
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Barco Base</span>
-                  <span className="font-medium">{formatCurrency(basePrice)}</span>
+                  <span className="text-muted-foreground">Preço Base Contrato</span>
+                  <span className="font-medium">{formatCurrency(contractBasePrice)}</span>
                 </div>
                 {upgradesPrice > 0 && (
                   <div className="flex justify-between">
@@ -571,7 +582,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                 <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Barco Base</span>
-                    <span className="font-medium">{formatCurrency(basePrice)}</span>
+                    <span className="font-medium">{formatCurrency(modelBasePrice)}</span>
                   </div>
                   {upgradesPrice > 0 && (
                     <div className="flex justify-between">
