@@ -1,11 +1,11 @@
-import { X, Edit, Plus, FileText, Palette, ArrowUpCircle, Percent } from "lucide-react";
+import { X, Edit, Plus, FileText, Palette, ArrowUpCircle, Percent, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatCurrency } from "@/lib/quotation-utils";
-
+import { cn } from "@/lib/utils";
 export interface PendingATOItem {
   id: string;
   type: "edit_existing" | "add_optional" | "new_customization" | "define_finishing" | "add_upgrade";
@@ -66,10 +66,21 @@ export function ATOItemsList({ items, onRemove, onUpdateDiscount, readOnly = fal
     return originalPrice * (1 - discount / 100);
   };
 
-  const totalEstimatedPrice = items.reduce((sum, item) => sum + getDiscountedPrice(item), 0);
+  // Calcular preço de exibição considerando delta para substituições
+  const getDisplayPrice = (item: PendingATOItem) => {
+    if (item.replaces_upgrade?.delta !== undefined) {
+      const delta = item.replaces_upgrade.delta;
+      const discount = item.discount_percentage || 0;
+      return delta * (1 - discount / 100);
+    }
+    return getDiscountedPrice(item);
+  };
+
+  const totalEstimatedPrice = items.reduce((sum, item) => sum + getDisplayPrice(item), 0);
   const totalOriginalPrice = items.reduce((sum, item) => sum + (item.original_price || item.estimated_price || 0), 0);
   const maxEstimatedDays = Math.max(...items.map(item => item.estimated_days || 0), 0);
   const hasDiscounts = items.some(item => (item.discount_percentage || 0) > 0);
+  const hasReplacements = items.some(item => item.replaces_upgrade?.delta !== undefined);
 
   return (
     <div className="space-y-4">
@@ -81,8 +92,12 @@ export function ATOItemsList({ items, onRemove, onUpdateDiscount, readOnly = fal
               {formatCurrency(totalOriginalPrice)}
             </Badge>
           )}
-          <Badge variant="outline" className="gap-1">
-            Impacto estimado: {formatCurrency(totalEstimatedPrice)}
+          <Badge variant="outline" className={cn(
+            "gap-1",
+            totalEstimatedPrice < 0 && "text-green-600 border-green-600",
+            totalEstimatedPrice > 0 && "text-primary"
+          )}>
+            Impacto estimado: {totalEstimatedPrice >= 0 ? '+' : '-'} {formatCurrency(Math.abs(totalEstimatedPrice))}
           </Badge>
           {maxEstimatedDays > 0 && (
             <Badge variant="outline">
@@ -98,6 +113,13 @@ export function ATOItemsList({ items, onRemove, onUpdateDiscount, readOnly = fal
           const originalPrice = item.original_price || item.estimated_price || 0;
           const discountedPrice = getDiscountedPrice(item);
           const hasDiscount = (item.discount_percentage || 0) > 0;
+          
+          // Verificar se é substituição de upgrade
+          const isDelta = item.replaces_upgrade?.delta !== undefined;
+          const deltaValue = isDelta ? item.replaces_upgrade!.delta : 0;
+          const displayPrice = isDelta ? deltaValue : discountedPrice;
+          const isPositiveDelta = isDelta && deltaValue > 0;
+          const isNegativeDelta = isDelta && deltaValue < 0;
 
           return (
             <Card key={item.id}>
@@ -119,20 +141,41 @@ export function ATOItemsList({ items, onRemove, onUpdateDiscount, readOnly = fal
                         <span className="text-muted-foreground">Qtd: {item.quantity}</span>
                       )}
                       
-                      {/* Preço com/sem desconto */}
+                      {/* Preço com/sem desconto - ou delta para substituições */}
                       {originalPrice > 0 && (
-                        <div className="flex items-center gap-2">
-                          {hasDiscount && (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Mostrar preço original riscado se tem desconto OU se é substituição */}
+                          {(hasDiscount || isDelta) && (
                             <span className="text-muted-foreground line-through text-xs">
                               {formatCurrency(originalPrice)}
                             </span>
                           )}
-                          <span className="text-primary font-medium">
-                            {formatCurrency(discountedPrice)}
+                          
+                          {/* Exibir valor: delta para substituições ou preço normal */}
+                          <span className={cn(
+                            "font-medium",
+                            isDelta 
+                              ? isPositiveDelta ? "text-destructive" : "text-green-600"
+                              : "text-primary"
+                          )}>
+                            {isDelta && (isPositiveDelta ? '+' : '-')} 
+                            {formatCurrency(Math.abs(isDelta ? displayPrice : discountedPrice))}
                           </span>
-                          {hasDiscount && (
+                          
+                          {hasDiscount && !isDelta && (
                             <Badge variant="destructive" className="text-xs">
                               -{item.discount_percentage}%
+                            </Badge>
+                          )}
+                          
+                          {/* Badge de substituição */}
+                          {isDelta && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <RefreshCw className="h-3 w-3" />
+                              Substitui: {item.replaces_upgrade!.upgrade_name.length > 25 
+                                ? item.replaces_upgrade!.upgrade_name.substring(0, 25) + '...'
+                                : item.replaces_upgrade!.upgrade_name
+                              }
                             </Badge>
                           )}
                         </div>
