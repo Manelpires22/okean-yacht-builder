@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SendContractEmailDialog } from "./SendContractEmailDialog";
+import { AutoSizedValue } from "@/components/ui/auto-sized-value";
 
 interface ContractHeroSectionProps {
   contract: Contract;
@@ -173,9 +174,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <Ship className="h-4 w-4" />
               <span className="text-sm">Modelo</span>
             </div>
-            <p className="font-semibold text-lg">
-              {contract.yacht_model?.name || "N/A"}
-            </p>
+            <AutoSizedValue value={contract.yacht_model?.name || "N/A"} />
           </div>
 
           <div className="bg-card rounded-lg p-4 border">
@@ -183,9 +182,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <User className="h-4 w-4" />
               <span className="text-sm">Cliente</span>
             </div>
-            <p className="font-semibold text-lg">
-              {contract.client?.name || "N/A"}
-            </p>
+            <AutoSizedValue value={contract.client?.name || "N/A"} />
           </div>
 
           <div className="bg-card rounded-lg p-4 border">
@@ -193,9 +190,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <DollarSign className="h-4 w-4" />
               <span className="text-sm">Valor Total</span>
             </div>
-            <p className="font-semibold text-lg">
-              {formatCurrency(contract.current_total_price)}
-            </p>
+            <AutoSizedValue value={formatCurrency(contract.current_total_price)} />
           </div>
 
           <div className="bg-card rounded-lg p-4 border">
@@ -203,9 +198,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <Hash className="h-4 w-4" />
               <span className="text-sm">Matrícula</span>
             </div>
-            <p className="font-semibold text-lg">
-              {contract.hull_number?.hull_number || "N/A"}
-            </p>
+            <AutoSizedValue value={contract.hull_number?.hull_number || "N/A"} />
           </div>
 
           <div className="bg-card rounded-lg p-4 border">
@@ -213,11 +206,11 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
               <Calendar className="h-4 w-4" />
               <span className="text-sm">Entrega Prevista</span>
             </div>
-            <p className="font-semibold text-lg">
-              {contract.hull_number?.estimated_delivery_date
+            <AutoSizedValue 
+              value={contract.hull_number?.estimated_delivery_date
                 ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy")
-                : `${contract.current_total_delivery_days} dias`}
-            </p>
+                : `${contract.current_total_delivery_days} dias`} 
+            />
           </div>
         </div>
 
