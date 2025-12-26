@@ -60,9 +60,9 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
       return { normalGroupedItems: {}, atoGroups: {} };
     }
 
-    // Itens normais (não são de ATO)
+    // Itens normais (não são de ATO nem ato_item que é apenas agrupador)
     const normalItems = items.filter(
-      i => i.item_type !== "ato_config_item"
+      i => i.item_type !== "ato_config_item" && (i.item_type as string) !== "ato_item"
     );
 
     // Agrupar itens normais por tipo
