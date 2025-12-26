@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, Ship, User, Calendar, Hash } from "lucide-react";
+import { FileText, Ship, User, Calendar, Hash, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,6 +68,19 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
             </div>
 
             <div>
+              <p className="text-sm text-muted-foreground mb-1">Vendedor</p>
+              <p className="font-semibold flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                {contract.quotation?.sales_representative?.full_name || "N/A"}
+              </p>
+              {contract.quotation?.sales_representative?.email && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {contract.quotation.sales_representative.email}
+                </p>
+              )}
+            </div>
+
+            <div>
               <p className="text-sm text-muted-foreground mb-1">Matrícula</p>
               <p className="font-semibold flex items-center gap-2">
                 <Hash className="h-4 w-4" />
@@ -80,9 +93,21 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
               <p className="font-semibold flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {contract.hull_number?.estimated_delivery_date
-                  ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
-                  : `${contract.current_total_delivery_days} dias`}
+                  ? format(
+                      addDays(
+                        new Date(contract.hull_number.estimated_delivery_date),
+                        realATOsDeliveryDays
+                      ),
+                      "dd/MM/yyyy",
+                      { locale: ptBR }
+                    )
+                  : `${contract.current_total_delivery_days + realATOsDeliveryDays} dias`}
               </p>
+              {realATOsDeliveryDays > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  (+{realATOsDeliveryDays} dias de ATOs)
+                </p>
+              )}
             </div>
           </div>
         </CardContent>
