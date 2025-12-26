@@ -268,11 +268,11 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   <span className="text-sm font-medium text-muted-foreground">Vendedor</span>
                 </div>
                 <p className="font-semibold">
-                  {baseSnapshot?.seller?.full_name || baseSnapshot?.seller_name || "—"}
+                  {contract.quotation?.sales_representative?.full_name || baseSnapshot?.seller?.full_name || baseSnapshot?.seller_name || "—"}
                 </p>
-                {(baseSnapshot?.seller?.email || baseSnapshot?.seller_email) && (
+                {(contract.quotation?.sales_representative?.email || baseSnapshot?.seller?.email || baseSnapshot?.seller_email) && (
                   <p className="text-sm text-muted-foreground">
-                    {baseSnapshot?.seller?.email || baseSnapshot?.seller_email}
+                    {contract.quotation?.sales_representative?.email || baseSnapshot?.seller?.email || baseSnapshot?.seller_email}
                   </p>
                 )}
               </div>
