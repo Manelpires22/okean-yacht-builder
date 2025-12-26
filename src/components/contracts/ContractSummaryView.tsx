@@ -588,95 +588,160 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
           </AccordionTrigger>
           <AccordionContent className="pt-2 pb-4">
             <div className="space-y-4">
-              {/* Composição do Valor */}
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                  Composição do Valor
-                </p>
+              
+              {/* Bloco 1: Base */}
+              <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Preço Base do Modelo</span>
+                  <span className="font-medium">{formatCurrency(modelBasePrice)}</span>
+                </div>
                 
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Barco Base</span>
-                    <span className="font-medium">{formatCurrency(modelBasePrice)}</span>
+                {baseDiscountPercent > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Desconto sobre Base ({baseDiscountPercent}%)</span>
+                    <span>-{formatCurrency(baseDiscountAmount)}</span>
                   </div>
-                  {upgradesPrice > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Upgrades ({selectedUpgrades.length} itens)</span>
-                      <span className="font-medium">{formatCurrency(upgradesPrice)}</span>
-                    </div>
-                  )}
-                  {optionsPrice > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Opcionais ({selectedOptions.length} itens)</span>
-                      <span className="font-medium">{formatCurrency(optionsPrice)}</span>
-                    </div>
-                  )}
-                  {customizationsPrice > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Customizações ({customizations.length} itens)</span>
-                      <span className="font-medium">{formatCurrency(customizationsPrice)}</span>
-                    </div>
-                  )}
-                  <Separator className="my-2" />
-                  <div className="flex justify-between font-semibold">
-                    <span>Valor Inicial</span>
-                    <span>{formatCurrency(valorInicial)}</span>
-                  </div>
+                )}
+                
+                <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                  <span>Preço Base Final</span>
+                  <span>{formatCurrency(modelBasePrice - baseDiscountAmount)}</span>
                 </div>
               </div>
 
-              {/* Descontos */}
-              {totalDiscount > 0 && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Descontos Aplicados
-                  </p>
+              {/* Bloco 2: Opcionais */}
+              {selectedOptions.length > 0 && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total de Opcionais ({selectedOptions.length} itens)</span>
+                    <span className="font-medium">{formatCurrency(optionsPrice)}</span>
+                  </div>
                   
-                  <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-900/10 space-y-2">
-                    {baseDiscountAmount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Desconto Barco Base ({baseDiscountPercent}%)</span>
-                        <span className="font-medium">-{formatCurrency(baseDiscountAmount)}</span>
-                      </div>
-                    )}
-                    {optionsDiscountAmount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Desconto Opcionais/Upgrades ({optionsDiscountPercent}%)</span>
-                        <span className="font-medium">-{formatCurrency(optionsDiscountAmount)}</span>
-                      </div>
-                    )}
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-semibold text-green-600">
-                      <span>Total Descontos</span>
-                      <span>-{formatCurrency(totalDiscount)}</span>
+                  {optionsDiscountPercent > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desconto sobre Opcionais ({optionsDiscountPercent}%)</span>
+                      <span>-{formatCurrency(optionsPrice * (optionsDiscountPercent / 100))}</span>
                     </div>
+                  )}
+                  
+                  <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                    <span>Opcionais Final</span>
+                    <span>{formatCurrency(optionsPrice - (optionsPrice * (optionsDiscountPercent / 100)))}</span>
                   </div>
                 </div>
               )}
 
-              {/* ATOs */}
-              {atosPrice !== 0 && (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    Impacto das ATOs
-                  </p>
+              {/* Bloco 3: Upgrades */}
+              {selectedUpgrades.length > 0 && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total de Upgrades ({selectedUpgrades.length} itens)</span>
+                    <span className="font-medium text-amber-600">{formatCurrency(upgradesPrice)}</span>
+                  </div>
                   
-                  <div className={`p-4 border rounded-lg space-y-2 ${atosPrice >= 0 ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-green-50 dark:bg-green-900/10'}`}>
-                    <div className={`flex justify-between font-semibold ${atosPrice >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                      <span>Total ATOs Aprovadas ({atosCount})</span>
-                      <span>
-                        {atosPrice >= 0 ? `+${formatCurrency(atosPrice)}` : `-${formatCurrency(Math.abs(atosPrice))}`}
-                      </span>
+                  {optionsDiscountPercent > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Desconto sobre Upgrades ({optionsDiscountPercent}%)</span>
+                      <span>-{formatCurrency(upgradesPrice * (optionsDiscountPercent / 100))}</span>
                     </div>
+                  )}
+                  
+                  <div className="flex justify-between font-semibold pt-1 border-t border-border/50">
+                    <span>Upgrades Final</span>
+                    <span className="text-amber-600">{formatCurrency(upgradesPrice - (upgradesPrice * (optionsDiscountPercent / 100)))}</span>
                   </div>
                 </div>
               )}
 
-              {/* Valor Final */}
+              {/* Bloco 4: Customizações (se houver) */}
+              {customizationsPrice > 0 && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Customizações ({customizations.length} itens)</span>
+                    <span className="font-medium">{formatCurrency(customizationsPrice)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Subtotal: Valor Contrato Assinado */}
+              <div className="p-4 border-2 border-border rounded-lg bg-muted/50">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-lg">Valor Contrato Assinado</span>
+                  <span className="font-bold text-xl">{formatCurrency(contractBasePrice)}</span>
+                </div>
+              </div>
+
+              {/* Bloco 5: ATOs Aprovadas (expansível com breakdown) */}
+              {approvedATOs.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                    Alterações Pós-Contrato (ATOs)
+                  </p>
+                  
+                  {atosImpact?.atoBreakdown?.map((ato) => {
+                    const netTotal = ato.netTotal ?? 0;
+                    return (
+                      <Accordion type="single" collapsible key={ato.atoId}>
+                        <AccordionItem value={ato.atoId} className="border rounded-lg bg-muted/20">
+                          <AccordionTrigger className="px-4 hover:no-underline">
+                            <div className="flex justify-between w-full pr-4">
+                              <div className="text-left">
+                                <p className="font-medium">{ato.atoNumber}</p>
+                                <p className="text-sm text-muted-foreground">{ato.title}</p>
+                              </div>
+                              <span className={`font-semibold ${netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                                {netTotal >= 0 ? `+${formatCurrency(netTotal)}` : `-${formatCurrency(Math.abs(netTotal))}`}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4 space-y-2">
+                            {ato.items?.map((item, idx) => (
+                              <div key={idx} className="p-3 border rounded bg-background">
+                                <div className="flex justify-between gap-4">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium truncate">{item.itemName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.itemType === 'upgrade' ? 'Upgrade' : 
+                                       item.itemType === 'option' ? 'Opcional' : 'Customização'}
+                                      {item.itemCode && ` • ${item.itemCode}`}
+                                    </p>
+                                  </div>
+                                  <div className="text-right text-sm space-y-0.5 flex-shrink-0">
+                                    <p>Bruto: {formatCurrency(item.originalPrice)}</p>
+                                    {item.discountAmount > 0 && (
+                                      <p className="text-green-600">Desconto: -{formatCurrency(item.discountAmount)}</p>
+                                    )}
+                                    {item.replacementCredit !== 0 && (
+                                      <p className="text-green-600">Crédito: {formatCurrency(Math.abs(item.replacementCredit))}</p>
+                                    )}
+                                    <p className={`font-semibold ${item.netPrice >= 0 ? '' : 'text-green-600'}`}>
+                                      Líquido: {item.netPrice >= 0 ? formatCurrency(item.netPrice) : `-${formatCurrency(Math.abs(item.netPrice))}`}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    );
+                  })}
+                  
+                  {/* Total das ATOs */}
+                  <div className={`p-3 border rounded-lg flex justify-between font-semibold ${atosPrice >= 0 ? 'bg-amber-50 dark:bg-amber-900/10 text-amber-600' : 'bg-green-50 dark:bg-green-900/10 text-green-600'}`}>
+                    <span>Total Alterações ({atosCount} ATOs)</span>
+                    <span>{atosPrice >= 0 ? `+${formatCurrency(atosPrice)}` : `-${formatCurrency(Math.abs(atosPrice))}`}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Valor Total Atual (destaque final) */}
               <div className="p-4 border-2 border-primary/20 rounded-lg bg-primary/5">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-lg">Valor Final do Contrato</span>
-                  <span className="font-bold text-2xl text-primary">{formatCurrency(finalPrice)}</span>
+                  <span className="font-bold text-lg">Valor Total Atual</span>
+                  <span className="font-bold text-2xl text-primary">
+                    {formatCurrency(contractBasePrice + atosPrice)}
+                  </span>
                 </div>
               </div>
             </div>
