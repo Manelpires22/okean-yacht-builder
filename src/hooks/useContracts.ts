@@ -108,7 +108,7 @@ export function useContracts() {
           quotation:quotations(quotation_number, status),
           client:clients(name, email, phone),
           yacht_model:yacht_models(name, code),
-          hull_number:hull_numbers(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
+          hull_number:hull_numbers!contracts_hull_number_id_fkey(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
         `)
         .order("created_at", { ascending: false });
 
@@ -156,7 +156,7 @@ export function useContract(contractId: string | undefined) {
           quotation:quotations(*),
           client:clients(*),
           yacht_model:yacht_models(*),
-          hull_number:hull_numbers(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
+          hull_number:hull_numbers!contracts_hull_number_id_fkey(id, hull_number, brand, hull_entry_date, estimated_delivery_date, status)
         `)
         .eq("id", contractId)
         .single();
