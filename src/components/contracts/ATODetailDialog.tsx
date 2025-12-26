@@ -25,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { useATO, useApproveATO, useCancelATO, useDeleteATO } from "@/hooks/useATOs";
+import { useATORealPriceImpact } from "@/hooks/useATORealPriceImpact";
 import { useATOConfigurations, useRemoveATOConfiguration } from "@/hooks/useATOConfigurations";
 import { calculateApprovalProgress } from "@/hooks/useApproveATOItem";
 import { ATOItemReviewCard } from "./ATOItemReviewCard";
@@ -89,6 +90,16 @@ export function ATODetailDialog({
   const { mutate: sendATO, isPending: isSending } = useSendATO();
   const { data: userRoleData } = useUserRole();
   const { user } = useAuth();
+  
+  // Calcular impacto real considerando deltas de upgrades substituídos
+  const { data: realPriceImpact, isLoading: loadingRealImpact } = useATORealPriceImpact(
+    atoId || undefined,
+    ato?.contract_id
+  );
+  
+  // Usar impacto real se disponível, senão fallback para price_impact salvo
+  const displayPriceImpact = realPriceImpact?.totalImpact ?? ato?.price_impact ?? 0;
+  const hasReplacements = (realPriceImpact?.upgradeDeltaDetails?.filter(d => d.isReplacement).length ?? 0) > 0;
 
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [approvalNotes, setApprovalNotes] = useState("");
@@ -333,23 +344,46 @@ export function ATODetailDialog({
 
                   {/* Financial Impact */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-muted/50 rounded-lg p-4">
+                    <div className={`rounded-lg p-4 ${
+                      displayPriceImpact < 0 
+                        ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800" 
+                        : "bg-muted/50"
+                    }`}>
                       <div className="flex items-center gap-2 mb-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Impacto Financeiro</span>
+                        <span className="text-sm font-medium">
+                          Impacto Financeiro
+                          {hasReplacements && (
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              Com substituições
+                            </Badge>
+                          )}
+                        </span>
                       </div>
-                      <p
-                        className={`text-2xl font-bold ${
-                          ato.price_impact > 0
-                            ? "text-green-600"
-                            : ato.price_impact < 0
-                            ? "text-red-600"
-                            : ""
-                        }`}
-                      >
-                        {ato.price_impact > 0 ? "+" : ""}
-                        {formatCurrency(ato.price_impact)}
-                      </p>
+                      {loadingRealImpact ? (
+                        <Skeleton className="h-8 w-32" />
+                      ) : (
+                        <>
+                          <p
+                            className={`text-2xl font-bold ${
+                              displayPriceImpact > 0
+                                ? "text-destructive"
+                                : displayPriceImpact < 0
+                                ? "text-green-600"
+                                : ""
+                            }`}
+                          >
+                            {displayPriceImpact >= 0 ? "+" : ""}
+                            {formatCurrency(displayPriceImpact)}
+                          </p>
+                          {/* Mostrar valor original se diferente */}
+                          {hasReplacements && ato.price_impact !== displayPriceImpact && (
+                            <p className="text-xs text-muted-foreground mt-1 line-through">
+                              Soma bruta: {formatCurrency(ato.price_impact)}
+                            </p>
+                          )}
+                        </>
+                      )}
                     </div>
 
                     <div className="bg-muted/50 rounded-lg p-4">
@@ -367,6 +401,38 @@ export function ATODetailDialog({
                       </p>
                     </div>
                   </div>
+
+                  {/* Detalhes de substituições de upgrades */}
+                  {hasReplacements && realPriceImpact?.upgradeDeltaDetails && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                      <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                        <ArrowUpCircle className="h-4 w-4 text-blue-600" />
+                        Detalhamento de Substituições
+                      </h4>
+                      <div className="space-y-2">
+                        {realPriceImpact.upgradeDeltaDetails
+                          .filter(d => d.isReplacement)
+                          .map(detail => (
+                            <div key={detail.configId} className="flex items-center justify-between text-sm bg-background/50 rounded p-2">
+                              <div className="flex-1">
+                                <span className="font-medium">{detail.upgradeName}</span>
+                                <span className="text-muted-foreground mx-2">→</span>
+                                <span className="text-muted-foreground line-through">{detail.oldUpgradeName}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className={`font-semibold ${detail.delta < 0 ? "text-green-600" : "text-destructive"}`}>
+                                  {detail.delta >= 0 ? "+" : ""}{formatCurrency(detail.delta)}
+                                </span>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatCurrency(detail.newPrice)} - {formatCurrency(detail.oldPrice || 0)}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
 
                   {/* Desconto e Preço Final (se houver desconto) */}
                   {ato.discount_percentage > 0 && (
@@ -386,7 +452,7 @@ export function ATODetailDialog({
                           <span className="text-sm font-medium">Preço Final</span>
                         </div>
                         <p className="text-2xl font-bold text-green-700">
-                          {formatCurrency(ato.price_impact * (1 - (ato.discount_percentage || 0) / 100))}
+                          {formatCurrency(displayPriceImpact * (1 - (ato.discount_percentage || 0) / 100))}
                         </p>
                       </div>
                     </div>
