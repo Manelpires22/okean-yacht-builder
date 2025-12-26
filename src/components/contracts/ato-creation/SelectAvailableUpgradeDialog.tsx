@@ -238,7 +238,7 @@ export function SelectAvailableUpgradeDialog({
                     <div className="flex justify-between font-bold">
                       <span>Impacto líquido:</span>
                       <span className={priceDelta.isPositive ? "text-destructive" : "text-green-600"}>
-                        {priceDelta.isPositive ? '+' : ''}{formatCurrency(priceDelta.value)}
+                        {priceDelta.isPositive ? '+' : '-'} {formatCurrency(Math.abs(priceDelta.value))}
                       </span>
                     </div>
                   </div>
@@ -263,8 +263,8 @@ export function SelectAvailableUpgradeDialog({
                     ? priceDelta.isPositive ? "text-destructive" : "text-green-600"
                     : "text-primary"
                 }`}>
-                  {priceDelta 
-                    ? `${priceDelta.isPositive ? '+' : ''}${formatCurrency(priceDelta.value)}`
+                {priceDelta 
+                    ? `${priceDelta.isPositive ? '+' : '-'} ${formatCurrency(Math.abs(priceDelta.value))}`
                     : formatCurrency(selectedUpgrade.price * quantity)
                   }
                 </div>
