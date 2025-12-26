@@ -45,7 +45,18 @@ export function QuotationHeroSection({
   const savingsPercentage = valorInicial > 0 ? ((savings / valorInicial) * 100).toFixed(1) : '0';
   
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {/* Título da Seção */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+          Resumo da Proposta Comercial
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Configuração completa e valores da embarcação
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Modelo do Iate */}
       <Card className="overflow-hidden">
         <div className="relative h-48 sm:h-56 md:h-64 bg-gradient-to-br from-primary/10 to-primary/5">
@@ -157,6 +168,7 @@ export function QuotationHeroSection({
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
