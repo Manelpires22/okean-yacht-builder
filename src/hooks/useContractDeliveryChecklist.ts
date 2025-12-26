@@ -348,8 +348,13 @@ async function fetchItemNames(
  * Calcular progresso de verificação
  */
 export function calculateProgress(items: DeliveryChecklistItem[]): DeliveryProgress {
-  const total = items.length;
-  const verified = items.filter((item) => item.is_verified).length;
+  // Filtrar ato_item - são apenas agrupadores, não verificáveis
+  const verifiableItems = items.filter(
+    (item) => (item.item_type as string) !== "ato_item"
+  );
+  
+  const total = verifiableItems.length;
+  const verified = verifiableItems.filter((item) => item.is_verified).length;
   const percentage = total > 0 ? Math.round((verified / total) * 100) : 0;
 
   return { total, verified, percentage };
