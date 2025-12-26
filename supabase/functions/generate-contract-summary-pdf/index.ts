@@ -7,6 +7,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ===== SISTEMA DE TIPOGRAFIA PADRONIZADA =====
+const TYPOGRAPHY = {
+  title: 14,           // Título do documento (header)
+  sectionTitle: 11,    // Títulos de seção (INFORMAÇÕES DO CONTRATO)
+  subsectionTitle: 10, // Subtítulos (Dimensões Principais)
+  body: 9,             // Texto normal (labels e valores)
+  small: 8,            // Texto menor (notas, rodapé, specs)
+};
+
 // ===== FORMATADORES =====
 function formatCurrency(value: number): string {
   if (!value && value !== 0) return "R$ 0,00";
@@ -86,20 +95,20 @@ function drawPageHeader(doc: jsPDF, title: string, subtitle: string, pageW: numb
   
   // Company name
   setColor(doc, COLORS.white);
-  doc.setFontSize(10);
+  doc.setFontSize(TYPOGRAPHY.subsectionTitle);
   setupFont(doc, "bold");
   doc.text("OKEAN YACHTS", margin, 15);
   
   // Document title
   setColor(doc, COLORS.gold);
-  doc.setFontSize(14);
+  doc.setFontSize(TYPOGRAPHY.title);
   setupFont(doc, "bold");
   doc.text(title, margin, 28);
   
   // Subtitle
   if (subtitle) {
     setColor(doc, COLORS.white);
-    doc.setFontSize(9);
+    doc.setFontSize(TYPOGRAPHY.body);
     setupFont(doc, "normal");
     doc.text(subtitle, pageW - margin, 28, { align: "right" });
   }
@@ -109,7 +118,7 @@ function drawPageHeader(doc: jsPDF, title: string, subtitle: string, pageW: numb
 
 function drawSectionTitle(doc: jsPDF, title: string, yPos: number, margin: number, pageW: number): number {
   setColor(doc, COLORS.navy);
-  doc.setFontSize(11);
+  doc.setFontSize(TYPOGRAPHY.sectionTitle);
   setupFont(doc, "bold");
   doc.text(title.toUpperCase(), margin, yPos);
   
@@ -122,7 +131,7 @@ function drawSectionTitle(doc: jsPDF, title: string, yPos: number, margin: numbe
 }
 
 function drawInfoRow(doc: jsPDF, label: string, value: string, yPos: number, margin: number, pageW: number, labelWidth: number = 60): number {
-  doc.setFontSize(10);
+  doc.setFontSize(TYPOGRAPHY.body);
   setupFont(doc, "bold");
   setColor(doc, COLORS.textMuted);
   doc.text(label + ":", margin, yPos);
@@ -143,7 +152,7 @@ function drawPriceRow(doc: jsPDF, description: string, price: number, yPos: numb
     setColor(doc, COLORS.lightGray, "fill");
     doc.rect(margin - 2, yPos - 5, contentWidth + 4, 10, "F");
     
-    doc.setFontSize(11);
+    doc.setFontSize(TYPOGRAPHY.sectionTitle);
     setupFont(doc, "bold");
     setColor(doc, COLORS.navy);
     doc.text(description, margin, yPos);
@@ -152,32 +161,28 @@ function drawPriceRow(doc: jsPDF, description: string, price: number, yPos: numb
     doc.text(formatCurrency(price), priceX, yPos, { align: "right" });
   } else {
     const lineHeight = 4.5;
-    const priceColWidth = 80; // Espaço reservado para preço à direita
+    const priceColWidth = 80;
     const textX = options?.isSubItem ? margin + 8 : margin;
     const maxTextWidth = pageW - margin - priceColWidth - (options?.isSubItem ? 8 : 0);
     
-    doc.setFontSize(10);
+    doc.setFontSize(TYPOGRAPHY.body);
     setupFont(doc, options?.isSubItem ? "italic" : "normal");
     setColor(doc, options?.isSubItem ? COLORS.textMuted : COLORS.textDark);
     
-    // Quebrar texto em múltiplas linhas automaticamente
     const lines: string[] = doc.splitTextToSize(description, maxTextWidth);
     
-    // Desenhar todas as linhas da descrição
     lines.forEach((line: string, index: number) => {
       doc.text(line, textX, yPos + (index * lineHeight));
     });
     
-    // Preço SEMPRE na primeira linha, alinhado à borda direita
     if (options?.isNegative) {
-      setColor(doc, { r: 34, g: 140, b: 90 }); // Green for credits/discounts
+      setColor(doc, { r: 34, g: 140, b: 90 });
       doc.text(`-${formatCurrency(Math.abs(price))}`, priceX, yPos, { align: "right" });
     } else {
       setColor(doc, COLORS.textDark);
       doc.text(formatCurrency(price), priceX, yPos, { align: "right" });
     }
     
-    // Retornar nova posição Y considerando todas as linhas + espaçamento
     const totalHeight = lines.length * lineHeight;
     return yPos + Math.max(totalHeight, 7) + 3;
   }
@@ -200,7 +205,7 @@ function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, pageW: numb
   doc.line(margin, footerY - 5, pageW - margin, footerY - 5);
   
   setColor(doc, COLORS.textMuted);
-  doc.setFontSize(8);
+  doc.setFontSize(TYPOGRAPHY.small);
   setupFont(doc, "normal");
   
   doc.text("OKEAN YACHTS", margin, footerY);
@@ -227,7 +232,7 @@ function checkPageBreak(doc: jsPDF, yPos: number, pageH: number, margin: number,
 // ===== ESPECIFICAÇÕES TÉCNICAS DO IATE (DUAS COLUNAS) =====
 
 function drawSpecSubsectionCol(doc: jsPDF, title: string, yPos: number, startX: number): number {
-  doc.setFontSize(9);
+  doc.setFontSize(TYPOGRAPHY.body);
   setupFont(doc, "bold");
   setColor(doc, COLORS.gold);
   doc.text(title, startX, yPos);
@@ -242,19 +247,18 @@ function drawSpecRowCol(
   startX: number,
   colWidth: number
 ): number {
-  if (!value || value === "-") return yPos; // Não mostrar campos vazios
+  if (!value || value === "-") return yPos;
   
-  doc.setFontSize(8);
+  doc.setFontSize(TYPOGRAPHY.small);
   setupFont(doc, "normal");
   setColor(doc, COLORS.textMuted);
   doc.text(label + ":", startX + 3, yPos);
   
   setColor(doc, COLORS.textDark);
-  // Valor alinhado à direita da metade da coluna
   const valueX = startX + colWidth * 0.45;
   const maxWidth = colWidth * 0.52;
   const lines = doc.splitTextToSize(value, maxWidth);
-  doc.text(lines[0], valueX, yPos); // Só primeira linha para manter layout
+  doc.text(lines[0], valueX, yPos);
   
   return yPos + 5;
 }
@@ -269,24 +273,17 @@ function renderYachtSpecifications(
 ): number {
   if (!yachtModel) return yPos;
   
-  // Título da seção
   yPos = drawSectionTitle(doc, "Especificações Técnicas", yPos, margin, pageW);
   
-  // Calcular largura das colunas
   const contentWidth = pageW - (margin * 2);
-  const colWidth = (contentWidth - 10) / 2; // 10px de gap entre colunas
+  const colWidth = (contentWidth - 10) / 2;
   const leftColX = margin;
   const rightColX = margin + colWidth + 10;
   
-  const startY = yPos;
   let leftY = yPos;
   let rightY = yPos;
   
-  // ============================================
   // COLUNA ESQUERDA: Dimensões + Pesos/Capacidades
-  // ============================================
-  
-  // --- Dimensões Principais ---
   leftY = drawSpecSubsectionCol(doc, "Dimensões Principais", leftY, leftColX);
   
   if (yachtModel.length_overall) {
@@ -308,7 +305,6 @@ function renderYachtSpecifications(
   
   leftY += 4;
   
-  // --- Pesos e Capacidades ---
   leftY = drawSpecSubsectionCol(doc, "Pesos e Capacidades", leftY, leftColX);
   
   if (yachtModel.displacement_loaded) {
@@ -324,11 +320,7 @@ function renderYachtSpecifications(
     leftY = drawSpecRowCol(doc, "Capacidade de Água", formatNumberWithUnit(yachtModel.water_capacity, "L"), leftY, leftColX, colWidth);
   }
   
-  // ============================================
   // COLUNA DIREITA: Acomodações + Performance + Acabamento
-  // ============================================
-  
-  // --- Acomodações ---
   const hasCabins = yachtModel.cabins !== null && yachtModel.cabins !== undefined;
   const hasBathrooms = yachtModel.bathrooms !== null && yachtModel.bathrooms !== undefined;
   const hasPassengers = yachtModel.passengers_capacity !== null && yachtModel.passengers_capacity !== undefined;
@@ -349,7 +341,6 @@ function renderYachtSpecifications(
     rightY += 4;
   }
   
-  // --- Performance ---
   const hasEngines = yachtModel.engines;
   const hasMaxSpeed = yachtModel.max_speed !== null && yachtModel.max_speed !== undefined;
   const hasCruiseSpeed = yachtModel.cruise_speed !== null && yachtModel.cruise_speed !== undefined;
@@ -374,14 +365,190 @@ function renderYachtSpecifications(
     rightY += 4;
   }
   
-  // --- Acabamento ---
   if (yachtModel.hull_color) {
     rightY = drawSpecSubsectionCol(doc, "Acabamento", rightY, rightColX);
     rightY = drawSpecRowCol(doc, "Cor do Casco", yachtModel.hull_color, rightY, rightColX, colWidth);
   }
   
-  // Retornar o maior Y entre as duas colunas + espaçamento
   return Math.max(leftY, rightY) + 5;
+}
+
+// ===== MEMORIAL DESCRITIVO (DUAS COLUNAS) =====
+
+interface MemorialItem {
+  id: string;
+  item_name: string;
+  brand?: string | null;
+  model?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  memorial_categories: {
+    id: string;
+    label: string;
+    display_order: number;
+  };
+}
+
+function renderMemorialDescritivo(
+  doc: jsPDF,
+  memorialItems: MemorialItem[],
+  pageW: number,
+  pageH: number,
+  margin: number
+): void {
+  if (!memorialItems?.length) return;
+  
+  doc.addPage();
+  let yPos = drawPageHeader(doc, "MEMORIAL DESCRITIVO", "Equipamentos de Série", pageW, margin);
+  
+  // Agrupar por categoria
+  const grouped: Record<string, { label: string; order: number; items: MemorialItem[] }> = {};
+  
+  for (const item of memorialItems) {
+    const catId = item.memorial_categories?.id;
+    if (!catId) continue;
+    
+    if (!grouped[catId]) {
+      grouped[catId] = {
+        label: item.memorial_categories.label,
+        order: item.memorial_categories.display_order,
+        items: []
+      };
+    }
+    grouped[catId].items.push(item);
+  }
+  
+  // Ordenar categorias por display_order
+  const sortedCategories = Object.values(grouped).sort((a, b) => a.order - b.order);
+  
+  if (sortedCategories.length === 0) return;
+  
+  // Layout em duas colunas
+  const contentWidth = pageW - (margin * 2);
+  const colGap = 10;
+  const colWidth = (contentWidth - colGap) / 2;
+  const leftColX = margin;
+  const rightColX = margin + colWidth + colGap;
+  
+  // Distribuir categorias entre colunas de forma equilibrada
+  // Estimar altura de cada categoria
+  const categoryHeights = sortedCategories.map(cat => {
+    const headerHeight = 8;
+    const itemHeight = 4;
+    return { 
+      category: cat, 
+      height: headerHeight + (cat.items.length * itemHeight) + 6 
+    };
+  });
+  
+  // Dividir em duas colunas tentando equilibrar alturas
+  const leftCategories: typeof categoryHeights = [];
+  const rightCategories: typeof categoryHeights = [];
+  let leftHeight = 0;
+  let rightHeight = 0;
+  
+  for (const cat of categoryHeights) {
+    if (leftHeight <= rightHeight) {
+      leftCategories.push(cat);
+      leftHeight += cat.height;
+    } else {
+      rightCategories.push(cat);
+      rightHeight += cat.height;
+    }
+  }
+  
+  // Renderizar colunas
+  let leftY = yPos;
+  let rightY = yPos;
+  
+  // Função para desenhar categoria e seus itens
+  const drawCategory = (
+    catData: { category: { label: string; items: MemorialItem[] }; height: number },
+    y: number,
+    xPos: number,
+    width: number,
+    isLeft: boolean
+  ): number => {
+    const cat = catData.category;
+    
+    // Verificar quebra de página
+    if (y > pageH - 40) {
+      doc.addPage();
+      y = margin + 10;
+      // Reset ambas colunas se uma quebrar
+      if (isLeft) {
+        leftY = y;
+        rightY = y;
+      }
+    }
+    
+    // Título da categoria em dourado
+    doc.setFontSize(TYPOGRAPHY.body);
+    setupFont(doc, "bold");
+    setColor(doc, COLORS.gold);
+    
+    const titleLines = doc.splitTextToSize(cat.label.toUpperCase(), width - 5);
+    for (let i = 0; i < titleLines.length; i++) {
+      doc.text(titleLines[i], xPos, y + (i * 4));
+    }
+    y += (titleLines.length * 4) + 2;
+    
+    // Linha decorativa sob o título
+    setColor(doc, COLORS.gold, "draw");
+    doc.setLineWidth(0.3);
+    doc.line(xPos, y, xPos + 30, y);
+    y += 4;
+    
+    // Itens da categoria
+    for (const item of cat.items) {
+      // Verificar quebra de página
+      if (y > pageH - 25) {
+        doc.addPage();
+        y = margin + 10;
+      }
+      
+      doc.setFontSize(TYPOGRAPHY.small);
+      setupFont(doc, "normal");
+      setColor(doc, COLORS.textDark);
+      
+      // Construir texto do item
+      let itemText = `• ${item.item_name}`;
+      
+      // Adicionar quantidade se > 1
+      if (item.quantity && item.quantity > 1) {
+        const unitStr = item.unit ? ` ${item.unit}` : "";
+        itemText = `• (${item.quantity}${unitStr}) ${item.item_name}`;
+      }
+      
+      // Adicionar marca/modelo se disponível
+      const details: string[] = [];
+      if (item.brand) details.push(item.brand);
+      if (item.model) details.push(item.model);
+      
+      if (details.length > 0) {
+        itemText += ` - ${details.join(" ")}`;
+      }
+      
+      // Quebrar texto longo
+      const lines = doc.splitTextToSize(itemText, width - 8);
+      for (let i = 0; i < lines.length; i++) {
+        doc.text(lines[i], xPos + 2, y);
+        y += 3.5;
+      }
+    }
+    
+    return y + 4; // Espaço entre categorias
+  };
+  
+  // Renderizar coluna esquerda
+  for (const cat of leftCategories) {
+    leftY = drawCategory(cat, leftY, leftColX, colWidth, true);
+  }
+  
+  // Renderizar coluna direita
+  for (const cat of rightCategories) {
+    rightY = drawCategory(cat, rightY, rightColX, colWidth, false);
+  }
 }
 
 // ===== RENDERIZAÇÃO DO CONTRATO ORIGINAL =====
@@ -389,6 +556,7 @@ function renderYachtSpecifications(
 async function renderOriginalContract(
   doc: jsPDF,
   contract: any,
+  memorialItems: MemorialItem[],
   pageW: number,
   pageH: number,
   margin: number
@@ -400,9 +568,17 @@ async function renderOriginalContract(
   yPos = drawInfoRow(doc, "Número", contract.contract_number, yPos, margin, pageW);
   yPos = drawInfoRow(doc, "Cliente", contract.client?.name || "-", yPos, margin, pageW);
   yPos = drawInfoRow(doc, "Modelo", contract.yacht_model?.name || "-", yPos, margin, pageW);
+  
+  // Matrícula
   if (contract.hull_number?.hull_number) {
     yPos = drawInfoRow(doc, "Matrícula", contract.hull_number.hull_number, yPos, margin, pageW);
   }
+  
+  // NOVA POSIÇÃO: Previsão de Entrega logo após Matrícula
+  if (contract.hull_number?.estimated_delivery_date) {
+    yPos = drawInfoRow(doc, "Previsão de Entrega", formatDateLong(contract.hull_number.estimated_delivery_date), yPos, margin, pageW);
+  }
+  
   yPos = drawInfoRow(doc, "Assinado em", formatDateLong(contract.signed_at), yPos, margin, pageW);
   yPos = drawInfoRow(doc, "Assinado por", `${contract.signed_by_name || "-"} <${contract.signed_by_email || ""}>`, yPos, margin, pageW);
   
@@ -450,7 +626,6 @@ async function renderOriginalContract(
     yPos = drawDivider(doc, yPos, margin, pageW);
     yPos = drawSectionTitle(doc, "Opcionais Inclusos", yPos, margin, pageW);
     
-    // Agrupar por categoria (se disponível)
     for (const option of options) {
       yPos = checkPageBreak(doc, yPos, pageH, margin, 30);
       const optionName = option.option?.name || option.name || "Opcional";
@@ -501,10 +676,11 @@ async function renderOriginalContract(
   yPos += 5;
   yPos = drawPriceRow(doc, "VALOR TOTAL CONTRATO ORIGINAL", contract.base_price, yPos, margin, pageW, { isTotal: true });
   
-  yPos += 10;
-  yPos = drawInfoRow(doc, "Prazo de Entrega", `${contract.base_delivery_days} dias`, yPos, margin, pageW);
-  if (contract.hull_number?.estimated_delivery_date) {
-    yPos = drawInfoRow(doc, "Previsão de Entrega", formatDateLong(contract.hull_number.estimated_delivery_date), yPos, margin, pageW);
+  // REMOVIDO: Prazo de 365 dias - agora apenas mostramos a data de entrega no início
+  
+  // Memorial Descritivo ao final
+  if (memorialItems?.length > 0) {
+    renderMemorialDescritivo(doc, memorialItems, pageW, pageH, margin);
   }
 }
 
@@ -540,7 +716,7 @@ async function renderATO(
   
   if (ato.description) {
     yPos += 3;
-    doc.setFontSize(10);
+    doc.setFontSize(TYPOGRAPHY.body);
     setupFont(doc, "italic");
     setColor(doc, COLORS.textMuted);
     const descLines = doc.splitTextToSize(ato.description, pageW - margin * 2);
@@ -576,7 +752,7 @@ async function renderATO(
       const calculatedPrice = config.calculated_price ?? (originalPrice - discountAmount);
       
       // Item header
-      doc.setFontSize(10);
+      doc.setFontSize(TYPOGRAPHY.body);
       setupFont(doc, "bold");
       setColor(doc, COLORS.navy);
       doc.text(`${itemType} ${itemName}`, margin, yPos);
@@ -592,7 +768,7 @@ async function renderATO(
       
       // Substituição/estorno (se houver)
       if (config.is_reversal && config.reversal_reason) {
-        doc.setFontSize(9);
+        doc.setFontSize(TYPOGRAPHY.body);
         setupFont(doc, "italic");
         setColor(doc, COLORS.textMuted);
         doc.text(`Motivo: ${config.reversal_reason}`, margin + 5, yPos);
@@ -602,7 +778,7 @@ async function renderATO(
       // Subtotal do item
       setupFont(doc, "bold");
       setColor(doc, COLORS.textDark);
-      doc.setFontSize(10);
+      doc.setFontSize(TYPOGRAPHY.body);
       doc.text("Subtotal:", margin + 5, yPos);
       const subtotalColor = calculatedPrice < 0 ? { r: 180, g: 130, b: 40 } : COLORS.textDark;
       setColor(doc, subtotalColor);
@@ -644,17 +820,133 @@ async function renderTotalContract(
   contract: any,
   approvedATOs: any[],
   atoConfigurations: Map<string, any[]>,
+  memorialItems: MemorialItem[],
   pageW: number,
   pageH: number,
   margin: number
 ): Promise<void> {
-  // Primeiro: Contrato Original
-  await renderOriginalContract(doc, contract, pageW, pageH, margin);
+  // Primeiro: Contrato Original (sem memorial - adicionamos no final)
+  let yPos = drawPageHeader(doc, "CONTRATO ORIGINAL", contract.contract_number, pageW, margin);
+  
+  // Informações básicas
+  yPos = drawSectionTitle(doc, "Informações do Contrato", yPos, margin, pageW);
+  yPos = drawInfoRow(doc, "Número", contract.contract_number, yPos, margin, pageW);
+  yPos = drawInfoRow(doc, "Cliente", contract.client?.name || "-", yPos, margin, pageW);
+  yPos = drawInfoRow(doc, "Modelo", contract.yacht_model?.name || "-", yPos, margin, pageW);
+  
+  if (contract.hull_number?.hull_number) {
+    yPos = drawInfoRow(doc, "Matrícula", contract.hull_number.hull_number, yPos, margin, pageW);
+  }
+  
+  // Calcular data de entrega com impacto das ATOs
+  if (contract.hull_number?.estimated_delivery_date) {
+    const baseDate = new Date(contract.hull_number.estimated_delivery_date);
+    const totalDeliveryImpact = approvedATOs.reduce((sum, ato) => sum + (ato.delivery_days_impact || 0), 0);
+    baseDate.setDate(baseDate.getDate() + totalDeliveryImpact);
+    yPos = drawInfoRow(doc, "Previsão de Entrega", formatDateLong(baseDate.toISOString()), yPos, margin, pageW);
+  }
+  
+  yPos = drawInfoRow(doc, "Assinado em", formatDateLong(contract.signed_at), yPos, margin, pageW);
+  yPos = drawInfoRow(doc, "Assinado por", `${contract.signed_by_name || "-"} <${contract.signed_by_email || ""}>`, yPos, margin, pageW);
+  
+  yPos = drawDivider(doc, yPos + 5, margin, pageW);
+  
+  // Especificações Técnicas
+  if (contract.yacht_model) {
+    yPos = renderYachtSpecifications(doc, contract.yacht_model, yPos, pageW, pageH, margin);
+    yPos = drawDivider(doc, yPos + 2, margin, pageW);
+  }
+  
+  // Modelo Base
+  const baseSnapshot = contract.base_snapshot || {};
+  const modelBasePrice = baseSnapshot.base_price || contract.yacht_model?.base_price || 0;
+  const baseDiscountPercent = baseSnapshot.discount_percentage || baseSnapshot.base_discount_percentage || 0;
+  const baseDiscountAmount = modelBasePrice * (baseDiscountPercent / 100);
+  
+  yPos = checkPageBreak(doc, yPos, pageH, margin);
+  yPos = drawSectionTitle(doc, "Modelo Base", yPos, margin, pageW);
+  yPos = drawPriceRow(doc, contract.yacht_model?.name || "Modelo", modelBasePrice, yPos, margin, pageW);
+  if (baseDiscountAmount > 0) {
+    yPos = drawPriceRow(doc, `Desconto (${baseDiscountPercent}%)`, baseDiscountAmount, yPos, margin, pageW, { isNegative: true, isSubItem: true });
+  }
+  
+  // Upgrades
+  const upgrades = baseSnapshot.selected_upgrades || [];
+  if (upgrades.length > 0) {
+    yPos = checkPageBreak(doc, yPos, pageH, margin);
+    yPos = drawDivider(doc, yPos, margin, pageW);
+    yPos = drawSectionTitle(doc, "Upgrades Selecionados", yPos, margin, pageW);
+    
+    for (const upgrade of upgrades) {
+      yPos = checkPageBreak(doc, yPos, pageH, margin, 30);
+      const upgradeName = upgrade.upgrade?.name || upgrade.upgrade_name || upgrade.name || "Upgrade";
+      const replaces = upgrade.memorial_item?.item_name || upgrade.memorial_item_name || "";
+      const description = replaces ? `${upgradeName} (substitui: ${replaces})` : upgradeName;
+      yPos = drawPriceRow(doc, description, upgrade.price || 0, yPos, margin, pageW);
+    }
+  }
+  
+  // Opcionais
+  const options = baseSnapshot.selected_options || [];
+  if (options.length > 0) {
+    yPos = checkPageBreak(doc, yPos, pageH, margin);
+    yPos = drawDivider(doc, yPos, margin, pageW);
+    yPos = drawSectionTitle(doc, "Opcionais Inclusos", yPos, margin, pageW);
+    
+    for (const option of options) {
+      yPos = checkPageBreak(doc, yPos, pageH, margin, 30);
+      const optionName = option.option?.name || option.name || "Opcional";
+      const code = option.option?.code || option.code || "";
+      const description = code ? `${optionName} (${code})` : optionName;
+      yPos = drawPriceRow(doc, description, option.total_price || option.unit_price || 0, yPos, margin, pageW);
+    }
+  }
+  
+  // Customizações
+  const customizations = baseSnapshot.customizations || [];
+  if (customizations.length > 0) {
+    yPos = checkPageBreak(doc, yPos, pageH, margin);
+    yPos = drawDivider(doc, yPos, margin, pageW);
+    yPos = drawSectionTitle(doc, "Customizações Aprovadas", yPos, margin, pageW);
+    
+    for (const cust of customizations) {
+      yPos = checkPageBreak(doc, yPos, pageH, margin, 30);
+      const custName = cust.item_name || "Customização";
+      const custPrice = cust.pm_final_price || cust.additional_cost || 0;
+      yPos = drawPriceRow(doc, custName, custPrice, yPos, margin, pageW);
+    }
+  }
+  
+  // Resumo Financeiro
+  yPos = checkPageBreak(doc, yPos, pageH, margin, 80);
+  yPos = drawDivider(doc, yPos + 5, margin, pageW);
+  yPos = drawSectionTitle(doc, "Resumo Financeiro", yPos, margin, pageW);
+  
+  const upgradesTotal = upgrades.reduce((sum: number, u: any) => sum + (u.price || 0), 0);
+  const optionsTotal = options.reduce((sum: number, o: any) => sum + (o.total_price || o.unit_price || 0), 0);
+  const customizationsTotal = customizations.reduce((sum: number, c: any) => sum + (c.pm_final_price || c.additional_cost || 0), 0);
+  
+  yPos = drawPriceRow(doc, "Modelo Base", modelBasePrice, yPos, margin, pageW);
+  if (upgradesTotal > 0) {
+    yPos = drawPriceRow(doc, "Upgrades", upgradesTotal, yPos, margin, pageW);
+  }
+  if (optionsTotal > 0) {
+    yPos = drawPriceRow(doc, "Opcionais", optionsTotal, yPos, margin, pageW);
+  }
+  if (customizationsTotal > 0) {
+    yPos = drawPriceRow(doc, "Customizações", customizationsTotal, yPos, margin, pageW);
+  }
+  if (baseDiscountAmount > 0) {
+    yPos = drawPriceRow(doc, "Desconto Comercial", baseDiscountAmount, yPos, margin, pageW, { isNegative: true });
+  }
+  
+  yPos += 5;
+  yPos = drawPriceRow(doc, "VALOR TOTAL CONTRATO ORIGINAL", contract.base_price, yPos, margin, pageW, { isTotal: true });
   
   // Se houver ATOs, adicionar seção de resumo
   if (approvedATOs.length > 0) {
     doc.addPage();
-    let yPos = drawPageHeader(doc, "RESUMO DAS ALTERAÇÕES", "ATOs Aprovadas", pageW, margin);
+    yPos = drawPageHeader(doc, "RESUMO DAS ALTERAÇÕES", "ATOs Aprovadas", pageW, margin);
     
     yPos = drawSectionTitle(doc, "ATOs Incorporadas ao Contrato", yPos, margin, pageW);
     
@@ -676,7 +968,7 @@ async function renderTotalContract(
       );
       
       if (ato.delivery_days_impact > 0) {
-        doc.setFontSize(9);
+        doc.setFontSize(TYPOGRAPHY.body);
         setupFont(doc, "italic");
         setColor(doc, COLORS.textMuted);
         doc.text(`(+${ato.delivery_days_impact} dias)`, pageW - margin - 80, yPos - 5);
@@ -715,11 +1007,9 @@ async function renderTotalContract(
     yPos = drawSectionTitle(doc, "Resumo Final", yPos, margin, pageW);
     
     const finalPrice = contract.base_price + totalATOsPrice;
-    const finalDelivery = contract.base_delivery_days + maxATODelivery;
     
     yPos = drawPriceRow(doc, "Contrato Original", contract.base_price, yPos, margin, pageW);
     
-    const atosSign = totalATOsPrice >= 0 ? "" : "-";
     yPos = drawPriceRow(
       doc, 
       `Total ATOs (${approvedATOs.length})`, 
@@ -733,19 +1023,19 @@ async function renderTotalContract(
     yPos += 5;
     yPos = drawPriceRow(doc, "VALOR TOTAL ATUAL", finalPrice, yPos, margin, pageW, { isTotal: true });
     
-    yPos += 15;
-    yPos = drawSectionTitle(doc, "Prazos", yPos, margin, pageW);
-    yPos = drawInfoRow(doc, "Prazo Original", `${contract.base_delivery_days} dias`, yPos, margin, pageW);
-    if (maxATODelivery > 0) {
-      yPos = drawInfoRow(doc, "Impacto ATOs", `+${maxATODelivery} dias`, yPos, margin, pageW);
-    }
-    yPos = drawInfoRow(doc, "Prazo Total", `${finalDelivery} dias`, yPos, margin, pageW);
-    
+    // Previsão de entrega consolidada
+    yPos += 10;
     if (contract.hull_number?.estimated_delivery_date) {
       const baseDate = new Date(contract.hull_number.estimated_delivery_date);
-      baseDate.setDate(baseDate.getDate() + maxATODelivery);
-      yPos = drawInfoRow(doc, "Previsão de Entrega", formatDateLong(baseDate.toISOString()), yPos, margin, pageW);
+      const totalImpact = approvedATOs.reduce((sum, ato) => sum + (ato.delivery_days_impact || 0), 0);
+      baseDate.setDate(baseDate.getDate() + totalImpact);
+      yPos = drawInfoRow(doc, "Previsão de Entrega Atual", formatDateLong(baseDate.toISOString()), yPos, margin, pageW);
     }
+  }
+  
+  // Memorial Descritivo ao final
+  if (memorialItems?.length > 0) {
+    renderMemorialDescritivo(doc, memorialItems, pageW, pageH, margin);
   }
 }
 
@@ -818,6 +1108,35 @@ serve(async (req) => {
       atoConfigurations.set(ato.id, configs || []);
     }
 
+    // Buscar Memorial Descritivo do modelo (para contrato original e total)
+    let memorialItems: MemorialItem[] = [];
+    if (export_type === "original" || export_type === "total") {
+      const { data: items, error: memorialError } = await supabase
+        .from("memorial_items")
+        .select(`
+          id,
+          item_name,
+          brand,
+          model,
+          quantity,
+          unit,
+          display_order,
+          memorial_categories!inner (
+            id,
+            label,
+            display_order
+          )
+        `)
+        .eq("yacht_model_id", contract.yacht_model_id)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      
+      if (!memorialError && items) {
+        memorialItems = items as unknown as MemorialItem[];
+        console.log(`Found ${memorialItems.length} memorial items`);
+      }
+    }
+
     // Criar PDF
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = doc.internal.pageSize.getWidth();
@@ -827,7 +1146,7 @@ serve(async (req) => {
     // Gerar conteúdo baseado no tipo de exportação
     switch (export_type) {
       case "original":
-        await renderOriginalContract(doc, contract, pageW, pageH, margin);
+        await renderOriginalContract(doc, contract, memorialItems, pageW, pageH, margin);
         break;
         
       case "ato":
@@ -851,7 +1170,7 @@ serve(async (req) => {
         break;
         
       case "total":
-        await renderTotalContract(doc, contract, approvedATOs, atoConfigurations, pageW, pageH, margin);
+        await renderTotalContract(doc, contract, approvedATOs, atoConfigurations, memorialItems, pageW, pageH, margin);
         break;
         
       default:
