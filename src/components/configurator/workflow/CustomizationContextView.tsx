@@ -51,8 +51,12 @@ export function CustomizationContextView({ customization }: CustomizationContext
               <span className="font-medium">{formatCurrency(quotations.total_options_price)}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-muted-foreground">Prazo Base</span>
-              <span className="font-medium">{quotations.base_delivery_days} dias</span>
+              <span className="text-sm text-muted-foreground">Entrega Prevista</span>
+              <span className="font-medium">
+                {(quotations as any).hull_numbers?.estimated_delivery_date 
+                  ? format(new Date((quotations as any).hull_numbers.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
+                  : `${quotations.base_delivery_days} dias`}
+              </span>
             </div>
           </div>
         </CardContent>

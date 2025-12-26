@@ -295,12 +295,7 @@ export default function Configurator() {
 
               <TabsContent value="base" className="space-y-6 mt-6">
                 {selectedModel && (
-                  <>
-                    {/* DEBUG: Log do state.hull_number_data */}
-                    {console.log('🔍 Configurator - state.hull_number_data:', state.hull_number_data)}
-                    {console.log('🔍 Configurator - full state:', state)}
-                    <ModelBaseTab model={selectedModel} hullNumberData={state.hull_number_data} />
-                  </>
+                  <ModelBaseTab model={selectedModel} hullNumberData={state.hull_number_data} />
                 )}
               </TabsContent>
 
@@ -465,6 +460,8 @@ export default function Configurator() {
               optionsDiscountPercentage={state.options_discount_percentage}
               finalBasePrice={totals.finalBasePrice}
               finalOptionsPrice={totals.finalOptionsPrice}
+              estimatedDeliveryDate={state.hull_number_data?.estimated_delivery_date}
+              hullNumber={state.hull_number_data?.hull_number}
               selectedOptions={state.selected_options}
               selectedUpgrades={state.selected_upgrades}
               optionsData={allOptions}
