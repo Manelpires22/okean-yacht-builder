@@ -12,7 +12,7 @@ import {
 import { Ship, Calendar, DollarSign, User, FileText, ArrowLeft, MoreVertical, Download, Mail, Trash2, Hash } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { getContractStatusLabel, getContractStatusColor } from "@/lib/contract-utils";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -21,6 +21,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SendContractEmailDialog } from "./SendContractEmailDialog";
 import { AutoSizedValue } from "@/components/ui/auto-sized-value";
+import { useContractATOsAggregatedImpact } from "@/hooks/useContractATOsAggregatedImpact";
 
 interface ContractHeroSectionProps {
   contract: Contract;
@@ -32,6 +33,9 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
   const { data: userRoleData } = useUserRole();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  
+  const { data: atosImpact } = useContractATOsAggregatedImpact(contract.id);
+  const atoDeliveryDays = atosImpact?.maxApprovedATOsDeliveryDays || 0;
 
   const canManageContract = userRoleData?.roles?.some((r: string) =>
     ["administrador", "gerente_comercial"].includes(r)
@@ -168,8 +172,8 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div className="bg-card rounded-lg p-4 border">
+        <div className="flex flex-wrap gap-4">
+          <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Ship className="h-4 w-4" />
               <span className="text-sm">Modelo</span>
@@ -177,7 +181,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
             <AutoSizedValue value={contract.yacht_model?.name || "N/A"} />
           </div>
 
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <User className="h-4 w-4" />
               <span className="text-sm">Cliente</span>
@@ -185,7 +189,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
             <AutoSizedValue value={contract.client?.name || "N/A"} />
           </div>
 
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <DollarSign className="h-4 w-4" />
               <span className="text-sm">Valor Total</span>
@@ -193,7 +197,7 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
             <AutoSizedValue value={formatCurrency(contract.current_total_price)} />
           </div>
 
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Hash className="h-4 w-4" />
               <span className="text-sm">Matrícula</span>
@@ -201,16 +205,24 @@ export function ContractHeroSection({ contract, onDelete }: ContractHeroSectionP
             <AutoSizedValue value={contract.hull_number?.hull_number || "N/A"} />
           </div>
 
-          <div className="bg-card rounded-lg p-4 border">
+          <div className="bg-card rounded-lg p-4 border flex-1 min-w-[160px]">
             <div className="flex items-center gap-2 text-muted-foreground mb-2">
               <Calendar className="h-4 w-4" />
               <span className="text-sm">Entrega Prevista</span>
             </div>
             <AutoSizedValue 
               value={contract.hull_number?.estimated_delivery_date
-                ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy")
-                : `${contract.current_total_delivery_days} dias`} 
+                ? format(
+                    addDays(new Date(contract.hull_number.estimated_delivery_date), atoDeliveryDays),
+                    "dd/MM/yyyy"
+                  )
+                : `${contract.current_total_delivery_days + atoDeliveryDays} dias`} 
             />
+            {atoDeliveryDays > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                (+{atoDeliveryDays} dias ATOs)
+              </p>
+            )}
           </div>
         </div>
 
