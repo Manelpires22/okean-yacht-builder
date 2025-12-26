@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Anchor, Gauge, Users, Fuel, Waves, Ship, Calendar, DollarSign } from "lucide-react";
+import { Anchor, Gauge, Users, Fuel, Waves, Ship, Calendar, DollarSign, Hash } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface YachtModel {
   id: string;
@@ -32,11 +34,20 @@ interface YachtModel {
   hull_color?: string | null;
 }
 
-interface ModelBaseTabProps {
-  model: YachtModel;
+interface HullNumberData {
+  id: string;
+  hull_number: string;
+  brand: string;
+  hull_entry_date: string;
+  estimated_delivery_date: string;
 }
 
-export function ModelBaseTab({ model }: ModelBaseTabProps) {
+interface ModelBaseTabProps {
+  model: YachtModel;
+  hullNumberData?: HullNumberData;
+}
+
+export function ModelBaseTab({ model, hullNumberData }: ModelBaseTabProps) {
   const formatNumber = (value?: number | null, unit?: string) => {
     if (!value) return "N/A";
     return `${value.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}`;
@@ -46,6 +57,16 @@ export function ModelBaseTab({ model }: ModelBaseTabProps) {
     if (!meters) return "";
     const feet = meters * 3.28084;
     return ` (${feet.toFixed(2)} ft)`;
+  };
+
+  const formatDeliveryDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = parseISO(dateString);
+      return format(date, "dd/MM/yyyy", { locale: ptBR });
+    } catch {
+      return "N/A";
+    }
   };
 
   const hasAnyDimension = model.length_overall || model.hull_length || model.beam || model.draft || model.height_from_waterline;
@@ -69,6 +90,15 @@ export function ModelBaseTab({ model }: ModelBaseTabProps) {
               </Badge>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
+              {hullNumberData && (
+                <div className="flex items-center gap-2 bg-secondary px-4 py-2 rounded-lg">
+                  <Hash className="h-5 w-5 text-secondary-foreground" />
+                  <div className="text-right">
+                    <p className="text-xs text-secondary-foreground/70">Matrícula</p>
+                    <p className="font-bold text-secondary-foreground">{hullNumberData.hull_number}</p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-lg">
                 <DollarSign className="h-5 w-5" />
                 <div className="text-right">
@@ -76,13 +106,15 @@ export function ModelBaseTab({ model }: ModelBaseTabProps) {
                   <p className="font-bold">{formatCurrency(model.base_price)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-lg">
-                <Calendar className="h-5 w-5 text-muted-foreground" />
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Prazo Base</p>
-                  <p className="font-bold">{model.base_delivery_days} dias</p>
+              {hullNumberData?.estimated_delivery_date && (
+                <div className="flex items-center gap-2 bg-muted px-4 py-2 rounded-lg">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Entrega Prevista</p>
+                    <p className="font-bold">{formatDeliveryDate(hullNumberData.estimated_delivery_date)}</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </CardHeader>
