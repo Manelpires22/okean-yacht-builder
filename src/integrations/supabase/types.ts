@@ -1135,6 +1135,136 @@ export type Database = {
           },
         ]
       }
+      pdf_generated: {
+        Row: {
+          created_at: string | null
+          document_type: Database["public"]["Enums"]["pdf_document_type"]
+          generated_by: string | null
+          id: string
+          payload: Json | null
+          pdf_url: string | null
+          reference_id: string | null
+          reference_type: string | null
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_type: Database["public"]["Enums"]["pdf_document_type"]
+          generated_by?: string | null
+          id?: string
+          payload?: Json | null
+          pdf_url?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_type?: Database["public"]["Enums"]["pdf_document_type"]
+          generated_by?: string | null
+          id?: string
+          payload?: Json | null
+          pdf_url?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_generated_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_template_versions: {
+        Row: {
+          change_notes: string | null
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          template_id: string
+          template_json: Json
+          version: number
+        }
+        Insert: {
+          change_notes?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          template_id: string
+          template_json: Json
+          version: number
+        }
+        Update: {
+          change_notes?: string | null
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          template_id?: string
+          template_json?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pdf_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "pdf_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pdf_templates: {
+        Row: {
+          branding: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          document_type: Database["public"]["Enums"]["pdf_document_type"]
+          id: string
+          is_default: boolean | null
+          name: string
+          status: Database["public"]["Enums"]["pdf_template_status"] | null
+          template_json: Json
+          updated_at: string | null
+          updated_by: string | null
+          version: number | null
+        }
+        Insert: {
+          branding?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type: Database["public"]["Enums"]["pdf_document_type"]
+          id?: string
+          is_default?: boolean | null
+          name: string
+          status?: Database["public"]["Enums"]["pdf_template_status"] | null
+          template_json?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Update: {
+          branding?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          document_type?: Database["public"]["Enums"]["pdf_document_type"]
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          status?: Database["public"]["Enums"]["pdf_template_status"] | null
+          template_json?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       pm_yacht_model_assignments: {
         Row: {
           assigned_at: string | null
@@ -2083,6 +2213,8 @@ export type Database = {
         | "proa"
         | "diversos"
         | "banheiro_social"
+      pdf_document_type: "quotation" | "ato" | "consolidated" | "memorial"
+      pdf_template_status: "draft" | "active" | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2290,6 +2422,8 @@ export const Constants = {
         "diversos",
         "banheiro_social",
       ],
+      pdf_document_type: ["quotation", "ato", "consolidated", "memorial"],
+      pdf_template_status: ["draft", "active", "archived"],
     },
   },
 } as const

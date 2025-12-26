@@ -18,6 +18,7 @@ import {
   FileSignature,
   ChevronRight,
   Anchor,
+  Layout,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -88,6 +89,14 @@ const navGroups = [
       { path: "/admin/workflow-settings", icon: Workflow, label: "Workflow" },
       { path: "/admin/job-stops", icon: Calendar, label: "Job-Stops" },
       { path: "/admin/audit-logs", icon: ScrollText, label: "Logs de Auditoria" },
+    ],
+  },
+  {
+    id: "documentos",
+    label: "DOCUMENTOS",
+    icon: FileText,
+    items: [
+      { path: "/admin/pdf-templates", icon: Layout, label: "Templates PDF" },
     ],
   },
 ];
