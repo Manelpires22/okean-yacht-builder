@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FileText, Ship, User, Calendar, Hash, Anchor } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LinkedCustomizationsCard } from "./LinkedCustomizationsCard";
 
@@ -130,11 +130,13 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
 
             {/* Coluna PRAZOS */}
             <div className="space-y-6">
-              {/* Prazo Base */}
+              {/* Entrega Prevista (data do hull_number) */}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Prazo Base</p>
+                <p className="text-sm text-muted-foreground mb-1">Entrega Prevista</p>
                 <p className="text-3xl font-bold text-primary">
-                  {contract.base_delivery_days} dias
+                  {contract.hull_number?.estimated_delivery_date
+                    ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
+                    : `${contract.base_delivery_days} dias`}
                 </p>
               </div>
 
@@ -154,11 +156,20 @@ export function ContractOverview({ contract }: ContractOverviewProps) {
 
               <Separator />
 
-              {/* Prazo Total Atual */}
+              {/* Data Ajustada (data base + impacto) */}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Prazo Total Atual</p>
+                <p className="text-sm text-muted-foreground mb-1">Data Ajustada</p>
                 <p className="text-4xl font-bold text-primary">
-                  {contract.current_total_delivery_days} dias
+                  {contract.hull_number?.estimated_delivery_date
+                    ? format(
+                        addDays(
+                          new Date(contract.hull_number.estimated_delivery_date),
+                          contract.current_total_delivery_days - contract.base_delivery_days
+                        ),
+                        "dd/MM/yyyy",
+                        { locale: ptBR }
+                      )
+                    : `${contract.current_total_delivery_days} dias`}
                 </p>
                 {contract.current_total_delivery_days !== contract.base_delivery_days && (
                   <p className="text-sm text-muted-foreground mt-1">
