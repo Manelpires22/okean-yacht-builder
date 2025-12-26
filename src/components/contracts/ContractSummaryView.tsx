@@ -636,7 +636,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                 <div className="pt-3 border-t space-y-1">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Total de Upgrades ({selectedUpgrades.length} itens)</span>
-                    <span className="font-medium text-amber-600">{formatCurrency(upgradesPrice)}</span>
+                    <span className="font-medium">{formatCurrency(upgradesPrice)}</span>
                   </div>
                   
                   {optionsDiscountPercent > 0 && (
@@ -648,7 +648,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   
                   <div className="flex justify-between font-semibold">
                     <span>Upgrades Final</span>
-                    <span className="text-amber-600">{formatCurrency(upgradesPrice - (upgradesPrice * (optionsDiscountPercent / 100)))}</span>
+                    <span>{formatCurrency(upgradesPrice - (upgradesPrice * (optionsDiscountPercent / 100)))}</span>
                   </div>
                 </div>
               )}
@@ -689,7 +689,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                                 <p className="font-medium text-sm">{ato.atoNumber}</p>
                                 <p className="text-xs text-muted-foreground">{ato.title}</p>
                               </div>
-                              <span className={`font-semibold text-sm ${netTotal >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                              <span className={`font-semibold text-sm ${netTotal < 0 ? 'text-amber-600' : ''}`}>
                                 {netTotal >= 0 ? `+${formatCurrency(netTotal)}` : `-${formatCurrency(Math.abs(netTotal))}`}
                               </span>
                             </div>
@@ -712,9 +712,9 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                                       <p className="text-green-600">Desconto: -{formatCurrency(item.discountAmount)}</p>
                                     )}
                                     {item.replacementCredit !== 0 && (
-                                      <p className="text-green-600">Crédito: {formatCurrency(Math.abs(item.replacementCredit))}</p>
+                                      <p className="text-amber-600">Crédito: {formatCurrency(Math.abs(item.replacementCredit))}</p>
                                     )}
-                                    <p className={`font-semibold ${item.netPrice >= 0 ? '' : 'text-green-600'}`}>
+                                    <p className={`font-semibold ${item.netPrice < 0 ? 'text-amber-600' : ''}`}>
                                       Líquido: {item.netPrice >= 0 ? formatCurrency(item.netPrice) : `-${formatCurrency(Math.abs(item.netPrice))}`}
                                     </p>
                                   </div>
@@ -728,7 +728,7 @@ export function ContractSummaryView({ contractId }: ContractSummaryViewProps) {
                   })}
                   
                   {/* Total das ATOs */}
-                  <div className={`flex justify-between font-semibold ${atosPrice >= 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                  <div className={`flex justify-between font-semibold ${atosPrice < 0 ? 'text-amber-600' : ''}`}>
                     <span>Total Alterações ({atosCount} ATOs)</span>
                     <span>{atosPrice >= 0 ? `+${formatCurrency(atosPrice)}` : `-${formatCurrency(Math.abs(atosPrice))}`}</span>
                   </div>
