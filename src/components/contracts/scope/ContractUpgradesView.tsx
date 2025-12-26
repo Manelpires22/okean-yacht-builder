@@ -39,7 +39,12 @@ export function ContractUpgradesView({ upgrades }: ContractUpgradesViewProps) {
   }
 
   const totalPrice = upgrades.reduce((sum, u) => sum + (u.price || 0), 0);
-  const totalDays = upgrades.reduce((sum, u) => sum + (u.delivery_days_impact || 0), 0);
+  
+  // ✅ CORRIGIDO: MAX de dias ao invés de SUM
+  const maxDays = upgrades.reduce(
+    (max, u) => Math.max(max, u.delivery_days_impact || 0),
+    0
+  );
 
   return (
     <Card>
@@ -51,8 +56,8 @@ export function ContractUpgradesView({ upgrades }: ContractUpgradesViewProps) {
         <div className="flex gap-2">
           <Badge variant="secondary">{upgrades.length} upgrade(s)</Badge>
           <Badge variant="outline">{formatCurrency(totalPrice)}</Badge>
-          {totalDays > 0 && (
-            <Badge variant="outline">+{totalDays} dias</Badge>
+          {maxDays > 0 && (
+            <Badge variant="outline">+{maxDays} dias</Badge>
           )}
         </div>
       </CardHeader>

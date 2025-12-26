@@ -26,8 +26,10 @@ interface ContractOptionsViewProps {
 
 export function ContractOptionsView({ options }: ContractOptionsViewProps) {
   const totalPrice = options.reduce((sum, opt) => sum + opt.total_price, 0);
-  const totalDeliveryDays = options.reduce(
-    (sum, opt) => sum + (opt.delivery_days_impact || 0),
+  
+  // ✅ CORRIGIDO: MAX de dias ao invés de SUM
+  const maxDeliveryDays = options.reduce(
+    (max, opt) => Math.max(max, opt.delivery_days_impact || 0),
     0
   );
 
@@ -120,9 +122,9 @@ export function ContractOptionsView({ options }: ContractOptionsViewProps) {
             </div>
             <div className="text-right space-y-1">
               <p className="text-2xl font-bold">{formatCurrency(totalPrice)}</p>
-              {totalDeliveryDays > 0 && (
+              {maxDeliveryDays > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  +{totalDeliveryDays} dias no prazo
+                  +{maxDeliveryDays} dias no prazo
                 </p>
               )}
             </div>

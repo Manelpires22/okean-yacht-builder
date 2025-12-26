@@ -307,7 +307,8 @@ serve(async (req) => {
       // Calculate ATOs totals
       const approvedATOs = contract.atos?.filter((ato: any) => ato.status === "approved") || [];
       const totalATOsPrice = approvedATOs.reduce((sum: number, ato: any) => sum + (ato.price_impact || 0), 0);
-      const totalATOsDays = approvedATOs.reduce((sum: number, ato: any) => sum + (ato.delivery_days_impact || 0), 0);
+      // ✅ CORRIGIDO: MAX ao invés de SUM para dias
+      const totalATOsDays = approvedATOs.reduce((max: number, ato: any) => Math.max(max, ato.delivery_days_impact || 0), 0);
 
       let yPos = 70;
       doc.setFillColor(232, 244, 253);

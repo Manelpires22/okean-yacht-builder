@@ -392,14 +392,19 @@ export function ATODetailDialog({
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium">Impacto no Prazo</span>
                       </div>
-                      <p
-                        className={`text-2xl font-bold ${
-                          ato.delivery_days_impact > 0 ? "text-orange-600" : ""
-                        }`}
-                      >
-                        {ato.delivery_days_impact > 0 ? "+" : ""}
-                        {ato.delivery_days_impact} dias
-                      </p>
+                      {/* ✅ Calcular MAX de dias dos itens configurados */}
+                      {(() => {
+                        const maxDaysFromItems = configurations?.reduce(
+                          (max, config) => Math.max(max, config.delivery_impact_days || 0),
+                          0
+                        ) || 0;
+                        const displayDays = maxDaysFromItems > 0 ? maxDaysFromItems : (ato.delivery_days_impact || 0);
+                        return (
+                          <p className={`text-2xl font-bold ${displayDays > 0 ? "text-orange-600" : ""}`}>
+                            {displayDays > 0 ? "+" : ""}{displayDays} dias
+                          </p>
+                        );
+                      })()}
                     </div>
                   </div>
 
