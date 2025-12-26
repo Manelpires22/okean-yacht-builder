@@ -295,7 +295,12 @@ export default function Configurator() {
 
               <TabsContent value="base" className="space-y-6 mt-6">
                 {selectedModel && (
-                  <ModelBaseTab model={selectedModel} hullNumberData={state.hull_number_data} />
+                  <>
+                    {/* DEBUG: Log do state.hull_number_data */}
+                    {console.log('🔍 Configurator - state.hull_number_data:', state.hull_number_data)}
+                    {console.log('🔍 Configurator - full state:', state)}
+                    <ModelBaseTab model={selectedModel} hullNumberData={state.hull_number_data} />
+                  </>
                 )}
               </TabsContent>
 
