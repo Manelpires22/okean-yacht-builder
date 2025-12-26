@@ -137,9 +137,22 @@ export default function PublicQuotationView() {
   const totalOptionsPrice = quotation.total_options_price || 0;
   const totalCustomizationsPrice = quotation.total_customizations_price || 0;
 
-  const totalDiscount = 
-    (quotation.base_price * ((quotation.base_discount_percentage || 0) / 100)) +
-    (totalOptionsPrice * ((quotation.options_discount_percentage || 0) / 100));
+  // Calcular descontos (upgrades recebem mesmo desconto de opcionais)
+  const baseDiscountPercentage = quotation.base_discount_percentage || 0;
+  const optionsDiscountPercentage = quotation.options_discount_percentage || 0;
+  
+  const baseDiscountAmount = quotation.base_price * (baseDiscountPercentage / 100);
+  const optionsDiscountAmount = totalOptionsPrice * (optionsDiscountPercentage / 100);
+  const upgradesDiscountAmount = totalUpgradesPrice * (optionsDiscountPercentage / 100);
+  
+  const computedTotalDiscount = baseDiscountAmount + optionsDiscountAmount + upgradesDiscountAmount;
+
+  // Calcular preço final correto (recalculado para garantir consistência)
+  const finalBasePrice = quotation.base_price - baseDiscountAmount;
+  const finalOptionsPrice = totalOptionsPrice - optionsDiscountAmount;
+  const finalUpgradesPrice = totalUpgradesPrice - upgradesDiscountAmount;
+  
+  const computedFinalPrice = finalBasePrice + finalOptionsPrice + finalUpgradesPrice + totalCustomizationsPrice;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-background">
@@ -174,10 +187,10 @@ export default function PublicQuotationView() {
           upgradesPrice={totalUpgradesPrice}
           optionsPrice={totalOptionsPrice}
           customizationsPrice={totalCustomizationsPrice}
-          finalPrice={quotation.final_price}
+          finalPrice={computedFinalPrice}
           baseDeliveryDays={quotation.base_delivery_days}
           totalDeliveryDays={quotation.total_delivery_days}
-          discountAmount={totalDiscount}
+          discountAmount={computedTotalDiscount}
           estimatedDeliveryDate={quotation.hull_number?.estimated_delivery_date}
           hullNumber={quotation.hull_number?.hull_number}
         />

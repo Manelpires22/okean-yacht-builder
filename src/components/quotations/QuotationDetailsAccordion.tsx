@@ -38,18 +38,55 @@ export function QuotationDetailsAccordion({
   // Buscar itens do memorial para o modelo
   const { data: memorialItems, isLoading: isLoadingMemorial } = useMemorialItems(quotation.yacht_model_id);
   
-  // Memoizar contadores (evita recálculos a cada render)
-  const { optionsCount, customizationsCount, pendingCustomizationsCount, upgradesCount, totalUpgradesPrice } = useMemo(() => ({
-    optionsCount: quotation.quotation_options?.length || 0,
-    customizationsCount: quotation.quotation_customizations?.length || 0,
-    pendingCustomizationsCount: quotation.quotation_customizations?.filter(
-      (c: any) => c.status === 'pending'
-    ).length || 0,
-    upgradesCount: quotation.quotation_upgrades?.length || 0,
-    totalUpgradesPrice: quotation.quotation_upgrades?.reduce(
-      (sum: number, u: any) => sum + (u.price || 0), 0
-    ) || 0,
-  }), [quotation.quotation_options, quotation.quotation_customizations, quotation.quotation_upgrades]);
+  // Memoizar contadores e cálculos financeiros
+  const { 
+    optionsCount, 
+    customizationsCount, 
+    pendingCustomizationsCount, 
+    upgradesCount, 
+    totalUpgradesPrice,
+    totalOptionsPrice,
+    optionsDiscountPercentage,
+    baseDiscountPercentage,
+    optionsDiscountAmount,
+    upgradesDiscountAmount,
+    finalUpgradesPrice,
+    computedFinalPrice
+  } = useMemo(() => {
+    const upgrades = quotation.quotation_upgrades || [];
+    const options = quotation.quotation_options || [];
+    const customizations = quotation.quotation_customizations || [];
+    
+    const totalUpgrades = upgrades.reduce((sum: number, u: any) => sum + (u.price || 0), 0);
+    const totalOptions = quotation.total_options_price || 0;
+    const totalCustomizations = quotation.total_customizations_price || 0;
+    
+    const baseDiscount = quotation.base_discount_percentage || 0;
+    const optDiscount = quotation.options_discount_percentage || 0;
+    
+    const baseDiscountAmt = quotation.base_price * (baseDiscount / 100);
+    const optDiscountAmt = totalOptions * (optDiscount / 100);
+    const upgDiscountAmt = totalUpgrades * (optDiscount / 100);
+    
+    const finalBase = quotation.base_price - baseDiscountAmt;
+    const finalOpts = totalOptions - optDiscountAmt;
+    const finalUpgs = totalUpgrades - upgDiscountAmt;
+    
+    return {
+      optionsCount: options.length,
+      customizationsCount: customizations.length,
+      pendingCustomizationsCount: customizations.filter((c: any) => c.status === 'pending').length,
+      upgradesCount: upgrades.length,
+      totalUpgradesPrice: totalUpgrades,
+      totalOptionsPrice: totalOptions,
+      optionsDiscountPercentage: optDiscount,
+      baseDiscountPercentage: baseDiscount,
+      optionsDiscountAmount: optDiscountAmt,
+      upgradesDiscountAmount: upgDiscountAmt,
+      finalUpgradesPrice: finalUpgs,
+      computedFinalPrice: finalBase + finalOpts + finalUpgs + totalCustomizations
+    };
+  }, [quotation]);
 
   // Criar mapa para customizações por option_id (O(1) lookup)
   const customizationsByOptionId = useMemo(() => {
@@ -374,11 +411,27 @@ export function QuotationDetailsAccordion({
 
           {upgradesCount > 0 && (
             <>
-              <div className="flex justify-between text-amber-600">
-                <span className="font-medium">Total de Upgrades</span>
-                <span className="font-semibold">
-                  +{formatCurrency(totalUpgradesPrice)}
-                </span>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total de Upgrades</span>
+                  <span className="font-medium text-amber-600">
+                    {formatCurrency(totalUpgradesPrice)}
+                  </span>
+                </div>
+                
+                {optionsDiscountPercentage > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Desconto sobre Upgrades ({optionsDiscountPercentage}%)</span>
+                    <span className="font-medium">
+                      -{formatCurrency(upgradesDiscountAmount)}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between">
+                  <span className="font-medium">Upgrades Final</span>
+                  <span className="font-semibold text-amber-600">{formatCurrency(finalUpgradesPrice)}</span>
+                </div>
               </div>
               <Separator />
             </>
@@ -398,7 +451,7 @@ export function QuotationDetailsAccordion({
 
           <div className="flex justify-between text-lg font-bold pt-2">
             <span>Valor Total</span>
-            <span className="text-primary">{formatCurrency(quotation.final_price)}</span>
+            <span className="text-primary">{formatCurrency(computedFinalPrice)}</span>
           </div>
         </AccordionContent>
       </AccordionItem>
