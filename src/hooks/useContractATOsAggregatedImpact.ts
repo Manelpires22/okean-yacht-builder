@@ -110,11 +110,11 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
         let hasReplacements = false;
 
         for (const config of configurations || []) {
-          const deliveryDays = config.delivery_impact_days || 0;
+          const deliveryDays = Number(config.delivery_impact_days) || 0;
           atoMaxDays = Math.max(atoMaxDays, deliveryDays);
 
-          const originalPrice = config.original_price || 0;
-          const discountPercentage = config.discount_percentage || 0;
+          const originalPrice = Number(config.original_price) || 0;
+          const discountPercentage = Number(config.discount_percentage) || 0;
           const discountAmount = originalPrice * (discountPercentage / 100);
           
           let replacementCredit = 0;
@@ -127,11 +127,11 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
               .from("memorial_upgrades")
               .select("id, name, code, memorial_item_id, price")
               .eq("id", config.item_id)
-              .single();
+              .maybeSingle();
 
             if (upgradeData) {
-              itemName = upgradeData.name;
-              itemCode = upgradeData.code;
+              itemName = upgradeData.name || 'Upgrade';
+              itemCode = upgradeData.code || '';
               const memorialItemId = upgradeData.memorial_item_id;
 
               // Verificar substituição
@@ -141,7 +141,7 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
 
               if (existingUpgrade) {
                 // Substituição: o crédito é o preço do upgrade antigo (negativo)
-                replacementCredit = -existingUpgrade.price;
+                replacementCredit = -(Number(existingUpgrade.price) || 0);
                 hasReplacements = true;
               }
             }
@@ -150,11 +150,11 @@ export function useContractATOsAggregatedImpact(contractId: string | undefined) 
               .from("options")
               .select("id, name, code")
               .eq("id", config.item_id)
-              .single();
+              .maybeSingle();
 
             if (optionData) {
-              itemName = optionData.name;
-              itemCode = optionData.code;
+              itemName = optionData.name || 'Opcional';
+              itemCode = optionData.code || '';
             }
           } else if (config.item_type === "customization") {
             itemName = config.notes || 'Customização';
