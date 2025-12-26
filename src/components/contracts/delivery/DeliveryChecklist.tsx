@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DeliveryChecklistItemComponent } from "./DeliveryChecklistItem";
+import { ATOChecklistGroup } from "./ATOChecklistGroup";
 import { DeliveryChecklistItem, useRepopulateChecklist } from "@/hooks/useContractDeliveryChecklist";
-import { Package, Settings, Plus, FileText, ArrowUpCircle, Wrench, RefreshCw } from "lucide-react";
+import { Package, Settings, FileText, ArrowUpCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface DeliveryChecklistProps {
@@ -24,14 +26,6 @@ const ITEM_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentTyp
   customization: {
     label: "Customizações",
     icon: Settings,
-  },
-  ato_item: {
-    label: "ATOs Aprovadas",
-    icon: Plus,
-  },
-  ato_config_item: {
-    label: "Definições de ATOs",
-    icon: Wrench,
   },
   memorial_item: {
     label: "Itens de Memorial",
@@ -59,6 +53,64 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
       toast.error("Erro ao atualizar checklist");
     }
   };
+
+  // Separar itens normais dos itens de ATO e agrupar por ATO
+  const { normalGroupedItems, atoGroups } = useMemo(() => {
+    if (!items || items.length === 0) {
+      return { normalGroupedItems: {}, atoGroups: {} };
+    }
+
+    // Itens normais (não são de ATO)
+    const normalItems = items.filter(
+      i => i.item_type !== "ato_item" && i.item_type !== "ato_config_item"
+    );
+
+    // Agrupar itens normais por tipo
+    const normalGrouped = normalItems.reduce((acc, item) => {
+      if (!acc[item.item_type]) {
+        acc[item.item_type] = [];
+      }
+      acc[item.item_type].push(item);
+      return acc;
+    }, {} as Record<string, DeliveryChecklistItem[]>);
+
+    // Agrupar ATOs e suas configurações
+    const atoItems = items.filter(i => i.item_type === "ato_item");
+    const atoConfigItems = items.filter(i => i.item_type === "ato_config_item");
+
+    const atoGroupsMap: Record<string, {
+      ato: DeliveryChecklistItem;
+      configs: DeliveryChecklistItem[];
+    }> = {};
+
+    // Criar grupos por ATO
+    atoItems.forEach(ato => {
+      const atoNumber = ato.item_code || ato.item_name;
+      atoGroupsMap[atoNumber] = { ato, configs: [] };
+    });
+
+    // Associar configurações às suas ATOs
+    atoConfigItems.forEach(config => {
+      // Extrair número da ATO do código (formato: "ATO 1::OPT-001" ou apenas "ATO 1")
+      const atoNumber = config.item_code?.split("::")[0];
+      
+      if (atoNumber && atoGroupsMap[atoNumber]) {
+        atoGroupsMap[atoNumber].configs.push(config);
+      } else {
+        // Fallback: tentar encontrar pelo nome
+        const matchingAto = Object.keys(atoGroupsMap).find(key => 
+          config.item_code?.startsWith(key) || 
+          config.item_name?.includes(key)
+        );
+        
+        if (matchingAto) {
+          atoGroupsMap[matchingAto].configs.push(config);
+        }
+      }
+    });
+
+    return { normalGroupedItems: normalGrouped, atoGroups: atoGroupsMap };
+  }, [items]);
 
   if (isLoading) {
     return (
@@ -101,14 +153,8 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
     );
   }
 
-  // Agrupar itens por tipo
-  const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.item_type]) {
-      acc[item.item_type] = [];
-    }
-    acc[item.item_type].push(item);
-    return acc;
-  }, {} as Record<string, DeliveryChecklistItem[]>);
+  const hasNormalItems = Object.keys(normalGroupedItems).length > 0;
+  const hasATOs = Object.keys(atoGroups).length > 0;
 
   return (
     <div className="space-y-6">
@@ -127,8 +173,8 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
         </div>
       )}
 
-      {Object.entries(groupedItems).map(([type, typeItems]) => {
-        // Usar config mapeado ou fallback
+      {/* Seções de itens normais (Opcionais, Upgrades, Customizações) */}
+      {hasNormalItems && Object.entries(normalGroupedItems).map(([type, typeItems]) => {
         const config = ITEM_TYPE_CONFIG[type] || { ...DEFAULT_CONFIG, label: type };
         const Icon = config.icon;
         const verifiedCount = typeItems.filter((item) => item.is_verified).length;
@@ -154,6 +200,24 @@ export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChec
           </Card>
         );
       })}
+
+      {/* Seção de ATOs - cada ATO com seus itens agrupados */}
+      {hasATOs && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            ATOs Aprovadas
+          </h3>
+          
+          {Object.values(atoGroups).map(({ ato, configs }) => (
+            <ATOChecklistGroup
+              key={ato.id}
+              atoItem={ato}
+              configItems={configs}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
