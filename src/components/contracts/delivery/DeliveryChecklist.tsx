@@ -1,15 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { DeliveryChecklistItemComponent } from "./DeliveryChecklistItem";
-import { DeliveryChecklistItem } from "@/hooks/useContractDeliveryChecklist";
-import { Package, Settings, Plus, FileText, ArrowUpCircle, Wrench } from "lucide-react";
+import { DeliveryChecklistItem, useRepopulateChecklist } from "@/hooks/useContractDeliveryChecklist";
+import { Package, Settings, Plus, FileText, ArrowUpCircle, Wrench, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 interface DeliveryChecklistProps {
   items: DeliveryChecklistItem[];
   isLoading?: boolean;
+  contractId?: string;
 }
 
-const ITEM_TYPE_CONFIG = {
+const ITEM_TYPE_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   option: {
     label: "Opcionais Contratados",
     icon: Package,
@@ -36,7 +39,27 @@ const ITEM_TYPE_CONFIG = {
   },
 };
 
-export function DeliveryChecklist({ items, isLoading }: DeliveryChecklistProps) {
+// Fallback para tipos não mapeados
+const DEFAULT_CONFIG = {
+  label: "Outros Itens",
+  icon: FileText,
+};
+
+export function DeliveryChecklist({ items, isLoading, contractId }: DeliveryChecklistProps) {
+  const repopulateMutation = useRepopulateChecklist();
+
+  const handleRepopulate = async () => {
+    if (!contractId) return;
+    
+    try {
+      await repopulateMutation.mutateAsync(contractId);
+      toast.success("Checklist atualizado com sucesso!");
+    } catch (error) {
+      console.error("Error repopulating checklist:", error);
+      toast.error("Erro ao atualizar checklist");
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -55,8 +78,19 @@ export function DeliveryChecklist({ items, isLoading }: DeliveryChecklistProps) 
   if (!items || items.length === 0) {
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Checklist de Entrega</CardTitle>
+          {contractId && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRepopulate}
+              disabled={repopulateMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${repopulateMutation.isPending ? 'animate-spin' : ''}`} />
+              Repopular
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-center py-8">
@@ -78,8 +112,24 @@ export function DeliveryChecklist({ items, isLoading }: DeliveryChecklistProps) 
 
   return (
     <div className="space-y-6">
+      {/* Botão de repopular no topo */}
+      {contractId && (
+        <div className="flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRepopulate}
+            disabled={repopulateMutation.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${repopulateMutation.isPending ? 'animate-spin' : ''}`} />
+            Atualizar Checklist
+          </Button>
+        </div>
+      )}
+
       {Object.entries(groupedItems).map(([type, typeItems]) => {
-        const config = ITEM_TYPE_CONFIG[type as keyof typeof ITEM_TYPE_CONFIG];
+        // Usar config mapeado ou fallback
+        const config = ITEM_TYPE_CONFIG[type] || { ...DEFAULT_CONFIG, label: type };
         const Icon = config.icon;
         const verifiedCount = typeItems.filter((item) => item.is_verified).length;
 

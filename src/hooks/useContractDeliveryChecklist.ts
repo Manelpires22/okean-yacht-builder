@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface DeliveryChecklistItem {
@@ -66,6 +66,42 @@ export function useContractDeliveryChecklist(contractId: string | undefined) {
 }
 
 /**
+ * Hook para repopular o checklist (limpa e recria)
+ */
+export function useRepopulateChecklist() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (contractId: string) => {
+      // 1. Deletar checklist existente
+      const { error: deleteError } = await supabase
+        .from("contract_delivery_checklist")
+        .delete()
+        .eq("contract_id", contractId);
+
+      if (deleteError) throw deleteError;
+
+      // 2. Repopular
+      await populateChecklist(contractId);
+
+      // 3. Buscar novamente
+      const { data: newChecklist, error: newError } = await supabase
+        .from("contract_delivery_checklist")
+        .select("*")
+        .eq("contract_id", contractId)
+        .order("item_type")
+        .order("item_name");
+
+      if (newError) throw newError;
+      return newChecklist as DeliveryChecklistItem[];
+    },
+    onSuccess: (_, contractId) => {
+      queryClient.invalidateQueries({ queryKey: ["contract-delivery-checklist", contractId] });
+    },
+  });
+}
+
+/**
  * Função auxiliar para popular checklist com itens do contrato
  */
 async function populateChecklist(contractId: string) {
@@ -75,7 +111,8 @@ async function populateChecklist(contractId: string) {
     .select(`
       id,
       base_snapshot,
-      yacht_model_id
+      yacht_model_id,
+      quotation_id
     `)
     .eq("id", contractId)
     .single();
@@ -112,17 +149,11 @@ async function populateChecklist(contractId: string) {
   }
 
   // 3. Buscar customizações incluídas no contrato
-  const { data: contractData } = await supabase
-    .from("contracts")
-    .select("quotation_id")
-    .eq("id", contractId)
-    .single();
-
-  if (contractData?.quotation_id) {
+  if (contract.quotation_id) {
     const { data: customizations, error: customError } = await supabase
       .from("quotation_customizations")
       .select("id, item_name, customization_code")
-      .eq("quotation_id", contractData.quotation_id)
+      .eq("quotation_id", contract.quotation_id)
       .eq("included_in_contract", true);
 
     if (!customError && customizations) {
@@ -156,30 +187,85 @@ async function populateChecklist(contractId: string) {
       });
     });
 
-    // 5. Buscar configurações das ATOs aprovadas
+    // 5. Buscar TODAS as configurações das ATOs (exceto rejeitadas)
     if (atos.length > 0) {
       const atoIds = atos.map((ato: any) => ato.id);
       
+      // Buscar configurações - trazer tudo, exceto rejeitadas
       const { data: atoConfigs, error: configsError } = await supabase
         .from("ato_configurations")
         .select(`
           id,
           item_type,
+          item_id,
           configuration_details,
+          notes,
+          pm_status,
           ato:additional_to_orders(ato_number)
         `)
         .in("ato_id", atoIds)
-        .eq("pm_status", "approved");
+        .neq("pm_status", "rejected");
 
-      if (!configsError && atoConfigs) {
+      if (!configsError && atoConfigs && atoConfigs.length > 0) {
+        // Coletar IDs por tipo para buscar nomes
+        const optionIds: string[] = [];
+        const memorialItemIds: string[] = [];
+        const upgradeIds: string[] = [];
+
+        atoConfigs.forEach((config: any) => {
+          if (config.item_id) {
+            if (config.item_type === "option") {
+              optionIds.push(config.item_id);
+            } else if (config.item_type === "memorial_item") {
+              memorialItemIds.push(config.item_id);
+            } else if (config.item_type === "upgrade") {
+              upgradeIds.push(config.item_id);
+            }
+          }
+        });
+
+        // Buscar nomes em lote
+        const namesMaps = await fetchItemNames(optionIds, memorialItemIds, upgradeIds);
+
+        // Processar configurações
         atoConfigs.forEach((config: any) => {
           const details = config.configuration_details as any;
+          
+          // Determinar nome do item com fallback
+          let itemName = details?.item_name || details?.name || details?.title || config.notes;
+          
+          // Se não tem nome nos details, buscar na tabela relacionada
+          if (!itemName && config.item_id) {
+            if (config.item_type === "option" && namesMaps.options[config.item_id]) {
+              itemName = namesMaps.options[config.item_id].name;
+            } else if (config.item_type === "memorial_item" && namesMaps.memorialItems[config.item_id]) {
+              itemName = namesMaps.memorialItems[config.item_id].name;
+            } else if (config.item_type === "upgrade" && namesMaps.upgrades[config.item_id]) {
+              itemName = namesMaps.upgrades[config.item_id].name;
+            }
+          }
+
+          // Fallback final
+          if (!itemName) {
+            itemName = `Item ${config.item_type}`;
+          }
+
+          // Determinar código do item
+          let itemCode = config.ato?.ato_number;
+          if (config.item_id) {
+            if (config.item_type === "option" && namesMaps.options[config.item_id]?.code) {
+              itemCode = namesMaps.options[config.item_id].code;
+            } else if (config.item_type === "upgrade" && namesMaps.upgrades[config.item_id]?.code) {
+              itemCode = namesMaps.upgrades[config.item_id].code;
+            }
+          }
+
           items.push({
             contract_id: contractId,
             item_type: "ato_config_item",
             item_id: config.id,
-            item_name: details?.item_name || details?.name || `Item ${config.item_type}`,
-            item_code: config.ato?.ato_number,
+            item_name: itemName,
+            item_code: itemCode,
           });
         });
       }
@@ -194,8 +280,72 @@ async function populateChecklist(contractId: string) {
 
     if (insertError) {
       console.error("Error populating checklist:", insertError);
+      throw insertError;
     }
   }
+}
+
+/**
+ * Buscar nomes de itens em lote para melhor performance
+ */
+async function fetchItemNames(
+  optionIds: string[],
+  memorialItemIds: string[],
+  upgradeIds: string[]
+): Promise<{
+  options: Record<string, { name: string; code: string }>;
+  memorialItems: Record<string, { name: string }>;
+  upgrades: Record<string, { name: string; code: string }>;
+}> {
+  const result = {
+    options: {} as Record<string, { name: string; code: string }>,
+    memorialItems: {} as Record<string, { name: string }>,
+    upgrades: {} as Record<string, { name: string; code: string }>,
+  };
+
+  // Buscar opções
+  if (optionIds.length > 0) {
+    const { data: options } = await supabase
+      .from("options")
+      .select("id, name, code")
+      .in("id", optionIds);
+
+    if (options) {
+      options.forEach((opt) => {
+        result.options[opt.id] = { name: opt.name, code: opt.code };
+      });
+    }
+  }
+
+  // Buscar itens de memorial
+  if (memorialItemIds.length > 0) {
+    const { data: memorialItems } = await supabase
+      .from("memorial_items")
+      .select("id, item_name")
+      .in("id", memorialItemIds);
+
+    if (memorialItems) {
+      memorialItems.forEach((item) => {
+        result.memorialItems[item.id] = { name: item.item_name };
+      });
+    }
+  }
+
+  // Buscar upgrades
+  if (upgradeIds.length > 0) {
+    const { data: upgrades } = await supabase
+      .from("memorial_upgrades")
+      .select("id, name, code")
+      .in("id", upgradeIds);
+
+    if (upgrades) {
+      upgrades.forEach((upg) => {
+        result.upgrades[upg.id] = { name: upg.name, code: upg.code };
+      });
+    }
+  }
+
+  return result;
 }
 
 /**
