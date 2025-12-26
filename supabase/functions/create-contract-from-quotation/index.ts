@@ -93,14 +93,53 @@ serve(async (req) => {
       .padStart(4, "0");
     const contractNumber = `CTR-${year}-${random}`;
 
-    // 3. Criar snapshot da cotação
+    // 3. Recalcular o preço final corretamente (incluindo upgrades)
+    // O campo quotation.final_price pode não incluir upgrades corretamente
+    const basePrice = quotation.base_price || 0;
+    const baseDiscount = quotation.base_discount_percentage || 0;
+    const optionsDiscount = quotation.options_discount_percentage || 0;
+
+    // Total de opcionais
+    const optionsTotal = (quotation.quotation_options || []).reduce(
+      (sum: number, opt: any) => sum + (opt.total_price || 0), 
+      0
+    );
+
+    // Total de upgrades
+    const upgradesTotal = (quotation.quotation_upgrades || []).reduce(
+      (sum: number, upg: any) => sum + (upg.price || 0), 
+      0
+    );
+
+    // Aplicar descontos
+    const finalBasePrice = basePrice * (1 - baseDiscount / 100);
+    const finalOptionsPrice = optionsTotal * (1 - optionsDiscount / 100);
+    const finalUpgradesPrice = upgradesTotal * (1 - optionsDiscount / 100);
+
+    // Preço final recalculado (correto)
+    const calculatedFinalPrice = finalBasePrice + finalOptionsPrice + finalUpgradesPrice;
+
+    console.log("Price calculation:", {
+      basePrice,
+      baseDiscount,
+      optionsTotal,
+      optionsDiscount,
+      upgradesTotal,
+      finalBasePrice,
+      finalOptionsPrice,
+      finalUpgradesPrice,
+      calculatedFinalPrice,
+      originalFinalPrice: quotation.final_price
+    });
+
+    // 4. Criar snapshot da cotação
     const snapshot = {
       quotation_id: quotation.id,
       quotation_number: quotation.quotation_number,
       client: quotation.client,
       yacht_model: quotation.yacht_model,
       base_price: quotation.base_price,
-      final_price: quotation.final_price,
+      final_price: calculatedFinalPrice, // Usar preço recalculado
       base_delivery_days: quotation.base_delivery_days,
       total_delivery_days: quotation.total_delivery_days,
       selected_options: quotation.quotation_options || [],
@@ -111,7 +150,7 @@ serve(async (req) => {
       created_at: new Date().toISOString(),
     };
 
-    // 4. Criar contrato
+    // 5. Criar contrato
     // Determinar quem assinou: se accepted, é o cliente; se approved, é interno
     const isInternalApproval = quotation.status === 'approved';
     const signedByName = isInternalApproval 
@@ -129,10 +168,10 @@ serve(async (req) => {
         yacht_model_id: quotation.yacht_model_id,
         hull_number_id: quotation.hull_number_id || null,
         contract_number: contractNumber,
-        base_price: quotation.final_price,
+        base_price: calculatedFinalPrice, // Usar preço recalculado
         base_delivery_days: quotation.total_delivery_days,
         base_snapshot: snapshot,
-        current_total_price: quotation.final_price,
+        current_total_price: calculatedFinalPrice, // Usar preço recalculado
         current_total_delivery_days: quotation.total_delivery_days,
         status: "active",
         signed_at: quotation.accepted_at || new Date().toISOString(),
@@ -148,7 +187,7 @@ serve(async (req) => {
       throw new Error("Failed to create contract: " + contractError.message);
     }
 
-    // 5. Atualizar hull_number como vendido e vincular ao contrato
+    // 6. Atualizar hull_number como vendido e vincular ao contrato
     if (quotation.hull_number_id) {
       const { error: hullError } = await supabase
         .from("hull_numbers")
@@ -165,7 +204,7 @@ serve(async (req) => {
       }
     }
 
-    // 6. Marcar customizações aprovadas como incluídas no contrato
+    // 7. Marcar customizações aprovadas como incluídas no contrato
     if (quotation.quotation_customizations && quotation.quotation_customizations.length > 0) {
       const approvedCustomizationIds = quotation.quotation_customizations
         .filter((c: any) => c.status === "approved")
@@ -185,7 +224,7 @@ serve(async (req) => {
       }
     }
 
-    // 7. Atualizar status da cotação
+    // 8. Atualizar status da cotação
     const { error: updateError } = await supabase
       .from("quotations")
       .update({ status: "converted_to_contract" })
@@ -195,7 +234,7 @@ serve(async (req) => {
       console.warn("Could not update quotation status:", updateError);
     }
 
-    // 8. Criar log de auditoria
+    // 9. Criar log de auditoria
     await supabase.from("audit_logs").insert({
       user_id: user.id,
       action: "CREATE_CONTRACT",
