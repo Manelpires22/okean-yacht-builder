@@ -291,6 +291,8 @@ export default function QuotationDetail() {
           baseDeliveryDays={quotation.base_delivery_days}
           totalDeliveryDays={quotation.total_delivery_days}
           discountAmount={totalDiscount}
+          estimatedDeliveryDate={quotation.hull_number?.estimated_delivery_date}
+          hullNumber={quotation.hull_number?.hull_number}
         />
 
         {/* Alerta de Revalidação (se necessário) */}

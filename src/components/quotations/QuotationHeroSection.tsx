@@ -1,7 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDays } from "@/lib/quotation-utils";
-import { Ship, Calendar, TrendingUp } from "lucide-react";
+import { Calendar, TrendingUp } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface QuotationHeroSectionProps {
   yachtModel: {
@@ -15,6 +17,8 @@ interface QuotationHeroSectionProps {
   baseDeliveryDays: number;
   totalDeliveryDays: number;
   discountAmount?: number;
+  estimatedDeliveryDate?: string;
+  hullNumber?: string;
 }
 
 export function QuotationHeroSection({
@@ -23,7 +27,9 @@ export function QuotationHeroSection({
   finalPrice,
   baseDeliveryDays,
   totalDeliveryDays,
-  discountAmount = 0
+  discountAmount = 0,
+  estimatedDeliveryDate,
+  hullNumber
 }: QuotationHeroSectionProps) {
   const savings = discountAmount || (basePrice - finalPrice);
   const savingsPercentage = basePrice > 0 ? ((savings / basePrice) * 100).toFixed(1) : '0';
@@ -90,12 +96,19 @@ export function QuotationHeroSection({
           <div>
             <p className="text-sm text-muted-foreground mb-1 flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              Prazo de Entrega
+              {estimatedDeliveryDate ? "Entrega Prevista" : "Prazo de Entrega"}
             </p>
             <p className="text-2xl font-bold">
-              {formatDays(totalDeliveryDays)}
+              {estimatedDeliveryDate 
+                ? format(new Date(estimatedDeliveryDate), "dd/MM/yyyy", { locale: ptBR })
+                : formatDays(totalDeliveryDays)}
             </p>
-            {totalDeliveryDays > baseDeliveryDays && (
+            {hullNumber && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Matrícula: {hullNumber}
+              </p>
+            )}
+            {!estimatedDeliveryDate && totalDeliveryDays > baseDeliveryDays && (
               <p className="text-sm text-muted-foreground mt-1">
                 Base: {formatDays(baseDeliveryDays)} (+{totalDeliveryDays - baseDeliveryDays} dias de opcionais/customizações)
               </p>
