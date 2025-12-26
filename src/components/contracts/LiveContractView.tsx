@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLiveContract } from "@/hooks/useContracts";
+import { useLiveContract, useContract } from "@/hooks/useContracts";
 import { useConsolidatedContractScope } from "@/hooks/useConsolidatedContractScope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,23 +8,27 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, BookOpen, Package, Wrench, Settings, ArrowUpCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/quotation-utils";
+import { format, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { ContractMemorialView } from "./scope/ContractMemorialView";
 import { ContractOptionsView } from "./scope/ContractOptionsView";
 import { ContractUpgradesView } from "./scope/ContractUpgradesView";
 import { ContractCustomizationsView } from "./scope/ContractCustomizationsView";
 import { ContractATODefinitionsView } from "./scope/ContractATODefinitionsView";
 import { ATODetailDialog } from "./ATODetailDialog";
+
 interface LiveContractViewProps {
   contractId: string;
 }
 
 export function LiveContractView({ contractId }: LiveContractViewProps) {
   const { data: liveContract, isLoading: liveLoading } = useLiveContract(contractId);
+  const { data: contract, isLoading: contractLoading } = useContract(contractId);
   const { data: scopeData, isLoading: scopeLoading } = useConsolidatedContractScope(contractId);
   const [selectedATOId, setSelectedATOId] = useState<string | null>(null);
   const [showATODialog, setShowATODialog] = useState(false);
 
-  const isLoading = liveLoading || scopeLoading;
+  const isLoading = liveLoading || scopeLoading || contractLoading;
 
   const handleATOClick = (atoId: string) => {
     setSelectedATOId(atoId);
@@ -139,11 +143,13 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
               
               {/* Coluna PRAZOS */}
               <div className="space-y-6">
-                {/* 1. Prazo Original */}
+                {/* 1. Entrega Prevista (data do hull_number) */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Prazo Base</p>
+                  <p className="text-sm text-muted-foreground mb-2">Entrega Prevista</p>
                   <p className="text-3xl font-bold text-primary">
-                    {liveContract.base_delivery_days} dias
+                    {contract?.hull_number?.estimated_delivery_date
+                      ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
+                      : `${liveContract.base_delivery_days} dias`}
                   </p>
                 </div>
                 
@@ -158,11 +164,20 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                 {/* Separador visual */}
                 <Separator className="my-4" />
                 
-                {/* 3. Prazo Final */}
+                {/* 3. Data Ajustada (data base + impacto) */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-2">Prazo Total Atual</p>
+                  <p className="text-sm text-muted-foreground mb-2">Data Ajustada</p>
                   <p className="text-4xl font-bold text-primary">
-                    {liveContract.current_total_delivery_days} dias
+                    {contract?.hull_number?.estimated_delivery_date
+                      ? format(
+                          addDays(
+                            new Date(contract.hull_number.estimated_delivery_date),
+                            daysVariation
+                          ),
+                          "dd/MM/yyyy",
+                          { locale: ptBR }
+                        )
+                      : `${liveContract.current_total_delivery_days} dias`}
                   </p>
                   {daysVariation !== 0 && (
                     <p className="text-sm text-muted-foreground mt-2">
