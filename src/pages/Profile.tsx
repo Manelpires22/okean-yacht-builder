@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUpdateProfile, useChangePassword } from "@/hooks/useUpdateProfile";
+import { SecuritySettings } from "@/components/profile/SecuritySettings";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema, changePasswordSchema, type UpdateProfileInput, type ChangePasswordInput } from "@/lib/schemas/profile-schema";
@@ -188,7 +189,10 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Segurança */}
+        {/* Autenticação em Duas Etapas */}
+        <SecuritySettings />
+
+        {/* Segurança - Alterar Senha */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
