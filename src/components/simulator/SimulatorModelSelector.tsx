@@ -130,9 +130,19 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
                   className="cursor-pointer transition-all hover:border-primary hover:shadow-md group overflow-hidden"
                   onClick={() => handleSelectModel(cost)}
                 >
-                {/* Model Image Placeholder */}
-                  <div className="aspect-video bg-muted flex items-center justify-center">
-                    <Ship className="h-12 w-12 text-muted-foreground" />
+                  {/* Model Image */}
+                  <div className="aspect-video bg-muted overflow-hidden">
+                    {model?.image_url ? (
+                      <img 
+                        src={model.image_url} 
+                        alt={model.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Ship className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
                   
                   <CardContent className="p-4">
@@ -178,6 +188,14 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Suggested Price */}
+                    {model?.base_price && model.base_price > 0 && (
+                      <div className="flex justify-between text-sm font-medium text-primary mt-3 pt-3 border-t">
+                        <span>Preço Sugerido:</span>
+                        <span>R$ {model.base_price.toLocaleString()}</span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
