@@ -189,7 +189,7 @@ export function useSimulatorCommissions() {
       const { data, error } = await supabase
         .from("simulator_commissions")
         .select("*")
-        .order("display_order");
+        .order("name");
 
       if (error) throw error;
       return data as SimulatorCommission[];
