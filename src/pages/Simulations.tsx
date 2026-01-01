@@ -1,5 +1,5 @@
 import { SimulatorLayout } from "@/components/simulator/SimulatorLayout";
-import { SimulationResultsPanel } from "@/components/simulator/SimulationResultsPanel";
+import { MDCSimulationPanel } from "@/components/simulator/MDCSimulationPanel";
 import { SellerSelector } from "@/components/simulator/SellerSelector";
 import { SimulatorModelSelector } from "@/components/simulator/SimulatorModelSelector";
 import { useSimulatorState } from "@/hooks/useSimulatorState";
@@ -23,10 +23,12 @@ export default function Simulations() {
     );
   }
 
-  // Step 3: Full simulation
+  // Step 3: Full simulation with MDC Panel
   return (
     <SimulatorLayout state={state} onUpdateField={updateField} onReset={resetState}>
-      <SimulationResultsPanel state={state} />
+      <div className="p-6">
+        <MDCSimulationPanel state={state} onUpdateField={updateField} />
+      </div>
     </SimulatorLayout>
   );
 }
