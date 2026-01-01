@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, ArrowRight, Ship, Globe, Home } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSimulatorModelCosts, useSimulatorBusinessRules } from "@/hooks/useSimulatorConfig";
 import { AppHeader } from "@/components/AppHeader";
 import { Currency } from "@/hooks/useSimulatorState";
+import { ExportCountryDialog } from "./ExportCountryDialog";
 
 interface SimulatorModelSelectorProps {
   sellerName: string;
@@ -14,7 +15,10 @@ interface SimulatorModelSelectorProps {
     id: string;
     name: string;
     code: string;
+    basePrice: number;
     isExportable: boolean;
+    isExporting: boolean;
+    exportCountry: string | null;
     custoMpImport: number;
     custoMpImportCurrency: Currency;
     custoMpNacional: number;
@@ -23,13 +27,19 @@ interface SimulatorModelSelectorProps {
     taxImportPercent: number;
     salesTaxPercent: number;
     warrantyPercent: number;
+    royaltiesPercent: number;
   }) => void;
   onBack: () => void;
 }
 
+type ModelCost = NonNullable<ReturnType<typeof useSimulatorModelCosts>["data"]>[0];
+
 export function SimulatorModelSelector({ sellerName, onSelect, onBack }: SimulatorModelSelectorProps) {
   const { data: modelCosts, isLoading: isLoadingCosts } = useSimulatorModelCosts();
   const { data: businessRules } = useSimulatorBusinessRules();
+  
+  const [pendingModel, setPendingModel] = useState<ModelCost | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Get business rules values
   const getRuleValue = (key: string, defaultValue: number) => {
@@ -37,23 +47,39 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
     return rule?.rule_value ?? defaultValue;
   };
 
-  const handleSelectModel = (cost: NonNullable<typeof modelCosts>[0]) => {
+  const handleSelectModel = (cost: ModelCost) => {
     const isExportable = cost.is_exportable ?? false;
     
-    // Apply business rules based on exportable status
-    const salesTaxPercent = isExportable 
+    if (isExportable) {
+      // Se é exportável, mostrar dialog para perguntar destino
+      setPendingModel(cost);
+      setShowExportDialog(true);
+    } else {
+      // Se não é exportável, aplicar regras domésticas direto
+      finalizeSelection(cost, false, null);
+    }
+  };
+
+  const finalizeSelection = (cost: ModelCost, isExporting: boolean, exportCountry: string | null) => {
+    // Apply business rules based on export status
+    const salesTaxPercent = isExporting 
       ? getRuleValue("sales_tax_export", 0)
       : getRuleValue("sales_tax_domestic", 21);
     
-    const warrantyPercent = isExportable
+    const warrantyPercent = isExporting
       ? getRuleValue("warranty_export", 5)
       : getRuleValue("warranty_domestic", 3);
+    
+    const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
 
     onSelect({
       id: cost.yacht_model_id,
       name: cost.yacht_model?.name || "Modelo",
       code: cost.yacht_model?.code || "",
-      isExportable,
+      basePrice: cost.yacht_model?.base_price || 0,
+      isExportable: cost.is_exportable ?? false,
+      isExporting,
+      exportCountry,
       custoMpImport: cost.custo_mp_import,
       custoMpImportCurrency: (cost.custo_mp_import_currency || "EUR") as Currency,
       custoMpNacional: cost.custo_mp_nacional,
@@ -62,7 +88,16 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
       taxImportPercent: cost.tax_import_percent,
       salesTaxPercent,
       warrantyPercent,
+      royaltiesPercent,
     });
+  };
+
+  const handleExportConfirm = (isExporting: boolean, country: string | null) => {
+    if (pendingModel) {
+      finalizeSelection(pendingModel, isExporting, country);
+    }
+    setShowExportDialog(false);
+    setPendingModel(null);
   };
 
   return (
@@ -183,6 +218,13 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
           </div>
         )}
       </div>
+
+      {/* Export Country Dialog */}
+      <ExportCountryDialog
+        open={showExportDialog}
+        modelName={pendingModel?.yacht_model?.name || ""}
+        onConfirm={handleExportConfirm}
+      />
     </div>
   );
 }

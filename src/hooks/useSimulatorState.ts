@@ -19,6 +19,10 @@ export interface SimulatorState {
   selectedModelCode: string;
   isExportable: boolean;
   
+  // Exportação
+  isExporting: boolean; // Se está exportando (mesmo sendo exportável, pode vender nacional)
+  exportCountry: string | null;
+  
   // Câmbio
   eurRate: number;
   usdRate: number;
@@ -34,6 +38,12 @@ export interface SimulatorState {
   // Taxas (calculadas pelas regras de negócio)
   salesTaxPercent: number;
   warrantyPercent: number;
+  royaltiesPercent: number;
+  
+  // Inputs editáveis pelo usuário
+  faturamentoBruto: number;
+  transporteCost: number;
+  customizacoesEstimadas: number;
 }
 
 const DEFAULT_STATE: SimulatorState = {
@@ -49,6 +59,9 @@ const DEFAULT_STATE: SimulatorState = {
   selectedModelCode: "",
   isExportable: false,
   
+  isExporting: false,
+  exportCountry: null,
+  
   eurRate: 6.0,
   usdRate: 5.0,
   
@@ -61,6 +74,11 @@ const DEFAULT_STATE: SimulatorState = {
   
   salesTaxPercent: 21,
   warrantyPercent: 3,
+  royaltiesPercent: 0.6,
+  
+  faturamentoBruto: 0,
+  transporteCost: 0,
+  customizacoesEstimadas: 0,
 };
 
 export function useSimulatorState() {
@@ -97,7 +115,10 @@ export function useSimulatorState() {
     id: string;
     name: string;
     code: string;
+    basePrice: number;
     isExportable: boolean;
+    isExporting: boolean;
+    exportCountry: string | null;
     custoMpImport: number;
     custoMpImportCurrency: Currency;
     custoMpNacional: number;
@@ -106,6 +127,7 @@ export function useSimulatorState() {
     taxImportPercent: number;
     salesTaxPercent: number;
     warrantyPercent: number;
+    royaltiesPercent: number;
   }) => {
     setState(prev => ({
       ...prev,
@@ -113,6 +135,8 @@ export function useSimulatorState() {
       selectedModelName: model.name,
       selectedModelCode: model.code,
       isExportable: model.isExportable,
+      isExporting: model.isExporting,
+      exportCountry: model.exportCountry,
       custoMpImport: model.custoMpImport,
       custoMpImportCurrency: model.custoMpImportCurrency,
       custoMpNacional: model.custoMpNacional,
@@ -121,6 +145,10 @@ export function useSimulatorState() {
       taxImportPercent: model.taxImportPercent,
       salesTaxPercent: model.salesTaxPercent,
       warrantyPercent: model.warrantyPercent,
+      royaltiesPercent: model.royaltiesPercent,
+      faturamentoBruto: model.basePrice,
+      transporteCost: 0,
+      customizacoesEstimadas: 0,
       currentStep: "simulation",
     }));
   }, []);
