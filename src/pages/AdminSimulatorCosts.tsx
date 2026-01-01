@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Save, Check, Ship, ArrowRight } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { DollarSign, Save, Check, Ship, ArrowRight, Globe, Home } from "lucide-react";
 import { useSimulatorModelCosts, useUpsertModelCost, useSimulatorExchangeRates, SimulatorModelCost } from "@/hooks/useSimulatorConfig";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { formatCurrency } from "@/lib/formatters";
@@ -20,6 +21,8 @@ interface ModelCostState {
   custo_mo_horas: number;
   custo_mo_valor_hora: number;
   tax_import_percent: number;
+  is_exportable: boolean;
+  tax_sale_percent: number;
 }
 
 export default function AdminSimulatorCosts() {
@@ -70,6 +73,8 @@ export default function AdminSimulatorCosts() {
         custo_mo_horas: existingCost.custo_mo_horas,
         custo_mo_valor_hora: existingCost.custo_mo_valor_hora,
         tax_import_percent: existingCost.tax_import_percent,
+        is_exportable: existingCost.is_exportable ?? false,
+        tax_sale_percent: existingCost.tax_sale_percent ?? 21,
       };
     }
     return {
@@ -78,18 +83,27 @@ export default function AdminSimulatorCosts() {
       custo_mp_nacional: 0,
       custo_mo_horas: 0,
       custo_mo_valor_hora: 55,
-      tax_import_percent: 21,
+      tax_import_percent: 8,
+      is_exportable: false,
+      tax_sale_percent: 21,
     };
   };
 
   // Atualizar estado local
-  const updateField = (modelId: string, field: keyof ModelCostState, value: number | string) => {
+  const updateField = (modelId: string, field: keyof ModelCostState, value: number | string | boolean) => {
     const currentState = getModelState(modelId);
+    
+    // Se alterou is_exportable, atualizar automaticamente o tax_sale_percent
+    let updates: Partial<ModelCostState> = { [field]: value };
+    if (field === "is_exportable") {
+      updates.tax_sale_percent = value ? 0 : 21;
+    }
+    
     setEditStates((prev) => ({
       ...prev,
       [modelId]: {
         ...currentState,
-        [field]: value,
+        ...updates,
       },
     }));
   };
@@ -108,6 +122,8 @@ export default function AdminSimulatorCosts() {
         custo_mo_horas: state.custo_mo_horas,
         custo_mo_valor_hora: state.custo_mo_valor_hora,
         tax_import_percent: state.tax_import_percent,
+        is_exportable: state.is_exportable,
+        tax_sale_percent: state.tax_sale_percent,
       });
 
       // Limpar estado local após salvar
@@ -128,22 +144,18 @@ export default function AdminSimulatorCosts() {
   // Calcular totais
   const calcMPImportBRL = (state: ModelCostState) => 
     convertToBRL(state.custo_mp_import, state.custo_mp_import_currency);
+  const calcImpostoImportBRL = (state: ModelCostState) => 
+    calcMPImportBRL(state) * (state.tax_import_percent / 100);
   const calcTotalMO = (state: ModelCostState) => state.custo_mo_horas * state.custo_mo_valor_hora;
   const calcTotalMP = (state: ModelCostState) => calcMPImportBRL(state) + state.custo_mp_nacional;
   const calcTotalCusto = (state: ModelCostState) =>
-    calcMPImportBRL(state) + state.custo_mp_nacional + calcTotalMO(state);
+    calcMPImportBRL(state) + state.custo_mp_nacional + calcTotalMO(state) + calcImpostoImportBRL(state);
 
   // Verificar se modelo tem custos configurados
   const isConfigured = (modelId: string) => !!costsMap[modelId];
 
   // Verificar se há mudanças não salvas
   const hasChanges = (modelId: string) => !!editStates[modelId];
-
-  // Formatar moeda estrangeira
-  const formatForeignCurrency = (value: number, currency: "EUR" | "USD") => {
-    const symbol = currency === "EUR" ? "€" : "$";
-    return `${symbol} ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-  };
 
   if (loadingCosts || loadingModels || loadingRates) {
     return (
@@ -187,6 +199,7 @@ export default function AdminSimulatorCosts() {
             const changed = hasChanges(model.id);
             const saving = savingId === model.id;
             const mpImportBRL = calcMPImportBRL(state);
+            const impostoImportBRL = calcImpostoImportBRL(state);
 
             return (
               <Card
@@ -224,6 +237,33 @@ export default function AdminSimulatorCosts() {
                         )}
                       </div>
                       <CardDescription className="text-sm">{model.code}</CardDescription>
+                      
+                      {/* Toggle Exportável */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id={`export-${model.id}`}
+                            checked={state.is_exportable}
+                            onCheckedChange={(checked) => updateField(model.id, "is_exportable", checked)}
+                          />
+                          <Label htmlFor={`export-${model.id}`} className="text-sm cursor-pointer">
+                            {state.is_exportable ? (
+                              <span className="flex items-center gap-1 text-success">
+                                <Globe className="h-3.5 w-3.5" />
+                                Exportável
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <Home className="h-3.5 w-3.5" />
+                                Venda Nacional
+                              </span>
+                            )}
+                          </Label>
+                        </div>
+                        <Badge variant={state.is_exportable ? "secondary" : "outline"} className="text-xs">
+                          Imp. Venda: {state.tax_sale_percent}%
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
@@ -259,9 +299,6 @@ export default function AdminSimulatorCosts() {
                         {formatCurrency(mpImportBRL)}
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Valor convertido automaticamente para R$ conforme câmbio configurado
-                    </p>
                   </div>
 
                   {/* MP Nacional */}
@@ -306,18 +343,26 @@ export default function AdminSimulatorCosts() {
                     </div>
                   </div>
 
-                  {/* Imposto */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Imposto Importação (%)</Label>
-                    <Input
-                      type="number"
-                      className="h-9"
-                      value={state.tax_import_percent || ""}
-                      placeholder="21"
-                      onChange={(e) =>
-                        updateField(model.id, "tax_import_percent", parseFloat(e.target.value) || 21)
-                      }
-                    />
+                  {/* Imposto Importação */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Imposto Importação (%)</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={state.tax_import_percent || ""}
+                        placeholder="8"
+                        onChange={(e) =>
+                          updateField(model.id, "tax_import_percent", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Imposto Importação (R$)</Label>
+                      <div className="bg-muted px-3 py-2 h-9 rounded-md text-sm font-medium flex items-center">
+                        {formatCurrency(impostoImportBRL)}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Totais e Botão Salvar */}
@@ -326,6 +371,9 @@ export default function AdminSimulatorCosts() {
                       <div>
                         <span className="text-muted-foreground">Total MP:</span>{" "}
                         <span className="font-medium">{formatCurrency(calcTotalMP(state))}</span>
+                        <span className="mx-2 text-muted-foreground">|</span>
+                        <span className="text-muted-foreground">Imp. Import:</span>{" "}
+                        <span className="font-medium">{formatCurrency(impostoImportBRL)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Total MO:</span>{" "}
