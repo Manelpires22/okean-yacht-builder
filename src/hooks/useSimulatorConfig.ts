@@ -40,10 +40,8 @@ export interface SimulatorCommission {
   id: string;
   name: string;
   type: "broker" | "royalty" | "other";
-  percent_ferretti: number;
-  percent_okean: number;
+  percent: number;
   is_active: boolean;
-  display_order: number;
   updated_by: string | null;
   updated_at: string;
 }
@@ -211,10 +209,8 @@ export function useCreateCommission() {
         .insert({
           name: commission.name!,
           type: commission.type!,
-          percent_ferretti: commission.percent_ferretti,
-          percent_okean: commission.percent_okean,
+          percent: commission.percent,
           is_active: commission.is_active,
-          display_order: commission.display_order,
         });
 
       if (error) throw error;

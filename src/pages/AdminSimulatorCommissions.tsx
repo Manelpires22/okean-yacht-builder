@@ -43,10 +43,8 @@ export default function AdminSimulatorCommissions() {
     setEditingCommission({
       name: "",
       type: "broker",
-      percent_ferretti: 0,
-      percent_okean: 0,
+      percent: 0,
       is_active: true,
-      display_order: (commissions?.length || 0) + 1,
     });
     setDialogOpen(true);
   };
@@ -64,19 +62,15 @@ export default function AdminSimulatorCommissions() {
         id: editingCommission.id,
         name: editingCommission.name,
         type: editingCommission.type,
-        percent_ferretti: editingCommission.percent_ferretti,
-        percent_okean: editingCommission.percent_okean,
+        percent: editingCommission.percent,
         is_active: editingCommission.is_active,
-        display_order: editingCommission.display_order,
       });
     } else {
       await createCommission.mutateAsync({
         name: editingCommission.name,
         type: editingCommission.type,
-        percent_ferretti: editingCommission.percent_ferretti,
-        percent_okean: editingCommission.percent_okean,
+        percent: editingCommission.percent,
         is_active: editingCommission.is_active,
-        display_order: editingCommission.display_order,
       });
     }
 
@@ -158,7 +152,7 @@ export default function AdminSimulatorCommissions() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tipo</Label>
+                  <Label>Tipo de Parceiro</Label>
                   <Select
                     value={editingCommission?.type || "broker"}
                     onValueChange={(v) =>
@@ -179,35 +173,19 @@ export default function AdminSimulatorCommissions() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>% Ferretti</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editingCommission?.percent_ferretti || 0}
-                      onChange={(e) =>
-                        setEditingCommission((prev) => ({
-                          ...prev,
-                          percent_ferretti: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>% OKEAN</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={editingCommission?.percent_okean || 0}
-                      onChange={(e) =>
-                        setEditingCommission((prev) => ({
-                          ...prev,
-                          percent_okean: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label>Percentual (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={editingCommission?.percent || 0}
+                    onChange={(e) =>
+                      setEditingCommission((prev) => ({
+                        ...prev,
+                        percent: parseFloat(e.target.value) || 0,
+                      }))
+                    }
+                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -250,8 +228,7 @@ export default function AdminSimulatorCommissions() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">% Ferretti</TableHead>
-                  <TableHead className="text-right">% OKEAN</TableHead>
+                  <TableHead className="text-right">%</TableHead>
                   <TableHead className="text-center">Ativo</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -261,11 +238,8 @@ export default function AdminSimulatorCommissions() {
                   <TableRow key={commission.id} className={!commission.is_active ? "opacity-50" : ""}>
                     <TableCell className="font-medium">{commission.name}</TableCell>
                     <TableCell>{getTypeBadge(commission.type)}</TableCell>
-                    <TableCell className="text-right">
-                      {commission.percent_ferretti}%
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {commission.percent_okean}%
+                    <TableCell className="text-right font-mono">
+                      {commission.percent}%
                     </TableCell>
                     <TableCell className="text-center">
                       <Switch
@@ -295,7 +269,7 @@ export default function AdminSimulatorCommissions() {
                 ))}
                 {!commissions?.length && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       Nenhuma comissão cadastrada. Clique em "Nova Comissão" para começar.
                     </TableCell>
                   </TableRow>

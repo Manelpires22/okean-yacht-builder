@@ -1802,36 +1802,30 @@ export type Database = {
       simulator_commissions: {
         Row: {
           created_at: string | null
-          display_order: number | null
           id: string
           is_active: boolean | null
           name: string
-          percent_ferretti: number
-          percent_okean: number
+          percent: number | null
           type: string
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
           created_at?: string | null
-          display_order?: number | null
           id?: string
           is_active?: boolean | null
           name: string
-          percent_ferretti?: number
-          percent_okean?: number
+          percent?: number | null
           type: string
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
           created_at?: string | null
-          display_order?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
-          percent_ferretti?: number
-          percent_okean?: number
+          percent?: number | null
           type?: string
           updated_at?: string | null
           updated_by?: string | null
