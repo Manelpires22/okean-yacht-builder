@@ -22,7 +22,6 @@ interface ModelCostState {
   custo_mo_valor_hora: number;
   tax_import_percent: number;
   is_exportable: boolean;
-  tax_sale_percent: number;
 }
 
 export default function AdminSimulatorCosts() {
@@ -74,7 +73,6 @@ export default function AdminSimulatorCosts() {
         custo_mo_valor_hora: existingCost.custo_mo_valor_hora,
         tax_import_percent: existingCost.tax_import_percent,
         is_exportable: existingCost.is_exportable ?? false,
-        tax_sale_percent: existingCost.tax_sale_percent ?? 21,
       };
     }
     return {
@@ -85,7 +83,6 @@ export default function AdminSimulatorCosts() {
       custo_mo_valor_hora: 55,
       tax_import_percent: 8,
       is_exportable: false,
-      tax_sale_percent: 21,
     };
   };
 
@@ -93,17 +90,11 @@ export default function AdminSimulatorCosts() {
   const updateField = (modelId: string, field: keyof ModelCostState, value: number | string | boolean) => {
     const currentState = getModelState(modelId);
     
-    // Se alterou is_exportable, atualizar automaticamente o tax_sale_percent
-    let updates: Partial<ModelCostState> = { [field]: value };
-    if (field === "is_exportable") {
-      updates.tax_sale_percent = value ? 0 : 21;
-    }
-    
     setEditStates((prev) => ({
       ...prev,
       [modelId]: {
         ...currentState,
-        ...updates,
+        [field]: value,
       },
     }));
   };
@@ -123,7 +114,6 @@ export default function AdminSimulatorCosts() {
         custo_mo_valor_hora: state.custo_mo_valor_hora,
         tax_import_percent: state.tax_import_percent,
         is_exportable: state.is_exportable,
-        tax_sale_percent: state.tax_sale_percent,
       });
 
       // Limpar estado local após salvar
@@ -260,9 +250,6 @@ export default function AdminSimulatorCosts() {
                             )}
                           </Label>
                         </div>
-                        <Badge variant={state.is_exportable ? "secondary" : "outline"} className="text-xs">
-                          Imp. Venda: {state.tax_sale_percent}%
-                        </Badge>
                       </div>
                     </div>
                   </div>
