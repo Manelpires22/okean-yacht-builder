@@ -4,7 +4,8 @@ import { AppHeader } from "@/components/AppHeader";
 import { ExchangeRateCard } from "@/components/simulator/ExchangeRateCard";
 
 export default function Simulations() {
-  const [exchangeRate, setExchangeRate] = useState(6.0);
+  const [eurRate, setEurRate] = useState(6.0);
+  const [usdRate, setUsdRate] = useState(5.0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,23 +27,28 @@ export default function Simulations() {
           </div>
         </div>
 
-        {/* Grid de Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Card de Câmbio */}
+        {/* Grid de Cards de Câmbio */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <ExchangeRateCard 
-            onRateChange={setExchangeRate}
-            currentRate={exchangeRate}
+            currency="EUR"
+            onRateChange={setEurRate}
+            currentRate={eurRate}
           />
+          <ExchangeRateCard 
+            currency="USD"
+            onRateChange={setUsdRate}
+            currentRate={usdRate}
+          />
+        </div>
 
-          {/* Placeholder para próximos passos */}
-          <div className="col-span-1 md:col-span-1 lg:col-span-2 rounded-lg border-2 border-dashed border-muted p-8 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <Calculator className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">Próximos passos</p>
-              <p className="text-sm mt-1">
-                Seletor de modelo, custos e cálculo de margem
-              </p>
-            </div>
+        {/* Placeholder para próximos passos */}
+        <div className="rounded-lg border-2 border-dashed border-muted p-8 flex items-center justify-center">
+          <div className="text-center text-muted-foreground">
+            <Calculator className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">Próximos passos</p>
+            <p className="text-sm mt-1">
+              Seletor de modelo, custos e cálculo de margem
+            </p>
           </div>
         </div>
       </main>
