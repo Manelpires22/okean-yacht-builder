@@ -1,358 +1,324 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Plus, Pencil, Trash2 } from "lucide-react";
-import { useSimulatorModelCosts, useUpsertModelCost, useDeleteModelCost, SimulatorModelCost } from "@/hooks/useSimulatorConfig";
+import { DollarSign, Save, Check, Ship } from "lucide-react";
+import { useSimulatorModelCosts, useUpsertModelCost, SimulatorModelCost } from "@/hooks/useSimulatorConfig";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { formatCurrency } from "@/lib/formatters";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+
+interface ModelCostState {
+  custo_mp_import: number;
+  custo_mp_nacional: number;
+  custo_mo_horas: number;
+  custo_mo_valor_hora: number;
+  projeto: "OKEAN" | "Ferretti";
+  tax_import_percent: number;
+}
 
 export default function AdminSimulatorCosts() {
-  const { data: costs, isLoading } = useSimulatorModelCosts();
-  const { data: yachtModels } = useYachtModels();
+  const { data: costs, isLoading: loadingCosts } = useSimulatorModelCosts();
+  const { data: yachtModels, isLoading: loadingModels } = useYachtModels();
   const upsertCost = useUpsertModelCost();
-  const deleteCost = useDeleteModelCost();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [editingCost, setEditingCost] = useState<Partial<SimulatorModelCost> | null>(null);
+  // Estado local para edição de cada modelo
+  const [editStates, setEditStates] = useState<Record<string, ModelCostState>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
 
-  // Modelos disponíveis (não cadastrados ainda)
-  const usedModelIds = costs?.map((c) => c.yacht_model_id) || [];
-  const availableModels = yachtModels?.filter((m) => !usedModelIds.includes(m.id)) || [];
+  // Criar mapa de custos existentes por yacht_model_id
+  const costsMap = useMemo(() => {
+    const map: Record<string, SimulatorModelCost> = {};
+    costs?.forEach((c) => {
+      map[c.yacht_model_id] = c;
+    });
+    return map;
+  }, [costs]);
 
-  const handleOpenCreate = () => {
-    setEditingCost({
-      yacht_model_id: "",
+  // Obter estado do modelo (editado localmente ou do banco)
+  const getModelState = (modelId: string): ModelCostState => {
+    if (editStates[modelId]) {
+      return editStates[modelId];
+    }
+    const existingCost = costsMap[modelId];
+    if (existingCost) {
+      return {
+        custo_mp_import: existingCost.custo_mp_import,
+        custo_mp_nacional: existingCost.custo_mp_nacional,
+        custo_mo_horas: existingCost.custo_mo_horas,
+        custo_mo_valor_hora: existingCost.custo_mo_valor_hora,
+        projeto: existingCost.projeto as "OKEAN" | "Ferretti",
+        tax_import_percent: existingCost.tax_import_percent,
+      };
+    }
+    return {
       custo_mp_import: 0,
       custo_mp_nacional: 0,
       custo_mo_horas: 0,
       custo_mo_valor_hora: 55,
       projeto: "OKEAN",
       tax_import_percent: 21,
-    });
-    setDialogOpen(true);
+    };
   };
 
-  const handleOpenEdit = (cost: SimulatorModelCost) => {
-    setEditingCost({ ...cost });
-    setDialogOpen(true);
+  // Atualizar estado local
+  const updateField = (modelId: string, field: keyof ModelCostState, value: number | string) => {
+    const currentState = getModelState(modelId);
+    setEditStates((prev) => ({
+      ...prev,
+      [modelId]: {
+        ...currentState,
+        [field]: value,
+      },
+    }));
   };
 
-  const handleSave = async () => {
-    if (!editingCost?.yacht_model_id) return;
+  // Salvar custos do modelo
+  const handleSave = async (modelId: string) => {
+    const state = getModelState(modelId);
+    setSavingId(modelId);
 
-    await upsertCost.mutateAsync({
-      yacht_model_id: editingCost.yacht_model_id,
-      custo_mp_import: editingCost.custo_mp_import || 0,
-      custo_mp_nacional: editingCost.custo_mp_nacional || 0,
-      custo_mo_horas: editingCost.custo_mo_horas || 0,
-      custo_mo_valor_hora: editingCost.custo_mo_valor_hora || 55,
-      projeto: editingCost.projeto || "OKEAN",
-      tax_import_percent: editingCost.tax_import_percent || 21,
-    });
+    try {
+      await upsertCost.mutateAsync({
+        yacht_model_id: modelId,
+        custo_mp_import: state.custo_mp_import,
+        custo_mp_nacional: state.custo_mp_nacional,
+        custo_mo_horas: state.custo_mo_horas,
+        custo_mo_valor_hora: state.custo_mo_valor_hora,
+        projeto: state.projeto,
+        tax_import_percent: state.tax_import_percent,
+      });
 
-    setDialogOpen(false);
-    setEditingCost(null);
+      // Limpar estado local após salvar
+      setEditStates((prev) => {
+        const newState = { ...prev };
+        delete newState[modelId];
+        return newState;
+      });
+
+      toast.success("Custos salvos com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao salvar custos");
+    } finally {
+      setSavingId(null);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    await deleteCost.mutateAsync(deleteId);
-    setDeleteId(null);
-  };
+  // Calcular totais
+  const calcTotalMO = (state: ModelCostState) => state.custo_mo_horas * state.custo_mo_valor_hora;
+  const calcTotalCusto = (state: ModelCostState) =>
+    state.custo_mp_import + state.custo_mp_nacional + calcTotalMO(state);
 
-  if (isLoading) {
+  // Verificar se modelo tem custos configurados
+  const isConfigured = (modelId: string) => !!costsMap[modelId];
+
+  // Verificar se há mudanças não salvas
+  const hasChanges = (modelId: string) => !!editStates[modelId];
+
+  if (loadingCosts || loadingModels) {
     return (
       <AdminLayout>
         <div className="space-y-6">
           <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-96" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
         </div>
       </AdminLayout>
     );
   }
 
-  const totalMO = (cost: SimulatorModelCost) =>
-    cost.custo_mo_horas * cost.custo_mo_valor_hora;
-
-  const totalCusto = (cost: SimulatorModelCost) =>
-    cost.custo_mp_import + cost.custo_mp_nacional + totalMO(cost);
+  const configuredCount = yachtModels?.filter((m) => isConfigured(m.id)).length || 0;
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <DollarSign className="h-8 w-8" />
-              Custos por Modelo
-            </h1>
-            <p className="text-muted-foreground">
-              Configure os custos base de cada modelo de iate
-            </p>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleOpenCreate} disabled={availableModels.length === 0}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Modelo
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingCost?.id ? "Editar Custos" : "Novo Modelo"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                {!editingCost?.id && (
-                  <div className="space-y-2">
-                    <Label>Modelo de Iate</Label>
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <DollarSign className="h-8 w-8" />
+            Custos por Modelo
+          </h1>
+          <p className="text-muted-foreground">
+            Configure os custos base de cada modelo de iate •{" "}
+            <span className="font-medium">{configuredCount}/{yachtModels?.length || 0} configurados</span>
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {yachtModels?.map((model) => {
+            const state = getModelState(model.id);
+            const configured = isConfigured(model.id);
+            const changed = hasChanges(model.id);
+            const saving = savingId === model.id;
+
+            return (
+              <Card
+                key={model.id}
+                className={`relative transition-colors ${
+                  configured ? "border-success/50" : "border-muted"
+                } ${changed ? "ring-2 ring-primary/50" : ""}`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start gap-4">
+                    {/* Foto do modelo */}
+                    <div className="h-20 w-28 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      {model.image_url ? (
+                        <img
+                          src={model.image_url}
+                          alt={model.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center">
+                          <Ship className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info do modelo */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg truncate">{model.name}</CardTitle>
+                        {configured && (
+                          <Badge variant="outline" className="text-success border-success shrink-0">
+                            <Check className="h-3 w-3 mr-1" />
+                            Configurado
+                          </Badge>
+                        )}
+                      </div>
+                      <CardDescription className="text-sm">{model.code}</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  {/* Projeto */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Projeto</Label>
                     <Select
-                      value={editingCost?.yacht_model_id || ""}
-                      onValueChange={(v) =>
-                        setEditingCost((prev) => ({ ...prev, yacht_model_id: v }))
-                      }
+                      value={state.projeto}
+                      onValueChange={(v) => updateField(model.id, "projeto", v)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um modelo" />
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableModels.map((m) => (
-                          <SelectItem key={m.id} value={m.id}>
-                            {m.name} ({m.code})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="OKEAN">OKEAN</SelectItem>
+                        <SelectItem value="Ferretti">Ferretti</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label>Projeto</Label>
-                  <Select
-                    value={editingCost?.projeto || "OKEAN"}
-                    onValueChange={(v) =>
-                      setEditingCost((prev) => ({
-                        ...prev,
-                        projeto: v as "Ferretti" | "OKEAN",
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OKEAN">OKEAN</SelectItem>
-                      <SelectItem value="Ferretti">Ferretti</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                  {/* Custos de Matéria-Prima */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">MP Importada (R$)</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={state.custo_mp_import || ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateField(model.id, "custo_mp_import", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">MP Nacional (R$)</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={state.custo_mp_nacional || ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateField(model.id, "custo_mp_nacional", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>MP Importada (R$)</Label>
+                  {/* Mão de Obra */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Horas MO</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={state.custo_mo_horas || ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateField(model.id, "custo_mo_horas", parseFloat(e.target.value) || 0)
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Valor/Hora (R$)</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={state.custo_mo_valor_hora || ""}
+                        placeholder="55"
+                        onChange={(e) =>
+                          updateField(model.id, "custo_mo_valor_hora", parseFloat(e.target.value) || 55)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Imposto */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Imposto Importação (%)</Label>
                     <Input
                       type="number"
-                      value={editingCost?.custo_mp_import || 0}
+                      className="h-9"
+                      value={state.tax_import_percent || ""}
+                      placeholder="21"
                       onChange={(e) =>
-                        setEditingCost((prev) => ({
-                          ...prev,
-                          custo_mp_import: parseFloat(e.target.value) || 0,
-                        }))
+                        updateField(model.id, "tax_import_percent", parseFloat(e.target.value) || 21)
                       }
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label>MP Nacional (R$)</Label>
-                    <Input
-                      type="number"
-                      value={editingCost?.custo_mp_nacional || 0}
-                      onChange={(e) =>
-                        setEditingCost((prev) => ({
-                          ...prev,
-                          custo_mp_nacional: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Horas MO</Label>
-                    <Input
-                      type="number"
-                      value={editingCost?.custo_mo_horas || 0}
-                      onChange={(e) =>
-                        setEditingCost((prev) => ({
-                          ...prev,
-                          custo_mo_horas: parseFloat(e.target.value) || 0,
-                        }))
-                      }
-                    />
+                  {/* Totais e Botão Salvar */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Total MO:</span>{" "}
+                      <span className="font-medium">{formatCurrency(calcTotalMO(state))}</span>
+                      <span className="mx-2 text-muted-foreground">|</span>
+                      <span className="text-muted-foreground">Total:</span>{" "}
+                      <span className="font-bold">{formatCurrency(calcTotalCusto(state))}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSave(model.id)}
+                      disabled={saving}
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      {saving ? "Salvando..." : "Salvar"}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Valor/Hora (R$)</Label>
-                    <Input
-                      type="number"
-                      value={editingCost?.custo_mo_valor_hora || 55}
-                      onChange={(e) =>
-                        setEditingCost((prev) => ({
-                          ...prev,
-                          custo_mo_valor_hora: parseFloat(e.target.value) || 55,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Imposto Importação (%)</Label>
-                  <Input
-                    type="number"
-                    value={editingCost?.tax_import_percent || 21}
-                    onChange={(e) =>
-                      setEditingCost((prev) => ({
-                        ...prev,
-                        tax_import_percent: parseFloat(e.target.value) || 21,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSave} disabled={upsertCost.isPending}>
-                    Salvar
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Modelos Cadastrados</CardTitle>
-            <CardDescription>
-              {costs?.length || 0} modelos com custos configurados
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Projeto</TableHead>
-                  <TableHead className="text-right">MP Import</TableHead>
-                  <TableHead className="text-right">MP Nacional</TableHead>
-                  <TableHead className="text-right">MO (h × R$)</TableHead>
-                  <TableHead className="text-right">Total Custo</TableHead>
-                  <TableHead className="text-right">Tax Import</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {costs?.map((cost) => (
-                  <TableRow key={cost.id}>
-                    <TableCell className="font-medium">
-                      {cost.yacht_model?.name || "—"}
-                      <span className="text-muted-foreground ml-2 text-xs">
-                        {cost.yacht_model?.code}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={cost.projeto === "Ferretti" ? "default" : "secondary"}>
-                        {cost.projeto}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(cost.custo_mp_import)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {formatCurrency(cost.custo_mp_nacional)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {cost.custo_mo_horas}h × R$ {cost.custo_mo_valor_hora}
-                      <br />
-                      <span className="text-muted-foreground text-xs">
-                        = {formatCurrency(totalMO(cost))}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {formatCurrency(totalCusto(cost))}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {cost.tax_import_percent}%
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEdit(cost)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeleteId(cost.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!costs?.length && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                      Nenhum modelo cadastrado. Clique em "Adicionar Modelo" para começar.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        {!yachtModels?.length && (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <Ship className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum modelo de iate cadastrado.</p>
+              <p className="text-sm">Cadastre modelos na seção "Barcos" primeiro.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover custos do modelo?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Os custos deste modelo serão removidos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Remover</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   );
 }
