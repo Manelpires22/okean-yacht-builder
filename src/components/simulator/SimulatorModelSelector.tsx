@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ArrowLeft, ArrowRight, Ship, Globe, Home } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +121,14 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {modelCosts.map((cost) => {
+            {[...modelCosts]
+              .sort((a, b) => {
+                const orderA = a.yacht_model?.display_order ?? 999;
+                const orderB = b.yacht_model?.display_order ?? 999;
+                if (orderA !== orderB) return orderA - orderB;
+                return (a.yacht_model?.code || "").localeCompare(b.yacht_model?.code || "");
+              })
+              .map((cost) => {
               const model = cost.yacht_model;
               const isExportable = cost.is_exportable ?? false;
               
