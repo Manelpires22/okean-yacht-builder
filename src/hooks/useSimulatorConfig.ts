@@ -26,7 +26,6 @@ export interface SimulatorModelCost {
   custo_mo_valor_hora: number;
   tax_import_percent: number;
   is_exportable: boolean;
-  tax_sale_percent: number;
   updated_by: string | null;
   updated_at: string;
   yacht_model?: {
