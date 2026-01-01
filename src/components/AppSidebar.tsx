@@ -19,6 +19,10 @@ import {
   ChevronRight,
   Anchor,
   Layout,
+  Calculator,
+  TrendingUp,
+  DollarSign,
+  Cog,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -68,6 +72,17 @@ const navGroups = [
       { path: "/admin/yacht-models", icon: Ship, label: "Modelos de Iates" },
       { path: "/admin/hull-numbers", icon: Anchor, label: "Matrículas (Hull Numbers)" },
       { path: "/admin/memorial-categories", icon: BookOpen, label: "Categorias Memorial" },
+    ],
+  },
+  {
+    id: "simulador",
+    label: "SIMULADOR",
+    icon: Calculator,
+    items: [
+      { path: "/admin/simulator-rates", icon: TrendingUp, label: "Câmbios" },
+      { path: "/admin/simulator-costs", icon: DollarSign, label: "Custos por Modelo" },
+      { path: "/admin/simulator-commissions", icon: Percent, label: "Comissões" },
+      { path: "/admin/simulator-rules", icon: Cog, label: "Regras de Negócio" },
     ],
   },
   {
