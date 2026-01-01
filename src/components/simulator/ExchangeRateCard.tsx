@@ -14,9 +14,15 @@ interface ExchangeRateCardProps {
   currency: Currency;
   onRateChange: (rate: number) => void;
   currentRate: number;
+  compact?: boolean;
 }
 
-export function ExchangeRateCard({ currency, onRateChange, currentRate }: ExchangeRateCardProps) {
+export function ExchangeRateCard({ 
+  currency, 
+  onRateChange, 
+  currentRate,
+  compact = false 
+}: ExchangeRateCardProps) {
   const [useManualRate, setUseManualRate] = useState(false);
   const [manualRate, setManualRate] = useState("");
   const queryClient = useQueryClient();
@@ -61,6 +67,69 @@ export function ExchangeRateCard({ currency, onRateChange, currentRate }: Exchan
   const Icon = currency === 'USD' ? DollarSign : TrendingUp;
   const currencyLabel = currency === 'USD' ? 'USD/BRL' : 'EUR/BRL';
 
+  // Compact version for sidebar
+  if (compact) {
+    return (
+      <div className="rounded-lg border bg-card p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{currencyLabel}</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-6 w-6"
+            onClick={handleRefresh}
+            disabled={isFetching}
+          >
+            <RefreshCw className={`h-3 w-3 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+        
+        {isLoading ? (
+          <Skeleton className="h-6 w-24" />
+        ) : error ? (
+          <div className="flex items-center gap-1 text-destructive">
+            <AlertCircle className="h-3 w-3" />
+            <span className="text-xs">Erro</span>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-1">
+            <span className="text-sm text-muted-foreground">R$</span>
+            <span className="text-lg font-bold">{displayRate.toFixed(4).replace('.', ',')}</span>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-1 border-t">
+          <Label htmlFor={`manual-compact-${currency}`} className="text-xs cursor-pointer text-muted-foreground">
+            Manual
+          </Label>
+          <Switch 
+            id={`manual-compact-${currency}`}
+            checked={useManualRate}
+            onCheckedChange={handleManualToggle}
+            className="scale-75"
+          />
+        </div>
+
+        {useManualRate && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">R$</span>
+            <Input
+              type="text"
+              placeholder="6,2450"
+              value={manualRate}
+              onChange={(e) => handleManualRateChange(e.target.value)}
+              className="h-7 text-xs"
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Full version (original)
   return (
     <Card>
       <CardHeader className="pb-3">
