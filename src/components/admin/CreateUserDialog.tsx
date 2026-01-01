@@ -10,6 +10,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -30,8 +40,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useCreateUser } from "@/hooks/useCreateUser";
 import { useUpdateUser } from "@/hooks/useUpdateUser";
+import { useDeleteUser } from "@/hooks/useDeleteUser";
 import { useYachtModels } from "@/hooks/useYachtModels";
-import { Ship } from "lucide-react";
+import { Ship, Trash2 } from "lucide-react";
 
 const formSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -107,8 +118,10 @@ interface CreateUserDialogProps {
 export function CreateUserDialog({ open, onOpenChange, user }: CreateUserDialogProps) {
   const { mutate: createUser, isPending: isCreating } = useCreateUser();
   const { mutate: updateUser, isPending: isUpdating } = useUpdateUser();
+  const { mutate: deleteUser, isPending: isDeleting } = useDeleteUser();
   const { data: yachtModels } = useYachtModels();
   const [changePassword, setChangePassword] = useState(false);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   
   const isEditMode = !!user;
 
@@ -195,17 +208,31 @@ export function CreateUserDialog({ open, onOpenChange, user }: CreateUserDialogP
     }
   };
 
-  const isPending = isCreating || isUpdating;
+  const isPending = isCreating || isUpdating || isDeleting;
+
+  const handleDeleteUser = () => {
+    if (user) {
+      deleteUser(user.id, {
+        onSuccess: () => {
+          setShowDeleteAlert(false);
+          onOpenChange(false);
+        },
+      });
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Criar Novo Utilizador</DialogTitle>
-          <DialogDescription>
-            Preencha os dados para criar um novo utilizador no sistema
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{isEditMode ? "Editar Utilizador" : "Criar Novo Utilizador"}</DialogTitle>
+            <DialogDescription>
+              {isEditMode 
+                ? "Atualize os dados do utilizador" 
+                : "Preencha os dados para criar um novo utilizador no sistema"}
+            </DialogDescription>
+          </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -407,26 +434,76 @@ export function CreateUserDialog({ open, onOpenChange, user }: CreateUserDialogP
               )}
             />
 
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isPending}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending 
-                  ? (isEditMode ? "A guardar..." : "A criar...") 
-                  : (isEditMode ? "Guardar Alterações" : "Criar Utilizador")
-                }
-              </Button>
+            <div className="flex justify-between gap-3">
+              {isEditMode && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setShowDeleteAlert(true)}
+                  disabled={isPending}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Utilizador
+                </Button>
+              )}
+              <div className="flex gap-3 ml-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending 
+                    ? (isEditMode ? "A guardar..." : "A criar...") 
+                    : (isEditMode ? "Guardar Alterações" : "Criar Utilizador")
+                  }
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert Dialog de confirmação de exclusão */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Utilizador</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Tem certeza que deseja excluir permanentemente o utilizador:
+              </p>
+              <p className="font-medium text-foreground">
+                👤 {user?.full_name} ({user?.email})
+              </p>
+              <p>
+                Esta ação não pode ser desfeita. Serão removidos:
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1">
+                <li>Todas as roles e permissões</li>
+                <li>Configurações de MFA</li>
+                <li>Atribuições de PM</li>
+                <li>Acesso ao sistema</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "A excluir..." : "Excluir Permanentemente"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
