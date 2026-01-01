@@ -1758,6 +1758,192 @@ export type Database = {
         }
         Relationships: []
       }
+      simulator_business_rules: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          rule_key: string
+          rule_value: number
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          rule_key: string
+          rule_value?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          rule_key?: string
+          rule_value?: number
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulator_business_rules_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulator_commissions: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          percent_ferretti: number
+          percent_okean: number
+          type: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          percent_ferretti?: number
+          percent_okean?: number
+          type: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          percent_ferretti?: number
+          percent_okean?: number
+          type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulator_commissions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulator_exchange_rates: {
+        Row: {
+          created_at: string | null
+          currency: string
+          default_rate: number
+          id: string
+          last_api_update: string | null
+          source: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency: string
+          default_rate?: number
+          id?: string
+          last_api_update?: string | null
+          source?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string
+          default_rate?: number
+          id?: string
+          last_api_update?: string | null
+          source?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulator_exchange_rates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulator_model_costs: {
+        Row: {
+          created_at: string | null
+          custo_mo_horas: number
+          custo_mo_valor_hora: number
+          custo_mp_import: number
+          custo_mp_nacional: number
+          id: string
+          projeto: string
+          tax_import_percent: number
+          updated_at: string | null
+          updated_by: string | null
+          yacht_model_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custo_mo_horas?: number
+          custo_mo_valor_hora?: number
+          custo_mp_import?: number
+          custo_mp_nacional?: number
+          id?: string
+          projeto?: string
+          tax_import_percent?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          yacht_model_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custo_mo_horas?: number
+          custo_mo_valor_hora?: number
+          custo_mp_import?: number
+          custo_mp_nacional?: number
+          id?: string
+          projeto?: string
+          tax_import_percent?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          yacht_model_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulator_model_costs_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulator_model_costs_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: true
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_config: {
         Row: {
           category: string | null

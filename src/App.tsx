@@ -57,6 +57,12 @@ const AdminHullNumbers = lazy(() => import("@/pages/AdminHullNumbers"));
 const AdminPDFTemplates = lazy(() => import("@/pages/AdminPDFTemplates"));
 const AdminPDFTemplateEditor = lazy(() => import("@/pages/AdminPDFTemplateEditor"));
 
+// Simulator Admin
+const AdminSimulatorRates = lazy(() => import("@/pages/AdminSimulatorRates"));
+const AdminSimulatorCosts = lazy(() => import("@/pages/AdminSimulatorCosts"));
+const AdminSimulatorCommissions = lazy(() => import("@/pages/AdminSimulatorCommissions"));
+const AdminSimulatorRules = lazy(() => import("@/pages/AdminSimulatorRules"));
+
 // ==============================================
 // COMPONENTE DE LOADING
 // ==============================================
@@ -142,6 +148,12 @@ const App = () => (
               <Route path="/admin/hull-numbers" element={<ProtectedRoute requireAdmin><AdminHullNumbers /></ProtectedRoute>} />
               <Route path="/admin/pdf-templates" element={<ProtectedRoute requireAdmin><AdminPDFTemplates /></ProtectedRoute>} />
               <Route path="/admin/pdf-templates/:id" element={<ProtectedRoute requireAdmin><AdminPDFTemplateEditor /></ProtectedRoute>} />
+              
+              {/* Simulator Admin */}
+              <Route path="/admin/simulator-rates" element={<ProtectedRoute requireAdmin><AdminSimulatorRates /></ProtectedRoute>} />
+              <Route path="/admin/simulator-costs" element={<ProtectedRoute requireAdmin><AdminSimulatorCosts /></ProtectedRoute>} />
+              <Route path="/admin/simulator-commissions" element={<ProtectedRoute requireAdmin><AdminSimulatorCommissions /></ProtectedRoute>} />
+              <Route path="/admin/simulator-rules" element={<ProtectedRoute requireAdmin><AdminSimulatorRules /></ProtectedRoute>} />
               
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
