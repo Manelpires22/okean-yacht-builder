@@ -39,7 +39,7 @@ export interface SimulatorModelCost {
 export interface SimulatorCommission {
   id: string;
   name: string;
-  type: "broker" | "royalty" | "other";
+  type: "venda_interna" | "broker_interno" | "broker_externo" | "parceiro" | "sub_dealer";
   percent: number;
   is_active: boolean;
   updated_by: string | null;
