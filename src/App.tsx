@@ -32,6 +32,7 @@ const Contracts = lazy(() => import("@/pages/Contracts"));
 const Clients = lazy(() => import("@/pages/Clients"));
 const Approvals = lazy(() => import("@/pages/Approvals"));
 const WorkflowTasks = lazy(() => import("@/pages/WorkflowTasks"));
+const Simulations = lazy(() => import("@/pages/Simulations"));
 
 // Perfil e público
 const Profile = lazy(() => import("@/pages/Profile"));
@@ -119,6 +120,10 @@ const App = () => (
               {/* Workflow Tasks */}
               <Route path="/workflow-tasks" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
               <Route path="/tarefas-workflow" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
+              
+              {/* Simulações */}
+              <Route path="/simulacoes" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
+              <Route path="/simulations" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
               
               {/* Admin */}
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />

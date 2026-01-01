@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, FileSignature, Users, ListChecks, Settings, Ship, Anchor } from "lucide-react";
+import { FileText, FileSignature, Users, ListChecks, Settings, Ship, Anchor, Calculator } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserMenu } from "@/components/admin/UserMenu";
@@ -62,6 +62,13 @@ const Index = () => {
     description: "Gerencie propostas comerciais e preços",
     path: "/cotacoes",
     badge: stats?.quotationsCount ? `${stats.quotationsCount} ativas` : null,
+    badgeVariant: "secondary" as const
+  }, {
+    icon: Calculator,
+    title: "Simulações",
+    description: "Análise de viabilidade e margens de lucro",
+    path: "/simulacoes",
+    badge: null,
     badgeVariant: "secondary" as const
   }, {
     icon: FileSignature,

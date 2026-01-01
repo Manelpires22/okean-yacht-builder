@@ -62,3 +62,6 @@ verify_jwt = true
 
 [functions.delete-user]
 verify_jwt = true
+
+[functions.get-exchange-rate]
+verify_jwt = true
