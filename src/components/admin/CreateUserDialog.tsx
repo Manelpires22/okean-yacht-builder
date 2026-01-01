@@ -473,22 +473,24 @@ export function CreateUserDialog({ open, onOpenChange, user }: CreateUserDialogP
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Utilizador</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                Tem certeza que deseja excluir permanentemente o utilizador:
-              </p>
-              <p className="font-medium text-foreground">
-                👤 {user?.full_name} ({user?.email})
-              </p>
-              <p>
-                Esta ação não pode ser desfeita. Serão removidos:
-              </p>
-              <ul className="list-disc list-inside text-sm space-y-1">
-                <li>Todas as roles e permissões</li>
-                <li>Configurações de MFA</li>
-                <li>Atribuições de PM</li>
-                <li>Acesso ao sistema</li>
-              </ul>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  Tem certeza que deseja excluir permanentemente o utilizador:
+                </p>
+                <p className="font-medium text-foreground">
+                  👤 {user?.full_name} ({user?.email})
+                </p>
+                <p>
+                  Esta ação não pode ser desfeita. Serão removidos:
+                </p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Todas as roles e permissões</li>
+                  <li>Configurações de MFA</li>
+                  <li>Atribuições de PM</li>
+                  <li>Acesso ao sistema</li>
+                </ul>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
