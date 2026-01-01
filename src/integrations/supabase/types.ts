@@ -1896,7 +1896,9 @@ export type Database = {
           custo_mp_import_currency: string | null
           custo_mp_nacional: number
           id: string
+          is_exportable: boolean | null
           tax_import_percent: number
+          tax_sale_percent: number | null
           updated_at: string | null
           updated_by: string | null
           yacht_model_id: string
@@ -1909,7 +1911,9 @@ export type Database = {
           custo_mp_import_currency?: string | null
           custo_mp_nacional?: number
           id?: string
+          is_exportable?: boolean | null
           tax_import_percent?: number
+          tax_sale_percent?: number | null
           updated_at?: string | null
           updated_by?: string | null
           yacht_model_id: string
@@ -1922,7 +1926,9 @@ export type Database = {
           custo_mp_import_currency?: string | null
           custo_mp_nacional?: number
           id?: string
+          is_exportable?: boolean | null
           tax_import_percent?: number
+          tax_sale_percent?: number | null
           updated_at?: string | null
           updated_by?: string | null
           yacht_model_id?: string
