@@ -7,24 +7,25 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Save, Check, Ship } from "lucide-react";
-import { useSimulatorModelCosts, useUpsertModelCost, SimulatorModelCost } from "@/hooks/useSimulatorConfig";
+import { DollarSign, Save, Check, Ship, ArrowRight } from "lucide-react";
+import { useSimulatorModelCosts, useUpsertModelCost, useSimulatorExchangeRates, SimulatorModelCost } from "@/hooks/useSimulatorConfig";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { formatCurrency } from "@/lib/formatters";
 import { toast } from "sonner";
 
 interface ModelCostState {
   custo_mp_import: number;
+  custo_mp_import_currency: "EUR" | "USD";
   custo_mp_nacional: number;
   custo_mo_horas: number;
   custo_mo_valor_hora: number;
-  projeto: "OKEAN" | "Ferretti";
   tax_import_percent: number;
 }
 
 export default function AdminSimulatorCosts() {
   const { data: costs, isLoading: loadingCosts } = useSimulatorModelCosts();
   const { data: yachtModels, isLoading: loadingModels } = useYachtModels();
+  const { data: exchangeRates, isLoading: loadingRates } = useSimulatorExchangeRates();
   const upsertCost = useUpsertModelCost();
 
   // Estado local para edição de cada modelo
@@ -40,6 +41,21 @@ export default function AdminSimulatorCosts() {
     return map;
   }, [costs]);
 
+  // Criar mapa de câmbios
+  const ratesMap = useMemo(() => {
+    const map: Record<string, number> = { EUR: 0, USD: 0 };
+    exchangeRates?.forEach((r) => {
+      map[r.currency] = r.default_rate;
+    });
+    return map;
+  }, [exchangeRates]);
+
+  // Converter valor em moeda estrangeira para BRL
+  const convertToBRL = (value: number, currency: "EUR" | "USD") => {
+    const rate = ratesMap[currency] || 0;
+    return value * rate;
+  };
+
   // Obter estado do modelo (editado localmente ou do banco)
   const getModelState = (modelId: string): ModelCostState => {
     if (editStates[modelId]) {
@@ -49,19 +65,19 @@ export default function AdminSimulatorCosts() {
     if (existingCost) {
       return {
         custo_mp_import: existingCost.custo_mp_import,
+        custo_mp_import_currency: existingCost.custo_mp_import_currency || "EUR",
         custo_mp_nacional: existingCost.custo_mp_nacional,
         custo_mo_horas: existingCost.custo_mo_horas,
         custo_mo_valor_hora: existingCost.custo_mo_valor_hora,
-        projeto: existingCost.projeto as "OKEAN" | "Ferretti",
         tax_import_percent: existingCost.tax_import_percent,
       };
     }
     return {
       custo_mp_import: 0,
+      custo_mp_import_currency: "EUR",
       custo_mp_nacional: 0,
       custo_mo_horas: 0,
       custo_mo_valor_hora: 55,
-      projeto: "OKEAN",
       tax_import_percent: 21,
     };
   };
@@ -87,10 +103,10 @@ export default function AdminSimulatorCosts() {
       await upsertCost.mutateAsync({
         yacht_model_id: modelId,
         custo_mp_import: state.custo_mp_import,
+        custo_mp_import_currency: state.custo_mp_import_currency,
         custo_mp_nacional: state.custo_mp_nacional,
         custo_mo_horas: state.custo_mo_horas,
         custo_mo_valor_hora: state.custo_mo_valor_hora,
-        projeto: state.projeto,
         tax_import_percent: state.tax_import_percent,
       });
 
@@ -110,9 +126,12 @@ export default function AdminSimulatorCosts() {
   };
 
   // Calcular totais
+  const calcMPImportBRL = (state: ModelCostState) => 
+    convertToBRL(state.custo_mp_import, state.custo_mp_import_currency);
   const calcTotalMO = (state: ModelCostState) => state.custo_mo_horas * state.custo_mo_valor_hora;
+  const calcTotalMP = (state: ModelCostState) => calcMPImportBRL(state) + state.custo_mp_nacional;
   const calcTotalCusto = (state: ModelCostState) =>
-    state.custo_mp_import + state.custo_mp_nacional + calcTotalMO(state);
+    calcMPImportBRL(state) + state.custo_mp_nacional + calcTotalMO(state);
 
   // Verificar se modelo tem custos configurados
   const isConfigured = (modelId: string) => !!costsMap[modelId];
@@ -120,7 +139,13 @@ export default function AdminSimulatorCosts() {
   // Verificar se há mudanças não salvas
   const hasChanges = (modelId: string) => !!editStates[modelId];
 
-  if (loadingCosts || loadingModels) {
+  // Formatar moeda estrangeira
+  const formatForeignCurrency = (value: number, currency: "EUR" | "USD") => {
+    const symbol = currency === "EUR" ? "€" : "$";
+    return `${symbol} ${value.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  };
+
+  if (loadingCosts || loadingModels || loadingRates) {
     return (
       <AdminLayout>
         <div className="space-y-6">
@@ -147,6 +172,11 @@ export default function AdminSimulatorCosts() {
           <p className="text-muted-foreground">
             Configure os custos base de cada modelo de iate •{" "}
             <span className="font-medium">{configuredCount}/{yachtModels?.length || 0} configurados</span>
+            {ratesMap.EUR > 0 && (
+              <span className="ml-2 text-xs">
+                (EUR: R$ {ratesMap.EUR.toFixed(2)} | USD: R$ {ratesMap.USD.toFixed(2)})
+              </span>
+            )}
           </p>
         </div>
 
@@ -156,6 +186,7 @@ export default function AdminSimulatorCosts() {
             const configured = isConfigured(model.id);
             const changed = hasChanges(model.id);
             const saving = savingId === model.id;
+            const mpImportBRL = calcMPImportBRL(state);
 
             return (
               <Card
@@ -198,49 +229,53 @@ export default function AdminSimulatorCosts() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Projeto */}
+                  {/* MP Importada com seletor de moeda */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Projeto</Label>
-                    <Select
-                      value={state.projeto}
-                      onValueChange={(v) => updateField(model.id, "projeto", v)}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OKEAN">OKEAN</SelectItem>
-                        <SelectItem value="Ferretti">Ferretti</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Custos de Matéria-Prima */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">MP Importada (R$)</Label>
+                    <Label className="text-xs">Matéria-Prima Importada</Label>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={state.custo_mp_import_currency}
+                        onValueChange={(v) => updateField(model.id, "custo_mp_import_currency", v as "EUR" | "USD")}
+                      >
+                        <SelectTrigger className="h-9 w-20">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EUR">EUR €</SelectItem>
+                          <SelectItem value="USD">USD $</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Input
                         type="number"
-                        className="h-9"
+                        className="h-9 flex-1"
                         value={state.custo_mp_import || ""}
                         placeholder="0"
                         onChange={(e) =>
                           updateField(model.id, "custo_mp_import", parseFloat(e.target.value) || 0)
                         }
                       />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="bg-muted px-3 py-2 rounded-md text-sm font-medium min-w-[120px] text-right">
+                        {formatCurrency(mpImportBRL)}
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">MP Nacional (R$)</Label>
-                      <Input
-                        type="number"
-                        className="h-9"
-                        value={state.custo_mp_nacional || ""}
-                        placeholder="0"
-                        onChange={(e) =>
-                          updateField(model.id, "custo_mp_nacional", parseFloat(e.target.value) || 0)
-                        }
-                      />
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Valor convertido automaticamente para R$ conforme câmbio configurado
+                    </p>
+                  </div>
+
+                  {/* MP Nacional */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Matéria-Prima Nacional (R$)</Label>
+                    <Input
+                      type="number"
+                      className="h-9"
+                      value={state.custo_mp_nacional || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        updateField(model.id, "custo_mp_nacional", parseFloat(e.target.value) || 0)
+                      }
+                    />
                   </div>
 
                   {/* Mão de Obra */}
@@ -287,12 +322,18 @@ export default function AdminSimulatorCosts() {
 
                   {/* Totais e Botão Salvar */}
                   <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Total MO:</span>{" "}
-                      <span className="font-medium">{formatCurrency(calcTotalMO(state))}</span>
-                      <span className="mx-2 text-muted-foreground">|</span>
-                      <span className="text-muted-foreground">Total:</span>{" "}
-                      <span className="font-bold">{formatCurrency(calcTotalCusto(state))}</span>
+                    <div className="text-sm space-y-0.5">
+                      <div>
+                        <span className="text-muted-foreground">Total MP:</span>{" "}
+                        <span className="font-medium">{formatCurrency(calcTotalMP(state))}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total MO:</span>{" "}
+                        <span className="font-medium">{formatCurrency(calcTotalMO(state))}</span>
+                        <span className="mx-2 text-muted-foreground">|</span>
+                        <span className="text-muted-foreground">Total:</span>{" "}
+                        <span className="font-bold">{formatCurrency(calcTotalCusto(state))}</span>
+                      </div>
                     </div>
                     <Button
                       size="sm"

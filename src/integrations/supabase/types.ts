@@ -1893,9 +1893,9 @@ export type Database = {
           custo_mo_horas: number
           custo_mo_valor_hora: number
           custo_mp_import: number
+          custo_mp_import_currency: string | null
           custo_mp_nacional: number
           id: string
-          projeto: string
           tax_import_percent: number
           updated_at: string | null
           updated_by: string | null
@@ -1906,9 +1906,9 @@ export type Database = {
           custo_mo_horas?: number
           custo_mo_valor_hora?: number
           custo_mp_import?: number
+          custo_mp_import_currency?: string | null
           custo_mp_nacional?: number
           id?: string
-          projeto?: string
           tax_import_percent?: number
           updated_at?: string | null
           updated_by?: string | null
@@ -1919,9 +1919,9 @@ export type Database = {
           custo_mo_horas?: number
           custo_mo_valor_hora?: number
           custo_mp_import?: number
+          custo_mp_import_currency?: string | null
           custo_mp_nacional?: number
           id?: string
-          projeto?: string
           tax_import_percent?: number
           updated_at?: string | null
           updated_by?: string | null
