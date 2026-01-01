@@ -34,6 +34,7 @@ export interface SimulatorModelCost {
     code: string;
     base_price: number;
     image_url: string | null;
+    display_order: number | null;
   };
 }
 
@@ -122,9 +123,8 @@ export function useSimulatorModelCosts() {
         .from("simulator_model_costs")
         .select(`
           *,
-          yacht_model:yacht_models(id, name, code, base_price, image_url)
-        `)
-        .order("created_at");
+          yacht_model:yacht_models(id, name, code, base_price, image_url, display_order)
+        `);
 
       if (error) throw error;
       return data as SimulatorModelCost[];
