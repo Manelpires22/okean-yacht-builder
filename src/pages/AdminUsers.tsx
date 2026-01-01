@@ -1,11 +1,18 @@
-import { AdminLayout } from "@/components/AdminLayout";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ROLE_DEFINITIONS, getUserPermissions, type AppRole } from "@/lib/role-permissions";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -14,15 +21,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Search } from "lucide-react";
+import { ROLE_DEFINITIONS, getUserPermissions, type AppRole } from "@/lib/role-permissions";
 import { CreateUserDialog } from "@/components/admin/CreateUserDialog";
 import { UserRoleBadges } from "@/components/admin/UserRoleBadges";
 import { DepartmentsView } from "@/components/admin/users/DepartmentsView";
 import { PMAssignmentsTable } from "@/components/admin/users/PMAssignmentsTable";
 import { usePMAssignments } from "@/hooks/usePMAssignments";
-import { useState } from "react";
 
 interface UserWithRoles {
   id: string;
