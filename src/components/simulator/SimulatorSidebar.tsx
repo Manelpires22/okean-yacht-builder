@@ -1,11 +1,11 @@
 import { 
   Euro, 
-  DollarSign, 
   Ship, 
+  User,
   Package, 
-  Receipt, 
-  Users, 
-  RefreshCw 
+  Receipt,
+  Globe,
+  Home
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +26,7 @@ import { ExchangeRateCard } from "./ExchangeRateCard";
 import { SimulatorState } from "@/hooks/useSimulatorState";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 interface SimulatorSidebarProps {
   state: SimulatorState;
@@ -43,6 +44,67 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
       </SidebarHeader>
       
       <SidebarContent className="p-2">
+        {/* Vendedor Section (Read-only) */}
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <CollapsibleTrigger className="w-full">
+              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>Vendedor</span>
+                </div>
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="pt-2">
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="font-medium text-sm">{state.selectedCommissionName}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-xs">
+                      {state.selectedCommissionType === "venda_interna" ? "Interno" : 
+                       state.selectedCommissionType === "broker_interno" ? "Broker" : "Sub-Dealer"}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {state.selectedCommissionPercent}% comissão
+                    </span>
+                  </div>
+                </div>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
+        {/* Modelo Section (Read-only) */}
+        <Collapsible defaultOpen className="group/collapsible">
+          <SidebarGroup>
+            <CollapsibleTrigger className="w-full">
+              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-4 w-4 text-muted-foreground" />
+                  <span>Modelo</span>
+                </div>
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="pt-2">
+                <div className="rounded-md border bg-muted/30 p-3">
+                  <p className="font-mono text-xs text-muted-foreground">{state.selectedModelCode}</p>
+                  <p className="font-medium text-sm">{state.selectedModelName}</p>
+                  <Badge variant={state.isExportable ? "secondary" : "outline"} className="mt-2">
+                    {state.isExportable ? (
+                      <><Globe className="h-3 w-3 mr-1" /> Exportação</>
+                    ) : (
+                      <><Home className="h-3 w-3 mr-1" /> Nacional</>
+                    )}
+                  </Badge>
+                </div>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+
         {/* Câmbio Section */}
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
@@ -74,28 +136,6 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
           </SidebarGroup>
         </Collapsible>
 
-        {/* Modelo Section */}
-        <Collapsible defaultOpen className="group/collapsible">
-          <SidebarGroup>
-            <CollapsibleTrigger className="w-full">
-              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
-                <div className="flex items-center gap-2">
-                  <Ship className="h-4 w-4 text-muted-foreground" />
-                  <span>Modelo</span>
-                </div>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="pt-2">
-                <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
-                  Seletor de modelo (em breve)
-                </div>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
         {/* Custos Base Section */}
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
@@ -111,11 +151,31 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
             <CollapsibleContent>
               <SidebarGroupContent className="space-y-3 pt-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Matéria-prima (R$)</Label>
+                  <Label className="text-xs">MP Importada ({state.custoMpImportCurrency})</Label>
                   <Input 
                     type="number"
-                    value={state.materialCost || ""}
-                    onChange={(e) => onUpdateField("materialCost", Number(e.target.value))}
+                    value={state.custoMpImport || ""}
+                    onChange={(e) => onUpdateField("custoMpImport", Number(e.target.value))}
+                    placeholder="0,00"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Imposto Importação (%)</Label>
+                  <Input 
+                    type="number"
+                    value={state.taxImportPercent || ""}
+                    onChange={(e) => onUpdateField("taxImportPercent", Number(e.target.value))}
+                    placeholder="0"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">MP Nacional (R$)</Label>
+                  <Input 
+                    type="number"
+                    value={state.custoMpNacional || ""}
+                    onChange={(e) => onUpdateField("custoMpNacional", Number(e.target.value))}
                     placeholder="0,00"
                     className="h-8"
                   />
@@ -124,8 +184,8 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
                   <Label className="text-xs">Horas de mão de obra</Label>
                   <Input 
                     type="number"
-                    value={state.laborHours || ""}
-                    onChange={(e) => onUpdateField("laborHours", Number(e.target.value))}
+                    value={state.custoMoHoras || ""}
+                    onChange={(e) => onUpdateField("custoMoHoras", Number(e.target.value))}
                     placeholder="0"
                     className="h-8"
                   />
@@ -134,19 +194,9 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
                   <Label className="text-xs">Custo/hora (R$)</Label>
                   <Input 
                     type="number"
-                    value={state.laborCostPerHour || ""}
-                    onChange={(e) => onUpdateField("laborCostPerHour", Number(e.target.value))}
-                    placeholder="150,00"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Custos fixos (R$)</Label>
-                  <Input 
-                    type="number"
-                    value={state.fixedCosts || ""}
-                    onChange={(e) => onUpdateField("fixedCosts", Number(e.target.value))}
-                    placeholder="0,00"
+                    value={state.custoMoValorHora || ""}
+                    onChange={(e) => onUpdateField("custoMoValorHora", Number(e.target.value))}
+                    placeholder="55,00"
                     className="h-8"
                   />
                 </div>
@@ -170,22 +220,17 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
             <CollapsibleContent>
               <SidebarGroupContent className="space-y-3 pt-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Impostos (%)</Label>
+                  <Label className="text-xs">
+                    Imposto Venda (%)
+                    <span className="text-muted-foreground ml-1">
+                      {state.isExportable ? "(Export)" : "(Nacional)"}
+                    </span>
+                  </Label>
                   <Input 
                     type="number"
-                    value={state.taxPercent || ""}
-                    onChange={(e) => onUpdateField("taxPercent", Number(e.target.value))}
-                    placeholder="21"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Frete (%)</Label>
-                  <Input 
-                    type="number"
-                    value={state.freightPercent || ""}
-                    onChange={(e) => onUpdateField("freightPercent", Number(e.target.value))}
-                    placeholder="2"
+                    value={state.salesTaxPercent || ""}
+                    onChange={(e) => onUpdateField("salesTaxPercent", Number(e.target.value))}
+                    placeholder={state.isExportable ? "0" : "21"}
                     className="h-8"
                   />
                 </div>
@@ -195,70 +240,9 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
                     type="number"
                     value={state.warrantyPercent || ""}
                     onChange={(e) => onUpdateField("warrantyPercent", Number(e.target.value))}
-                    placeholder="3"
+                    placeholder={state.isExportable ? "5" : "3"}
                     className="h-8"
                   />
-                </div>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* Comissões Section */}
-        <Collapsible className="group/collapsible">
-          <SidebarGroup>
-            <CollapsibleTrigger className="w-full">
-              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span>Comissões</span>
-                </div>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="space-y-3 pt-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Royalties (%)</Label>
-                  <Input 
-                    type="number"
-                    value={state.royaltiesPercent || ""}
-                    onChange={(e) => onUpdateField("royaltiesPercent", Number(e.target.value))}
-                    placeholder="5"
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Comissão broker (%)</Label>
-                  <Input 
-                    type="number"
-                    value={state.brokerCommissionPercent || ""}
-                    onChange={(e) => onUpdateField("brokerCommissionPercent", Number(e.target.value))}
-                    placeholder="3"
-                    className="h-8"
-                  />
-                </div>
-              </SidebarGroupContent>
-            </CollapsibleContent>
-          </SidebarGroup>
-        </Collapsible>
-
-        {/* Trade-in Section */}
-        <Collapsible className="group/collapsible">
-          <SidebarGroup>
-            <CollapsibleTrigger className="w-full">
-              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
-                <div className="flex items-center gap-2">
-                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                  <span>Trade-in</span>
-                </div>
-                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
-              </SidebarGroupLabel>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarGroupContent className="pt-2">
-                <div className="rounded-md border border-dashed p-3 text-center text-sm text-muted-foreground">
-                  Em breve
                 </div>
               </SidebarGroupContent>
             </CollapsibleContent>

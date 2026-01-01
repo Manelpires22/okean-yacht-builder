@@ -1,5 +1,6 @@
-import { Calculator, TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, DollarSign, Percent, Ship, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { SimulatorState } from "@/hooks/useSimulatorState";
 
 interface SimulationResultsPanelProps {
@@ -7,30 +8,61 @@ interface SimulationResultsPanelProps {
 }
 
 export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
-  // Cálculos básicos de exemplo (serão refinados posteriormente)
-  const laborCost = state.laborHours * state.laborCostPerHour;
-  const totalDirectCosts = state.materialCost + laborCost + state.fixedCosts;
+  // Converter MP Importada para BRL
+  const exchangeRate = state.custoMpImportCurrency === "EUR" ? state.eurRate : state.usdRate;
+  const custoMpImportBRL = state.custoMpImport * exchangeRate;
   
-  // Placeholder para receita (será input do usuário ou baseado no modelo)
-  const revenue = 0; // Será implementado no próximo passo
+  // Custo de mão de obra
+  const laborCost = state.custoMoHoras * state.custoMoValorHora;
   
-  const grossProfit = revenue - totalDirectCosts;
+  // Imposto de importação
+  const impostoImportacao = custoMpImportBRL * (state.taxImportPercent / 100);
+  
+  // Custo total de produção
+  const totalProductionCost = custoMpImportBRL + impostoImportacao + state.custoMpNacional + laborCost;
+  
+  // Placeholder para receita (será input do usuário)
+  const revenue = 0;
+  
+  // Custos sobre receita
+  const salesTax = revenue * (state.salesTaxPercent / 100);
+  const warranty = revenue * (state.warrantyPercent / 100);
+  const commission = revenue * (state.selectedCommissionPercent / 100);
+  
+  const totalCosts = totalProductionCost + salesTax + warranty + commission;
+  const grossProfit = revenue - totalCosts;
   const marginPercent = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-lg bg-primary/10">
-          <Calculator className="h-6 w-6 text-primary" />
+      {/* Header with selected seller and model */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-lg bg-primary/10">
+            <Calculator className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Simulação de Viabilidade
+            </h1>
+            <p className="text-muted-foreground">
+              Análise de margem de contribuição
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Simulação de Viabilidade
-          </h1>
-          <p className="text-muted-foreground">
-            Configure os parâmetros na barra lateral para calcular a margem
-          </p>
+        
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="flex items-center gap-1.5 py-1.5">
+            <User className="h-3.5 w-3.5" />
+            {state.selectedCommissionName} ({state.selectedCommissionPercent}%)
+          </Badge>
+          <Badge variant="secondary" className="flex items-center gap-1.5 py-1.5">
+            <Ship className="h-3.5 w-3.5" />
+            {state.selectedModelCode} - {state.selectedModelName}
+          </Badge>
+          {state.isExportable && (
+            <Badge variant="default">Exportação</Badge>
+          )}
         </div>
       </div>
 
@@ -57,15 +89,15 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <TrendingDown className="h-4 w-4" />
-              Custos Totais
+              Custo Produção
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {totalDirectCosts.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              {totalProductionCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              MP + MO + Fixos
+              MP + MO + Impostos
             </p>
           </CardContent>
         </Card>
@@ -91,7 +123,7 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Percent className="h-4 w-4" />
-              Margem
+              Margem MDC
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -99,7 +131,7 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
               {marginPercent.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              MDC %
+              MDC / Receita
             </p>
           </CardContent>
         </Card>
@@ -112,61 +144,96 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Matéria-prima</span>
-              <span className="font-medium">
-                {state.materialCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </span>
+            {/* Custos de Produção */}
+            <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide pb-1">
+              Custos de Produção
             </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground">
-                Mão de obra ({state.laborHours}h × R$ {state.laborCostPerHour})
+                MP Importada ({state.custoMpImportCurrency} {state.custoMpImport.toLocaleString()} × {exchangeRate.toFixed(2)})
+              </span>
+              <span className="font-medium">
+                {custoMpImportBRL.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">
+                Imposto Importação ({state.taxImportPercent}%)
+              </span>
+              <span className="font-medium">
+                {impostoImportacao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">MP Nacional</span>
+              <span className="font-medium">
+                {state.custoMpNacional.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center py-2 border-b">
+              <span className="text-muted-foreground">
+                Mão de obra ({state.custoMoHoras}h × R$ {state.custoMoValorHora})
               </span>
               <span className="font-medium">
                 {laborCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </span>
             </div>
+            
+            {/* Custos sobre Receita */}
+            <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide pt-4 pb-1">
+              Custos sobre Receita
+            </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Custos fixos</span>
+              <span className="text-muted-foreground">
+                Imposto de Venda ({state.salesTaxPercent}%)
+                {state.isExportable && <span className="ml-1 text-xs">(Exportação)</span>}
+              </span>
               <span className="font-medium">
-                {state.fixedCosts.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {salesTax.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </span>
             </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Impostos ({state.taxPercent}%)</span>
-              <span className="font-medium text-muted-foreground">
-                (calculado sobre receita)
+              <span className="text-muted-foreground">
+                Garantia ({state.warrantyPercent}%)
+              </span>
+              <span className="font-medium">
+                {warranty.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </span>
             </div>
+            
             <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Frete ({state.freightPercent}%)</span>
-              <span className="font-medium text-muted-foreground">
-                (calculado sobre receita)
+              <span className="text-muted-foreground">
+                Comissão - {state.selectedCommissionName} ({state.selectedCommissionPercent}%)
+              </span>
+              <span className="font-medium">
+                {commission.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </span>
             </div>
-            <div className="flex justify-between items-center py-2 border-b">
-              <span className="text-muted-foreground">Comissões ({state.royaltiesPercent + state.brokerCommissionPercent}%)</span>
-              <span className="font-medium text-muted-foreground">
-                (calculado sobre receita)
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2 font-bold text-lg">
+            
+            {/* Total */}
+            <div className="flex justify-between items-center py-2 font-bold text-lg pt-4">
               <span>Total de Custos</span>
               <span>
-                {totalDirectCosts.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {totalCosts.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Placeholder for next steps */}
+      {/* Placeholder for revenue input */}
       <div className="rounded-lg border-2 border-dashed border-muted p-8 flex items-center justify-center">
         <div className="text-center text-muted-foreground">
           <Calculator className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="font-medium">Próximos passos</p>
+          <p className="font-medium">Próximo passo</p>
           <p className="text-sm mt-1">
-            Seletor de modelo, input de faturamento e cálculo completo de MDC
+            Input de faturamento para cálculo completo de MDC
           </p>
         </div>
       </div>

@@ -6,9 +6,10 @@ import { Home } from "lucide-react";
 interface AppHeaderProps {
   title?: string;
   showHomeButton?: boolean;
+  actions?: React.ReactNode;
 }
 
-export function AppHeader({ title, showHomeButton = true }: AppHeaderProps) {
+export function AppHeader({ title, showHomeButton = true, actions }: AppHeaderProps) {
   const navigate = useNavigate();
 
   return (
@@ -46,8 +47,11 @@ export function AppHeader({ title, showHomeButton = true }: AppHeaderProps) {
             )}
           </div>
 
-          {/* UserMenu */}
-          <UserMenu />
+          {/* Actions + UserMenu */}
+          <div className="flex items-center gap-3">
+            {actions}
+            <UserMenu />
+          </div>
         </div>
       </div>
     </header>
