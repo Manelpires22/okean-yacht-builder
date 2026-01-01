@@ -20,10 +20,10 @@ export interface SimulatorModelCost {
   id: string;
   yacht_model_id: string;
   custo_mp_import: number;
+  custo_mp_import_currency: "EUR" | "USD";
   custo_mp_nacional: number;
   custo_mo_horas: number;
   custo_mo_valor_hora: number;
-  projeto: "Ferretti" | "OKEAN";
   tax_import_percent: number;
   updated_by: string | null;
   updated_at: string;
