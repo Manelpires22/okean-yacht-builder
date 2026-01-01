@@ -42,7 +42,7 @@ export default function AdminSimulatorCommissions() {
   const handleOpenCreate = () => {
     setEditingCommission({
       name: "",
-      type: "broker",
+      type: "venda_interna",
       percent: 0,
       is_active: true,
     });
@@ -93,12 +93,18 @@ export default function AdminSimulatorCommissions() {
 
   const getTypeBadge = (type: string) => {
     switch (type) {
-      case "royalty":
-        return <Badge variant="default">Royalty</Badge>;
-      case "broker":
-        return <Badge variant="secondary">Broker</Badge>;
+      case "venda_interna":
+        return <Badge variant="default">Venda Interna</Badge>;
+      case "broker_interno":
+        return <Badge variant="secondary">Broker Interno</Badge>;
+      case "broker_externo":
+        return <Badge className="bg-blue-500 text-white">Broker Externo</Badge>;
+      case "parceiro":
+        return <Badge variant="outline">Parceiro</Badge>;
+      case "sub_dealer":
+        return <Badge className="bg-amber-500 text-white">Sub-Dealer</Badge>;
       default:
-        return <Badge variant="outline">Outro</Badge>;
+        return <Badge variant="outline">{type}</Badge>;
     }
   };
 
@@ -154,11 +160,11 @@ export default function AdminSimulatorCommissions() {
                 <div className="space-y-2">
                   <Label>Tipo de Parceiro</Label>
                   <Select
-                    value={editingCommission?.type || "broker"}
+                    value={editingCommission?.type || "venda_interna"}
                     onValueChange={(v) =>
                       setEditingCommission((prev) => ({
                         ...prev,
-                        type: v as "broker" | "royalty" | "other",
+                        type: v as "venda_interna" | "broker_interno" | "broker_externo" | "parceiro" | "sub_dealer",
                       }))
                     }
                   >
@@ -166,9 +172,11 @@ export default function AdminSimulatorCommissions() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="royalty">Royalty</SelectItem>
-                      <SelectItem value="broker">Broker</SelectItem>
-                      <SelectItem value="other">Outro</SelectItem>
+                      <SelectItem value="venda_interna">Venda Interna</SelectItem>
+                      <SelectItem value="broker_interno">Broker Interno</SelectItem>
+                      <SelectItem value="broker_externo">Broker Externo</SelectItem>
+                      <SelectItem value="parceiro">Parceiro</SelectItem>
+                      <SelectItem value="sub_dealer">Sub-Dealer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
