@@ -1,26 +1,27 @@
 import { useState } from "react";
-import { RefreshCw, TrendingUp, AlertCircle } from "lucide-react";
+import { RefreshCw, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { useExchangeRate, Currency } from "@/hooks/useExchangeRate";
 import { formatDate } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ExchangeRateCardProps {
+  currency: Currency;
   onRateChange: (rate: number) => void;
   currentRate: number;
 }
 
-export function ExchangeRateCard({ onRateChange, currentRate }: ExchangeRateCardProps) {
+export function ExchangeRateCard({ currency, onRateChange, currentRate }: ExchangeRateCardProps) {
   const [useManualRate, setUseManualRate] = useState(false);
   const [manualRate, setManualRate] = useState("");
   const queryClient = useQueryClient();
   
-  const { data, isLoading, error, refetch, isFetching } = useExchangeRate();
+  const { data, isLoading, error, refetch, isFetching } = useExchangeRate(currency);
 
   const handleManualToggle = (checked: boolean) => {
     setUseManualRate(checked);
@@ -38,7 +39,7 @@ export function ExchangeRateCard({ onRateChange, currentRate }: ExchangeRateCard
   };
 
   const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['exchange-rate'] });
+    queryClient.invalidateQueries({ queryKey: ['exchange-rate', currency] });
     refetch();
   };
 
@@ -57,13 +58,16 @@ export function ExchangeRateCard({ onRateChange, currentRate }: ExchangeRateCard
     'cache-fallback': 'Cache (fallback)',
   };
 
+  const Icon = currency === 'USD' ? DollarSign : TrendingUp;
+  const currencyLabel = currency === 'USD' ? 'USD/BRL' : 'EUR/BRL';
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            Câmbio EUR/BRL
+            <Icon className="h-5 w-5 text-primary" />
+            Câmbio {currencyLabel}
           </CardTitle>
           <Button 
             variant="ghost" 
@@ -113,11 +117,11 @@ export function ExchangeRateCard({ onRateChange, currentRate }: ExchangeRateCard
 
         <div className="border-t pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <Label htmlFor="manual-rate" className="text-sm">
+            <Label htmlFor={`manual-rate-${currency}`} className="text-sm">
               Usar valor manual
             </Label>
             <Switch
-              id="manual-rate"
+              id={`manual-rate-${currency}`}
               checked={useManualRate}
               onCheckedChange={handleManualToggle}
             />
