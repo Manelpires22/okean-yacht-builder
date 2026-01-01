@@ -168,34 +168,6 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
                       </Badge>
                     </div>
                     
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <div className="flex justify-between">
-                        <span>MP Importada:</span>
-                        <span className="font-medium">
-                          {cost.custo_mp_import_currency || "EUR"} {cost.custo_mp_import.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>MP Nacional:</span>
-                        <span className="font-medium">
-                          R$ {cost.custo_mp_nacional.toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Mão de obra:</span>
-                        <span className="font-medium">
-                          {cost.custo_mo_horas}h × R$ {cost.custo_mo_valor_hora}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Suggested Price */}
-                    {model?.base_price && model.base_price > 0 && (
-                      <div className="flex justify-between text-sm font-medium text-primary mt-3 pt-3 border-t">
-                        <span>Preço Sugerido:</span>
-                        <span>R$ {model.base_price.toLocaleString()}</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
