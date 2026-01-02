@@ -52,6 +52,9 @@ export interface SimulatorState {
   // Preço original de tabela (para cálculo de desconto)
   originalBasePrice: number;
   
+  // Percentual de desconto/acréscimo sobre tabela
+  discountPercent: number;
+  
   // Trade-In
   hasTradeIn: boolean;
   tradeInBrand: string;
@@ -103,6 +106,7 @@ const DEFAULT_STATE: SimulatorState = {
   transporteCost: 0,
   customizacoesEstimadas: 0,
   originalBasePrice: 0,
+  discountPercent: 0,
   
   // Trade-In defaults
   hasTradeIn: false,
@@ -206,6 +210,7 @@ export function useSimulatorState() {
       transporteCost: 0,
       customizacoesEstimadas: 0,
       originalBasePrice: model.basePrice,
+      discountPercent: 0,
       // Trade-In
       hasTradeIn: model.hasTradeIn ?? false,
       tradeInBrand: model.tradeInBrand ?? "",
@@ -292,6 +297,9 @@ export function useSimulatorState() {
       faturamentoBruto: simulation.faturamentoBruto,
       transporteCost: simulation.transporteCost,
       customizacoesEstimadas: simulation.customizacoesEstimadas,
+      discountPercent: simulation.originalBasePrice && simulation.originalBasePrice > 0
+        ? ((simulation.faturamentoBruto - simulation.originalBasePrice) / simulation.originalBasePrice) * 100
+        : 0,
       originalBasePrice: simulation.originalBasePrice ?? simulation.faturamentoBruto,
       // Trade-In
       hasTradeIn: simulation.hasTradeIn ?? false,
@@ -313,6 +321,7 @@ export function useSimulatorState() {
       faturamentoBruto: prev.originalBasePrice,
       transporteCost: 0,
       customizacoesEstimadas: 0,
+      discountPercent: 0,
       // Resetar trade-in também
       hasTradeIn: false,
       tradeInBrand: "",

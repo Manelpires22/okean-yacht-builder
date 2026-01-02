@@ -1,13 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent } from "lucide-react";
 import { SimulatorState } from "@/hooks/useSimulatorState";
 import { CurrencyInput } from "@/components/ui/numeric-input";
 import { useSaveSimulation } from "@/hooks/useSimulations";
+import { cn } from "@/lib/utils";
 
 interface MDCSimulationPanelProps {
   state: SimulatorState;
@@ -95,6 +97,90 @@ function SimulationLine({
             {formatCurrency(Math.abs(value))}
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Presets de desconto/acréscimo
+const DISCOUNT_PRESETS = [-10, -5, -3, 0, 3, 5, 10];
+
+interface DiscountControlProps {
+  discountPercent: number;
+  originalBasePrice: number;
+  onDiscountChange: (percent: number) => void;
+}
+
+function DiscountControl({ discountPercent, originalBasePrice, onDiscountChange }: DiscountControlProps) {
+  const finalPrice = originalBasePrice * (1 + discountPercent / 100);
+  
+  return (
+    <div className="mt-2 mb-3 p-3 rounded-lg bg-muted/50 border border-border space-y-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Percent className="h-3 w-3" />
+        <span className="font-medium">Ajuste de Preço</span>
+      </div>
+      
+      {/* Preset buttons */}
+      <div className="flex flex-wrap gap-1.5">
+        {DISCOUNT_PRESETS.map((preset) => (
+          <Button
+            key={preset}
+            type="button"
+            variant={Math.abs(discountPercent - preset) < 0.1 ? "default" : "outline"}
+            size="sm"
+            className={cn(
+              "h-7 px-2 text-xs font-medium",
+              preset < 0 && "text-destructive hover:text-destructive",
+              preset > 0 && "text-green-600 hover:text-green-600",
+              Math.abs(discountPercent - preset) < 0.1 && preset < 0 && "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
+              Math.abs(discountPercent - preset) < 0.1 && preset > 0 && "bg-green-600 text-white hover:bg-green-700 hover:text-white",
+              Math.abs(discountPercent - preset) < 0.1 && preset === 0 && "bg-primary text-primary-foreground"
+            )}
+            onClick={() => onDiscountChange(preset)}
+          >
+            {preset > 0 ? `+${preset}%` : preset === 0 ? "0%" : `${preset}%`}
+          </Button>
+        ))}
+      </div>
+      
+      {/* Slider */}
+      <div className="space-y-2">
+        <Slider
+          value={[discountPercent]}
+          onValueChange={([value]) => onDiscountChange(value)}
+          min={-15}
+          max={15}
+          step={0.5}
+          className="w-full"
+        />
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>-15%</span>
+          <span className={cn(
+            "font-semibold text-sm",
+            discountPercent < 0 && "text-destructive",
+            discountPercent > 0 && "text-green-600",
+            discountPercent === 0 && "text-foreground"
+          )}>
+            {discountPercent > 0 ? '+' : ''}{discountPercent.toFixed(1)}%
+          </span>
+          <span>+15%</span>
+        </div>
+      </div>
+      
+      {/* Price comparison */}
+      <div className="flex items-center justify-center gap-2 text-xs">
+        <span className="text-muted-foreground">Tabela:</span>
+        <span className="font-mono font-medium">{formatCurrency(originalBasePrice)}</span>
+        <span className="text-muted-foreground">→</span>
+        <span className="text-muted-foreground">Final:</span>
+        <span className={cn(
+          "font-mono font-medium",
+          discountPercent < 0 && "text-destructive",
+          discountPercent > 0 && "text-green-600"
+        )}>
+          {formatCurrency(finalPrice)}
+        </span>
       </div>
     </div>
   );
@@ -292,18 +378,29 @@ export function MDCSimulationPanel({
               value={calculations.fatBruto}
               isEditable
               editableField="faturamentoBruto"
-              onUpdateField={onUpdateField}
+              onUpdateField={(field, value) => {
+                onUpdateField(field, value);
+                // Recalcular discountPercent quando editar manualmente
+                if (field === 'faturamentoBruto' && state.originalBasePrice > 0) {
+                  const newDiscount = ((value as number) - state.originalBasePrice) / state.originalBasePrice * 100;
+                  onUpdateField('discountPercent', newDiscount);
+                }
+              }}
             />
-            {calculations.discountFromOriginal !== 0 && calculations.originalBasePrice > 0 && (
-              <div className="flex items-center gap-2 text-xs pl-1 -mt-1 mb-1">
-                <span className={calculations.discountFromOriginal > 0 ? "text-green-600" : "text-destructive"}>
-                  {calculations.discountFromOriginal > 0 ? '+' : ''}{formatPercent(calculations.discountFromOriginal)} sobre tabela
-                </span>
-                <span className="text-muted-foreground/70">
-                  (base: {formatCurrency(calculations.originalBasePrice)})
-                </span>
-              </div>
+            
+            {/* Controle de Desconto Dinâmico */}
+            {state.originalBasePrice > 0 && (
+              <DiscountControl
+                discountPercent={state.discountPercent}
+                originalBasePrice={state.originalBasePrice}
+                onDiscountChange={(percent) => {
+                  const newFatBruto = state.originalBasePrice * (1 + percent / 100);
+                  onUpdateField('discountPercent', percent);
+                  onUpdateField('faturamentoBruto', newFatBruto);
+                }}
+              />
             )}
+            
             {state.hasTradeIn && (
               <div className="flex items-center gap-2 text-xs pl-1 mb-1 text-amber-700">
                 <Ship className="h-3 w-3" />
