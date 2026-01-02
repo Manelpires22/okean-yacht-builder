@@ -9,6 +9,10 @@ export interface SimulatorState {
   // Etapa atual do wizard
   currentStep: SimulatorStep;
   
+  // Simulação em edição (null = nova simulação)
+  editingSimulationId: string | null;
+  editingSimulationNumber: string | null;
+  
   // Vendedor/Comissão selecionado
   selectedCommissionId: string | null;
   selectedCommissionName: string;
@@ -77,6 +81,10 @@ export interface SimulatorState {
 
 const DEFAULT_STATE: SimulatorState = {
   currentStep: "list",
+  
+  // Edição
+  editingSimulationId: null,
+  editingSimulationNumber: null,
   
   selectedCommissionId: null,
   selectedCommissionName: "",
@@ -289,9 +297,11 @@ export function useSimulatorState() {
     tradeInCommissionReduction?: number;
     // Comissão ajustada
     adjustedCommissionPercent?: number | null;
-  }) => {
+  }, options?: { isEditing?: boolean; simulationId?: string; simulationNumber?: string }) => {
     setState({
       currentStep: "simulation",
+      editingSimulationId: options?.isEditing ? (options.simulationId ?? null) : null,
+      editingSimulationNumber: options?.isEditing ? (options.simulationNumber ?? null) : null,
       selectedCommissionId: simulation.commissionId,
       selectedCommissionName: simulation.commissionName,
       selectedCommissionPercent: simulation.commissionPercent,

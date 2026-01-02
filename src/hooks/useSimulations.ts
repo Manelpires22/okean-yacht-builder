@@ -198,3 +198,80 @@ export function useDeleteSimulation() {
     },
   });
 }
+
+export function useUpdateSimulation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: SaveSimulationData }) => {
+      const { state, clientId, clientName, calculations, notes } = data;
+
+      const updateData = {
+        // Não atualiza simulation_number (mantém original)
+        client_id: clientId,
+        client_name: clientName,
+        commission_id: state.selectedCommissionId,
+        commission_name: state.selectedCommissionName,
+        commission_percent: state.selectedCommissionPercent,
+        commission_type: state.selectedCommissionType,
+        yacht_model_id: state.selectedModelId,
+        yacht_model_code: state.selectedModelCode,
+        yacht_model_name: state.selectedModelName,
+        is_exporting: state.isExporting,
+        export_country: state.exportCountry,
+        export_currency: state.exportCurrency,
+        faturamento_bruto: state.faturamentoBruto,
+        transporte_cost: state.transporteCost,
+        customizacoes_estimadas: state.customizacoesEstimadas,
+        sales_tax_percent: state.salesTaxPercent,
+        warranty_percent: state.warrantyPercent,
+        royalties_percent: state.royaltiesPercent,
+        tax_import_percent: state.taxImportPercent,
+        custo_mp_import: state.custoMpImport,
+        custo_mp_import_currency: state.custoMpImportCurrency,
+        custo_mp_nacional: state.custoMpNacional,
+        custo_mo_horas: state.custoMoHoras,
+        custo_mo_valor_hora: state.custoMoValorHora,
+        eur_rate: state.eurRate,
+        usd_rate: state.usdRate,
+        faturamento_liquido: calculations.fatLiquido,
+        custo_venda: calculations.custoVenda,
+        margem_bruta: calculations.margemBruta,
+        margem_percent: calculations.margemPercent,
+        adjusted_commission_percent: state.adjustedCommissionPercent,
+        commission_adjustment_factor: calculations.commissionAdjustmentFactor,
+        notes,
+        // Trade-In fields
+        has_trade_in: state.hasTradeIn,
+        trade_in_brand: state.hasTradeIn ? state.tradeInBrand : null,
+        trade_in_model: state.hasTradeIn ? state.tradeInModel : null,
+        trade_in_year: state.hasTradeIn ? state.tradeInYear : null,
+        trade_in_entry_value: state.hasTradeIn ? state.tradeInEntryValue : 0,
+        trade_in_real_value: state.hasTradeIn ? state.tradeInRealValue : 0,
+        trade_in_depreciation: calculations.tradeInDepreciation ?? 0,
+        trade_in_operation_cost: calculations.tradeInOperationCost ?? 0,
+        trade_in_commission: calculations.tradeInCommission ?? 0,
+        trade_in_total_impact: calculations.tradeInTotalImpact ?? 0,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data: simulation, error } = await supabase
+        .from('simulations')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return simulation;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['simulations'] });
+      toast.success("Simulação atualizada!");
+    },
+    onError: (error) => {
+      console.error('Error updating simulation:', error);
+      toast.error("Erro ao atualizar simulação");
+    },
+  });
+}
