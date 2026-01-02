@@ -70,6 +70,9 @@ export interface SimulatorState {
   tradeInOperationCostPercent: number;
   tradeInCommissionPercent: number;
   tradeInCommissionReduction: number;
+  
+  // Comissão ajustada por simulação (null = usar selectedCommissionPercent)
+  adjustedCommissionPercent: number | null;
 }
 
 const DEFAULT_STATE: SimulatorState = {
@@ -124,6 +127,9 @@ const DEFAULT_STATE: SimulatorState = {
   tradeInOperationCostPercent: 3,
   tradeInCommissionPercent: 5,
   tradeInCommissionReduction: 0.5,
+  
+  // Comissão ajustada (null = usar original)
+  adjustedCommissionPercent: null,
 };
 
 export function useSimulatorState() {
@@ -232,6 +238,8 @@ export function useSimulatorState() {
       tradeInOperationCostPercent: model.tradeInOperationCostPercent ?? 3,
       tradeInCommissionPercent: model.tradeInCommissionPercent ?? 5,
       tradeInCommissionReduction: model.tradeInCommissionReduction ?? 0.5,
+      // Reset comissão ajustada ao selecionar novo modelo
+      adjustedCommissionPercent: null,
       currentStep: "simulation",
     }));
   }, []);
@@ -279,6 +287,8 @@ export function useSimulatorState() {
     tradeInOperationCostPercent?: number;
     tradeInCommissionPercent?: number;
     tradeInCommissionReduction?: number;
+    // Comissão ajustada
+    adjustedCommissionPercent?: number | null;
   }) => {
     setState({
       currentStep: "simulation",
@@ -324,6 +334,8 @@ export function useSimulatorState() {
       tradeInOperationCostPercent: simulation.tradeInOperationCostPercent ?? 3,
       tradeInCommissionPercent: simulation.tradeInCommissionPercent ?? 5,
       tradeInCommissionReduction: simulation.tradeInCommissionReduction ?? 0.5,
+      // Comissão ajustada
+      adjustedCommissionPercent: simulation.adjustedCommissionPercent ?? null,
     });
   }, []);
 
@@ -345,6 +357,8 @@ export function useSimulatorState() {
       tradeInOperationCostPercent: 3,
       tradeInCommissionPercent: 5,
       tradeInCommissionReduction: 0.5,
+      // Resetar comissão ajustada
+      adjustedCommissionPercent: null,
     }));
   }, []);
 
