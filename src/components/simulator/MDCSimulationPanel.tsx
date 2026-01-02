@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User } from "lucide-react";
+import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship } from "lucide-react";
 import { SimulatorState } from "@/hooks/useSimulatorState";
 import { CurrencyInput } from "@/components/ui/numeric-input";
 import { useSaveSimulation } from "@/hooks/useSimulations";
@@ -116,7 +116,12 @@ export function MDCSimulationPanel({
   // MDC ideal fixa em 30%
   const MDC_IDEAL = 30;
 
-  // Cálculos de FATURAMENTO com comissão variável
+  // Trade-In constants
+  const TRADE_IN_OPERATION_COST_PERCENT = 3; // 3% do valor real
+  const TRADE_IN_COMMISSION_PERCENT = 5; // 5% do valor real
+  const TRADE_IN_COMMISSION_REDUCTION = 0.5; // Redução de 0.5% na comissão base
+
+  // Cálculos de FATURAMENTO com comissão variável e trade-in
   const calculations = useMemo(() => {
     const fatBruto = state.faturamentoBruto;
     const comissaoBase = state.selectedCommissionPercent;
@@ -126,13 +131,35 @@ export function MDCSimulationPanel({
       ? ((fatBruto - state.originalBasePrice) / state.originalBasePrice) * 100 
       : 0;
 
+    // Trade-In calculations
+    const tradeInDepreciation = state.hasTradeIn 
+      ? state.tradeInEntryValue - state.tradeInRealValue 
+      : 0;
+    const tradeInOperationCost = state.hasTradeIn 
+      ? state.tradeInRealValue * (TRADE_IN_OPERATION_COST_PERCENT / 100)
+      : 0;
+    const tradeInCommission = state.hasTradeIn 
+      ? state.tradeInRealValue * (TRADE_IN_COMMISSION_PERCENT / 100)
+      : 0;
+    const tradeInTotalImpact = tradeInDepreciation + tradeInOperationCost + tradeInCommission;
+
+    // Base de cálculo da comissão = apenas cash (Fat. Bruto - Entrada do Trade-In)
+    const cashValue = state.hasTradeIn 
+      ? fatBruto - state.tradeInEntryValue 
+      : fatBruto;
+
+    // Comissão ajustada: redução de 0.5% quando há trade-in
+    const comissaoBaseAjustadaTradeIn = state.hasTradeIn 
+      ? Math.max(0, comissaoBase - TRADE_IN_COMMISSION_REDUCTION)
+      : comissaoBase;
+
     // Deduções sobre faturamento (com comissão BASE para calcular MDC referência)
     const taxValue = fatBruto * (state.salesTaxPercent / 100);
-    const comissaoBaseValue = fatBruto * (comissaoBase / 100);
+    const comissaoBaseValue = cashValue * (comissaoBaseAjustadaTradeIn / 100);
     const royaltiesValue = fatBruto * (state.royaltiesPercent / 100);
     const transporteValue = state.transporteCost;
 
-    // Faturamento Líquido (com comissão base)
+    // Faturamento Líquido (com comissão base ajustada)
     const fatLiquidoBase =
       fatBruto - taxValue - transporteValue - comissaoBaseValue - royaltiesValue;
 
@@ -153,31 +180,33 @@ export function MDCSimulationPanel({
     const garantiaValue = fatBruto * (state.warrantyPercent / 100);
 
     // MDC de referência (com comissão base) para calcular o ajuste
-    const margemBrutaRef = fatLiquidoBase - custoVenda - garantiaValue;
+    const margemBrutaRef = fatLiquidoBase - custoVenda - garantiaValue - tradeInTotalImpact;
     const margemPercentRef = fatLiquidoBase > 0 ? (margemBrutaRef / fatLiquidoBase) * 100 : 0;
 
     // Calcular fator de ajuste: (MDC Real - 30%) / 30%
     const adjustmentFactor = (margemPercentRef - MDC_IDEAL) / MDC_IDEAL;
 
-    // Comissão ajustada = Comissão Base × (1 + Fator)
-    const comissaoAjustadaPercent = comissaoBase * (1 + adjustmentFactor);
-    const comissaoAjustadaValue = fatBruto * (comissaoAjustadaPercent / 100);
+    // Comissão ajustada = Comissão Base (já com redução trade-in) × (1 + Fator)
+    const comissaoAjustadaPercent = comissaoBaseAjustadaTradeIn * (1 + adjustmentFactor);
+    const comissaoAjustadaValue = cashValue * (comissaoAjustadaPercent / 100);
 
     // RECALCULAR Fat. Líquido com comissão ajustada
     const fatLiquido =
       fatBruto - taxValue - transporteValue - comissaoAjustadaValue - royaltiesValue;
 
-    // MDC Final (com comissão ajustada)
-    const margemBruta = fatLiquido - custoVenda - garantiaValue;
+    // MDC Final (com comissão ajustada e impacto trade-in)
+    const margemBruta = fatLiquido - custoVenda - garantiaValue - tradeInTotalImpact;
     const margemPercent = fatLiquido > 0 ? (margemBruta / fatLiquido) * 100 : 0;
 
     return {
       fatBruto,
       discountFromOriginal,
       originalBasePrice: state.originalBasePrice,
+      cashValue,
       taxValue,
       transporteValue,
       comissaoBase,
+      comissaoBaseAjustadaTradeIn,
       comissaoBaseValue,
       comissaoAjustadaPercent,
       comissaoAjustadaValue,
@@ -192,6 +221,12 @@ export function MDCSimulationPanel({
       maoDeObra,
       custoVenda,
       garantiaValue,
+      // Trade-In
+      tradeInDepreciation,
+      tradeInOperationCost,
+      tradeInCommission,
+      tradeInTotalImpact,
+      // Results
       margemBruta,
       margemPercent,
       margemPercentRef,
@@ -208,6 +243,12 @@ export function MDCSimulationPanel({
             Simulação MDC - {state.selectedModelCode}
           </CardTitle>
           <div className="flex items-center gap-2">
+            {state.hasTradeIn && (
+              <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
+                <Ship className="h-3 w-3" />
+                Trade-In
+              </Badge>
+            )}
             {state.isExporting ? (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Globe className="h-3 w-3" />
@@ -250,6 +291,12 @@ export function MDCSimulationPanel({
                 </span>
               </div>
             )}
+            {state.hasTradeIn && (
+              <div className="flex items-center gap-2 text-xs pl-1 mb-1 text-amber-700">
+                <Ship className="h-3 w-3" />
+                <span>Cash: {formatCurrency(calculations.cashValue)} (Fat. Bruto - Trade-In)</span>
+              </div>
+            )}
             <SimulationLine
               label="TAX"
               value={calculations.taxValue}
@@ -279,7 +326,10 @@ export function MDCSimulationPanel({
                   )}
                 </span>
                 <span className="text-xs text-muted-foreground/70">
-                  base: {formatPercent(calculations.comissaoBase)}, ajuste: {calculations.adjustmentFactor >= 0 ? '+' : ''}{formatPercent(calculations.adjustmentFactor * 100)}
+                  base: {formatPercent(calculations.comissaoBaseAjustadaTradeIn)}
+                  {state.hasTradeIn && <span className="text-amber-700"> (-0.5% trade-in)</span>}
+                  , ajuste: {calculations.adjustmentFactor >= 0 ? '+' : ''}{formatPercent(calculations.adjustmentFactor * 100)}
+                  {state.hasTradeIn && <span className="text-amber-700">, sobre cash</span>}
                 </span>
               </div>
               <span className="font-mono text-sm text-destructive">
@@ -357,6 +407,40 @@ export function MDCSimulationPanel({
               percent={state.warrantyPercent}
               isNegative
             />
+
+            {/* Trade-In Impact Section */}
+            {state.hasTradeIn && (
+              <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Ship className="h-4 w-4 text-amber-700" />
+                  <span className="text-sm font-semibold text-amber-800">
+                    Impacto Usado: {state.tradeInBrand} {state.tradeInModel} {state.tradeInYear && `(${state.tradeInYear})`}
+                  </span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Depreciação (Entrada - Real)</span>
+                    <span className={`font-mono ${calculations.tradeInDepreciation > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                      {calculations.tradeInDepreciation > 0 ? '- ' : '+ '}
+                      {formatCurrency(Math.abs(calculations.tradeInDepreciation))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Custo Operação ({TRADE_IN_OPERATION_COST_PERCENT}%)</span>
+                    <span className="font-mono text-destructive">- {formatCurrency(calculations.tradeInOperationCost)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Comissão Usado ({TRADE_IN_COMMISSION_PERCENT}%)</span>
+                    <span className="font-mono text-destructive">- {formatCurrency(calculations.tradeInCommission)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-amber-300">
+                    <span className="font-semibold text-amber-800">IMPACTO TOTAL USADO</span>
+                    <span className="font-mono font-bold text-destructive">- {formatCurrency(calculations.tradeInTotalImpact)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4">
               <SimulationLine
                 label="MARGEM BRUTA (MDC)"
@@ -436,14 +520,19 @@ export function MDCSimulationPanel({
                 state,
                 clientId: state.selectedClientId,
                 clientName: state.selectedClientName,
-                  calculations: {
-                    fatLiquido: calculations.fatLiquido,
-                    custoVenda: calculations.custoVenda,
-                    margemBruta: calculations.margemBruta,
-                    margemPercent: calculations.margemPercent,
-                    adjustedCommissionPercent: calculations.comissaoAjustadaPercent,
-                    commissionAdjustmentFactor: calculations.adjustmentFactor,
-                  },
+                calculations: {
+                  fatLiquido: calculations.fatLiquido,
+                  custoVenda: calculations.custoVenda,
+                  margemBruta: calculations.margemBruta,
+                  margemPercent: calculations.margemPercent,
+                  adjustedCommissionPercent: calculations.comissaoAjustadaPercent,
+                  commissionAdjustmentFactor: calculations.adjustmentFactor,
+                  // Trade-In calculations
+                  tradeInDepreciation: calculations.tradeInDepreciation,
+                  tradeInOperationCost: calculations.tradeInOperationCost,
+                  tradeInCommission: calculations.tradeInCommission,
+                  tradeInTotalImpact: calculations.tradeInTotalImpact,
+                },
                 notes: notes || undefined,
               });
             }}
