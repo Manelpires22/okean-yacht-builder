@@ -426,50 +426,57 @@ serve(async (req) => {
     
     y += 3;
     
-    // MDC Box - before trade-in
+    // MDC Box - before trade-in (redesigned to avoid overlap)
     const mdcColor = getMarginColor(mdcAntesPercent);
     const mdcBgColor = getMarginBgColor(mdcAntesPercent);
+    const badgeWidth = 32;
     
     setColor(doc, mdcBgColor, "fill");
-    doc.roundedRect(margin, y - 1, contentWidth, 12, 2, 2, "F");
+    doc.roundedRect(margin, y - 1, contentWidth, 14, 2, 2, "F");
     setColor(doc, mdcColor, "draw");
     doc.setLineWidth(0.4);
-    doc.roundedRect(margin, y - 1, contentWidth, 12, 2, 2, "S");
+    doc.roundedRect(margin, y - 1, contentWidth, 14, 2, 2, "S");
     
+    // Label left-aligned
     setColor(doc, COLORS.textDark);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text("MARGEM DE CONTRIBUIÇÃO (MDC)", margin + 4, y + 5);
+    doc.text("MARGEM DE CONTRIBUIÇÃO (MDC)", margin + 4, y + 6);
     
+    // Currency value - right-aligned but with space for badge
     doc.setFontSize(10);
-    doc.text(formatCurrency(mdcAntesTradeIn), pageWidth - margin - 35, y + 5);
+    doc.text(formatCurrency(mdcAntesTradeIn), pageWidth - margin - badgeWidth - 8, y + 6, { align: "right" });
     
-    setColor(doc, mdcColor);
-    doc.setFontSize(13);
+    // Percentage badge - separate colored box
+    setColor(doc, mdcColor, "fill");
+    doc.roundedRect(pageWidth - margin - badgeWidth - 2, y + 1, badgeWidth, 10, 2, 2, "F");
+    setColor(doc, COLORS.white);
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text(formatPercent(mdcAntesPercent), pageWidth - margin - 4, y + 6, { align: "right" });
+    doc.text(formatPercent(mdcAntesPercent), pageWidth - margin - badgeWidth / 2 - 2, y + 7.5, { align: "center" });
     
-    y += 16;
+    y += 18;
 
     // =========================================================================
     // SECTION 4: TRADE-IN (if applicable)
     // =========================================================================
     if (hasTradeIn) {
+      // Increased box height to fit reorganized content
       setColor(doc, COLORS.amberBg, "fill");
-      doc.roundedRect(margin, y, contentWidth, 38, 2, 2, "F");
+      doc.roundedRect(margin, y, contentWidth, 50, 2, 2, "F");
       setColor(doc, COLORS.amber, "draw");
       doc.setLineWidth(0.3);
-      doc.roundedRect(margin, y, contentWidth, 38, 2, 2, "S");
+      doc.roundedRect(margin, y, contentWidth, 50, 2, 2, "S");
       
       y += 5;
       
-      // Trade-In Title
+      // Trade-In Title (left-aligned)
       setColor(doc, COLORS.amber);
       doc.setFontSize(9);
       doc.setFont("helvetica", "bold");
       doc.text("IMPACTO USADO (TRADE-IN)", margin + 4, y);
       
-      // Boat info
+      // Boat info (right-aligned)
       const tradeInLabel = `${simulation.trade_in_brand || ""} ${simulation.trade_in_model || ""}${simulation.trade_in_year ? ` (${simulation.trade_in_year})` : ""}`.trim();
       setColor(doc, COLORS.textBody);
       doc.setFontSize(8);
@@ -478,15 +485,17 @@ serve(async (req) => {
       
       y += 6;
       
-      // Values grid
+      // Values grid - 2 columns
       const col1X = margin + 4;
       const col2X = margin + contentWidth / 2;
       
+      // Labels
       setColor(doc, COLORS.textMuted);
       doc.setFontSize(7);
       doc.text("Valor de Entrada", col1X, y);
       doc.text("Valor Real Projetado", col2X, y);
       
+      // Values
       y += 4;
       setColor(doc, COLORS.textDark);
       doc.setFontSize(9);
@@ -496,35 +505,45 @@ serve(async (req) => {
       
       y += 6;
       
-      // Costs breakdown
+      // Costs breakdown percentages
       setColor(doc, COLORS.textMuted);
       doc.setFontSize(6);
       doc.setFont("helvetica", "normal");
       doc.text(`Custo Op: ${tradeInOpPercent}%  •  Comissão Usado: ${tradeInComPercent}%  •  Redução Com. Vendedor: ${tradeInReductionPercent}%`, col1X, y);
       
-      y += 5;
-      
-      // Impact breakdown
-      setColor(doc, COLORS.red);
-      doc.setFontSize(7);
-      doc.text(`Depreciação: ${formatCurrency(simulation.trade_in_depreciation || 0)}`, col1X, y);
-      doc.text(`Custo Op: ${formatCurrency(simulation.trade_in_operation_cost || 0)}`, col1X + 45, y);
-      doc.text(`Comissão: ${formatCurrency(simulation.trade_in_commission || 0)}`, col1X + 90, y);
-      
-      // Total impact
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.text(`IMPACTO TOTAL: - ${formatCurrency(simulation.trade_in_total_impact || 0)}`, pageWidth - margin - 4, y, { align: "right" });
-      
       y += 6;
       
-      // MDC after trade-in
+      // Impact breakdown - REORGANIZED INTO 2 LINES (labels then values)
+      // Line 1: Labels
+      setColor(doc, COLORS.textMuted);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.text("Depreciação", col1X, y);
+      doc.text("Custo Operação", col1X + 38, y);
+      doc.text("Comissão Usado", col1X + 76, y);
+      doc.text("IMPACTO TOTAL", pageWidth - margin - 4, y, { align: "right" });
+      
+      // Line 2: Values (right-aligned per column)
+      y += 4;
+      setColor(doc, COLORS.red);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(simulation.trade_in_depreciation || 0), col1X, y);
+      doc.text(formatCurrency(simulation.trade_in_operation_cost || 0), col1X + 38, y);
+      doc.text(formatCurrency(simulation.trade_in_commission || 0), col1X + 76, y);
+      doc.setFontSize(8);
+      doc.text(`- ${formatCurrency(simulation.trade_in_total_impact || 0)}`, pageWidth - margin - 4, y, { align: "right" });
+      
+      y += 8;
+      
+      // MDC after trade-in - label left, value right
       setColor(doc, COLORS.amber);
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text(`MDC APÓS IMPACTO: ${formatCurrency(simulation.margem_bruta)} (${formatPercent(simulation.margem_percent)})`, col1X, y);
+      doc.text("MDC APÓS IMPACTO:", col1X, y);
+      doc.text(`${formatCurrency(simulation.margem_bruta)} (${formatPercent(simulation.margem_percent)})`, pageWidth - margin - 4, y, { align: "right" });
       
-      y += 10;
+      y += 12;
     }
 
     // =========================================================================
