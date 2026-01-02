@@ -236,53 +236,88 @@ export function SimulationDetailDialog({
                   <Ship className="h-4 w-4" />
                   Trade-In de Barco Usado
                 </h3>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs text-amber-700">Barco</p>
-                    <p className="font-medium text-amber-900">
-                      {simulation.trade_in_brand} {simulation.trade_in_model}
-                      {simulation.trade_in_year && ` (${simulation.trade_in_year})`}
-                    </p>
-                  </div>
+                
+                {/* Barco Info */}
+                <div className="mb-4">
+                  <p className="text-xs text-amber-700">Barco</p>
+                  <p className="font-medium text-amber-900">
+                    {simulation.trade_in_brand} {simulation.trade_in_model}
+                    {simulation.trade_in_year && ` (${simulation.trade_in_year})`}
+                  </p>
+                </div>
+
+                {/* VALORES - Entrada e Saída */}
+                <div className="bg-white/60 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-amber-800 mb-2 uppercase tracking-wide">Valores</p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-amber-700">Valor Entrada</p>
-                      <p className="font-medium text-amber-900">
+                      <p className="text-xs text-amber-700">Valor de Entrada</p>
+                      <p className="text-lg font-bold text-amber-900">
                         {formatCurrency(simulation.trade_in_entry_value || 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-amber-700">Valor Real</p>
-                      <p className="font-medium text-amber-900">
+                      <p className="text-xs text-amber-700">Valor Real Projetado</p>
+                      <p className="text-lg font-bold text-amber-900">
                         {formatCurrency(simulation.trade_in_real_value || 0)}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-xs text-amber-700">Depreciação</p>
-                    <p className="font-medium text-destructive">
-                      {formatCurrency(simulation.trade_in_depreciation || 0)}
-                    </p>
+
+                {/* REGRAS APLICADAS */}
+                <div className="bg-white/60 rounded-lg p-3 mb-4">
+                  <p className="text-xs font-semibold text-amber-800 mb-2 uppercase tracking-wide">Regras Aplicadas</p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-amber-700">Custo Operação</p>
+                      <p className="font-medium text-amber-900">
+                        {simulation.trade_in_operation_cost_percent ?? 3}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-700">Comissão Usado</p>
+                      <p className="font-medium text-amber-900">
+                        {simulation.trade_in_commission_percent ?? 5}%
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-700">Redução Com. Vendedor</p>
+                      <p className="font-medium text-amber-900">
+                        {simulation.trade_in_commission_reduction_percent ?? 0.5}%
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-amber-700">Custo Op. (3%)</p>
-                    <p className="font-medium text-destructive">
-                      {formatCurrency(simulation.trade_in_operation_cost || 0)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-amber-700">Comissão (5%)</p>
-                    <p className="font-medium text-destructive">
-                      {formatCurrency(simulation.trade_in_commission || 0)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-amber-700">Impacto Total</p>
-                    <p className="font-bold text-destructive">
-                      {formatCurrency(simulation.trade_in_total_impact || 0)}
-                    </p>
+                </div>
+
+                {/* IMPACTO CALCULADO */}
+                <div className="bg-white/60 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-amber-800 mb-2 uppercase tracking-wide">Impacto Calculado</p>
+                  <div className="grid grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-amber-700">Depreciação</p>
+                      <p className="font-medium text-destructive">
+                        - {formatCurrency(simulation.trade_in_depreciation || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-700">Custo Operação</p>
+                      <p className="font-medium text-destructive">
+                        - {formatCurrency(simulation.trade_in_operation_cost || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-700">Comissão Usado</p>
+                      <p className="font-medium text-destructive">
+                        - {formatCurrency(simulation.trade_in_commission || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-destructive/10 rounded p-2 -m-1">
+                      <p className="text-xs text-destructive font-semibold">Impacto Total</p>
+                      <p className="font-bold text-destructive">
+                        - {formatCurrency(simulation.trade_in_total_impact || 0)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </section>

@@ -1794,10 +1794,13 @@ export type Database = {
           tax_import_percent: number
           trade_in_brand: string | null
           trade_in_commission: number | null
+          trade_in_commission_percent: number | null
+          trade_in_commission_reduction_percent: number | null
           trade_in_depreciation: number | null
           trade_in_entry_value: number | null
           trade_in_model: string | null
           trade_in_operation_cost: number | null
+          trade_in_operation_cost_percent: number | null
           trade_in_real_value: number | null
           trade_in_total_impact: number | null
           trade_in_year: number | null
@@ -1844,10 +1847,13 @@ export type Database = {
           tax_import_percent: number
           trade_in_brand?: string | null
           trade_in_commission?: number | null
+          trade_in_commission_percent?: number | null
+          trade_in_commission_reduction_percent?: number | null
           trade_in_depreciation?: number | null
           trade_in_entry_value?: number | null
           trade_in_model?: string | null
           trade_in_operation_cost?: number | null
+          trade_in_operation_cost_percent?: number | null
           trade_in_real_value?: number | null
           trade_in_total_impact?: number | null
           trade_in_year?: number | null
@@ -1894,10 +1900,13 @@ export type Database = {
           tax_import_percent?: number
           trade_in_brand?: string | null
           trade_in_commission?: number | null
+          trade_in_commission_percent?: number | null
+          trade_in_commission_reduction_percent?: number | null
           trade_in_depreciation?: number | null
           trade_in_entry_value?: number | null
           trade_in_model?: string | null
           trade_in_operation_cost?: number | null
+          trade_in_operation_cost_percent?: number | null
           trade_in_real_value?: number | null
           trade_in_total_impact?: number | null
           trade_in_year?: number | null
