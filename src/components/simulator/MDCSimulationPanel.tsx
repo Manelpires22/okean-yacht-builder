@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent } from "lucide-react";
 import { SimulatorState, ExportCurrency } from "@/hooks/useSimulatorState";
-import { CurrencyInput } from "@/components/ui/numeric-input";
+import { CurrencyInput, NumericInput } from "@/components/ui/numeric-input";
 import { useSaveSimulation } from "@/hooks/useSimulations";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,11 @@ function formatExportCurrency(value: number, currency: ExportCurrency): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+// Obter símbolo da moeda de exportação
+function getExportCurrencyPrefix(currency: ExportCurrency): string {
+  return currency === 'USD' ? '$ ' : '€ ';
 }
 
 // Converter BRL para moeda estrangeira
@@ -404,7 +409,7 @@ export function MDCSimulationPanel({
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CurrencyInput
+                  <NumericInput
                     value={String(Math.round(brlToForeign(state.faturamentoBruto, state.exportCurrency, state.eurRate, state.usdRate)))}
                     onChange={(v) => {
                       const foreignValue = parseFloat(v) || 0;
@@ -416,6 +421,8 @@ export function MDCSimulationPanel({
                         onUpdateField('discountPercent', newDiscount);
                       }
                     }}
+                    prefix={getExportCurrencyPrefix(state.exportCurrency)}
+                    decimals={0}
                     className="w-48 text-right font-mono bg-primary/5 border-primary/20"
                   />
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
