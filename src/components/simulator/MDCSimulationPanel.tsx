@@ -235,8 +235,12 @@ export function MDCSimulationPanel({
   // Cálculos de FATURAMENTO com comissão variável e trade-in
   const calculations = useMemo(() => {
     const fatBruto = state.faturamentoBruto;
-    // Usar comissão ajustada se definida, senão a original selecionada
-    const comissaoBase = state.adjustedCommissionPercent ?? state.selectedCommissionPercent;
+    
+    // Flag para saber se é comissão manual (editada) ou automática (com ajuste MDC)
+    const isManualCommission = state.adjustedCommissionPercent !== null;
+    
+    // Comissão base original (selecionada no wizard)
+    const comissaoBaseOriginal = state.selectedCommissionPercent;
 
     // Desconto sobre o valor original de tabela
     const discountFromOriginal = state.originalBasePrice > 0 
@@ -260,10 +264,10 @@ export function MDCSimulationPanel({
       ? fatBruto - state.tradeInEntryValue 
       : fatBruto;
 
-    // Comissão ajustada: redução de 0.5% quando há trade-in
+    // Comissão base com redução de 0.5% quando há trade-in (para cálculo automático)
     const comissaoBaseAjustadaTradeIn = state.hasTradeIn 
-      ? Math.max(0, comissaoBase - TRADE_IN_COMMISSION_REDUCTION)
-      : comissaoBase;
+      ? Math.max(0, comissaoBaseOriginal - TRADE_IN_COMMISSION_REDUCTION)
+      : comissaoBaseOriginal;
 
     // Deduções sobre faturamento (com comissão BASE para calcular MDC referência)
     const taxValue = fatBruto * (state.salesTaxPercent / 100);
@@ -298,8 +302,12 @@ export function MDCSimulationPanel({
     // Calcular fator de ajuste: (MDC Real - 30%) / 30%
     const adjustmentFactor = (margemPercentRef - MDC_IDEAL) / MDC_IDEAL;
 
-    // Comissão ajustada = Comissão Base (já com redução trade-in) × (1 + Fator)
-    const comissaoAjustadaPercent = comissaoBaseAjustadaTradeIn * (1 + adjustmentFactor);
+    // Comissão final:
+    // - Se manual: usa valor editado diretamente (sem ajuste MDC)
+    // - Se automático: aplica fórmula de ajuste MDC
+    const comissaoAjustadaPercent = isManualCommission
+      ? state.adjustedCommissionPercent!
+      : comissaoBaseAjustadaTradeIn * (1 + adjustmentFactor);
     const comissaoAjustadaValue = cashValue * (comissaoAjustadaPercent / 100);
 
     // RECALCULAR Fat. Líquido com comissão ajustada
@@ -325,7 +333,7 @@ export function MDCSimulationPanel({
       cashValue,
       taxValue,
       transporteValue,
-      comissaoBase,
+      comissaoBaseOriginal,
       comissaoBaseAjustadaTradeIn,
       comissaoBaseValue,
       comissaoAjustadaPercent,
@@ -503,10 +511,19 @@ export function MDCSimulationPanel({
                   )}
                 </span>
                 <span className="text-xs text-muted-foreground/70">
-                  base: {formatPercent(calculations.comissaoBaseAjustadaTradeIn)}
-                  {state.hasTradeIn && <span className="text-amber-700"> (-0.5% trade-in)</span>}
-                  , ajuste: {calculations.adjustmentFactor >= 0 ? '+' : ''}{formatPercent(calculations.adjustmentFactor * 100)}
-                  {state.hasTradeIn && <span className="text-amber-700">, sobre cash</span>}
+                  {state.adjustedCommissionPercent !== null ? (
+                    <>
+                      <span className="text-amber-600">valor fixo (ajuste MDC ignorado)</span>
+                      {state.hasTradeIn && <span className="text-amber-700">, sobre cash</span>}
+                    </>
+                  ) : (
+                    <>
+                      base: {formatPercent(calculations.comissaoBaseAjustadaTradeIn)}
+                      {state.hasTradeIn && <span className="text-amber-700"> (-0.5% trade-in)</span>}
+                      , ajuste: {calculations.adjustmentFactor >= 0 ? '+' : ''}{formatPercent(calculations.adjustmentFactor * 100)}
+                      {state.hasTradeIn && <span className="text-amber-700">, sobre cash</span>}
+                    </>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-2">
