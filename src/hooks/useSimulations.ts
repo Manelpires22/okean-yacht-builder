@@ -54,6 +54,10 @@ export interface Simulation {
   trade_in_operation_cost: number | null;
   trade_in_commission: number | null;
   trade_in_total_impact: number | null;
+  // Trade-In percentages
+  trade_in_operation_cost_percent: number | null;
+  trade_in_commission_percent: number | null;
+  trade_in_commission_reduction_percent: number | null;
 }
 
 interface SaveSimulationData {
@@ -154,6 +158,10 @@ export function useSaveSimulation() {
         trade_in_operation_cost: calculations.tradeInOperationCost ?? 0,
         trade_in_commission: calculations.tradeInCommission ?? 0,
         trade_in_total_impact: calculations.tradeInTotalImpact ?? 0,
+        // Trade-In percentages (from state or defaults)
+        trade_in_operation_cost_percent: state.hasTradeIn ? (state.tradeInOperationCostPercent ?? 3) : null,
+        trade_in_commission_percent: state.hasTradeIn ? (state.tradeInCommissionPercent ?? 5) : null,
+        trade_in_commission_reduction_percent: state.hasTradeIn ? (state.tradeInCommissionReduction ?? 0.5) : null,
       };
 
       const { data: simulation, error } = await supabase
@@ -252,6 +260,10 @@ export function useUpdateSimulation() {
         trade_in_operation_cost: calculations.tradeInOperationCost ?? 0,
         trade_in_commission: calculations.tradeInCommission ?? 0,
         trade_in_total_impact: calculations.tradeInTotalImpact ?? 0,
+        // Trade-In percentages
+        trade_in_operation_cost_percent: state.hasTradeIn ? (state.tradeInOperationCostPercent ?? 3) : null,
+        trade_in_commission_percent: state.hasTradeIn ? (state.tradeInCommissionPercent ?? 5) : null,
+        trade_in_commission_reduction_percent: state.hasTradeIn ? (state.tradeInCommissionReduction ?? 0.5) : null,
         updated_at: new Date().toISOString(),
       };
 
