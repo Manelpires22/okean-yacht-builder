@@ -333,7 +333,7 @@ export default function AdminSimulatorCosts() {
                   {/* Imposto Importação */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Imposto Importação (%)</Label>
+                      <Label className="text-xs">Custo Importação (%)</Label>
                       <Input
                         type="number"
                         className="h-9"
@@ -345,7 +345,7 @@ export default function AdminSimulatorCosts() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Imposto Importação (R$)</Label>
+                      <Label className="text-xs">Custo Importação (R$)</Label>
                       <div className="bg-muted px-3 py-2 h-9 rounded-md text-sm font-medium flex items-center">
                         {formatCurrency(impostoImportBRL)}
                       </div>
@@ -359,7 +359,7 @@ export default function AdminSimulatorCosts() {
                         <span className="text-muted-foreground">Total MP:</span>{" "}
                         <span className="font-medium">{formatCurrency(calcTotalMP(state))}</span>
                         <span className="mx-2 text-muted-foreground">|</span>
-                        <span className="text-muted-foreground">Imp. Import:</span>{" "}
+                        <span className="text-muted-foreground">Custo Import:</span>{" "}
                         <span className="font-medium">{formatCurrency(impostoImportBRL)}</span>
                       </div>
                       <div>

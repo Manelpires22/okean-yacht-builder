@@ -15,7 +15,7 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
   // Custo de mão de obra
   const laborCost = state.custoMoHoras * state.custoMoValorHora;
   
-  // Imposto de importação
+  // Custo de importação
   const impostoImportacao = custoMpImportBRL * (state.taxImportPercent / 100);
   
   // Custo total de produção
@@ -160,7 +160,7 @@ export function SimulationResultsPanel({ state }: SimulationResultsPanelProps) {
             
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-muted-foreground">
-                Imposto Importação ({state.taxImportPercent}%)
+                Custo Importação ({state.taxImportPercent}%)
               </span>
               <span className="font-medium">
                 {impostoImportacao.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
