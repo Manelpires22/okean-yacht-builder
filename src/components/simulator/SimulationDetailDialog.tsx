@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,9 +9,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Copy, Ship } from "lucide-react";
+import { Copy, Ship, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { Simulation } from "@/hooks/useSimulations";
 
 interface SimulationDetailDialogProps {
@@ -26,10 +29,20 @@ export function SimulationDetailDialog({
   onOpenChange,
   onDuplicate,
 }: SimulationDetailDialogProps) {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
+    }).format(value);
+  };
+
+  const formatForeignCurrency = (value: number, currency: string) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency,
+      minimumFractionDigits: 2,
     }).format(value);
   };
 
@@ -40,12 +53,57 @@ export function SimulationDetailDialog({
   };
 
   const hasTradeIn = simulation.has_trade_in ?? false;
+  const isExporting = simulation.is_exporting ?? false;
+
+  // Calcular valor em moeda de exportação
+  const exportCurrency = simulation.export_currency || "USD";
+  const exchangeRate = exportCurrency === "USD" ? simulation.usd_rate : simulation.eur_rate;
+  const valorExportacao = isExporting && exchangeRate > 0
+    ? simulation.faturamento_bruto / exchangeRate
+    : null;
+
+  // Calcular comissão final
+  const comissaoFinal = simulation.adjusted_commission_percent !== null
+    ? simulation.adjusted_commission_percent
+    : simulation.commission_percent * (1 + (simulation.commission_adjustment_factor || 0));
+  
+  // Base para cálculo da comissão (cash value se trade-in)
+  const cashValue = hasTradeIn 
+    ? simulation.faturamento_bruto - (simulation.trade_in_entry_value || 0)
+    : simulation.faturamento_bruto;
+  const comissaoValor = (comissaoFinal / 100) * cashValue;
+
+  // CIF/FOB
+  const modalidade = isExporting ? "CIF" : "FOB";
+
+  const handleExportPdf = async () => {
+    setIsExportingPdf(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-simulation-pdf", {
+        body: { simulationId: simulation.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.pdfUrl) {
+        window.open(data.pdfUrl, "_blank");
+        toast.success("PDF gerado com sucesso!");
+      } else {
+        throw new Error("URL do PDF não retornada");
+      }
+    } catch (error) {
+      console.error("Erro ao gerar PDF:", error);
+      toast.error("Erro ao gerar PDF da simulação");
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
+          <DialogTitle className="flex items-center gap-3 flex-wrap">
             <span className="font-mono">{simulation.simulation_number}</span>
             {hasTradeIn && (
               <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
@@ -55,6 +113,9 @@ export function SimulationDetailDialog({
             )}
             <Badge variant={simulation.margem_percent >= 25 ? "default" : simulation.margem_percent >= 15 ? "secondary" : "destructive"}>
               {simulation.margem_percent.toFixed(1)}% margem
+            </Badge>
+            <Badge variant="outline" className={isExporting ? "bg-blue-100 text-blue-800 border-blue-300" : "bg-muted"}>
+              {modalidade}
             </Badge>
           </DialogTitle>
         </DialogHeader>
@@ -76,17 +137,6 @@ export function SimulationDetailDialog({
                 <p className="text-xs text-muted-foreground">Vendedor (Comissão Base)</p>
                 <p className="font-medium">{simulation.commission_name} ({simulation.commission_percent}%)</p>
               </div>
-              {simulation.adjusted_commission_percent !== null && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Comissão Ajustada</p>
-                  <p className={`font-medium ${(simulation.commission_adjustment_factor || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                    {simulation.adjusted_commission_percent.toFixed(2)}%
-                    <span className="text-xs ml-1">
-                      ({(simulation.commission_adjustment_factor || 0) >= 0 ? '+' : ''}{((simulation.commission_adjustment_factor || 0) * 100).toFixed(1)}%)
-                    </span>
-                  </p>
-                </div>
-              )}
               <div>
                 <p className="text-xs text-muted-foreground">Data</p>
                 <p className="font-medium">
@@ -98,14 +148,74 @@ export function SimulationDetailDialog({
 
           <Separator />
 
+          {/* Valor de Venda */}
+          <section>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Valor de Venda</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Faturamento Bruto (BRL)</p>
+                <p className="font-medium text-lg">{formatCurrency(simulation.faturamento_bruto)}</p>
+              </div>
+              {isExporting && valorExportacao !== null && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Valor em {exportCurrency}</p>
+                  <p className="font-medium text-lg">{formatForeignCurrency(valorExportacao, exportCurrency)}</p>
+                  <p className="text-xs text-muted-foreground">câmbio: {exchangeRate.toFixed(4)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">Modalidade</p>
+                <p className="font-medium">
+                  {modalidade} {isExporting ? "(transporte incluído)" : "(transporte não incluído)"}
+                </p>
+              </div>
+              {isExporting && simulation.export_country && (
+                <div>
+                  <p className="text-xs text-muted-foreground">País Destino</p>
+                  <p className="font-medium">{simulation.export_country}</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* Comissão Final */}
+          <section className="bg-primary/5 rounded-lg p-4 border">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">Comissão Final a Pagar</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Comissão Base</p>
+                <p className="font-medium">{simulation.commission_percent.toFixed(2)}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Ajuste MDC</p>
+                {simulation.adjusted_commission_percent !== null ? (
+                  <p className="font-medium text-amber-600">Manual (fixo)</p>
+                ) : (
+                  <p className={`font-medium ${(simulation.commission_adjustment_factor || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    {(simulation.commission_adjustment_factor || 0) >= 0 ? '+' : ''}
+                    {((simulation.commission_adjustment_factor || 0) * 100).toFixed(1)}%
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Comissão Final</p>
+                <p className="text-lg font-bold text-primary">{comissaoFinal.toFixed(2)}%</p>
+                <p className="text-sm font-medium">{formatCurrency(comissaoValor)}</p>
+                {hasTradeIn && (
+                  <p className="text-xs text-amber-600">(sobre cash: {formatCurrency(cashValue)})</p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
           {/* Inputs */}
           <section>
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Valores de Entrada</h3>
             <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Faturamento Bruto</p>
-                <p className="font-medium">{formatCurrency(simulation.faturamento_bruto)}</p>
-              </div>
               <div>
                 <p className="text-xs text-muted-foreground">Transporte</p>
                 <p className="font-medium">{formatCurrency(simulation.transporte_cost || 0)}</p>
@@ -266,21 +376,19 @@ export function SimulationDetailDialog({
               </section>
             </>
           )}
-
-          {/* Exportação */}
-          {simulation.is_exporting && (
-            <>
-              <Separator />
-              <section>
-                <Badge variant="outline">Exportação: {simulation.export_country}</Badge>
-              </section>
-            </>
-          )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
+          </Button>
+          <Button variant="outline" onClick={handleExportPdf} disabled={isExportingPdf}>
+            {isExportingPdf ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileText className="mr-2 h-4 w-4" />
+            )}
+            Exportar PDF
           </Button>
           <Button onClick={() => onDuplicate(simulation)}>
             <Copy className="mr-2 h-4 w-4" />
