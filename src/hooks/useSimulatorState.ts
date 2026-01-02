@@ -188,6 +188,10 @@ export function useSimulatorState() {
     tradeInYear?: number | null;
     tradeInEntryValue?: number;
     tradeInRealValue?: number;
+    // Trade-In Business Rules (from database)
+    tradeInOperationCostPercent?: number;
+    tradeInCommissionPercent?: number;
+    tradeInCommissionReduction?: number;
   }) => {
     setState(prev => ({
       ...prev,
@@ -218,10 +222,10 @@ export function useSimulatorState() {
       tradeInYear: model.tradeInYear ?? null,
       tradeInEntryValue: model.tradeInEntryValue ?? 0,
       tradeInRealValue: model.tradeInRealValue ?? 0,
-      // Trade-In rules (reset to defaults on new model)
-      tradeInOperationCostPercent: 3,
-      tradeInCommissionPercent: 5,
-      tradeInCommissionReduction: 0.5,
+      // Trade-In rules from database (with fallback defaults)
+      tradeInOperationCostPercent: model.tradeInOperationCostPercent ?? 3,
+      tradeInCommissionPercent: model.tradeInCommissionPercent ?? 5,
+      tradeInCommissionReduction: model.tradeInCommissionReduction ?? 0.5,
       currentStep: "simulation",
     }));
   }, []);
