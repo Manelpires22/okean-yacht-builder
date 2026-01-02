@@ -176,6 +176,64 @@ export function useSimulatorState() {
     setState(DEFAULT_STATE);
   }, []);
 
+  const loadFromSimulation = useCallback((simulation: {
+    commissionId: string | null;
+    commissionName: string;
+    commissionPercent: number;
+    commissionType: string;
+    clientId: string | null;
+    clientName: string;
+    modelId: string | null;
+    modelName: string;
+    modelCode: string;
+    isExporting: boolean;
+    exportCountry: string | null;
+    eurRate: number;
+    usdRate: number;
+    custoMpImport: number;
+    custoMpImportCurrency: Currency;
+    custoMpNacional: number;
+    custoMoHoras: number;
+    custoMoValorHora: number;
+    taxImportPercent: number;
+    salesTaxPercent: number;
+    warrantyPercent: number;
+    royaltiesPercent: number;
+    faturamentoBruto: number;
+    transporteCost: number;
+    customizacoesEstimadas: number;
+  }) => {
+    setState({
+      currentStep: "simulation",
+      selectedCommissionId: simulation.commissionId,
+      selectedCommissionName: simulation.commissionName,
+      selectedCommissionPercent: simulation.commissionPercent,
+      selectedCommissionType: simulation.commissionType,
+      selectedClientId: simulation.clientId,
+      selectedClientName: simulation.clientName,
+      selectedModelId: simulation.modelId,
+      selectedModelName: simulation.modelName,
+      selectedModelCode: simulation.modelCode,
+      isExportable: simulation.isExporting,
+      isExporting: simulation.isExporting,
+      exportCountry: simulation.exportCountry,
+      eurRate: simulation.eurRate,
+      usdRate: simulation.usdRate,
+      custoMpImport: simulation.custoMpImport,
+      custoMpImportCurrency: simulation.custoMpImportCurrency,
+      custoMpNacional: simulation.custoMpNacional,
+      custoMoHoras: simulation.custoMoHoras,
+      custoMoValorHora: simulation.custoMoValorHora,
+      taxImportPercent: simulation.taxImportPercent,
+      salesTaxPercent: simulation.salesTaxPercent,
+      warrantyPercent: simulation.warrantyPercent,
+      royaltiesPercent: simulation.royaltiesPercent,
+      faturamentoBruto: simulation.faturamentoBruto,
+      transporteCost: simulation.transporteCost,
+      customizacoesEstimadas: simulation.customizacoesEstimadas,
+    });
+  }, []);
+
   return {
     state,
     updateField,
@@ -184,5 +242,6 @@ export function useSimulatorState() {
     selectClient,
     selectModel,
     resetState,
+    loadFromSimulation,
   };
 }

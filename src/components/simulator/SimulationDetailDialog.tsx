@@ -3,9 +3,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Simulation } from "@/hooks/useSimulations";
@@ -14,12 +17,14 @@ interface SimulationDetailDialogProps {
   simulation: Simulation;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDuplicate: (simulation: Simulation) => void;
 }
 
 export function SimulationDetailDialog({
   simulation,
   open,
   onOpenChange,
+  onDuplicate,
 }: SimulationDetailDialogProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -191,6 +196,16 @@ export function SimulationDetailDialog({
             </>
           )}
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button onClick={() => onDuplicate(simulation)}>
+            <Copy className="mr-2 h-4 w-4" />
+            Duplicar como Nova
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Eye, Trash2, Calculator } from "lucide-react";
+import { Plus, Eye, Trash2, Calculator, Copy } from "lucide-react";
+import type { Simulation } from "@/hooks/useSimulations";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SimulationDetailDialog } from "./SimulationDetailDialog";
@@ -30,9 +31,10 @@ import {
 
 interface SimulationsListProps {
   onNewSimulation: () => void;
+  onDuplicateSimulation: (simulation: Simulation) => void;
 }
 
-export function SimulationsList({ onNewSimulation }: SimulationsListProps) {
+export function SimulationsList({ onNewSimulation, onDuplicateSimulation }: SimulationsListProps) {
   const { data: simulations, isLoading } = useSimulations();
   const { mutate: deleteSimulation, isPending: isDeleting } = useDeleteSimulation();
   const { data: roleData } = useUserRole();
@@ -138,14 +140,23 @@ export function SimulationsList({ onNewSimulation }: SimulationsListProps) {
                       <TableCell className="text-muted-foreground">
                         {format(new Date(simulation.created_at), "dd/MM/yy", { locale: ptBR })}
                       </TableCell>
-                      <TableCell className="text-right">
+                        <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setSelectedSimulationId(simulation.id)}
+                            title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onDuplicateSimulation(simulation)}
+                            title="Duplicar simulação"
+                          >
+                            <Copy className="h-4 w-4" />
                           </Button>
                           {isAdmin && (
                             <Button
@@ -153,6 +164,7 @@ export function SimulationsList({ onNewSimulation }: SimulationsListProps) {
                               size="icon"
                               onClick={() => handleDelete(simulation.id)}
                               disabled={isDeleting}
+                              title="Excluir"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -173,6 +185,10 @@ export function SimulationsList({ onNewSimulation }: SimulationsListProps) {
           simulation={selectedSimulation}
           open={!!selectedSimulationId}
           onOpenChange={(open) => !open && setSelectedSimulationId(null)}
+          onDuplicate={(sim) => {
+            setSelectedSimulationId(null);
+            onDuplicateSimulation(sim);
+          }}
         />
       )}
 
