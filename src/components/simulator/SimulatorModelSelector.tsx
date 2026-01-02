@@ -8,6 +8,7 @@ import { useSimulatorModelCosts, useSimulatorBusinessRules } from "@/hooks/useSi
 import { AppHeader } from "@/components/AppHeader";
 import { Currency } from "@/hooks/useSimulatorState";
 import { ExportCountryDialog } from "./ExportCountryDialog";
+import { TradeInDialog, TradeInData } from "./TradeInDialog";
 
 interface SimulatorModelSelectorProps {
   sellerName: string;
@@ -28,11 +29,27 @@ interface SimulatorModelSelectorProps {
     salesTaxPercent: number;
     warrantyPercent: number;
     royaltiesPercent: number;
+    // Trade-In
+    hasTradeIn?: boolean;
+    tradeInBrand?: string;
+    tradeInModel?: string;
+    tradeInYear?: number | null;
+    tradeInEntryValue?: number;
+    tradeInRealValue?: number;
   }) => void;
   onBack: () => void;
 }
 
 type ModelCost = NonNullable<ReturnType<typeof useSimulatorModelCosts>["data"]>[0];
+
+interface PendingSelection {
+  cost: ModelCost;
+  isExporting: boolean;
+  exportCountry: string | null;
+  salesTaxPercent: number;
+  warrantyPercent: number;
+  royaltiesPercent: number;
+}
 
 export function SimulatorModelSelector({ sellerName, onSelect, onBack }: SimulatorModelSelectorProps) {
   const { data: modelCosts, isLoading: isLoadingCosts } = useSimulatorModelCosts();
@@ -40,6 +57,8 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
   
   const [pendingModel, setPendingModel] = useState<ModelCost | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showTradeInDialog, setShowTradeInDialog] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState<PendingSelection | null>(null);
 
   // Get business rules values
   const getRuleValue = (key: string, defaultValue: number) => {
@@ -55,49 +74,82 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
       setPendingModel(cost);
       setShowExportDialog(true);
     } else {
-      // Se não é exportável, aplicar regras domésticas direto
-      finalizeSelection(cost, false, null);
+      // Se não é exportável, aplicar regras domésticas e ir para trade-in
+      const salesTaxPercent = getRuleValue("sales_tax_domestic", 21);
+      const warrantyPercent = getRuleValue("warranty_domestic", 3);
+      const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
+      
+      setPendingSelection({
+        cost,
+        isExporting: false,
+        exportCountry: null,
+        salesTaxPercent,
+        warrantyPercent,
+        royaltiesPercent,
+      });
+      setShowTradeInDialog(true);
     }
-  };
-
-  const finalizeSelection = (cost: ModelCost, isExporting: boolean, exportCountry: string | null) => {
-    // Apply business rules based on export status
-    const salesTaxPercent = isExporting 
-      ? getRuleValue("sales_tax_export", 0)
-      : getRuleValue("sales_tax_domestic", 21);
-    
-    const warrantyPercent = isExporting
-      ? getRuleValue("warranty_export", 5)
-      : getRuleValue("warranty_domestic", 3);
-    
-    const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
-
-    onSelect({
-      id: cost.yacht_model_id,
-      name: cost.yacht_model?.name || "Modelo",
-      code: cost.yacht_model?.code || "",
-      basePrice: cost.yacht_model?.base_price || 0,
-      isExportable: cost.is_exportable ?? false,
-      isExporting,
-      exportCountry,
-      custoMpImport: cost.custo_mp_import,
-      custoMpImportCurrency: (cost.custo_mp_import_currency || "EUR") as Currency,
-      custoMpNacional: cost.custo_mp_nacional,
-      custoMoHoras: cost.custo_mo_horas,
-      custoMoValorHora: cost.custo_mo_valor_hora,
-      taxImportPercent: cost.tax_import_percent,
-      salesTaxPercent,
-      warrantyPercent,
-      royaltiesPercent,
-    });
   };
 
   const handleExportConfirm = (isExporting: boolean, country: string | null) => {
     if (pendingModel) {
-      finalizeSelection(pendingModel, isExporting, country);
+      const salesTaxPercent = isExporting 
+        ? getRuleValue("sales_tax_export", 0)
+        : getRuleValue("sales_tax_domestic", 21);
+      
+      const warrantyPercent = isExporting
+        ? getRuleValue("warranty_export", 5)
+        : getRuleValue("warranty_domestic", 3);
+      
+      const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
+
+      setPendingSelection({
+        cost: pendingModel,
+        isExporting,
+        exportCountry: country,
+        salesTaxPercent,
+        warrantyPercent,
+        royaltiesPercent,
+      });
+      
+      setShowExportDialog(false);
+      setPendingModel(null);
+      setShowTradeInDialog(true);
     }
-    setShowExportDialog(false);
-    setPendingModel(null);
+  };
+
+  const handleTradeInConfirm = (tradeInData: TradeInData) => {
+    if (pendingSelection) {
+      const { cost, isExporting, exportCountry, salesTaxPercent, warrantyPercent, royaltiesPercent } = pendingSelection;
+      
+      onSelect({
+        id: cost.yacht_model_id,
+        name: cost.yacht_model?.name || "Modelo",
+        code: cost.yacht_model?.code || "",
+        basePrice: cost.yacht_model?.base_price || 0,
+        isExportable: cost.is_exportable ?? false,
+        isExporting,
+        exportCountry,
+        custoMpImport: cost.custo_mp_import,
+        custoMpImportCurrency: (cost.custo_mp_import_currency || "EUR") as Currency,
+        custoMpNacional: cost.custo_mp_nacional,
+        custoMoHoras: cost.custo_mo_horas,
+        custoMoValorHora: cost.custo_mo_valor_hora,
+        taxImportPercent: cost.tax_import_percent,
+        salesTaxPercent,
+        warrantyPercent,
+        royaltiesPercent,
+        // Trade-In data
+        hasTradeIn: tradeInData.hasTradeIn,
+        tradeInBrand: tradeInData.tradeInBrand,
+        tradeInModel: tradeInData.tradeInModel,
+        tradeInYear: tradeInData.tradeInYear,
+        tradeInEntryValue: tradeInData.tradeInEntryValue,
+        tradeInRealValue: tradeInData.tradeInRealValue,
+      });
+    }
+    setShowTradeInDialog(false);
+    setPendingSelection(null);
   };
 
   return (
@@ -224,6 +276,13 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         open={showExportDialog}
         modelName={pendingModel?.yacht_model?.name || ""}
         onConfirm={handleExportConfirm}
+      />
+
+      {/* Trade-In Dialog */}
+      <TradeInDialog
+        open={showTradeInDialog}
+        modelName={pendingSelection?.cost.yacht_model?.name || ""}
+        onConfirm={handleTradeInConfirm}
       />
     </div>
   );

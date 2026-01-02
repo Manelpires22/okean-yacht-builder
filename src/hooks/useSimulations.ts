@@ -42,6 +42,17 @@ export interface Simulation {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  // Trade-In fields
+  has_trade_in: boolean | null;
+  trade_in_brand: string | null;
+  trade_in_model: string | null;
+  trade_in_year: number | null;
+  trade_in_entry_value: number | null;
+  trade_in_real_value: number | null;
+  trade_in_depreciation: number | null;
+  trade_in_operation_cost: number | null;
+  trade_in_commission: number | null;
+  trade_in_total_impact: number | null;
 }
 
 interface SaveSimulationData {
@@ -55,6 +66,11 @@ interface SaveSimulationData {
     margemPercent: number;
     adjustedCommissionPercent: number;
     commissionAdjustmentFactor: number;
+    // Trade-In calculations
+    tradeInDepreciation?: number;
+    tradeInOperationCost?: number;
+    tradeInCommission?: number;
+    tradeInTotalImpact?: number;
   };
   notes?: string;
 }
@@ -124,6 +140,17 @@ export function useSaveSimulation() {
         commission_adjustment_factor: calculations.commissionAdjustmentFactor,
         notes,
         created_by: user?.id,
+        // Trade-In fields
+        has_trade_in: state.hasTradeIn,
+        trade_in_brand: state.hasTradeIn ? state.tradeInBrand : null,
+        trade_in_model: state.hasTradeIn ? state.tradeInModel : null,
+        trade_in_year: state.hasTradeIn ? state.tradeInYear : null,
+        trade_in_entry_value: state.hasTradeIn ? state.tradeInEntryValue : 0,
+        trade_in_real_value: state.hasTradeIn ? state.tradeInRealValue : 0,
+        trade_in_depreciation: calculations.tradeInDepreciation ?? 0,
+        trade_in_operation_cost: calculations.tradeInOperationCost ?? 0,
+        trade_in_commission: calculations.tradeInCommission ?? 0,
+        trade_in_total_impact: calculations.tradeInTotalImpact ?? 0,
       };
 
       const { data: simulation, error } = await supabase

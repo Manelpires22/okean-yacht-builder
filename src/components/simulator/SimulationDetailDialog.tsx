@@ -8,7 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Copy } from "lucide-react";
+import { Copy, Ship } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Simulation } from "@/hooks/useSimulations";
@@ -39,12 +39,20 @@ export function SimulationDetailDialog({
     return "text-red-600";
   };
 
+  const hasTradeIn = simulation.has_trade_in ?? false;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <span className="font-mono">{simulation.simulation_number}</span>
+            {hasTradeIn && (
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-300">
+                <Ship className="h-3 w-3 mr-1" />
+                Trade-In
+              </Badge>
+            )}
             <Badge variant={simulation.margem_percent >= 25 ? "default" : simulation.margem_percent >= 15 ? "secondary" : "destructive"}>
               {simulation.margem_percent.toFixed(1)}% margem
             </Badge>
@@ -108,6 +116,68 @@ export function SimulationDetailDialog({
               </div>
             </div>
           </section>
+
+          {/* Trade-In Section */}
+          {hasTradeIn && (
+            <>
+              <Separator />
+              <section className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+                <h3 className="text-sm font-medium text-amber-800 mb-3 flex items-center gap-2">
+                  <Ship className="h-4 w-4" />
+                  Trade-In de Barco Usado
+                </h3>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-amber-700">Barco</p>
+                    <p className="font-medium text-amber-900">
+                      {simulation.trade_in_brand} {simulation.trade_in_model}
+                      {simulation.trade_in_year && ` (${simulation.trade_in_year})`}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-amber-700">Valor Entrada</p>
+                      <p className="font-medium text-amber-900">
+                        {formatCurrency(simulation.trade_in_entry_value || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-700">Valor Real</p>
+                      <p className="font-medium text-amber-900">
+                        {formatCurrency(simulation.trade_in_real_value || 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-xs text-amber-700">Depreciação</p>
+                    <p className="font-medium text-destructive">
+                      {formatCurrency(simulation.trade_in_depreciation || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-amber-700">Custo Op. (3%)</p>
+                    <p className="font-medium text-destructive">
+                      {formatCurrency(simulation.trade_in_operation_cost || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-amber-700">Comissão (5%)</p>
+                    <p className="font-medium text-destructive">
+                      {formatCurrency(simulation.trade_in_commission || 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-amber-700">Impacto Total</p>
+                    <p className="font-bold text-destructive">
+                      {formatCurrency(simulation.trade_in_total_impact || 0)}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            </>
+          )}
 
           <Separator />
 

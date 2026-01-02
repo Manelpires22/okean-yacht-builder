@@ -1781,6 +1781,7 @@ export type Database = {
           export_country: string | null
           faturamento_bruto: number
           faturamento_liquido: number
+          has_trade_in: boolean | null
           id: string
           is_exporting: boolean | null
           margem_bruta: number
@@ -1790,6 +1791,15 @@ export type Database = {
           sales_tax_percent: number
           simulation_number: string
           tax_import_percent: number
+          trade_in_brand: string | null
+          trade_in_commission: number | null
+          trade_in_depreciation: number | null
+          trade_in_entry_value: number | null
+          trade_in_model: string | null
+          trade_in_operation_cost: number | null
+          trade_in_real_value: number | null
+          trade_in_total_impact: number | null
+          trade_in_year: number | null
           transporte_cost: number | null
           updated_at: string | null
           usd_rate: number
@@ -1820,6 +1830,7 @@ export type Database = {
           export_country?: string | null
           faturamento_bruto: number
           faturamento_liquido: number
+          has_trade_in?: boolean | null
           id?: string
           is_exporting?: boolean | null
           margem_bruta: number
@@ -1829,6 +1840,15 @@ export type Database = {
           sales_tax_percent: number
           simulation_number: string
           tax_import_percent: number
+          trade_in_brand?: string | null
+          trade_in_commission?: number | null
+          trade_in_depreciation?: number | null
+          trade_in_entry_value?: number | null
+          trade_in_model?: string | null
+          trade_in_operation_cost?: number | null
+          trade_in_real_value?: number | null
+          trade_in_total_impact?: number | null
+          trade_in_year?: number | null
           transporte_cost?: number | null
           updated_at?: string | null
           usd_rate: number
@@ -1859,6 +1879,7 @@ export type Database = {
           export_country?: string | null
           faturamento_bruto?: number
           faturamento_liquido?: number
+          has_trade_in?: boolean | null
           id?: string
           is_exporting?: boolean | null
           margem_bruta?: number
@@ -1868,6 +1889,15 @@ export type Database = {
           sales_tax_percent?: number
           simulation_number?: string
           tax_import_percent?: number
+          trade_in_brand?: string | null
+          trade_in_commission?: number | null
+          trade_in_depreciation?: number | null
+          trade_in_entry_value?: number | null
+          trade_in_model?: string | null
+          trade_in_operation_cost?: number | null
+          trade_in_real_value?: number | null
+          trade_in_total_impact?: number | null
+          trade_in_year?: number | null
           transporte_cost?: number | null
           updated_at?: string | null
           usd_rate?: number

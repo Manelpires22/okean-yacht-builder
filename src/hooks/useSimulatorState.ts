@@ -24,7 +24,7 @@ export interface SimulatorState {
   isExportable: boolean;
   
   // Exportação
-  isExporting: boolean; // Se está exportando (mesmo sendo exportável, pode vender nacional)
+  isExporting: boolean;
   exportCountry: string | null;
   
   // Câmbio
@@ -51,6 +51,14 @@ export interface SimulatorState {
   
   // Preço original de tabela (para cálculo de desconto)
   originalBasePrice: number;
+  
+  // Trade-In
+  hasTradeIn: boolean;
+  tradeInBrand: string;
+  tradeInModel: string;
+  tradeInYear: number | null;
+  tradeInEntryValue: number;
+  tradeInRealValue: number;
 }
 
 const DEFAULT_STATE: SimulatorState = {
@@ -90,6 +98,14 @@ const DEFAULT_STATE: SimulatorState = {
   transporteCost: 0,
   customizacoesEstimadas: 0,
   originalBasePrice: 0,
+  
+  // Trade-In defaults
+  hasTradeIn: false,
+  tradeInBrand: "",
+  tradeInModel: "",
+  tradeInYear: null,
+  tradeInEntryValue: 0,
+  tradeInRealValue: 0,
 };
 
 export function useSimulatorState() {
@@ -151,6 +167,13 @@ export function useSimulatorState() {
     salesTaxPercent: number;
     warrantyPercent: number;
     royaltiesPercent: number;
+    // Trade-In
+    hasTradeIn?: boolean;
+    tradeInBrand?: string;
+    tradeInModel?: string;
+    tradeInYear?: number | null;
+    tradeInEntryValue?: number;
+    tradeInRealValue?: number;
   }) => {
     setState(prev => ({
       ...prev,
@@ -173,6 +196,13 @@ export function useSimulatorState() {
       transporteCost: 0,
       customizacoesEstimadas: 0,
       originalBasePrice: model.basePrice,
+      // Trade-In
+      hasTradeIn: model.hasTradeIn ?? false,
+      tradeInBrand: model.tradeInBrand ?? "",
+      tradeInModel: model.tradeInModel ?? "",
+      tradeInYear: model.tradeInYear ?? null,
+      tradeInEntryValue: model.tradeInEntryValue ?? 0,
+      tradeInRealValue: model.tradeInRealValue ?? 0,
       currentStep: "simulation",
     }));
   }, []);
@@ -208,6 +238,13 @@ export function useSimulatorState() {
     transporteCost: number;
     customizacoesEstimadas: number;
     originalBasePrice?: number;
+    // Trade-In
+    hasTradeIn?: boolean;
+    tradeInBrand?: string;
+    tradeInModel?: string;
+    tradeInYear?: number | null;
+    tradeInEntryValue?: number;
+    tradeInRealValue?: number;
   }) => {
     setState({
       currentStep: "simulation",
@@ -238,6 +275,13 @@ export function useSimulatorState() {
       transporteCost: simulation.transporteCost,
       customizacoesEstimadas: simulation.customizacoesEstimadas,
       originalBasePrice: simulation.originalBasePrice ?? simulation.faturamentoBruto,
+      // Trade-In
+      hasTradeIn: simulation.hasTradeIn ?? false,
+      tradeInBrand: simulation.tradeInBrand ?? "",
+      tradeInModel: simulation.tradeInModel ?? "",
+      tradeInYear: simulation.tradeInYear ?? null,
+      tradeInEntryValue: simulation.tradeInEntryValue ?? 0,
+      tradeInRealValue: simulation.tradeInRealValue ?? 0,
     });
   }, []);
 
@@ -247,6 +291,13 @@ export function useSimulatorState() {
       faturamentoBruto: prev.originalBasePrice,
       transporteCost: 0,
       customizacoesEstimadas: 0,
+      // Resetar trade-in também
+      hasTradeIn: false,
+      tradeInBrand: "",
+      tradeInModel: "",
+      tradeInYear: null,
+      tradeInEntryValue: 0,
+      tradeInRealValue: 0,
     }));
   }, []);
 
@@ -260,16 +311,5 @@ export function useSimulatorState() {
     resetState,
     loadFromSimulation,
     resetToOriginal,
-  };
-
-  return {
-    state,
-    updateField,
-    goToStep,
-    selectCommission,
-    selectClient,
-    selectModel,
-    resetState,
-    loadFromSimulation,
   };
 }
