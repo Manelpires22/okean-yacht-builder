@@ -107,7 +107,7 @@ export function TradeInDialog({ open, modelName, onConfirm }: TradeInDialogProps
                 <Label htmlFor="brand">Marca</Label>
                 <Input
                   id="brand"
-                  placeholder="Ex: Azimut"
+                  placeholder="Ex: Ferretti Yachts"
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                 />
@@ -116,7 +116,7 @@ export function TradeInDialog({ open, modelName, onConfirm }: TradeInDialogProps
                 <Label htmlFor="model">Modelo</Label>
                 <Input
                   id="model"
-                  placeholder="Ex: Atlantis 43"
+                  placeholder="Ex: FY720"
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                 />
