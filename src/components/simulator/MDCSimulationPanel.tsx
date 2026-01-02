@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent } from "lucide-react";
 import { SimulatorState, ExportCurrency } from "@/hooks/useSimulatorState";
@@ -509,16 +510,17 @@ export function MDCSimulationPanel({
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <NumericInput
-                  value={String((state.adjustedCommissionPercent ?? state.selectedCommissionPercent) * 100)}
-                  onChange={(v) => {
-                    const newPercent = (parseFloat(v) || 0) / 100;
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={state.adjustedCommissionPercent ?? state.selectedCommissionPercent}
+                  onChange={(e) => {
+                    const newPercent = Number(e.target.value);
                     onUpdateField('adjustedCommissionPercent', newPercent);
                   }}
-                  suffix=" %"
-                  decimals={2}
-                  className="w-20 text-right font-mono text-xs bg-primary/5 border-primary/20"
+                  className="w-20 h-7 text-right font-mono text-xs"
                 />
+                <span className="text-xs text-muted-foreground">%</span>
                 {state.adjustedCommissionPercent !== null && (
                   <Button
                     variant="ghost"
