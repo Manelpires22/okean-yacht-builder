@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent } from "lucide-react";
+import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent, Pencil } from "lucide-react";
 import { SimulatorState, ExportCurrency } from "@/hooks/useSimulatorState";
 import { CurrencyInput, NumericInput } from "@/components/ui/numeric-input";
-import { useSaveSimulation } from "@/hooks/useSimulations";
+import { useSaveSimulation, useUpdateSimulation } from "@/hooks/useSimulations";
 import { cn } from "@/lib/utils";
 
 // Formatar valor na moeda de exportação
@@ -219,6 +219,10 @@ export function MDCSimulationPanel({
 }: MDCSimulationPanelProps) {
   const [notes, setNotes] = useState("");
   const saveSimulation = useSaveSimulation();
+  const updateSimulation = useUpdateSimulation();
+  
+  const isEditing = !!state.editingSimulationId;
+  const isSaving = saveSimulation.isPending || updateSimulation.isPending;
   
   // Câmbio para conversão
   const exchangeRate =
@@ -372,9 +376,17 @@ export function MDCSimulationPanel({
     <Card className="w-full">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">
-            Simulação MDC - {state.selectedModelCode}
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg">
+              Simulação MDC - {state.selectedModelCode}
+            </CardTitle>
+            {isEditing && (
+              <Badge variant="secondary" className="flex items-center gap-1 bg-blue-100 text-blue-800 border-blue-300">
+                <Pencil className="h-3 w-3" />
+                Editando: {state.editingSimulationNumber}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             {state.hasTradeIn && (
               <Badge variant="secondary" className="flex items-center gap-1 bg-amber-100 text-amber-800 border-amber-300">
@@ -766,7 +778,7 @@ export function MDCSimulationPanel({
           </div>
           <Button 
             onClick={() => {
-              saveSimulation.mutate({
+              const simulationData = {
                 state,
                 clientId: state.selectedClientId,
                 clientName: state.selectedClientName,
@@ -784,13 +796,25 @@ export function MDCSimulationPanel({
                   tradeInTotalImpact: calculations.tradeInTotalImpact,
                 },
                 notes: notes || undefined,
-              });
+              };
+              
+              if (isEditing && state.editingSimulationId) {
+                updateSimulation.mutate({
+                  id: state.editingSimulationId,
+                  data: simulationData,
+                });
+              } else {
+                saveSimulation.mutate(simulationData);
+              }
             }}
-            disabled={saveSimulation.isPending}
+            disabled={isSaving}
             className="gap-2 ml-auto"
           >
             <Save className="h-4 w-4" />
-            {saveSimulation.isPending ? "Gravando..." : "Gravar Simulação"}
+            {isSaving 
+              ? (isEditing ? "Atualizando..." : "Gravando...") 
+              : (isEditing ? "Atualizar Simulação" : "Gravar Simulação")
+            }
           </Button>
         </div>
       </CardFooter>

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Eye, Trash2, Calculator, Copy } from "lucide-react";
+import { Plus, Eye, Trash2, Calculator, Copy, Pencil } from "lucide-react";
 import type { Simulation } from "@/hooks/useSimulations";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,9 +32,10 @@ import {
 interface SimulationsListProps {
   onNewSimulation: () => void;
   onDuplicateSimulation: (simulation: Simulation) => void;
+  onEditSimulation: (simulation: Simulation) => void;
 }
 
-export function SimulationsList({ onNewSimulation, onDuplicateSimulation }: SimulationsListProps) {
+export function SimulationsList({ onNewSimulation, onDuplicateSimulation, onEditSimulation }: SimulationsListProps) {
   const { data: simulations, isLoading } = useSimulations();
   const { mutate: deleteSimulation, isPending: isDeleting } = useDeleteSimulation();
   const { data: roleData } = useUserRole();
@@ -149,6 +150,14 @@ export function SimulationsList({ onNewSimulation, onDuplicateSimulation }: Simu
                             title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEditSimulation(simulation)}
+                            title="Editar simulação"
+                          >
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
