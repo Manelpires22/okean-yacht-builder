@@ -1779,6 +1779,7 @@ export type Database = {
           customizacoes_estimadas: number | null
           eur_rate: number
           export_country: string | null
+          export_currency: string | null
           faturamento_bruto: number
           faturamento_liquido: number
           has_trade_in: boolean | null
@@ -1828,6 +1829,7 @@ export type Database = {
           customizacoes_estimadas?: number | null
           eur_rate: number
           export_country?: string | null
+          export_currency?: string | null
           faturamento_bruto: number
           faturamento_liquido: number
           has_trade_in?: boolean | null
@@ -1877,6 +1879,7 @@ export type Database = {
           customizacoes_estimadas?: number | null
           eur_rate?: number
           export_country?: string | null
+          export_currency?: string | null
           faturamento_bruto?: number
           faturamento_liquido?: number
           has_trade_in?: boolean | null

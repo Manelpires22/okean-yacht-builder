@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSimulatorModelCosts, useSimulatorBusinessRules } from "@/hooks/useSimulatorConfig";
 import { AppHeader } from "@/components/AppHeader";
-import { Currency } from "@/hooks/useSimulatorState";
+import { Currency, ExportCurrency } from "@/hooks/useSimulatorState";
 import { ExportCountryDialog } from "./ExportCountryDialog";
 import { TradeInDialog, TradeInData } from "./TradeInDialog";
 
@@ -20,6 +20,7 @@ interface SimulatorModelSelectorProps {
     isExportable: boolean;
     isExporting: boolean;
     exportCountry: string | null;
+    exportCurrency?: ExportCurrency | null;
     custoMpImport: number;
     custoMpImportCurrency: Currency;
     custoMpNacional: number;
@@ -50,6 +51,7 @@ interface PendingSelection {
   cost: ModelCost;
   isExporting: boolean;
   exportCountry: string | null;
+  exportCurrency: ExportCurrency | null;
   salesTaxPercent: number;
   warrantyPercent: number;
   royaltiesPercent: number;
@@ -102,6 +104,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         cost,
         isExporting: false,
         exportCountry: null,
+        exportCurrency: null,
         salesTaxPercent,
         warrantyPercent,
         royaltiesPercent,
@@ -110,7 +113,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
     }
   };
 
-  const handleExportConfirm = (isExporting: boolean, country: string | null) => {
+  const handleExportConfirm = (isExporting: boolean, country: string | null, currency: ExportCurrency | null) => {
     if (pendingModel) {
       const salesTaxPercent = isExporting 
         ? getRuleValue("sales_tax_export", 0)
@@ -126,6 +129,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         cost: pendingModel,
         isExporting,
         exportCountry: country,
+        exportCurrency: isExporting ? currency : null,
         salesTaxPercent,
         warrantyPercent,
         royaltiesPercent,
@@ -139,7 +143,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
 
   const handleTradeInConfirm = (tradeInData: TradeInData) => {
     if (pendingSelection) {
-      const { cost, isExporting, exportCountry, salesTaxPercent, warrantyPercent, royaltiesPercent } = pendingSelection;
+      const { cost, isExporting, exportCountry, exportCurrency, salesTaxPercent, warrantyPercent, royaltiesPercent } = pendingSelection;
       
       // Get trade-in business rules from database
       const tradeInOperationCostPercent = getRuleValue('trade_in_operation_cost_percent', 3);
@@ -154,6 +158,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         isExportable: cost.is_exportable ?? false,
         isExporting,
         exportCountry,
+        exportCurrency,
         custoMpImport: cost.custo_mp_import,
         custoMpImportCurrency: (cost.custo_mp_import_currency || "EUR") as Currency,
         custoMpNacional: cost.custo_mp_nacional,

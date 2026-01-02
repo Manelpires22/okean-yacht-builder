@@ -3,6 +3,8 @@ import { useState, useCallback } from "react";
 export type Currency = "EUR" | "USD";
 export type SimulatorStep = "list" | "seller" | "client" | "model" | "simulation";
 
+export type ExportCurrency = 'USD' | 'EUR';
+
 export interface SimulatorState {
   // Etapa atual do wizard
   currentStep: SimulatorStep;
@@ -26,6 +28,7 @@ export interface SimulatorState {
   // Exportação
   isExporting: boolean;
   exportCountry: string | null;
+  exportCurrency: ExportCurrency | null;
   
   // Câmbio
   eurRate: number;
@@ -87,6 +90,7 @@ const DEFAULT_STATE: SimulatorState = {
   
   isExporting: false,
   exportCountry: null,
+  exportCurrency: null,
   
   eurRate: 6.0,
   usdRate: 5.0,
@@ -172,6 +176,7 @@ export function useSimulatorState() {
     isExportable: boolean;
     isExporting: boolean;
     exportCountry: string | null;
+    exportCurrency?: ExportCurrency | null;
     custoMpImport: number;
     custoMpImportCurrency: Currency;
     custoMpNacional: number;
@@ -201,6 +206,7 @@ export function useSimulatorState() {
       isExportable: model.isExportable,
       isExporting: model.isExporting,
       exportCountry: model.exportCountry,
+      exportCurrency: model.exportCurrency ?? null,
       custoMpImport: model.custoMpImport,
       custoMpImportCurrency: model.custoMpImportCurrency,
       custoMpNacional: model.custoMpNacional,
@@ -246,6 +252,7 @@ export function useSimulatorState() {
     modelCode: string;
     isExporting: boolean;
     exportCountry: string | null;
+    exportCurrency?: ExportCurrency | null;
     eurRate: number;
     usdRate: number;
     custoMpImport: number;
@@ -287,6 +294,7 @@ export function useSimulatorState() {
       isExportable: simulation.isExporting,
       isExporting: simulation.isExporting,
       exportCountry: simulation.exportCountry,
+      exportCurrency: simulation.exportCurrency ?? null,
       eurRate: simulation.eurRate,
       usdRate: simulation.usdRate,
       custoMpImport: simulation.custoMpImport,

@@ -6,10 +6,32 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User, Ship, Percent } from "lucide-react";
-import { SimulatorState } from "@/hooks/useSimulatorState";
+import { SimulatorState, ExportCurrency } from "@/hooks/useSimulatorState";
 import { CurrencyInput } from "@/components/ui/numeric-input";
 import { useSaveSimulation } from "@/hooks/useSimulations";
 import { cn } from "@/lib/utils";
+
+// Formatar valor na moeda de exportação
+function formatExportCurrency(value: number, currency: ExportCurrency): string {
+  return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'de-DE', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+// Converter BRL para moeda estrangeira
+function brlToForeign(brlValue: number, currency: ExportCurrency, eurRate: number, usdRate: number): number {
+  const rate = currency === 'USD' ? usdRate : eurRate;
+  return rate > 0 ? brlValue / rate : brlValue;
+}
+
+// Converter moeda estrangeira para BRL
+function foreignToBrl(foreignValue: number, currency: ExportCurrency, eurRate: number, usdRate: number): number {
+  const rate = currency === 'USD' ? usdRate : eurRate;
+  return foreignValue * rate;
+}
 
 interface MDCSimulationPanelProps {
   state: SimulatorState;
@@ -370,20 +392,53 @@ export function MDCSimulationPanel({
             Faturamento
           </h3>
           <div className="space-y-1">
-            <SimulationLine
-              label="FAT. BRUTO"
-              value={calculations.fatBruto}
-              isEditable
-              editableField="faturamentoBruto"
-              onUpdateField={(field, value) => {
-                onUpdateField(field, value);
-                // Recalcular discountPercent quando editar manualmente
-                if (field === 'faturamentoBruto' && state.originalBasePrice > 0) {
-                  const newDiscount = ((value as number) - state.originalBasePrice) / state.originalBasePrice * 100;
-                  onUpdateField('discountPercent', newDiscount);
-                }
-              }}
-            />
+            {/* FAT. BRUTO - Em moeda estrangeira para exportação */}
+            {state.isExporting && state.exportCurrency ? (
+              <div className="flex items-center justify-between py-2">
+                <div className="flex flex-col">
+                  <span className="text-sm text-muted-foreground">
+                    FAT. BRUTO ({state.exportCurrency})
+                  </span>
+                  <span className="text-xs text-muted-foreground/70">
+                    Taxa: 1 {state.exportCurrency} = {formatCurrency(state.exportCurrency === 'USD' ? state.usdRate : state.eurRate)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CurrencyInput
+                    value={String(Math.round(brlToForeign(state.faturamentoBruto, state.exportCurrency, state.eurRate, state.usdRate)))}
+                    onChange={(v) => {
+                      const foreignValue = parseFloat(v) || 0;
+                      const brlValue = foreignToBrl(foreignValue, state.exportCurrency!, state.eurRate, state.usdRate);
+                      onUpdateField('faturamentoBruto', brlValue);
+                      // Recalcular desconto
+                      if (state.originalBasePrice > 0) {
+                        const newDiscount = (brlValue - state.originalBasePrice) / state.originalBasePrice * 100;
+                        onUpdateField('discountPercent', newDiscount);
+                      }
+                    }}
+                    className="w-48 text-right font-mono bg-primary/5 border-primary/20"
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    ≈ {formatCurrency(state.faturamentoBruto)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <SimulationLine
+                label="FAT. BRUTO"
+                value={calculations.fatBruto}
+                isEditable
+                editableField="faturamentoBruto"
+                onUpdateField={(field, value) => {
+                  onUpdateField(field, value);
+                  // Recalcular discountPercent quando editar manualmente
+                  if (field === 'faturamentoBruto' && state.originalBasePrice > 0) {
+                    const newDiscount = ((value as number) - state.originalBasePrice) / state.originalBasePrice * 100;
+                    onUpdateField('discountPercent', newDiscount);
+                  }
+                }}
+              />
+            )}
             
             {/* Controle de Desconto Dinâmico */}
             {state.originalBasePrice > 0 && (
