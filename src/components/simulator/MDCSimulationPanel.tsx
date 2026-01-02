@@ -119,6 +119,11 @@ export function MDCSimulationPanel({
     const fatBruto = state.faturamentoBruto;
     const comissaoBase = state.selectedCommissionPercent;
 
+    // Desconto sobre o valor original de tabela
+    const discountFromOriginal = state.originalBasePrice > 0 
+      ? ((fatBruto - state.originalBasePrice) / state.originalBasePrice) * 100 
+      : 0;
+
     // Deduções sobre faturamento (com comissão BASE para calcular MDC referência)
     const taxValue = fatBruto * (state.salesTaxPercent / 100);
     const comissaoBaseValue = fatBruto * (comissaoBase / 100);
@@ -166,6 +171,8 @@ export function MDCSimulationPanel({
 
     return {
       fatBruto,
+      discountFromOriginal,
+      originalBasePrice: state.originalBasePrice,
       taxValue,
       transporteValue,
       comissaoBase,
@@ -231,6 +238,16 @@ export function MDCSimulationPanel({
               editableField="faturamentoBruto"
               onUpdateField={onUpdateField}
             />
+            {calculations.discountFromOriginal !== 0 && calculations.originalBasePrice > 0 && (
+              <div className="flex items-center gap-2 text-xs pl-1 -mt-1 mb-1">
+                <span className={calculations.discountFromOriginal > 0 ? "text-green-600" : "text-destructive"}>
+                  {calculations.discountFromOriginal > 0 ? '+' : ''}{formatPercent(calculations.discountFromOriginal)} sobre tabela
+                </span>
+                <span className="text-muted-foreground/70">
+                  (base: {formatCurrency(calculations.originalBasePrice)})
+                </span>
+              </div>
+            )}
             <SimulationLine
               label="TAX"
               value={calculations.taxValue}
