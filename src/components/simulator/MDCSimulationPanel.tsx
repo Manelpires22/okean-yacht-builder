@@ -102,8 +102,8 @@ function SimulationLine({
   );
 }
 
-// Presets de desconto/acréscimo
-const DISCOUNT_PRESETS = [-10, -5, -3, 0, 3, 5, 10];
+// Presets de desconto (apenas negativos, de 5% em 5% até 25%)
+const DISCOUNT_PRESETS = [0, -5, -10, -15, -20, -25];
 
 interface DiscountControlProps {
   discountPercent: number;
@@ -132,14 +132,12 @@ function DiscountControl({ discountPercent, originalBasePrice, onDiscountChange 
             className={cn(
               "h-7 px-2 text-xs font-medium",
               preset < 0 && "text-destructive hover:text-destructive",
-              preset > 0 && "text-green-600 hover:text-green-600",
               Math.abs(discountPercent - preset) < 0.1 && preset < 0 && "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:text-destructive-foreground",
-              Math.abs(discountPercent - preset) < 0.1 && preset > 0 && "bg-green-600 text-white hover:bg-green-700 hover:text-white",
               Math.abs(discountPercent - preset) < 0.1 && preset === 0 && "bg-primary text-primary-foreground"
             )}
             onClick={() => onDiscountChange(preset)}
           >
-            {preset > 0 ? `+${preset}%` : preset === 0 ? "0%" : `${preset}%`}
+            {preset === 0 ? "0%" : `${preset}%`}
           </Button>
         ))}
       </div>
@@ -149,22 +147,20 @@ function DiscountControl({ discountPercent, originalBasePrice, onDiscountChange 
         <Slider
           value={[discountPercent]}
           onValueChange={([value]) => onDiscountChange(value)}
-          min={-15}
-          max={15}
+          min={-40}
+          max={0}
           step={0.5}
           className="w-full"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>-15%</span>
+          <span>-40%</span>
           <span className={cn(
             "font-semibold text-sm",
-            discountPercent < 0 && "text-destructive",
-            discountPercent > 0 && "text-green-600",
-            discountPercent === 0 && "text-foreground"
+            discountPercent < 0 ? "text-destructive" : "text-foreground"
           )}>
-            {discountPercent > 0 ? '+' : ''}{discountPercent.toFixed(1)}%
+            {discountPercent.toFixed(1)}%
           </span>
-          <span>+15%</span>
+          <span>0%</span>
         </div>
       </div>
       
@@ -176,8 +172,7 @@ function DiscountControl({ discountPercent, originalBasePrice, onDiscountChange 
         <span className="text-muted-foreground">Final:</span>
         <span className={cn(
           "font-mono font-medium",
-          discountPercent < 0 && "text-destructive",
-          discountPercent > 0 && "text-green-600"
+          discountPercent < 0 && "text-destructive"
         )}>
           {formatCurrency(finalPrice)}
         </span>
