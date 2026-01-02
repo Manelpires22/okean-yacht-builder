@@ -70,6 +70,21 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
     return rule?.rule_value ?? defaultValue;
   };
 
+  // Get royalties percent based on yacht brand
+  const getRoyaltiesPercent = (cost: ModelCost): number => {
+    const brand = cost.yacht_model?.brand?.toLowerCase() || '';
+    const name = cost.yacht_model?.name?.toLowerCase() || '';
+    const code = cost.yacht_model?.code?.toUpperCase() || '';
+    
+    // Identificar OKEAN
+    if (brand.includes('okean') || name.includes('okean') || code.startsWith('OKEAN')) {
+      return getRuleValue("royalties_percent_okean", 1);
+    }
+    
+    // Identificar Ferretti (ou qualquer outra marca como fallback)
+    return getRuleValue("royalties_percent_ferretti", 6);
+  };
+
   const handleSelectModel = (cost: ModelCost) => {
     const isExportable = cost.is_exportable ?? false;
     
@@ -81,7 +96,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
       // Se não é exportável, aplicar regras domésticas e ir para trade-in
       const salesTaxPercent = getRuleValue("sales_tax_domestic", 21);
       const warrantyPercent = getRuleValue("warranty_domestic", 3);
-      const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
+      const royaltiesPercent = getRoyaltiesPercent(cost);
       
       setPendingSelection({
         cost,
@@ -105,7 +120,7 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         ? getRuleValue("warranty_export", 5)
         : getRuleValue("warranty_domestic", 3);
       
-      const royaltiesPercent = getRuleValue("royalties_percent", 0.6);
+      const royaltiesPercent = getRoyaltiesPercent(pendingModel);
 
       setPendingSelection({
         cost: pendingModel,
