@@ -422,7 +422,7 @@ export function MDCSimulationPanel({
             />
 
             {/* MDC ANTES do impacto trade-in */}
-            <div className="mt-4 flex items-center justify-between bg-muted/50 -mx-4 px-4 py-3 rounded">
+            <div className="mt-8 flex items-center justify-between bg-muted/50 -mx-4 px-4 py-3 rounded">
               <span className="font-bold text-lg text-foreground">MARGEM BRUTA (MDC)</span>
               <div className="flex items-center gap-3">
                 <span className="font-mono font-bold text-lg text-primary">
@@ -436,7 +436,7 @@ export function MDCSimulationPanel({
 
             {/* Trade-In Impact Section - APÓS MDC */}
             {state.hasTradeIn && (
-              <div className="mt-6 p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
+              <div className="mt-8 p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <Ship className="h-4 w-4 text-amber-700" />
                   <span className="text-sm font-semibold text-amber-800">
@@ -480,7 +480,7 @@ export function MDCSimulationPanel({
 
             {/* MDC APÓS impacto trade-in - só aparece quando tem trade-in */}
             {state.hasTradeIn && (
-              <div className="mt-6 flex items-center justify-between bg-green-50 border border-green-200 -mx-4 px-4 py-3 rounded">
+              <div className="mt-8 flex items-center justify-between bg-green-50 border border-green-200 -mx-4 px-4 py-3 rounded">
                 <span className="font-bold text-lg text-green-800">MDC APÓS IMPACTO USADO</span>
                 <div className="flex items-center gap-3">
                   <span className="font-mono font-bold text-lg text-green-700">
