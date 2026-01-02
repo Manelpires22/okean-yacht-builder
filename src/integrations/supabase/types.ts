@@ -1760,8 +1760,10 @@ export type Database = {
       }
       simulations: {
         Row: {
+          adjusted_commission_percent: number | null
           client_id: string | null
           client_name: string
+          commission_adjustment_factor: number | null
           commission_id: string | null
           commission_name: string
           commission_percent: number
@@ -1797,8 +1799,10 @@ export type Database = {
           yacht_model_name: string
         }
         Insert: {
+          adjusted_commission_percent?: number | null
           client_id?: string | null
           client_name: string
+          commission_adjustment_factor?: number | null
           commission_id?: string | null
           commission_name: string
           commission_percent: number
@@ -1834,8 +1838,10 @@ export type Database = {
           yacht_model_name: string
         }
         Update: {
+          adjusted_commission_percent?: number | null
           client_id?: string | null
           client_name?: string
+          commission_adjustment_factor?: number | null
           commission_id?: string | null
           commission_name?: string
           commission_percent?: number

@@ -111,19 +111,23 @@ export function MDCSimulationPanel({
   const exchangeRate =
     state.custoMpImportCurrency === "EUR" ? state.eurRate : state.usdRate;
 
-  // Cálculos de FATURAMENTO
+  // MDC ideal fixa em 30%
+  const MDC_IDEAL = 30;
+
+  // Cálculos de FATURAMENTO com comissão variável
   const calculations = useMemo(() => {
     const fatBruto = state.faturamentoBruto;
+    const comissaoBase = state.selectedCommissionPercent;
 
-    // Deduções sobre faturamento
+    // Deduções sobre faturamento (com comissão BASE para calcular MDC referência)
     const taxValue = fatBruto * (state.salesTaxPercent / 100);
-    const comissaoValue = fatBruto * (state.selectedCommissionPercent / 100);
+    const comissaoBaseValue = fatBruto * (comissaoBase / 100);
     const royaltiesValue = fatBruto * (state.royaltiesPercent / 100);
     const transporteValue = state.transporteCost;
 
-    // Faturamento Líquido
-    const fatLiquido =
-      fatBruto - taxValue - transporteValue - comissaoValue - royaltiesValue;
+    // Faturamento Líquido (com comissão base)
+    const fatLiquidoBase =
+      fatBruto - taxValue - transporteValue - comissaoBaseValue - royaltiesValue;
 
     // Custos de Matéria Prima
     const mpImportBRL = state.custoMpImport * exchangeRate;
@@ -138,8 +142,25 @@ export function MDCSimulationPanel({
     // Custo da Venda
     const custoVenda = mpTotal + maoDeObra;
 
-    // Garantia e Margem
+    // Garantia
     const garantiaValue = fatBruto * (state.warrantyPercent / 100);
+
+    // MDC de referência (com comissão base) para calcular o ajuste
+    const margemBrutaRef = fatLiquidoBase - custoVenda - garantiaValue;
+    const margemPercentRef = fatLiquidoBase > 0 ? (margemBrutaRef / fatLiquidoBase) * 100 : 0;
+
+    // Calcular fator de ajuste: (MDC Real - 30%) / 30%
+    const adjustmentFactor = (margemPercentRef - MDC_IDEAL) / MDC_IDEAL;
+
+    // Comissão ajustada = Comissão Base × (1 + Fator)
+    const comissaoAjustadaPercent = comissaoBase * (1 + adjustmentFactor);
+    const comissaoAjustadaValue = fatBruto * (comissaoAjustadaPercent / 100);
+
+    // RECALCULAR Fat. Líquido com comissão ajustada
+    const fatLiquido =
+      fatBruto - taxValue - transporteValue - comissaoAjustadaValue - royaltiesValue;
+
+    // MDC Final (com comissão ajustada)
     const margemBruta = fatLiquido - custoVenda - garantiaValue;
     const margemPercent = fatLiquido > 0 ? (margemBruta / fatLiquido) * 100 : 0;
 
@@ -147,7 +168,11 @@ export function MDCSimulationPanel({
       fatBruto,
       taxValue,
       transporteValue,
-      comissaoValue,
+      comissaoBase,
+      comissaoBaseValue,
+      comissaoAjustadaPercent,
+      comissaoAjustadaValue,
+      adjustmentFactor,
       royaltiesValue,
       fatLiquido,
       mpImportBRL,
@@ -160,6 +185,7 @@ export function MDCSimulationPanel({
       garantiaValue,
       margemBruta,
       margemPercent,
+      margemPercentRef,
     };
   }, [state, exchangeRate]);
 
@@ -219,12 +245,28 @@ export function MDCSimulationPanel({
               onUpdateField={onUpdateField}
               isNegative
             />
-            <SimulationLine
-              label="COMISSÃO"
-              value={calculations.comissaoValue}
-              percent={state.selectedCommissionPercent}
-              isNegative
-            />
+            <div className="flex items-center justify-between py-2">
+              <div className="flex flex-col">
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  COMISSÃO ({formatPercent(calculations.comissaoAjustadaPercent)})
+                  {calculations.adjustmentFactor !== 0 && (
+                    <span className={`text-xs flex items-center gap-0.5 ${calculations.adjustmentFactor > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                      {calculations.adjustmentFactor > 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground/70">
+                  base: {formatPercent(calculations.comissaoBase)}, ajuste: {calculations.adjustmentFactor >= 0 ? '+' : ''}{formatPercent(calculations.adjustmentFactor * 100)}
+                </span>
+              </div>
+              <span className="font-mono text-sm text-destructive">
+                - {formatCurrency(calculations.comissaoAjustadaValue)}
+              </span>
+            </div>
             <SimulationLine
               label="ROYALTIES"
               value={calculations.royaltiesValue}
@@ -367,12 +409,14 @@ export function MDCSimulationPanel({
                 state,
                 clientId: state.selectedClientId,
                 clientName: state.selectedClientName,
-                calculations: {
-                  fatLiquido: calculations.fatLiquido,
-                  custoVenda: calculations.custoVenda,
-                  margemBruta: calculations.margemBruta,
-                  margemPercent: calculations.margemPercent,
-                },
+                  calculations: {
+                    fatLiquido: calculations.fatLiquido,
+                    custoVenda: calculations.custoVenda,
+                    margemBruta: calculations.margemBruta,
+                    margemPercent: calculations.margemPercent,
+                    adjustedCommissionPercent: calculations.comissaoAjustadaPercent,
+                    commissionAdjustmentFactor: calculations.adjustmentFactor,
+                  },
                 notes: notes || undefined,
               });
             }}
