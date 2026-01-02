@@ -138,7 +138,8 @@ export function useSaveSimulation() {
         custo_venda: calculations.custoVenda,
         margem_bruta: calculations.margemBruta,
         margem_percent: calculations.margemPercent,
-        adjusted_commission_percent: calculations.adjustedCommissionPercent,
+        // Salvar comissão ajustada do state (local por simulação)
+        adjusted_commission_percent: state.adjustedCommissionPercent,
         commission_adjustment_factor: calculations.commissionAdjustmentFactor,
         notes,
         created_by: user?.id,

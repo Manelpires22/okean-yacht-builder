@@ -234,7 +234,8 @@ export function MDCSimulationPanel({
   // Cálculos de FATURAMENTO com comissão variável e trade-in
   const calculations = useMemo(() => {
     const fatBruto = state.faturamentoBruto;
-    const comissaoBase = state.selectedCommissionPercent;
+    // Usar comissão ajustada se definida, senão a original selecionada
+    const comissaoBase = state.adjustedCommissionPercent ?? state.selectedCommissionPercent;
 
     // Desconto sobre o valor original de tabela
     const discountFromOriginal = state.originalBasePrice > 0 
@@ -383,8 +384,12 @@ export function MDCSimulationPanel({
                 Nacional
               </Badge>
             )}
-            <Badge variant="outline">
-              {state.selectedCommissionName} ({formatPercent(state.selectedCommissionPercent)})
+            <Badge 
+              variant="outline"
+              className={state.adjustedCommissionPercent !== null ? "border-amber-500 text-amber-700" : ""}
+            >
+              {state.selectedCommissionName} ({formatPercent(state.adjustedCommissionPercent ?? state.selectedCommissionPercent)}
+              {state.adjustedCommissionPercent !== null && " *"})
             </Badge>
           </div>
         </div>
@@ -507,6 +512,42 @@ export function MDCSimulationPanel({
                 - {formatCurrency(calculations.comissaoAjustadaValue)}
               </span>
             </div>
+            
+            {/* COMISSÃO BASE - Editável */}
+            <div className="flex items-center justify-between py-2 bg-muted/30 px-2 rounded -mx-2">
+              <div className="flex flex-col">
+                <span className="text-sm text-muted-foreground">
+                  COMISSÃO BASE
+                </span>
+                <span className="text-xs text-muted-foreground/70">
+                  {state.selectedCommissionName} (original: {formatPercent(state.selectedCommissionPercent)})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <NumericInput
+                  value={String((state.adjustedCommissionPercent ?? state.selectedCommissionPercent) * 100)}
+                  onChange={(v) => {
+                    const newPercent = (parseFloat(v) || 0) / 100;
+                    onUpdateField('adjustedCommissionPercent', newPercent);
+                  }}
+                  suffix=" %"
+                  decimals={2}
+                  className="w-24 text-right font-mono bg-primary/5 border-primary/20"
+                />
+                {state.adjustedCommissionPercent !== null && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onUpdateField('adjustedCommissionPercent', null)}
+                    title="Restaurar valor original"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <SimulationLine
               label="ROYALTIES"
               value={calculations.royaltiesValue}

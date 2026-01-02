@@ -38,6 +38,8 @@ export default function Simulations() {
       faturamentoBruto: simulation.faturamento_bruto,
       transporteCost: simulation.transporte_cost || 0,
       customizacoesEstimadas: simulation.customizacoes_estimadas || 0,
+      // Comissão ajustada
+      adjustedCommissionPercent: simulation.adjusted_commission_percent,
     });
   };
 
