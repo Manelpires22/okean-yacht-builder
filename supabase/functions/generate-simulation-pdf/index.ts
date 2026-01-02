@@ -657,8 +657,23 @@ serve(async (req) => {
     const pdfOutput = doc.output("arraybuffer");
     const pdfBuffer = new Uint8Array(pdfOutput);
 
-    const fileName = `simulation-${simulation.simulation_number}.pdf`;
+    // Cache-busting: add timestamp to filename
+    const timestamp = Date.now();
+    const fileName = `simulation-${simulation.simulation_number}-${timestamp}.pdf`;
     const filePath = `simulations/${fileName}`;
+
+    // Delete old PDFs for this simulation first
+    const { data: existingFiles } = await supabase.storage
+      .from("quotation-pdfs")
+      .list("simulations", {
+        search: `simulation-${simulation.simulation_number}`
+      });
+
+    if (existingFiles && existingFiles.length > 0) {
+      const filesToDelete = existingFiles.map(f => `simulations/${f.name}`);
+      await supabase.storage.from("quotation-pdfs").remove(filesToDelete);
+      console.log(`Removed ${filesToDelete.length} old PDF(s)`);
+    }
 
     const { error: uploadError } = await supabase.storage
       .from("quotation-pdfs")
@@ -679,8 +694,14 @@ serve(async (req) => {
     console.log("PDF executivo gerado com sucesso:", urlData.publicUrl);
 
     return new Response(
-      JSON.stringify({ pdfUrl: urlData.publicUrl }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ pdfUrl: `${urlData.publicUrl}?t=${timestamp}` }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate"
+        } 
+      }
     );
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
