@@ -179,6 +179,25 @@ serve(async (req) => {
 
     y = 38;
 
+    // === MODEL HIGHLIGHT BOX ===
+    setColor(doc, COLORS.lightGray, "fill");
+    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, "F");
+    setColor(doc, COLORS.navy, "draw");
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, "S");
+    
+    setColor(doc, COLORS.mediumGray);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text("MODELO:", margin + 3, y + 4);
+    
+    setColor(doc, COLORS.navy);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${simulation.yacht_model_name} (${simulation.yacht_model_code})`, margin + 20, y + 8);
+    
+    y = 54;
+
     // Helper functions
     const drawSectionHeader = (title: string, yPos: number): number => {
       setColor(doc, COLORS.navy);
