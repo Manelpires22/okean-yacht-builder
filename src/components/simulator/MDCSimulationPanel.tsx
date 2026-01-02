@@ -194,9 +194,17 @@ export function MDCSimulationPanel({
     const fatLiquido =
       fatBruto - taxValue - transporteValue - comissaoAjustadaValue - royaltiesValue;
 
-    // MDC Final (com comissão ajustada e impacto trade-in)
-    const margemBruta = fatLiquido - custoVenda - garantiaValue - tradeInTotalImpact;
-    const margemPercent = fatLiquido > 0 ? (margemBruta / fatLiquido) * 100 : 0;
+    // MDC ANTES do impacto trade-in (sempre calculada)
+    const margemBrutaAntes = fatLiquido - custoVenda - garantiaValue;
+    const margemPercentAntes = fatLiquido > 0 ? (margemBrutaAntes / fatLiquido) * 100 : 0;
+
+    // MDC APÓS impacto trade-in (só relevante quando há trade-in)
+    const margemBrutaApos = margemBrutaAntes - tradeInTotalImpact;
+    const margemPercentApos = fatLiquido > 0 ? (margemBrutaApos / fatLiquido) * 100 : 0;
+
+    // Para compatibilidade: margemBruta é o valor final (com trade-in se houver)
+    const margemBruta = state.hasTradeIn ? margemBrutaApos : margemBrutaAntes;
+    const margemPercent = state.hasTradeIn ? margemPercentApos : margemPercentAntes;
 
     return {
       fatBruto,
@@ -226,7 +234,12 @@ export function MDCSimulationPanel({
       tradeInOperationCost,
       tradeInCommission,
       tradeInTotalImpact,
-      // Results
+      // Results - ANTES e APÓS trade-in
+      margemBrutaAntes,
+      margemPercentAntes,
+      margemBrutaApos,
+      margemPercentApos,
+      // Valores finais (para compatibilidade)
       margemBruta,
       margemPercent,
       margemPercentRef,
@@ -408,12 +421,17 @@ export function MDCSimulationPanel({
               isNegative
             />
 
-            <div className="mt-4">
-              <SimulationLine
-                label="MARGEM BRUTA (MDC)"
-                value={calculations.margemBruta}
-                isTotal
-              />
+            {/* MDC ANTES do impacto trade-in */}
+            <div className="mt-4 flex items-center justify-between bg-muted/50 -mx-4 px-4 py-3 rounded">
+              <span className="font-bold text-lg text-foreground">MARGEM BRUTA (MDC)</span>
+              <div className="flex items-center gap-3">
+                <span className="font-mono font-bold text-lg text-primary">
+                  {formatCurrency(calculations.margemBrutaAntes)}
+                </span>
+                <span className="text-sm text-muted-foreground font-medium">
+                  {formatPercent(calculations.margemPercentAntes)}
+                </span>
+              </div>
             </div>
 
             {/* Trade-In Impact Section - APÓS MDC */}
@@ -456,6 +474,21 @@ export function MDCSimulationPanel({
                     <span className="font-semibold text-amber-800">IMPACTO TOTAL USADO</span>
                     <span className="font-mono font-bold text-destructive">- {formatCurrency(calculations.tradeInTotalImpact)}</span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* MDC APÓS impacto trade-in - só aparece quando tem trade-in */}
+            {state.hasTradeIn && (
+              <div className="mt-4 flex items-center justify-between bg-green-50 border border-green-200 -mx-4 px-4 py-3 rounded">
+                <span className="font-bold text-lg text-green-800">MDC APÓS IMPACTO USADO</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono font-bold text-lg text-green-700">
+                    {formatCurrency(calculations.margemBrutaApos)}
+                  </span>
+                  <span className="text-sm text-green-600 font-medium">
+                    {formatPercent(calculations.margemPercentApos)}
+                  </span>
                 </div>
               </div>
             )}
