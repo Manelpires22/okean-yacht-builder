@@ -65,3 +65,6 @@ verify_jwt = true
 
 [functions.get-exchange-rate]
 verify_jwt = true
+
+[functions.generate-simulation-pdf]
+verify_jwt = true
