@@ -48,6 +48,9 @@ export interface SimulatorState {
   faturamentoBruto: number;
   transporteCost: number;
   customizacoesEstimadas: number;
+  
+  // Preço original de tabela (para cálculo de desconto)
+  originalBasePrice: number;
 }
 
 const DEFAULT_STATE: SimulatorState = {
@@ -86,6 +89,7 @@ const DEFAULT_STATE: SimulatorState = {
   faturamentoBruto: 0,
   transporteCost: 0,
   customizacoesEstimadas: 0,
+  originalBasePrice: 0,
 };
 
 export function useSimulatorState() {
@@ -168,6 +172,7 @@ export function useSimulatorState() {
       faturamentoBruto: model.basePrice,
       transporteCost: 0,
       customizacoesEstimadas: 0,
+      originalBasePrice: model.basePrice,
       currentStep: "simulation",
     }));
   }, []);
@@ -202,6 +207,7 @@ export function useSimulatorState() {
     faturamentoBruto: number;
     transporteCost: number;
     customizacoesEstimadas: number;
+    originalBasePrice?: number;
   }) => {
     setState({
       currentStep: "simulation",
@@ -231,6 +237,7 @@ export function useSimulatorState() {
       faturamentoBruto: simulation.faturamentoBruto,
       transporteCost: simulation.transporteCost,
       customizacoesEstimadas: simulation.customizacoesEstimadas,
+      originalBasePrice: simulation.originalBasePrice ?? simulation.faturamentoBruto,
     });
   }, []);
 
