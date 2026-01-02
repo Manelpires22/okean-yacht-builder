@@ -36,6 +36,8 @@ export interface Simulation {
   custo_venda: number;
   margem_bruta: number;
   margem_percent: number;
+  adjusted_commission_percent: number | null;
+  commission_adjustment_factor: number | null;
   notes: string | null;
   created_by: string | null;
   created_at: string;
@@ -51,6 +53,8 @@ interface SaveSimulationData {
     custoVenda: number;
     margemBruta: number;
     margemPercent: number;
+    adjustedCommissionPercent: number;
+    commissionAdjustmentFactor: number;
   };
   notes?: string;
 }
@@ -116,6 +120,8 @@ export function useSaveSimulation() {
         custo_venda: calculations.custoVenda,
         margem_bruta: calculations.margemBruta,
         margem_percent: calculations.margemPercent,
+        adjusted_commission_percent: calculations.adjustedCommissionPercent,
+        commission_adjustment_factor: calculations.commissionAdjustmentFactor,
         notes,
         created_by: user?.id,
       };

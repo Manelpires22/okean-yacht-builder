@@ -65,9 +65,20 @@ export function SimulationDetailDialog({
                 <p className="font-medium">{simulation.yacht_model_code} - {simulation.yacht_model_name}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Vendedor</p>
+                <p className="text-xs text-muted-foreground">Vendedor (Comissão Base)</p>
                 <p className="font-medium">{simulation.commission_name} ({simulation.commission_percent}%)</p>
               </div>
+              {simulation.adjusted_commission_percent !== null && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Comissão Ajustada</p>
+                  <p className={`font-medium ${(simulation.commission_adjustment_factor || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    {simulation.adjusted_commission_percent.toFixed(2)}%
+                    <span className="text-xs ml-1">
+                      ({(simulation.commission_adjustment_factor || 0) >= 0 ? '+' : ''}{((simulation.commission_adjustment_factor || 0) * 100).toFixed(1)}%)
+                    </span>
+                  </p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-muted-foreground">Data</p>
                 <p className="font-medium">
