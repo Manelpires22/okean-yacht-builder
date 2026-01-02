@@ -508,21 +508,6 @@ export function MDCSimulationPanel({
                   {state.hasTradeIn && <span className="text-amber-700">, sobre cash</span>}
                 </span>
               </div>
-              <span className="font-mono text-sm text-destructive">
-                - {formatCurrency(calculations.comissaoAjustadaValue)}
-              </span>
-            </div>
-            
-            {/* COMISSÃO BASE - Editável */}
-            <div className="flex items-center justify-between py-2 bg-muted/30 px-2 rounded -mx-2">
-              <div className="flex flex-col">
-                <span className="text-sm text-muted-foreground">
-                  COMISSÃO BASE
-                </span>
-                <span className="text-xs text-muted-foreground/70">
-                  {state.selectedCommissionName} (original: {formatPercent(state.selectedCommissionPercent)})
-                </span>
-              </div>
               <div className="flex items-center gap-2">
                 <NumericInput
                   value={String((state.adjustedCommissionPercent ?? state.selectedCommissionPercent) * 100)}
@@ -532,19 +517,22 @@ export function MDCSimulationPanel({
                   }}
                   suffix=" %"
                   decimals={2}
-                  className="w-24 text-right font-mono bg-primary/5 border-primary/20"
+                  className="w-20 text-right font-mono text-xs bg-primary/5 border-primary/20"
                 />
                 {state.adjustedCommissionPercent !== null && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-6 w-6"
                     onClick={() => onUpdateField('adjustedCommissionPercent', null)}
-                    title="Restaurar valor original"
+                    title={`Restaurar original: ${state.selectedCommissionName} (${formatPercent(state.selectedCommissionPercent)})`}
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3 w-3" />
                   </Button>
                 )}
+                <span className="font-mono text-sm text-destructive min-w-[110px] text-right">
+                  - {formatCurrency(calculations.comissaoAjustadaValue)}
+                </span>
               </div>
             </div>
 
