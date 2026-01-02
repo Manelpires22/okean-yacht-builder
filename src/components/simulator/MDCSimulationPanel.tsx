@@ -377,7 +377,7 @@ export function MDCSimulationPanel({
               detail={`MP Import (${formatCurrency(calculations.mpImportBRL)}) + MP Nacional (${formatCurrency(state.custoMpNacional)})`}
             />
             <SimulationLine
-              label="TAX IMPORT"
+              label="CUSTO IMPORT"
               value={calculations.taxImport}
               percent={state.taxImportPercent}
             />

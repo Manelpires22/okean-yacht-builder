@@ -161,7 +161,7 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Imposto Importação (%)</Label>
+                  <Label className="text-xs">Custo Importação (%)</Label>
                   <Input 
                     type="number"
                     value={state.taxImportPercent || ""}
