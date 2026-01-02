@@ -408,7 +408,15 @@ export function MDCSimulationPanel({
               isNegative
             />
 
-            {/* Trade-In Impact Section */}
+            <div className="mt-4">
+              <SimulationLine
+                label="MARGEM BRUTA (MDC)"
+                value={calculations.margemBruta}
+                isTotal
+              />
+            </div>
+
+            {/* Trade-In Impact Section - APÓS MDC */}
             {state.hasTradeIn && (
               <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-2">
                 <div className="flex items-center gap-2 mb-2">
@@ -418,6 +426,17 @@ export function MDCSimulationPanel({
                   </span>
                 </div>
                 <div className="space-y-1 text-sm">
+                  {/* Valores de entrada e real - ANTES da depreciação */}
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Valor de Entrada (Trade-In)</span>
+                    <span className="font-mono">{formatCurrency(state.tradeInEntryValue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-amber-700">Valor Real Projetado</span>
+                    <span className="font-mono text-muted-foreground">{formatCurrency(state.tradeInRealValue)}</span>
+                  </div>
+                  <Separator className="my-2 bg-amber-300" />
+                  {/* Cálculos */}
                   <div className="flex justify-between">
                     <span className="text-amber-700">Depreciação (Entrada - Real)</span>
                     <span className={`font-mono ${calculations.tradeInDepreciation > 0 ? 'text-destructive' : 'text-green-600'}`}>
@@ -440,14 +459,6 @@ export function MDCSimulationPanel({
                 </div>
               </div>
             )}
-
-            <div className="mt-4">
-              <SimulationLine
-                label="MARGEM BRUTA (MDC)"
-                value={calculations.margemBruta}
-                isTotal
-              />
-            </div>
           </div>
         </div>
 
