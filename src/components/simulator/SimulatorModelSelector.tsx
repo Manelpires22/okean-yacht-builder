@@ -36,6 +36,10 @@ interface SimulatorModelSelectorProps {
     tradeInYear?: number | null;
     tradeInEntryValue?: number;
     tradeInRealValue?: number;
+    // Trade-In Business Rules
+    tradeInOperationCostPercent?: number;
+    tradeInCommissionPercent?: number;
+    tradeInCommissionReduction?: number;
   }) => void;
   onBack: () => void;
 }
@@ -122,6 +126,11 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
     if (pendingSelection) {
       const { cost, isExporting, exportCountry, salesTaxPercent, warrantyPercent, royaltiesPercent } = pendingSelection;
       
+      // Get trade-in business rules from database
+      const tradeInOperationCostPercent = getRuleValue('trade_in_operation_cost_percent', 3);
+      const tradeInCommissionPercent = getRuleValue('trade_in_commission_percent', 5);
+      const tradeInCommissionReduction = getRuleValue('trade_in_commission_reduction', 0.5);
+      
       onSelect({
         id: cost.yacht_model_id,
         name: cost.yacht_model?.name || "Modelo",
@@ -146,6 +155,10 @@ export function SimulatorModelSelector({ sellerName, onSelect, onBack }: Simulat
         tradeInYear: tradeInData.tradeInYear,
         tradeInEntryValue: tradeInData.tradeInEntryValue,
         tradeInRealValue: tradeInData.tradeInRealValue,
+        // Trade-In business rules from database
+        tradeInOperationCostPercent,
+        tradeInCommissionPercent,
+        tradeInCommissionReduction,
       });
     }
     setShowTradeInDialog(false);

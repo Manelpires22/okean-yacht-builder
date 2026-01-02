@@ -292,6 +292,22 @@ export function useSimulatorBusinessRules() {
   });
 }
 
+// Helper para obter valores de regras de Trade-In
+export function useTradeInRules() {
+  const { data: rules } = useSimulatorBusinessRules();
+  
+  const getRuleValue = (key: string, defaultValue: number) => {
+    const rule = rules?.find(r => r.rule_key === key);
+    return rule?.rule_value ?? defaultValue;
+  };
+  
+  return {
+    tradeInOperationCostPercent: getRuleValue('trade_in_operation_cost_percent', 3),
+    tradeInCommissionPercent: getRuleValue('trade_in_commission_percent', 5),
+    tradeInCommissionReduction: getRuleValue('trade_in_commission_reduction', 0.5),
+  };
+}
+
 export function useUpdateBusinessRule() {
   const queryClient = useQueryClient();
 

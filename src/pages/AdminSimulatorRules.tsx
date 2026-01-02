@@ -92,6 +92,8 @@ export default function AdminSimulatorRules() {
         return <Badge variant="default">Comissões</Badge>;
       case "costs":
         return <Badge variant="secondary">Custos</Badge>;
+      case "trade_in":
+        return <Badge className="bg-amber-500 hover:bg-amber-600">Trade-In</Badge>;
       default:
         return <Badge variant="outline">Geral</Badge>;
     }
@@ -128,6 +130,7 @@ export default function AdminSimulatorRules() {
 
   const categoryLabels: Record<string, string> = {
     taxes: "Taxas e Impostos",
+    trade_in: "Trade-In (Usado)",
     commissions: "Comissões",
     costs: "Custos",
     general: "Geral",
