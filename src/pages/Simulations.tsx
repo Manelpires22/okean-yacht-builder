@@ -3,10 +3,16 @@ import { MDCSimulationPanel } from "@/components/simulator/MDCSimulationPanel";
 import { SellerSelector } from "@/components/simulator/SellerSelector";
 import { ClientSelector } from "@/components/simulator/ClientSelector";
 import { SimulatorModelSelector } from "@/components/simulator/SimulatorModelSelector";
+import { SimulationsList } from "@/components/simulator/SimulationsList";
 import { useSimulatorState } from "@/hooks/useSimulatorState";
 
 export default function Simulations() {
   const { state, updateField, selectCommission, selectClient, selectModel, goToStep, resetState } = useSimulatorState();
+
+  // Initial: List of saved simulations
+  if (state.currentStep === "list") {
+    return <SimulationsList onNewSimulation={() => goToStep("seller")} />;
+  }
 
   // Step 1: Seller selection
   if (state.currentStep === "seller") {

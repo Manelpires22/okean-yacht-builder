@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 export type Currency = "EUR" | "USD";
-export type SimulatorStep = "seller" | "client" | "model" | "simulation";
+export type SimulatorStep = "list" | "seller" | "client" | "model" | "simulation";
 
 export interface SimulatorState {
   // Etapa atual do wizard
@@ -51,7 +51,7 @@ export interface SimulatorState {
 }
 
 const DEFAULT_STATE: SimulatorState = {
-  currentStep: "seller",
+  currentStep: "list",
   
   selectedCommissionId: null,
   selectedCommissionName: "",
