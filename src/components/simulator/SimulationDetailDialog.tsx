@@ -118,6 +118,19 @@ export function SimulationDetailDialog({
               {modalidade}
             </Badge>
           </DialogTitle>
+          
+          {/* Hero do Modelo */}
+          <div className="mt-3 p-4 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+              Modelo em Análise
+            </p>
+            <p className="text-2xl font-bold text-slate-800">
+              {simulation.yacht_model_name}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Código: {simulation.yacht_model_code}
+            </p>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6 py-4">

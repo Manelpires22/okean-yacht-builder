@@ -38,8 +38,17 @@ export default function Simulations() {
       faturamentoBruto: simulation.faturamento_bruto,
       transporteCost: simulation.transporte_cost || 0,
       customizacoesEstimadas: simulation.customizacoes_estimadas || 0,
-      // Comissão ajustada
       adjustedCommissionPercent: simulation.adjusted_commission_percent,
+      // Trade-In fields
+      hasTradeIn: simulation.has_trade_in ?? false,
+      tradeInBrand: simulation.trade_in_brand ?? "",
+      tradeInModel: simulation.trade_in_model ?? "",
+      tradeInYear: simulation.trade_in_year ?? null,
+      tradeInEntryValue: simulation.trade_in_entry_value ?? 0,
+      tradeInRealValue: simulation.trade_in_real_value ?? 0,
+      tradeInOperationCostPercent: simulation.trade_in_operation_cost_percent ?? 3,
+      tradeInCommissionPercent: simulation.trade_in_commission_percent ?? 5,
+      tradeInCommissionReduction: simulation.trade_in_commission_reduction_percent ?? 0.5,
     }); // Sem options = nova simulação (duplicar)
   };
 
@@ -72,6 +81,16 @@ export default function Simulations() {
       transporteCost: simulation.transporte_cost || 0,
       customizacoesEstimadas: simulation.customizacoes_estimadas || 0,
       adjustedCommissionPercent: simulation.adjusted_commission_percent,
+      // Trade-In fields
+      hasTradeIn: simulation.has_trade_in ?? false,
+      tradeInBrand: simulation.trade_in_brand ?? "",
+      tradeInModel: simulation.trade_in_model ?? "",
+      tradeInYear: simulation.trade_in_year ?? null,
+      tradeInEntryValue: simulation.trade_in_entry_value ?? 0,
+      tradeInRealValue: simulation.trade_in_real_value ?? 0,
+      tradeInOperationCostPercent: simulation.trade_in_operation_cost_percent ?? 3,
+      tradeInCommissionPercent: simulation.trade_in_commission_percent ?? 5,
+      tradeInCommissionReduction: simulation.trade_in_commission_reduction_percent ?? 0.5,
     }, {
       isEditing: true,
       simulationId: simulation.id,
