@@ -1,14 +1,18 @@
-import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Globe, Home, TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Globe, Home, TrendingUp, TrendingDown, Save, RotateCcw, User } from "lucide-react";
 import { SimulatorState } from "@/hooks/useSimulatorState";
 import { CurrencyInput } from "@/components/ui/numeric-input";
+import { useSaveSimulation } from "@/hooks/useSimulations";
 
 interface MDCSimulationPanelProps {
   state: SimulatorState;
   onUpdateField: <K extends keyof SimulatorState>(field: K, value: SimulatorState[K]) => void;
+  onReset?: () => void;
 }
 
 function formatCurrency(value: number): string {
@@ -98,7 +102,11 @@ function SimulationLine({
 export function MDCSimulationPanel({
   state,
   onUpdateField,
+  onReset,
 }: MDCSimulationPanelProps) {
+  const [notes, setNotes] = useState("");
+  const saveSimulation = useSaveSimulation();
+  
   // Câmbio para conversão
   const exchangeRate =
     state.custoMpImportCurrency === "EUR" ? state.eurRate : state.usdRate;
@@ -323,6 +331,59 @@ export function MDCSimulationPanel({
           </span>
         </div>
       </CardContent>
+
+      <CardFooter className="flex flex-col gap-4 border-t pt-6">
+        {/* Cliente Info */}
+        {state.selectedClientName && (
+          <div className="w-full flex items-center gap-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span>Cliente: <strong className="text-foreground">{state.selectedClientName}</strong></span>
+          </div>
+        )}
+        
+        {/* Observações */}
+        <div className="w-full space-y-2">
+          <label className="text-sm font-medium">Observações (opcional)</label>
+          <Textarea
+            placeholder="Adicione notas sobre esta simulação..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="resize-none"
+            rows={2}
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="w-full flex items-center justify-between gap-4">
+          {onReset && (
+            <Button variant="outline" onClick={onReset} className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Nova Simulação
+            </Button>
+          )}
+          <Button 
+            onClick={() => {
+              saveSimulation.mutate({
+                state,
+                clientId: state.selectedClientId,
+                clientName: state.selectedClientName,
+                calculations: {
+                  fatLiquido: calculations.fatLiquido,
+                  custoVenda: calculations.custoVenda,
+                  margemBruta: calculations.margemBruta,
+                  margemPercent: calculations.margemPercent,
+                },
+                notes: notes || undefined,
+              });
+            }}
+            disabled={saveSimulation.isPending}
+            className="gap-2 ml-auto"
+          >
+            <Save className="h-4 w-4" />
+            {saveSimulation.isPending ? "Gravando..." : "Gravar Simulação"}
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 
 export type Currency = "EUR" | "USD";
-export type SimulatorStep = "seller" | "model" | "simulation";
+export type SimulatorStep = "seller" | "client" | "model" | "simulation";
 
 export interface SimulatorState {
   // Etapa atual do wizard
@@ -12,6 +12,10 @@ export interface SimulatorState {
   selectedCommissionName: string;
   selectedCommissionPercent: number;
   selectedCommissionType: string;
+  
+  // Cliente selecionado
+  selectedClientId: string | null;
+  selectedClientName: string;
   
   // Modelo selecionado
   selectedModelId: string | null;
@@ -53,6 +57,9 @@ const DEFAULT_STATE: SimulatorState = {
   selectedCommissionName: "",
   selectedCommissionPercent: 0,
   selectedCommissionType: "",
+  
+  selectedClientId: null,
+  selectedClientName: "",
   
   selectedModelId: null,
   selectedModelName: "",
@@ -107,6 +114,18 @@ export function useSimulatorState() {
       selectedCommissionName: commission.name,
       selectedCommissionPercent: commission.percent,
       selectedCommissionType: commission.type,
+      currentStep: "client",
+    }));
+  }, []);
+
+  const selectClient = useCallback((client: {
+    id: string;
+    name: string;
+  }) => {
+    setState(prev => ({
+      ...prev,
+      selectedClientId: client.id,
+      selectedClientName: client.name,
       currentStep: "model",
     }));
   }, []);
@@ -162,6 +181,7 @@ export function useSimulatorState() {
     updateField,
     goToStep,
     selectCommission,
+    selectClient,
     selectModel,
     resetState,
   };
