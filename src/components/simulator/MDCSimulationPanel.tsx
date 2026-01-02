@@ -39,6 +39,7 @@ interface SimulationLineProps {
   isSubtotal?: boolean;
   isNegative?: boolean;
   detail?: string;
+  disabled?: boolean;
   editableField?: keyof Pick<SimulatorState, 'faturamentoBruto' | 'transporteCost' | 'customizacoesEstimadas'>;
   onUpdateField?: <K extends keyof SimulatorState>(field: K, value: SimulatorState[K]) => void;
 }
@@ -52,6 +53,7 @@ function SimulationLine({
   isSubtotal,
   isNegative,
   detail,
+  disabled,
   editableField,
   onUpdateField,
 }: SimulationLineProps) {
@@ -85,7 +87,7 @@ function SimulationLine({
         )}
       </div>
       <div className="flex items-center gap-2">
-        {isEditable && editableField && onUpdateField ? (
+        {isEditable && editableField && onUpdateField && !disabled ? (
           <CurrencyInput
             value={String(value)}
             onChange={(v) => onUpdateField(editableField, parseFloat(v) || 0)}
@@ -238,7 +240,7 @@ export function MDCSimulationPanel({
     const taxValue = fatBruto * (state.salesTaxPercent / 100);
     const comissaoBaseValue = cashValue * (comissaoBaseAjustadaTradeIn / 100);
     const royaltiesValue = fatBruto * (state.royaltiesPercent / 100);
-    const transporteValue = state.transporteCost;
+    const transporteValue = state.isExporting ? state.transporteCost : 0;
 
     // Faturamento Líquido (com comissão base ajustada)
     const fatLiquidoBase =
@@ -411,10 +413,12 @@ export function MDCSimulationPanel({
             <SimulationLine
               label="TRANSPORTE"
               value={calculations.transporteValue}
-              isEditable
+              isEditable={state.isExporting}
+              disabled={!state.isExporting}
               editableField="transporteCost"
               onUpdateField={onUpdateField}
               isNegative
+              detail={!state.isExporting ? "Apenas para exportação" : undefined}
             />
             <div className="flex items-center justify-between py-2">
               <div className="flex flex-col">
