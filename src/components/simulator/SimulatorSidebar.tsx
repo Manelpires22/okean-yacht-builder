@@ -248,6 +248,58 @@ export function SimulatorSidebar({ state, onUpdateField }: SimulatorSidebarProps
             </CollapsibleContent>
           </SidebarGroup>
         </Collapsible>
+
+        {/* Trade-In Rules Section */}
+        <Collapsible className="group/collapsible">
+          <SidebarGroup>
+            <CollapsibleTrigger className="w-full">
+              <SidebarGroupLabel className="flex items-center justify-between cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5">
+                <div className="flex items-center gap-2">
+                  <Ship className="h-4 w-4 text-muted-foreground" />
+                  <span>Trade-In</span>
+                </div>
+                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+              </SidebarGroupLabel>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <SidebarGroupContent className="space-y-3 pt-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Custo Operação (%)</Label>
+                  <Input 
+                    type="number"
+                    step="0.1"
+                    value={state.tradeInOperationCostPercent || ""}
+                    onChange={(e) => onUpdateField("tradeInOperationCostPercent", Number(e.target.value))}
+                    placeholder="3"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Comissão Usado (%)</Label>
+                  <Input 
+                    type="number"
+                    step="0.1"
+                    value={state.tradeInCommissionPercent || ""}
+                    onChange={(e) => onUpdateField("tradeInCommissionPercent", Number(e.target.value))}
+                    placeholder="5"
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Redução Comissão Vendedor (%)</Label>
+                  <Input 
+                    type="number"
+                    step="0.1"
+                    value={state.tradeInCommissionReduction || ""}
+                    onChange={(e) => onUpdateField("tradeInCommissionReduction", Number(e.target.value))}
+                    placeholder="0.5"
+                    className="h-8"
+                  />
+                </div>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
       </SidebarContent>
     </Sidebar>
   );
