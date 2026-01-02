@@ -8,7 +8,7 @@ import { useSimulatorState, type Currency } from "@/hooks/useSimulatorState";
 import type { Simulation } from "@/hooks/useSimulations";
 
 export default function Simulations() {
-  const { state, updateField, selectCommission, selectClient, selectModel, goToStep, resetState, loadFromSimulation } = useSimulatorState();
+  const { state, updateField, selectCommission, selectClient, selectModel, goToStep, resetState, loadFromSimulation, resetToOriginal } = useSimulatorState();
 
   const handleDuplicateSimulation = (simulation: Simulation) => {
     loadFromSimulation({
@@ -85,6 +85,7 @@ export default function Simulations() {
           state={state} 
           onUpdateField={updateField}
           onReset={resetState}
+          onResetToOriginal={resetToOriginal}
         />
       </div>
     </SimulatorLayout>

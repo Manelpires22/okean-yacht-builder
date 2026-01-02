@@ -241,6 +241,27 @@ export function useSimulatorState() {
     });
   }, []);
 
+  const resetToOriginal = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      faturamentoBruto: prev.originalBasePrice,
+      transporteCost: 0,
+      customizacoesEstimadas: 0,
+    }));
+  }, []);
+
+  return {
+    state,
+    updateField,
+    selectCommission,
+    selectClient,
+    selectModel,
+    goToStep,
+    resetState,
+    loadFromSimulation,
+    resetToOriginal,
+  };
+
   return {
     state,
     updateField,

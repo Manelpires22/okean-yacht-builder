@@ -13,6 +13,7 @@ interface MDCSimulationPanelProps {
   state: SimulatorState;
   onUpdateField: <K extends keyof SimulatorState>(field: K, value: SimulatorState[K]) => void;
   onReset?: () => void;
+  onResetToOriginal?: () => void;
 }
 
 function formatCurrency(value: number): string {
@@ -103,6 +104,7 @@ export function MDCSimulationPanel({
   state,
   onUpdateField,
   onReset,
+  onResetToOriginal,
 }: MDCSimulationPanelProps) {
   const [notes, setNotes] = useState("");
   const saveSimulation = useSaveSimulation();
@@ -414,12 +416,20 @@ export function MDCSimulationPanel({
 
         {/* Actions */}
         <div className="w-full flex items-center justify-between gap-4">
-          {onReset && (
-            <Button variant="outline" onClick={onReset} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
-              Nova Simulação
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {onReset && (
+              <Button variant="outline" onClick={onReset} className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Nova Simulação
+              </Button>
+            )}
+            {onResetToOriginal && (
+              <Button variant="ghost" onClick={onResetToOriginal} className="gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Resetar Valores
+              </Button>
+            )}
+          </div>
           <Button 
             onClick={() => {
               saveSimulation.mutate({
