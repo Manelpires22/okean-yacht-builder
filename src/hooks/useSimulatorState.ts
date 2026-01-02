@@ -59,6 +59,11 @@ export interface SimulatorState {
   tradeInYear: number | null;
   tradeInEntryValue: number;
   tradeInRealValue: number;
+  
+  // Trade-In Business Rules (editáveis por simulação)
+  tradeInOperationCostPercent: number;
+  tradeInCommissionPercent: number;
+  tradeInCommissionReduction: number;
 }
 
 const DEFAULT_STATE: SimulatorState = {
@@ -106,6 +111,11 @@ const DEFAULT_STATE: SimulatorState = {
   tradeInYear: null,
   tradeInEntryValue: 0,
   tradeInRealValue: 0,
+  
+  // Trade-In Business Rules defaults
+  tradeInOperationCostPercent: 3,
+  tradeInCommissionPercent: 5,
+  tradeInCommissionReduction: 0.5,
 };
 
 export function useSimulatorState() {
@@ -203,6 +213,10 @@ export function useSimulatorState() {
       tradeInYear: model.tradeInYear ?? null,
       tradeInEntryValue: model.tradeInEntryValue ?? 0,
       tradeInRealValue: model.tradeInRealValue ?? 0,
+      // Trade-In rules (reset to defaults on new model)
+      tradeInOperationCostPercent: 3,
+      tradeInCommissionPercent: 5,
+      tradeInCommissionReduction: 0.5,
       currentStep: "simulation",
     }));
   }, []);
@@ -245,6 +259,10 @@ export function useSimulatorState() {
     tradeInYear?: number | null;
     tradeInEntryValue?: number;
     tradeInRealValue?: number;
+    // Trade-In Business Rules
+    tradeInOperationCostPercent?: number;
+    tradeInCommissionPercent?: number;
+    tradeInCommissionReduction?: number;
   }) => {
     setState({
       currentStep: "simulation",
@@ -282,6 +300,10 @@ export function useSimulatorState() {
       tradeInYear: simulation.tradeInYear ?? null,
       tradeInEntryValue: simulation.tradeInEntryValue ?? 0,
       tradeInRealValue: simulation.tradeInRealValue ?? 0,
+      // Trade-In Business Rules
+      tradeInOperationCostPercent: simulation.tradeInOperationCostPercent ?? 3,
+      tradeInCommissionPercent: simulation.tradeInCommissionPercent ?? 5,
+      tradeInCommissionReduction: simulation.tradeInCommissionReduction ?? 0.5,
     });
   }, []);
 
@@ -298,6 +320,10 @@ export function useSimulatorState() {
       tradeInYear: null,
       tradeInEntryValue: 0,
       tradeInRealValue: 0,
+      // Reset trade-in rules to defaults
+      tradeInOperationCostPercent: 3,
+      tradeInCommissionPercent: 5,
+      tradeInCommissionReduction: 0.5,
     }));
   }, []);
 

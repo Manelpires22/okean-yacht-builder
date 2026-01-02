@@ -116,10 +116,10 @@ export function MDCSimulationPanel({
   // MDC ideal fixa em 30%
   const MDC_IDEAL = 30;
 
-  // Trade-In constants
-  const TRADE_IN_OPERATION_COST_PERCENT = 3; // 3% do valor real
-  const TRADE_IN_COMMISSION_PERCENT = 5; // 5% do valor real
-  const TRADE_IN_COMMISSION_REDUCTION = 0.5; // Redução de 0.5% na comissão base
+  // Trade-In rules from state (editable per simulation)
+  const TRADE_IN_OPERATION_COST_PERCENT = state.tradeInOperationCostPercent;
+  const TRADE_IN_COMMISSION_PERCENT = state.tradeInCommissionPercent;
+  const TRADE_IN_COMMISSION_REDUCTION = state.tradeInCommissionReduction;
 
   // Cálculos de FATURAMENTO com comissão variável e trade-in
   const calculations = useMemo(() => {
