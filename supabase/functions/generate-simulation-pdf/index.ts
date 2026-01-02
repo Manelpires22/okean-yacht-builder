@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Colors
+// Colors matching MDC panel
 const COLORS = {
   navy: { r: 15, g: 23, b: 42 },
   gold: { r: 212, g: 175, b: 55 },
@@ -16,9 +16,12 @@ const COLORS = {
   mediumGray: { r: 100, g: 116, b: 139 },
   darkText: { r: 30, g: 41, b: 59 },
   green: { r: 22, g: 163, b: 74 },
+  greenLight: { r: 220, g: 252, b: 231 },
   red: { r: 220, g: 38, b: 38 },
   amber: { r: 217, g: 119, b: 6 },
+  amberLight: { r: 254, g: 243, b: 199 },
   blue: { r: 59, g: 130, b: 246 },
+  mutedBg: { r: 241, g: 245, b: 249 },
 };
 
 type ColorDef = { r: number; g: number; b: number };
@@ -37,7 +40,7 @@ function formatForeignCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat("en-US", { 
     style: "currency", 
     currency: currency,
-    minimumFractionDigits: 2 
+    minimumFractionDigits: 0 
   }).format(value);
 }
 
@@ -46,8 +49,6 @@ function formatDate(date: string): string {
     day: "2-digit",
     month: "long",
     year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 
@@ -94,313 +95,432 @@ serve(async (req) => {
     const contentWidth = pageWidth - margin * 2;
     let y = margin;
 
-    // === HEADER ===
-    setColor(doc, COLORS.navy, "fill");
-    doc.rect(0, 0, pageWidth, 35, "F");
-    
-    setColor(doc, COLORS.gold);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("OKEAN YACHTS", margin, 15);
-    
-    doc.setFontSize(11);
-    doc.text("SIMULAÇÃO DE VIABILIDADE", margin, 23);
-    
-    setColor(doc, COLORS.white);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.text(simulation.simulation_number, pageWidth - margin, 15, { align: "right" });
-    doc.setFontSize(9);
-    doc.text(formatDate(simulation.created_at), pageWidth - margin, 22, { align: "right" });
-
-    // Badges no header
-    const marginPercent = simulation.margem_percent;
-    const marginColor = getMarginColor(marginPercent);
+    // Helper: Calculate values
     const isExporting = simulation.is_exporting ?? false;
+    const hasTradeIn = simulation.has_trade_in ?? false;
+    const exportCurrency = simulation.export_currency || "USD";
+    const exchangeRate = exportCurrency === "USD" ? simulation.usd_rate : simulation.eur_rate;
+    const valorExportacao = isExporting && exchangeRate > 0 ? simulation.faturamento_bruto / exchangeRate : 0;
     const modalidade = isExporting ? "CIF" : "FOB";
 
-    // Margin badge
-    setColor(doc, marginColor, "fill");
-    doc.roundedRect(margin, 27, 25, 6, 1, 1, "F");
-    setColor(doc, COLORS.white);
-    doc.setFontSize(8);
-    doc.text(`${marginPercent.toFixed(1)}%`, margin + 12.5, 31, { align: "center" });
-
-    // CIF/FOB badge
-    setColor(doc, isExporting ? COLORS.blue : COLORS.mediumGray, "fill");
-    doc.roundedRect(margin + 28, 27, 12, 6, 1, 1, "F");
-    setColor(doc, COLORS.white);
-    doc.text(modalidade, margin + 34, 31, { align: "center" });
-
-    // Trade-In badge
-    if (simulation.has_trade_in) {
-      setColor(doc, COLORS.amber, "fill");
-      doc.roundedRect(margin + 43, 27, 18, 6, 1, 1, "F");
-      setColor(doc, COLORS.white);
-      doc.text("Trade-In", margin + 52, 31, { align: "center" });
-    }
-
-    y = 42;
-
-    // Helper function para seções
-    const drawSectionHeader = (title: string, yPos: number): number => {
-      setColor(doc, COLORS.navy);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.text(title.toUpperCase(), margin, yPos);
-      setColor(doc, COLORS.gold, "draw");
-      doc.setLineWidth(0.5);
-      doc.line(margin, yPos + 1.5, margin + contentWidth, yPos + 1.5);
-      return yPos + 6;
-    };
-
-    const drawLabelValue = (label: string, value: string, x: number, yPos: number, valueColor?: ColorDef): number => {
-      setColor(doc, COLORS.mediumGray);
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.text(label, x, yPos);
-      
-      setColor(doc, valueColor || COLORS.darkText);
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text(value, x, yPos + 4);
-      return yPos + 9;
-    };
-
-    // === IDENTIFICAÇÃO ===
-    y = drawSectionHeader("Identificação", y);
-    const col1 = margin;
-    const col2 = margin + contentWidth / 2;
-
-    drawLabelValue("Cliente", simulation.client_name, col1, y);
-    drawLabelValue("Modelo", `${simulation.yacht_model_code} - ${simulation.yacht_model_name}`, col2, y);
-    y += 10;
-    drawLabelValue("Vendedor", `${simulation.commission_name} (${simulation.commission_percent}%)`, col1, y);
-    drawLabelValue("Data", formatDate(simulation.created_at), col2, y);
-    y += 12;
-
-    // === VALOR DE VENDA ===
-    y = drawSectionHeader("Valor de Venda", y);
-    
-    drawLabelValue("Faturamento Bruto (BRL)", formatCurrency(simulation.faturamento_bruto), col1, y);
-    
-    if (isExporting) {
-      const exportCurrency = simulation.export_currency || "USD";
-      const exchangeRate = exportCurrency === "USD" ? simulation.usd_rate : simulation.eur_rate;
-      const valorExportacao = simulation.faturamento_bruto / exchangeRate;
-      drawLabelValue(
-        `Valor em ${exportCurrency} (câmbio: ${exchangeRate.toFixed(4)})`,
-        formatForeignCurrency(valorExportacao, exportCurrency),
-        col2, y
-      );
-    } else {
-      drawLabelValue("Modalidade", "FOB (transporte não incluído)", col2, y);
-    }
-    y += 10;
-
-    if (isExporting && simulation.export_country) {
-      drawLabelValue("País Destino", simulation.export_country, col1, y);
-      drawLabelValue("Modalidade", "CIF (transporte incluído)", col2, y);
-      y += 10;
-    }
-    y += 2;
-
-    // === COMISSÃO FINAL ===
-    setColor(doc, COLORS.lightGray, "fill");
-    doc.roundedRect(margin, y, contentWidth, 22, 2, 2, "F");
-    y += 2;
-    y = drawSectionHeader("Comissão Final a Pagar", y);
-
-    const hasTradeIn = simulation.has_trade_in ?? false;
+    // Commission calculations
     const cashValue = hasTradeIn 
       ? simulation.faturamento_bruto - (simulation.trade_in_entry_value || 0)
       : simulation.faturamento_bruto;
-
     const comissaoFinal = simulation.adjusted_commission_percent !== null
       ? simulation.adjusted_commission_percent
       : simulation.commission_percent * (1 + (simulation.commission_adjustment_factor || 0));
     const comissaoValor = (comissaoFinal / 100) * cashValue;
+    const marginColor = getMarginColor(simulation.margem_percent);
 
-    const col3 = margin + contentWidth * 2 / 3;
+    // Costs calculations
+    const mpImportBRL = simulation.custo_mp_import_currency === "EUR" 
+      ? simulation.custo_mp_import * simulation.eur_rate 
+      : simulation.custo_mp_import * simulation.usd_rate;
+    const custoImportValue = mpImportBRL * (simulation.tax_import_percent / 100);
+    const mpTotal = mpImportBRL + simulation.custo_mp_nacional + custoImportValue + (simulation.customizacoes_estimadas || 0);
+    const moTotal = simulation.custo_mo_horas * simulation.custo_mo_valor_hora;
+
+    // Tax values
+    const taxValue = simulation.faturamento_bruto * (simulation.sales_tax_percent / 100);
+    const royaltiesValue = simulation.faturamento_bruto * (simulation.royalties_percent / 100);
+    const warrantyValue = simulation.faturamento_bruto * (simulation.warranty_percent / 100);
+
+    // Trade-in percentages (use saved values or defaults)
+    const tradeInOpPercent = simulation.trade_in_operation_cost_percent ?? 3;
+    const tradeInComPercent = simulation.trade_in_commission_percent ?? 5;
+    const tradeInReductionPercent = simulation.trade_in_commission_reduction_percent ?? 0.5;
+
+    // === HEADER ===
+    setColor(doc, COLORS.navy, "fill");
+    doc.rect(0, 0, pageWidth, 32, "F");
     
-    drawLabelValue("Comissão Base", `${simulation.commission_percent.toFixed(2)}%`, col1, y);
-    
-    if (simulation.adjusted_commission_percent !== null) {
-      drawLabelValue("Ajuste MDC", "Manual (fixo)", col2, y, COLORS.amber);
-    } else {
-      const adjFactor = simulation.commission_adjustment_factor || 0;
-      const adjColor = adjFactor >= 0 ? COLORS.green : COLORS.red;
-      drawLabelValue("Ajuste MDC", `${adjFactor >= 0 ? "+" : ""}${(adjFactor * 100).toFixed(1)}%`, col2, y, adjColor);
-    }
-    
-    setColor(doc, COLORS.mediumGray);
-    doc.setFontSize(7);
-    doc.text("COMISSÃO FINAL", col3, y);
-    setColor(doc, COLORS.navy);
-    doc.setFontSize(12);
+    setColor(doc, COLORS.gold);
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text(`${comissaoFinal.toFixed(2)}%`, col3, y + 5);
-    doc.setFontSize(9);
-    doc.text(formatCurrency(comissaoValor), col3, y + 10);
+    doc.text("OKEAN YACHTS", margin, 12);
     
+    doc.setFontSize(10);
+    doc.text("SIMULAÇÃO DE VIABILIDADE", margin, 19);
+    
+    setColor(doc, COLORS.white);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(simulation.simulation_number, pageWidth - margin, 12, { align: "right" });
+    doc.setFontSize(8);
+    doc.text(formatDate(simulation.created_at), pageWidth - margin, 19, { align: "right" });
+
+    // Badges no header
+    let badgeX = margin;
+    
+    // Margin badge
+    setColor(doc, marginColor, "fill");
+    doc.roundedRect(badgeX, 24, 18, 5, 1, 1, "F");
+    setColor(doc, COLORS.white);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${simulation.margem_percent.toFixed(1)}%`, badgeX + 9, 27.5, { align: "center" });
+    badgeX += 20;
+
+    // CIF/FOB badge
+    setColor(doc, isExporting ? COLORS.blue : COLORS.mediumGray, "fill");
+    doc.roundedRect(badgeX, 24, 10, 5, 1, 1, "F");
+    setColor(doc, COLORS.white);
+    doc.text(modalidade, badgeX + 5, 27.5, { align: "center" });
+    badgeX += 12;
+
+    // Trade-In badge
     if (hasTradeIn) {
-      setColor(doc, COLORS.amber);
+      setColor(doc, COLORS.amber, "fill");
+      doc.roundedRect(badgeX, 24, 16, 5, 1, 1, "F");
+      setColor(doc, COLORS.white);
+      doc.text("Trade-In", badgeX + 8, 27.5, { align: "center" });
+    }
+
+    y = 38;
+
+    // Helper functions
+    const drawSectionHeader = (title: string, yPos: number): number => {
+      setColor(doc, COLORS.navy);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(title.toUpperCase(), margin, yPos);
+      setColor(doc, COLORS.gold, "draw");
+      doc.setLineWidth(0.4);
+      doc.line(margin, yPos + 1.5, margin + contentWidth, yPos + 1.5);
+      return yPos + 5;
+    };
+
+    const drawLine = (label: string, value: string, yPos: number, options?: { 
+      valueColor?: ColorDef, 
+      detail?: string,
+      negative?: boolean,
+      bold?: boolean 
+    }): number => {
+      setColor(doc, COLORS.darkText);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(label, margin, yPos);
+      
+      if (options?.detail) {
+        setColor(doc, COLORS.mediumGray);
+        doc.setFontSize(6);
+        doc.text(options.detail, margin + 2, yPos + 3);
+      }
+      
+      setColor(doc, options?.valueColor || COLORS.darkText);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", options?.bold ? "bold" : "normal");
+      const displayValue = options?.negative ? `- ${value}` : value;
+      doc.text(displayValue, pageWidth - margin, yPos, { align: "right" });
+      
+      return yPos + (options?.detail ? 6 : 4);
+    };
+
+    const drawSubtotal = (label: string, value: string, yPos: number, options?: { 
+      bgColor?: ColorDef,
+      textColor?: ColorDef 
+    }): number => {
+      const bgColor = options?.bgColor || COLORS.mutedBg;
+      const textColor = options?.textColor || COLORS.darkText;
+      
+      setColor(doc, bgColor, "fill");
+      doc.roundedRect(margin, yPos - 2.5, contentWidth, 7, 1, 1, "F");
+      
+      setColor(doc, textColor);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(label, margin + 2, yPos + 1);
+      doc.text(value, pageWidth - margin - 2, yPos + 1, { align: "right" });
+      
+      return yPos + 8;
+    };
+
+    // === FATURAMENTO ===
+    y = drawSectionHeader("Faturamento", y);
+    
+    // FAT. BRUTO with export currency
+    if (isExporting) {
+      setColor(doc, COLORS.darkText);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(`FAT. BRUTO (${exportCurrency})`, margin, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatForeignCurrency(valorExportacao, exportCurrency), pageWidth - margin, y, { align: "right" });
+      y += 4;
+      
+      setColor(doc, COLORS.mediumGray);
       doc.setFontSize(7);
-      doc.text(`(sobre cash: ${formatCurrency(cashValue)})`, col3, y + 14);
+      doc.text(`Taxa: 1 ${exportCurrency} = R$ ${exchangeRate.toFixed(2)}`, margin, y);
+      doc.text(`≈ ${formatCurrency(simulation.faturamento_bruto)}`, pageWidth - margin, y, { align: "right" });
+      y += 5;
+    } else {
+      y = drawLine("FAT. BRUTO (BRL)", formatCurrency(simulation.faturamento_bruto), y, { bold: true });
     }
     
-    y += 20;
+    y += 1;
 
-    // === TAXAS E CUSTOS (duas colunas) ===
-    y = drawSectionHeader("Taxas Aplicadas", y);
+    // TAX
+    y = drawLine(`TAX (${simulation.sales_tax_percent.toFixed(2)}%)`, formatCurrency(taxValue), y, { 
+      negative: taxValue > 0,
+      valueColor: taxValue > 0 ? COLORS.red : COLORS.darkText 
+    });
+
+    // TRANSPORTE (only for export)
+    if (isExporting) {
+      y = drawLine("TRANSPORTE", formatCurrency(simulation.transporte_cost || 0), y, { 
+        negative: true,
+        valueColor: COLORS.red 
+      });
+    }
+
+    // COMISSÃO with details
+    const adjFactor = simulation.commission_adjustment_factor || 0;
+    const comissaoDetail = simulation.adjusted_commission_percent !== null 
+      ? "valor fixo (ajuste MDC ignorado)"
+      : `base: ${simulation.commission_percent.toFixed(2)}%, ajuste: ${adjFactor >= 0 ? "+" : ""}${(adjFactor * 100).toFixed(2)}%`;
     
-    const taxCol1 = margin;
-    const taxCol2 = margin + 35;
-    const taxCol3 = margin + 70;
-    const taxCol4 = margin + 105;
+    y = drawLine(`COMISSÃO (${comissaoFinal.toFixed(2)}%)`, formatCurrency(comissaoValor), y, { 
+      negative: true,
+      valueColor: COLORS.red,
+      detail: comissaoDetail
+    });
+    y += 1;
+
+    // ROYALTIES
+    y = drawLine(`ROYALTIES (${simulation.royalties_percent.toFixed(2)}%)`, formatCurrency(royaltiesValue), y, { 
+      negative: true,
+      valueColor: COLORS.red 
+    });
     
-    setColor(doc, COLORS.mediumGray);
-    doc.setFontSize(7);
-    doc.text("Imposto Venda", taxCol1, y);
-    doc.text("Garantia", taxCol2, y);
-    doc.text("Royalties", taxCol3, y);
-    doc.text("Tax Importação", taxCol4, y);
+    y += 2;
+    
+    // FATURAMENTO LÍQUIDO subtotal
+    y = drawSubtotal("FATURAMENTO LÍQ.", formatCurrency(simulation.faturamento_liquido), y);
+    y += 2;
+
+    // === CUSTOS ===
+    y = drawSectionHeader("Custos", y);
+    
+    // MATÉRIA PRIMA LIQ.
+    const mpSymbol = simulation.custo_mp_import_currency === "EUR" ? "€" : "$";
+    y = drawLine("MATÉRIA PRIMA LIQ.", formatCurrency(mpImportBRL + simulation.custo_mp_nacional), y, {
+      detail: `MP Import (${formatCurrency(mpImportBRL)}) + MP Nacional (${formatCurrency(simulation.custo_mp_nacional)})`
+    });
+    y += 1;
+
+    // CUSTO IMPORT
+    y = drawLine(`CUSTO IMPORT (${simulation.tax_import_percent.toFixed(2)}%)`, formatCurrency(custoImportValue), y);
+
+    // CUSTOMIZAÇÕES EST.
+    y = drawLine("CUSTOMIZAÇÕES EST.", formatCurrency(simulation.customizacoes_estimadas || 0), y);
+    
+    y += 2;
+    
+    // MATÉRIA PRIMA TOTAL subtotal
+    y = drawSubtotal("MATÉRIA PRIMA TOTAL", formatCurrency(mpTotal), y);
+
+    // MÃO-DE-OBRA
+    y = drawLine("MÃO-DE-OBRA", formatCurrency(moTotal), y, {
+      detail: `${simulation.custo_mo_horas.toLocaleString()}h × ${formatCurrency(simulation.custo_mo_valor_hora)}`
+    });
+    y += 3;
+    
+    // CUSTO DA VENDA subtotal
+    y = drawSubtotal("CUSTO DA VENDA", formatCurrency(simulation.custo_venda), y);
+    y += 2;
+
+    // === RESULTADO ===
+    y = drawSectionHeader("Resultado", y);
+
+    // GARANTIA
+    y = drawLine(`GARANTIA (${simulation.warranty_percent.toFixed(2)}%)`, formatCurrency(warrantyValue), y, { 
+      negative: true,
+      valueColor: COLORS.red 
+    });
+    y += 2;
+
+    // MARGEM BRUTA (MDC) - highlighted box
+    setColor(doc, COLORS.mutedBg, "fill");
+    doc.roundedRect(margin, y - 1, contentWidth, 10, 1, 1, "F");
     
     setColor(doc, COLORS.darkText);
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text(`${simulation.sales_tax_percent}%`, taxCol1, y + 4);
-    doc.text(`${simulation.warranty_percent}%`, taxCol2, y + 4);
-    doc.text(`${simulation.royalties_percent}%`, taxCol3, y + 4);
-    doc.text(`${simulation.tax_import_percent}%`, taxCol4, y + 4);
+    doc.text("MARGEM BRUTA (MDC)", margin + 3, y + 4);
     
-    y += 12;
-
-    // === CUSTOS DO MODELO ===
-    y = drawSectionHeader("Custos do Modelo", y);
+    doc.setFontSize(10);
+    doc.text(formatCurrency(simulation.margem_bruta), pageWidth - margin - 40, y + 4);
     
-    const mpSymbol = simulation.custo_mp_import_currency === "EUR" ? "€" : "$";
-    drawLabelValue(
-      `MP Importada (${simulation.custo_mp_import_currency})`,
-      `${mpSymbol} ${simulation.custo_mp_import.toLocaleString()}`,
-      col1, y
-    );
-    drawLabelValue("MP Nacional", formatCurrency(simulation.custo_mp_nacional), col2, y);
-    y += 10;
+    setColor(doc, marginColor);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${simulation.margem_percent.toFixed(2)}%`, pageWidth - margin - 3, y + 5, { align: "right" });
     
-    drawLabelValue(
-      "Mão de Obra",
-      `${simulation.custo_mo_horas}h × ${formatCurrency(simulation.custo_mo_valor_hora)}`,
-      col1, y
-    );
-    drawLabelValue(
-      "Câmbio",
-      `EUR: ${simulation.eur_rate.toFixed(2)} | USD: ${simulation.usd_rate.toFixed(2)}`,
-      col2, y
-    );
-    y += 10;
-    
-    if (simulation.transporte_cost || simulation.customizacoes_estimadas) {
-      drawLabelValue("Transporte", formatCurrency(simulation.transporte_cost || 0), col1, y);
-      drawLabelValue("Customizações Est.", formatCurrency(simulation.customizacoes_estimadas || 0), col2, y);
-      y += 10;
-    }
-    y += 2;
+    y += 13;
 
     // === TRADE-IN ===
     if (hasTradeIn) {
-      setColor(doc, { r: 254, g: 243, b: 199 }, "fill"); // amber-100
-      doc.roundedRect(margin, y, contentWidth, 28, 2, 2, "F");
+      setColor(doc, COLORS.amberLight, "fill");
+      doc.roundedRect(margin, y, contentWidth, 32, 2, 2, "F");
       setColor(doc, COLORS.amber, "draw");
-      doc.roundedRect(margin, y, contentWidth, 28, 2, 2, "S");
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, y, contentWidth, 32, 2, 2, "S");
       
-      y += 3;
+      y += 4;
       setColor(doc, COLORS.amber);
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text("TRADE-IN DE BARCO USADO", margin + 3, y + 3);
-      y += 6;
-
-      const tradeInLabel = `${simulation.trade_in_brand || ""} ${simulation.trade_in_model || ""}${simulation.trade_in_year ? ` (${simulation.trade_in_year})` : ""}`;
-      
-      setColor(doc, COLORS.darkText);
       doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("TRADE-IN", margin + 3, y);
+      
+      // Boat info
+      const tradeInLabel = `${simulation.trade_in_brand || ""} ${simulation.trade_in_model || ""}${simulation.trade_in_year ? ` (${simulation.trade_in_year})` : ""}`;
+      setColor(doc, COLORS.darkText);
+      doc.setFontSize(7);
       doc.setFont("helvetica", "normal");
-      doc.text(`Barco: ${tradeInLabel}`, margin + 3, y + 3);
-      doc.text(`Entrada: ${formatCurrency(simulation.trade_in_entry_value || 0)}`, margin + 80, y + 3);
-      doc.text(`Real: ${formatCurrency(simulation.trade_in_real_value || 0)}`, margin + 130, y + 3);
-      y += 7;
-
+      doc.text(tradeInLabel, margin + 25, y);
+      
+      y += 5;
+      
+      // Valores - Entrada e Real Projetado
+      setColor(doc, COLORS.darkText);
+      doc.setFontSize(7);
+      doc.text("Valor de Entrada:", margin + 3, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(simulation.trade_in_entry_value || 0), margin + 35, y);
+      
+      doc.setFont("helvetica", "normal");
+      doc.text("Valor Real Projetado:", margin + 75, y);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(simulation.trade_in_real_value || 0), margin + 115, y);
+      
+      y += 5;
+      
+      // Regras Aplicadas
+      setColor(doc, COLORS.mediumGray);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Custo Op: ${tradeInOpPercent}%  |  Comissão Usado: ${tradeInComPercent}%  |  Redução Com. Vendedor: ${tradeInReductionPercent}%`, margin + 3, y);
+      
+      y += 5;
+      
+      // Impacto
       setColor(doc, COLORS.red);
       doc.setFontSize(7);
-      doc.text(`Deprec: ${formatCurrency(simulation.trade_in_depreciation || 0)}`, margin + 3, y + 3);
-      doc.text(`Op(3%): ${formatCurrency(simulation.trade_in_operation_cost || 0)}`, margin + 45, y + 3);
-      doc.text(`Com(5%): ${formatCurrency(simulation.trade_in_commission || 0)}`, margin + 85, y + 3);
-      doc.setFont("helvetica", "bold");
-      doc.text(`IMPACTO: ${formatCurrency(simulation.trade_in_total_impact || 0)}`, margin + 125, y + 3);
+      doc.text(`Depreciação: ${formatCurrency(simulation.trade_in_depreciation || 0)}`, margin + 3, y);
+      doc.text(`Op: ${formatCurrency(simulation.trade_in_operation_cost || 0)}`, margin + 50, y);
+      doc.text(`Com: ${formatCurrency(simulation.trade_in_commission || 0)}`, margin + 85, y);
       
-      y += 15;
+      doc.setFont("helvetica", "bold");
+      doc.text(`IMPACTO TOTAL: - ${formatCurrency(simulation.trade_in_total_impact || 0)}`, margin + 115, y);
+      
+      y += 5;
+      
+      // MDC após impacto
+      const mdcAposImpacto = simulation.margem_bruta - (simulation.trade_in_total_impact || 0);
+      const mdcAposPercent = (mdcAposImpacto / simulation.faturamento_liquido) * 100;
+      setColor(doc, COLORS.amber);
+      doc.setFontSize(7);
+      doc.text(`MDC APÓS IMPACTO: ${formatCurrency(mdcAposImpacto)} (${mdcAposPercent.toFixed(2)}%)`, margin + 3, y);
+      
+      y += 8;
     }
 
-    // === RESULTADO ===
-    setColor(doc, COLORS.navy, "fill");
-    doc.roundedRect(margin, y, contentWidth, 30, 2, 2, "F");
-    y += 3;
+    // === BOX FINAL - % Margem sobre Faturamento Líquido ===
+    y += 2;
+    const finalMarginPercent = hasTradeIn 
+      ? ((simulation.margem_bruta - (simulation.trade_in_total_impact || 0)) / simulation.faturamento_liquido) * 100
+      : simulation.margem_percent;
+    const finalMarginColor = getMarginColor(finalMarginPercent);
     
-    setColor(doc, COLORS.gold);
-    doc.setFontSize(10);
+    setColor(doc, finalMarginColor === COLORS.green ? COLORS.greenLight : COLORS.mutedBg, "fill");
+    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, "F");
+    setColor(doc, finalMarginColor, "draw");
+    doc.setLineWidth(0.5);
+    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, "S");
+    
+    setColor(doc, finalMarginColor);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text("RESULTADO FINANCEIRO", margin + 3, y + 4);
+    doc.text("% MARGEM SOBRE FATURAMENTO LÍQUIDO", margin + 5, y + 7);
+    
+    doc.setFontSize(14);
+    doc.text(`${finalMarginPercent.toFixed(2)}%`, pageWidth - margin - 5, y + 8, { align: "right" });
+    
+    y += 17;
+
+    // === IDENTIFICAÇÃO ===
+    setColor(doc, COLORS.lightGray, "fill");
+    doc.roundedRect(margin, y, contentWidth, 18, 1, 1, "F");
+    y += 4;
+    
+    setColor(doc, COLORS.mediumGray);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text("Cliente", margin + 3, y);
+    doc.text("Vendedor", margin + 70, y);
+    
+    setColor(doc, COLORS.darkText);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text(simulation.client_name, margin + 3, y + 4);
+    doc.text(`${simulation.commission_name} (${simulation.commission_percent}%)`, margin + 70, y + 4);
+    
+    if (simulation.notes) {
+      y += 8;
+      setColor(doc, COLORS.mediumGray);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.text("Obs:", margin + 3, y);
+      const notesWidth = contentWidth - 15;
+      const splitNotes = doc.splitTextToSize(simulation.notes, notesWidth);
+      doc.text(splitNotes.slice(0, 2).join(" "), margin + 12, y); // Max 2 lines
+    }
+    
     y += 8;
 
-    const resCol1 = margin + 5;
-    const resCol2 = margin + 50;
-    const resCol3 = margin + 95;
-    const resCol4 = margin + 140;
-
+    // === ÁREA DE ASSINATURAS ===
+    y += 5;
+    
     setColor(doc, COLORS.mediumGray);
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.text("Fat. Líquido", resCol1, y);
-    doc.text("Custo Venda", resCol2, y);
-    doc.text("Margem Bruta", resCol3, y);
-    doc.text("Margem %", resCol4, y);
+    doc.text("APROVAÇÕES", margin, y);
     
-    setColor(doc, COLORS.white);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(simulation.faturamento_liquido), resCol1, y + 5);
-    doc.text(formatCurrency(simulation.custo_venda), resCol2, y + 5);
-    doc.text(formatCurrency(simulation.margem_bruta), resCol3, y + 5);
+    y += 8;
     
-    setColor(doc, marginColor);
-    doc.setFontSize(14);
-    doc.text(`${simulation.margem_percent.toFixed(1)}%`, resCol4, y + 6);
+    const signWidth = (contentWidth - 10) / 3;
+    const signY = y;
     
-    y += 20;
-
-    // === OBSERVAÇÕES ===
-    if (simulation.notes) {
-      y += 3;
-      y = drawSectionHeader("Observações", y);
-      setColor(doc, COLORS.darkText);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      const splitNotes = doc.splitTextToSize(simulation.notes, contentWidth);
-      doc.text(splitNotes, margin, y);
-      y += splitNotes.length * 4;
+    // Três linhas de assinatura
+    for (let i = 0; i < 3; i++) {
+      const signX = margin + (signWidth + 5) * i;
+      setColor(doc, COLORS.mediumGray, "draw");
+      doc.setLineWidth(0.2);
+      doc.line(signX, signY + 8, signX + signWidth, signY + 8);
     }
+    
+    setColor(doc, COLORS.mediumGray);
+    doc.setFontSize(7);
+    doc.text("CEO", margin + signWidth / 2, signY + 12, { align: "center" });
+    doc.text("CFO", margin + signWidth + 5 + signWidth / 2, signY + 12, { align: "center" });
+    doc.text("Dir. Comercial", margin + (signWidth + 5) * 2 + signWidth / 2, signY + 12, { align: "center" });
 
     // === FOOTER ===
-    setColor(doc, COLORS.lightGray, "fill");
-    doc.rect(0, pageHeight - 12, pageWidth, 12, "F");
+    setColor(doc, COLORS.navy, "fill");
+    doc.rect(0, pageHeight - 10, pageWidth, 10, "F");
+    
+    setColor(doc, COLORS.gold);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.text("OKEAN YACHTS", margin, pageHeight - 4);
+    
+    setColor(doc, COLORS.white);
+    doc.setFont("helvetica", "normal");
+    doc.text(simulation.simulation_number, pageWidth / 2, pageHeight - 4, { align: "center" });
     
     setColor(doc, COLORS.mediumGray);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.text("OKEAN YACHTS", margin, pageHeight - 5);
-    doc.text(simulation.simulation_number, pageWidth / 2, pageHeight - 5, { align: "center" });
-    doc.text("Documento Confidencial", pageWidth - margin, pageHeight - 5, { align: "right" });
+    doc.text("Documento Confidencial", pageWidth - margin, pageHeight - 4, { align: "right" });
 
     // Gerar PDF
     const pdfOutput = doc.output("arraybuffer");
