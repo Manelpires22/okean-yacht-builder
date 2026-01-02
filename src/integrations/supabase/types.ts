@@ -1758,6 +1758,135 @@ export type Database = {
         }
         Relationships: []
       }
+      simulations: {
+        Row: {
+          client_id: string | null
+          client_name: string
+          commission_id: string | null
+          commission_name: string
+          commission_percent: number
+          commission_type: string | null
+          created_at: string | null
+          created_by: string | null
+          custo_mo_horas: number
+          custo_mo_valor_hora: number
+          custo_mp_import: number
+          custo_mp_import_currency: string
+          custo_mp_nacional: number
+          custo_venda: number
+          customizacoes_estimadas: number | null
+          eur_rate: number
+          export_country: string | null
+          faturamento_bruto: number
+          faturamento_liquido: number
+          id: string
+          is_exporting: boolean | null
+          margem_bruta: number
+          margem_percent: number
+          notes: string | null
+          royalties_percent: number
+          sales_tax_percent: number
+          simulation_number: string
+          tax_import_percent: number
+          transporte_cost: number | null
+          updated_at: string | null
+          usd_rate: number
+          warranty_percent: number
+          yacht_model_code: string
+          yacht_model_id: string | null
+          yacht_model_name: string
+        }
+        Insert: {
+          client_id?: string | null
+          client_name: string
+          commission_id?: string | null
+          commission_name: string
+          commission_percent: number
+          commission_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_mo_horas: number
+          custo_mo_valor_hora: number
+          custo_mp_import: number
+          custo_mp_import_currency: string
+          custo_mp_nacional: number
+          custo_venda: number
+          customizacoes_estimadas?: number | null
+          eur_rate: number
+          export_country?: string | null
+          faturamento_bruto: number
+          faturamento_liquido: number
+          id?: string
+          is_exporting?: boolean | null
+          margem_bruta: number
+          margem_percent: number
+          notes?: string | null
+          royalties_percent: number
+          sales_tax_percent: number
+          simulation_number: string
+          tax_import_percent: number
+          transporte_cost?: number | null
+          updated_at?: string | null
+          usd_rate: number
+          warranty_percent: number
+          yacht_model_code: string
+          yacht_model_id?: string | null
+          yacht_model_name: string
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string
+          commission_id?: string | null
+          commission_name?: string
+          commission_percent?: number
+          commission_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_mo_horas?: number
+          custo_mo_valor_hora?: number
+          custo_mp_import?: number
+          custo_mp_import_currency?: string
+          custo_mp_nacional?: number
+          custo_venda?: number
+          customizacoes_estimadas?: number | null
+          eur_rate?: number
+          export_country?: string | null
+          faturamento_bruto?: number
+          faturamento_liquido?: number
+          id?: string
+          is_exporting?: boolean | null
+          margem_bruta?: number
+          margem_percent?: number
+          notes?: string | null
+          royalties_percent?: number
+          sales_tax_percent?: number
+          simulation_number?: string
+          tax_import_percent?: number
+          transporte_cost?: number | null
+          updated_at?: string | null
+          usd_rate?: number
+          warranty_percent?: number
+          yacht_model_code?: string
+          yacht_model_id?: string | null
+          yacht_model_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulations_yacht_model_id_fkey"
+            columns: ["yacht_model_id"]
+            isOneToOne: false
+            referencedRelation: "yacht_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       simulator_business_rules: {
         Row: {
           category: string | null
