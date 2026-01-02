@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { SimulatorState } from "./useSimulatorState";
+import { SimulatorState, ExportCurrency } from "./useSimulatorState";
 
 export interface Simulation {
   id: string;
@@ -18,6 +18,7 @@ export interface Simulation {
   yacht_model_name: string;
   is_exporting: boolean;
   export_country: string | null;
+  export_currency: ExportCurrency | null;
   faturamento_bruto: number;
   transporte_cost: number;
   customizacoes_estimadas: number;
@@ -118,6 +119,7 @@ export function useSaveSimulation() {
         yacht_model_name: state.selectedModelName,
         is_exporting: state.isExporting,
         export_country: state.exportCountry,
+        export_currency: state.exportCurrency,
         faturamento_bruto: state.faturamentoBruto,
         transporte_cost: state.transporteCost,
         customizacoes_estimadas: state.customizacoesEstimadas,

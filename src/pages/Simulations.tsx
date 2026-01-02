@@ -4,7 +4,7 @@ import { SellerSelector } from "@/components/simulator/SellerSelector";
 import { ClientSelector } from "@/components/simulator/ClientSelector";
 import { SimulatorModelSelector } from "@/components/simulator/SimulatorModelSelector";
 import { SimulationsList } from "@/components/simulator/SimulationsList";
-import { useSimulatorState, type Currency } from "@/hooks/useSimulatorState";
+import { useSimulatorState, type Currency, type ExportCurrency } from "@/hooks/useSimulatorState";
 import type { Simulation } from "@/hooks/useSimulations";
 
 export default function Simulations() {
@@ -23,6 +23,7 @@ export default function Simulations() {
       modelCode: simulation.yacht_model_code,
       isExporting: simulation.is_exporting || false,
       exportCountry: simulation.export_country,
+      exportCurrency: simulation.export_currency as ExportCurrency | null,
       eurRate: simulation.eur_rate,
       usdRate: simulation.usd_rate,
       custoMpImport: simulation.custo_mp_import,

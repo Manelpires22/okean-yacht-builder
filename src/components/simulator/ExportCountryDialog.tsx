@@ -14,12 +14,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Globe, Home } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+
+export type ExportCurrency = 'USD' | 'EUR';
 
 interface ExportCountryDialogProps {
   open: boolean;
   modelName: string;
-  onConfirm: (isExporting: boolean, country: string | null) => void;
+  onConfirm: (isExporting: boolean, country: string | null, currency: ExportCurrency | null) => void;
 }
 
 const EXPORT_COUNTRIES = [
@@ -30,22 +33,48 @@ const EXPORT_COUNTRIES = [
   { value: "outros", label: "Outros" },
 ];
 
+// Moeda fixa por país (null = usuário escolhe)
+const COUNTRY_CURRENCIES: Record<string, ExportCurrency | null> = {
+  usa: 'USD',
+  europa: 'EUR',
+  canada: null,
+  australia: null,
+  outros: null,
+};
+
 export function ExportCountryDialog({
   open,
   modelName,
   onConfirm,
 }: ExportCountryDialogProps) {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<ExportCurrency>('USD');
+
+  // Quando país muda, atualizar moeda automaticamente se fixa
+  useEffect(() => {
+    if (selectedCountry) {
+      const fixedCurrency = COUNTRY_CURRENCIES[selectedCountry];
+      if (fixedCurrency) {
+        setSelectedCurrency(fixedCurrency);
+      }
+    }
+  }, [selectedCountry]);
 
   const handleExport = () => {
     if (selectedCountry) {
-      onConfirm(true, selectedCountry);
+      onConfirm(true, selectedCountry, selectedCurrency);
     }
   };
 
   const handleDomestic = () => {
-    onConfirm(false, null);
+    onConfirm(false, null, null);
   };
+
+  // Verifica se o país selecionado tem moeda fixa
+  const hasFixedCurrency = selectedCountry ? COUNTRY_CURRENCIES[selectedCountry] !== null : true;
+  const fixedCurrencyLabel = selectedCountry && COUNTRY_CURRENCIES[selectedCountry] 
+    ? (COUNTRY_CURRENCIES[selectedCountry] === 'USD' ? 'Dólar (USD)' : 'Euro (EUR)')
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
@@ -64,7 +93,7 @@ export function ExportCountryDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">País de Exportação</label>
+            <Label>País de Exportação</Label>
             <Select value={selectedCountry || ""} onValueChange={setSelectedCountry}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o país..." />
@@ -78,6 +107,29 @@ export function ExportCountryDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Seletor de moeda - apenas quando país não tem moeda fixa */}
+          {selectedCountry && !hasFixedCurrency && (
+            <div className="space-y-2">
+              <Label>Moeda de Faturamento</Label>
+              <Select value={selectedCurrency} onValueChange={(v) => setSelectedCurrency(v as ExportCurrency)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">Dólar (USD)</SelectItem>
+                  <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Mostrar moeda fixa como informação */}
+          {selectedCountry && hasFixedCurrency && fixedCurrencyLabel && (
+            <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+              Moeda: <strong>{fixedCurrencyLabel}</strong>
+            </div>
+          )}
 
           <div className="flex flex-col gap-2 pt-2">
             <Button
