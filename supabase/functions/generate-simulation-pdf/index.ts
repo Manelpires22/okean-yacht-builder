@@ -360,6 +360,15 @@ serve(async (req) => {
     y += 2;
 
     // MARGEM BRUTA (MDC) - highlighted box
+    // IMPORTANTE: margem_bruta JÁ inclui dedução de trade-in
+    // Para mostrar MDC ANTES do trade-in: margem_bruta + trade_in_total_impact
+    const mdcAntesTradeIn = hasTradeIn 
+      ? simulation.margem_bruta + (simulation.trade_in_total_impact || 0)
+      : simulation.margem_bruta;
+    const mdcAntesPercent = hasTradeIn
+      ? (mdcAntesTradeIn / simulation.faturamento_liquido) * 100
+      : simulation.margem_percent;
+    
     setColor(doc, COLORS.mutedBg, "fill");
     doc.roundedRect(margin, y - 1, contentWidth, 10, 1, 1, "F");
     
@@ -369,12 +378,15 @@ serve(async (req) => {
     doc.text("MARGEM BRUTA (MDC)", margin + 3, y + 4);
     
     doc.setFontSize(10);
-    doc.text(formatCurrency(simulation.margem_bruta), pageWidth - margin - 40, y + 4);
+    doc.text(formatCurrency(mdcAntesTradeIn), pageWidth - margin - 40, y + 4);
     
-    setColor(doc, marginColor);
+    // Se há trade-in, mostra % antes do impacto; senão usa valor salvo
+    const displayMdcPercent = hasTradeIn ? mdcAntesPercent : simulation.margem_percent;
+    const displayMarginColor = getMarginColor(displayMdcPercent);
+    setColor(doc, displayMarginColor);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(`${simulation.margem_percent.toFixed(2)}%`, pageWidth - margin - 3, y + 5, { align: "right" });
+    doc.text(`${displayMdcPercent.toFixed(2)}%`, pageWidth - margin - 3, y + 5, { align: "right" });
     
     y += 13;
 
@@ -435,21 +447,20 @@ serve(async (req) => {
       
       y += 5;
       
-      // MDC após impacto
-      const mdcAposImpacto = simulation.margem_bruta - (simulation.trade_in_total_impact || 0);
-      const mdcAposPercent = (mdcAposImpacto / simulation.faturamento_liquido) * 100;
+      // MDC após impacto - usar valores salvos diretamente
+      // margem_bruta JÁ é o valor final (com trade-in deduzido)
+      // margem_percent JÁ é o percentual final
       setColor(doc, COLORS.amber);
       doc.setFontSize(7);
-      doc.text(`MDC APÓS IMPACTO: ${formatCurrency(mdcAposImpacto)} (${mdcAposPercent.toFixed(2)}%)`, margin + 3, y);
+      doc.text(`MDC APÓS IMPACTO: ${formatCurrency(simulation.margem_bruta)} (${simulation.margem_percent.toFixed(2)}%)`, margin + 3, y);
       
       y += 8;
     }
 
     // === BOX FINAL - % Margem sobre Faturamento Líquido ===
     y += 2;
-    const finalMarginPercent = hasTradeIn 
-      ? ((simulation.margem_bruta - (simulation.trade_in_total_impact || 0)) / simulation.faturamento_liquido) * 100
-      : simulation.margem_percent;
+    // margem_percent JÁ é o valor final salvo (com trade-in se houver)
+    const finalMarginPercent = simulation.margem_percent;
     const finalMarginColor = getMarginColor(finalMarginPercent);
     
     setColor(doc, finalMarginColor === COLORS.green ? COLORS.greenLight : COLORS.mutedBg, "fill");
