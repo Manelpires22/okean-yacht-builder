@@ -133,7 +133,7 @@ export function MDCSimulationPanel({
     // Garantia e Margem
     const garantiaValue = fatBruto * (state.warrantyPercent / 100);
     const margemBruta = fatLiquido - custoVenda - garantiaValue;
-    const margemPercent = fatBruto > 0 ? (margemBruta / fatBruto) * 100 : 0;
+    const margemPercent = fatLiquido > 0 ? (margemBruta / fatLiquido) * 100 : 0;
 
     return {
       fatBruto,
@@ -312,7 +312,7 @@ export function MDCSimulationPanel({
             ) : (
               <TrendingDown className="h-5 w-5 text-destructive" />
             )}
-            <span className="font-medium">% Margem sobre Faturamento Bruto</span>
+            <span className="font-medium">% Margem sobre Faturamento Líquido</span>
           </div>
           <span
             className={`text-2xl font-bold ${
