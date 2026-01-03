@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AppHeader } from "@/components/AppHeader";
 
 interface SimulationsListProps {
   onNewSimulation: () => void;
@@ -66,20 +67,20 @@ export function SimulationsList({ onNewSimulation, onDuplicateSimulation, onEdit
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Simulações de Viabilidade</h1>
-            <p className="text-muted-foreground mt-1">
+    <div className="min-h-screen bg-background">
+      <AppHeader title="Simulações de Viabilidade" />
+      
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground">
               Gerencie suas simulações de margem de contribuição
             </p>
+            <Button onClick={onNewSimulation} size="lg">
+              <Plus className="mr-2 h-5 w-5" />
+              Nova Simulação
+            </Button>
           </div>
-          <Button onClick={onNewSimulation} size="lg">
-            <Plus className="mr-2 h-5 w-5" />
-            Nova Simulação
-          </Button>
-        </div>
 
         <Card>
           <CardHeader>
@@ -186,7 +187,8 @@ export function SimulationsList({ onNewSimulation, onDuplicateSimulation, onEdit
               </Table>
             )}
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       {selectedSimulation && (
