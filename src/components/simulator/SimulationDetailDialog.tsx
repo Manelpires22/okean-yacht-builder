@@ -306,28 +306,34 @@ export function SimulationDetailDialog({
                 {/* IMPACTO CALCULADO */}
                 <div className="bg-white/60 rounded-lg p-3">
                   <p className="text-xs font-semibold text-amber-800 mb-2 uppercase tracking-wide">Impacto Calculado</p>
-                  <div className="grid grid-cols-4 gap-4 text-sm">
+                  
+                  {/* Grid de 3 colunas para breakdown */}
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-xs text-amber-700">Depreciação</p>
-                      <p className="font-medium text-destructive">
+                      <p className="text-xs text-amber-700 text-left">Depreciação</p>
+                      <p className="font-medium text-destructive text-right">
                         - {formatCurrency(simulation.trade_in_depreciation || 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-amber-700">Custo Operação</p>
-                      <p className="font-medium text-destructive">
+                      <p className="text-xs text-amber-700 text-left">Custo Operação</p>
+                      <p className="font-medium text-destructive text-right">
                         - {formatCurrency(simulation.trade_in_operation_cost || 0)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-amber-700">Comissão Usado</p>
-                      <p className="font-medium text-destructive">
+                      <p className="text-xs text-amber-700 text-left">Comissão Usado</p>
+                      <p className="font-medium text-destructive text-right">
                         - {formatCurrency(simulation.trade_in_commission || 0)}
                       </p>
                     </div>
-                    <div className="bg-destructive/10 rounded p-2 -m-1">
+                  </div>
+
+                  {/* Box Impacto Total - separado e alinhado à direita */}
+                  <div className="flex justify-end mt-3">
+                    <div className="bg-destructive/10 rounded-lg px-4 py-2 text-right">
                       <p className="text-xs text-destructive font-semibold">Impacto Total</p>
-                      <p className="font-bold text-destructive">
+                      <p className="font-bold text-destructive text-lg">
                         - {formatCurrency(simulation.trade_in_total_impact || 0)}
                       </p>
                     </div>
