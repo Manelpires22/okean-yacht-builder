@@ -124,13 +124,17 @@ serve(async (req) => {
     const valorExportacao = isExporting && exchangeRate > 0 ? simulation.faturamento_bruto / exchangeRate : 0;
     const modalidade = isExporting ? "EXPORTAÇÃO" : "MERCADO INTERNO";
 
-    // Commission
+    // Commission - aplicar redução de trade-in na base antes do ajuste MDC
     const cashValue = hasTradeIn 
       ? simulation.faturamento_bruto - (simulation.trade_in_entry_value || 0)
       : simulation.faturamento_bruto;
+    const tradeInCommissionReduction = hasTradeIn 
+      ? (simulation.trade_in_commission_reduction_percent ?? 0.5) 
+      : 0;
+    const comissaoBaseAjustada = Math.max(0, simulation.commission_percent - tradeInCommissionReduction);
     const comissaoFinal = simulation.adjusted_commission_percent !== null
       ? simulation.adjusted_commission_percent
-      : simulation.commission_percent * (1 + (simulation.commission_adjustment_factor || 0));
+      : comissaoBaseAjustada * (1 + (simulation.commission_adjustment_factor || 0));
     const comissaoValor = (comissaoFinal / 100) * cashValue;
     
     // Costs
@@ -351,9 +355,10 @@ serve(async (req) => {
     }
     
     const adjFactor = simulation.commission_adjustment_factor || 0;
+    const tradeInReductionLabel = hasTradeIn ? ` (-${tradeInCommissionReduction}% trade-in)` : "";
     const comissaoDetail = simulation.adjusted_commission_percent !== null 
       ? "Valor fixo definido"
-      : `Base ${simulation.commission_percent.toFixed(1)}% ${adjFactor !== 0 ? (adjFactor >= 0 ? "+" : "") + (adjFactor * 100).toFixed(1) + "% ajuste MDC" : ""}`;
+      : `Base ${simulation.commission_percent.toFixed(1)}%${tradeInReductionLabel}${adjFactor !== 0 ? `, ajuste MDC: ${(adjFactor >= 0 ? "+" : "") + (adjFactor * 100).toFixed(1)}%` : ""}${hasTradeIn ? ", sobre cash" : ""}`;
     
     y = drawTableRow(
       `Comissão (${formatPercent(comissaoFinal)})`,
