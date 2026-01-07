@@ -50,6 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useWorkflowPendingCount } from "@/hooks/useWorkflowPendingCount";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Itens principais (não agrupados) - MESMA estrutura do AdminLayout original
 const mainNavItems = [
@@ -120,7 +121,12 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { data: pendingCount = 0 } = useWorkflowPendingCount();
+  const { hasRole } = useAuth();
   const isCollapsed = state === "collapsed";
+  const isAdmin = hasRole('administrador');
+
+  // Filtrar grupos visíveis baseado no role - apenas admin vê grupos administrativos
+  const visibleGroups = isAdmin ? navGroups : [];
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -200,8 +206,8 @@ export function AppSidebar() {
           <div className="mx-3 my-2 border-t border-border" />
         )}
 
-        {/* Grupos colapsáveis */}
-        {navGroups.map((group) => {
+        {/* Grupos colapsáveis - apenas para admins */}
+        {visibleGroups.map((group) => {
           const isGroupActive = activeGroup === group.id;
 
           return (
