@@ -115,6 +115,13 @@ export type Database = {
             referencedColumns: ["contract_id"]
           },
           {
+            foreignKeyName: "additional_to_orders_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "additional_to_orders_reversal_of_ato_id_fkey"
             columns: ["reversal_of_ato_id"]
             isOneToOne: false
@@ -475,6 +482,13 @@ export type Database = {
             referencedRelation: "live_contracts"
             referencedColumns: ["contract_id"]
           },
+          {
+            foreignKeyName: "contract_delivery_checklist_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contracts: {
@@ -716,6 +730,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "live_contracts"
             referencedColumns: ["contract_id"]
+          },
+          {
+            foreignKeyName: "hull_numbers_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "live_contracts"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "hull_numbers_yacht_model_id_fkey"
@@ -2426,15 +2447,25 @@ export type Database = {
           approved_atos_count: number | null
           base_delivery_days: number | null
           base_price: number | null
+          base_snapshot: Json | null
           client_id: string | null
           contract_id: string | null
           contract_number: string | null
           created_at: string | null
+          created_by: string | null
           current_total_delivery_days: number | null
           current_total_price: number | null
+          delivered_at: string | null
+          delivered_by: string | null
+          delivery_notes: string | null
+          delivery_status: string | null
+          hull_number_id: string | null
+          id: string | null
           pending_atos_count: number | null
           quotation_id: string | null
           signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
           status: string | null
           total_atos_count: number | null
           total_atos_delivery_days: number | null
@@ -2448,6 +2479,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_hull_number_id_fkey"
+            columns: ["hull_number_id"]
+            isOneToOne: false
+            referencedRelation: "hull_numbers"
             referencedColumns: ["id"]
           },
           {
