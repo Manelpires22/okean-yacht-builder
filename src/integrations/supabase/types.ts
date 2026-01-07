@@ -134,7 +134,7 @@ export type Database = {
         Row: {
           approval_type: Database["public"]["Enums"]["approval_type"] | null
           created_at: string | null
-          id: string | null
+          id: string
           notes: string | null
           quotation_id: string | null
           request_details: Json | null
@@ -149,7 +149,7 @@ export type Database = {
         Insert: {
           approval_type?: Database["public"]["Enums"]["approval_type"] | null
           created_at?: string | null
-          id?: string | null
+          id?: string
           notes?: string | null
           quotation_id?: string | null
           request_details?: Json | null
@@ -164,7 +164,7 @@ export type Database = {
         Update: {
           approval_type?: Database["public"]["Enums"]["approval_type"] | null
           created_at?: string | null
-          id?: string | null
+          id?: string
           notes?: string | null
           quotation_id?: string | null
           request_details?: Json | null
