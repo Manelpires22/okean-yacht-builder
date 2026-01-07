@@ -127,9 +127,9 @@ const App = () => (
               <Route path="/workflow-tasks" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
               <Route path="/tarefas-workflow" element={<ProtectedRoute><WorkflowTasks /></ProtectedRoute>} />
               
-              {/* Simulações */}
-              <Route path="/simulacoes" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
-              <Route path="/simulations" element={<ProtectedRoute><Simulations /></ProtectedRoute>} />
+              {/* Simulações - APENAS ADMIN */}
+              <Route path="/simulacoes" element={<ProtectedRoute requireAdmin><Simulations /></ProtectedRoute>} />
+              <Route path="/simulations" element={<ProtectedRoute requireAdmin><Simulations /></ProtectedRoute>} />
               
               {/* Admin */}
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
