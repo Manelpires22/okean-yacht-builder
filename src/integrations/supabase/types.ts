@@ -2535,9 +2535,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin:
-        | { Args: never; Returns: boolean }
-        | { Args: { user_id: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       normalize_memorial_category: {
         Args: { okean_categoria: string }
         Returns: string
