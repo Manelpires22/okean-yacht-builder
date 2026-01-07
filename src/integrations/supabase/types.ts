@@ -21,7 +21,7 @@ export type Database = {
           ato_number: string
           commercial_approval_status: string | null
           contract_id: string
-          created_at: string | null
+          created_at: string
           delivery_days_impact: number | null
           description: string | null
           discount_amount: number | null
@@ -49,7 +49,7 @@ export type Database = {
           ato_number: string
           commercial_approval_status?: string | null
           contract_id: string
-          created_at?: string | null
+          created_at?: string
           delivery_days_impact?: number | null
           description?: string | null
           discount_amount?: number | null
@@ -77,7 +77,7 @@ export type Database = {
           ato_number?: string
           commercial_approval_status?: string | null
           contract_id?: string
-          created_at?: string | null
+          created_at?: string
           delivery_days_impact?: number | null
           description?: string | null
           discount_amount?: number | null
@@ -498,7 +498,7 @@ export type Database = {
           base_snapshot: Json | null
           client_id: string
           contract_number: string
-          created_at: string | null
+          created_at: string
           created_by: string | null
           current_total_delivery_days: number
           current_total_price: number
@@ -522,7 +522,7 @@ export type Database = {
           base_snapshot?: Json | null
           client_id: string
           contract_number: string
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           current_total_delivery_days: number
           current_total_price: number
@@ -546,7 +546,7 @@ export type Database = {
           base_snapshot?: Json | null
           client_id?: string
           contract_number?: string
-          created_at?: string | null
+          created_at?: string
           created_by?: string | null
           current_total_delivery_days?: number
           current_total_price?: number
