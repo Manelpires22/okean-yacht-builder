@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useHullNumbers, useDeleteHullNumber } from "@/hooks/useHullNumbers";
+import { useHullNumbers, useDeleteHullNumber, HullNumber } from "@/hooks/useHullNumbers";
 import { ImportHullNumbersDialog } from "@/components/admin/hull-numbers/ImportHullNumbersDialog";
 import { CreateHullNumberDialog } from "@/components/admin/hull-numbers/CreateHullNumberDialog";
+import { EditHullNumberDialog } from "@/components/admin/hull-numbers/EditHullNumberDialog";
+import { ExportHullNumbersButton } from "@/components/admin/hull-numbers/ExportHullNumbersButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Anchor, FileSpreadsheet, Plus, Trash2 } from "lucide-react";
+import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   available: "Disponível",
@@ -28,6 +30,7 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
 export default function AdminHullNumbers() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingHullNumber, setEditingHullNumber] = useState<HullNumber | null>(null);
   const { data: hullNumbers, isLoading } = useHullNumbers();
   const deleteHullNumber = useDeleteHullNumber();
 
@@ -45,6 +48,7 @@ export default function AdminHullNumbers() {
             </p>
           </div>
           <div className="flex gap-2">
+            <ExportHullNumbersButton hullNumbers={hullNumbers || []} disabled={isLoading} />
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Importar Planilha
@@ -86,7 +90,7 @@ export default function AdminHullNumbers() {
                     <TableHead>Entrada Casco</TableHead>
                     <TableHead>Entrega Prevista</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-[80px]">Ações</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -107,34 +111,43 @@ export default function AdminHullNumbers() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled={hull.status !== 'available' || deleteHullNumber.isPending}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a matrícula {hull.brand} {hull.hull_number}?
-                                Esta ação não pode ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteHullNumber.mutate(hull.id)}
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingHullNumber(hull)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={hull.status !== 'available' || deleteHullNumber.isPending}
                               >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a matrícula {hull.brand} {hull.hull_number}?
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteHullNumber.mutate(hull.id)}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -153,6 +166,12 @@ export default function AdminHullNumbers() {
       <CreateHullNumberDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
+      />
+
+      <EditHullNumberDialog
+        hullNumber={editingHullNumber}
+        open={!!editingHullNumber}
+        onOpenChange={(open) => !open && setEditingHullNumber(null)}
       />
     </AdminLayout>
   );

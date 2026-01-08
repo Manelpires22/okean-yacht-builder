@@ -161,6 +161,39 @@ export function useDeleteHullNumber() {
   });
 }
 
+// Atualizar uma matrícula
+export function useUpdateHullNumber() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<HullNumberInsert>) => {
+      const { data: hullNumber, error } = await supabase
+        .from('hull_numbers')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return hullNumber;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hull-numbers'] });
+      toast({
+        title: "Sucesso!",
+        description: "Matrícula atualizada com sucesso.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar matrícula",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 // Importar matrículas em lote
 export function useImportHullNumbers() {
   const queryClient = useQueryClient();
