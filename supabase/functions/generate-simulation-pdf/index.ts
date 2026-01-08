@@ -393,7 +393,7 @@ serve(async (req) => {
     y = drawTableRow("Matéria-Prima Nacional", formatCurrency(simulation.custo_mp_nacional), y);
     
     y = drawTableRow(
-      `Imposto Importação (${formatPercent(simulation.tax_import_percent)})`,
+      `Custos Importação (${formatPercent(simulation.tax_import_percent)})`,
       formatCurrency(custoImportValue),
       y
     );
