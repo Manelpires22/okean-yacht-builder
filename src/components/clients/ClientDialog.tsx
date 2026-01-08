@@ -19,12 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useCreateClient, useUpdateClient, Client } from "@/hooks/useClients";
 
 const clientSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
   email: z.string().email("Email inválido").max(255, "Email muito longo").optional().or(z.literal("")),
-  phone: z.string().max(20, "Telefone muito longo").optional(),
+  phone: z.string().optional(),
   cpf: z.string().max(14, "CPF inválido").optional(),
   company: z.string().max(255, "Nome da empresa muito longo").optional(),
   notes: z.string().max(1000, "Observações muito longas").optional(),
@@ -147,7 +148,12 @@ export default function ClientDialog({
                   <FormItem>
                     <FormLabel>Telefone</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="+5511999999999" />
+                      <PhoneInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        defaultCountry="BR"
+                        placeholder="Digite o número"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
