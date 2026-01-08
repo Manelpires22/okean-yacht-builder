@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, FileSignature, Users, ListChecks, Settings, Ship, Anchor, Calculator } from "lucide-react";
+import { FileText, FileSignature, Users, ListChecks, LayoutDashboard, Ship, Anchor, Calculator } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserMenu } from "@/components/admin/UserMenu";
@@ -92,7 +92,7 @@ const Index = () => {
     badge: pendingCount > 0 ? `${pendingCount} pendentes` : null,
     badgeVariant: "destructive" as const
   }, {
-    icon: Settings,
+    icon: LayoutDashboard,
     title: "Administração",
     description: "Configurações e gestão do sistema",
     path: "/admin",
