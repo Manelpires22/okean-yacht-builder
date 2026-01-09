@@ -6,11 +6,28 @@ import { SimulatorModelSelector } from "@/components/simulator/SimulatorModelSel
 import { SimulationsList } from "@/components/simulator/SimulationsList";
 import { useSimulatorState, type Currency, type ExportCurrency } from "@/hooks/useSimulatorState";
 import type { Simulation } from "@/hooks/useSimulations";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Simulations() {
   const { state, updateField, selectCommission, selectClient, selectModel, goToStep, resetState, loadFromSimulation, resetToOriginal } = useSimulatorState();
 
-  const handleDuplicateSimulation = (simulation: Simulation) => {
+  // Helper to fetch current model base price
+  const fetchCurrentModelPrice = async (yachtModelId: string | null): Promise<number | null> => {
+    if (!yachtModelId) return null;
+    
+    const { data: model } = await supabase
+      .from('yacht_models')
+      .select('base_price')
+      .eq('id', yachtModelId)
+      .maybeSingle();
+    
+    return model?.base_price ?? null;
+  };
+
+  const handleDuplicateSimulation = async (simulation: Simulation) => {
+    // Fetch current model price from database
+    const currentModelPrice = await fetchCurrentModelPrice(simulation.yacht_model_id);
+    
     loadFromSimulation({
       commissionId: simulation.commission_id,
       commissionName: simulation.commission_name,
@@ -39,6 +56,8 @@ export default function Simulations() {
       transporteCost: simulation.transporte_cost || 0,
       customizacoesEstimadas: simulation.customizacoes_estimadas || 0,
       adjustedCommissionPercent: simulation.adjusted_commission_percent,
+      // Use current model price as original base price
+      originalBasePrice: currentModelPrice ?? simulation.faturamento_bruto,
       // Trade-In fields
       hasTradeIn: simulation.has_trade_in ?? false,
       tradeInBrand: simulation.trade_in_brand ?? "",
@@ -52,7 +71,10 @@ export default function Simulations() {
     }); // Sem options = nova simulação (duplicar)
   };
 
-  const handleEditSimulation = (simulation: Simulation) => {
+  const handleEditSimulation = async (simulation: Simulation) => {
+    // Fetch current model price from database
+    const currentModelPrice = await fetchCurrentModelPrice(simulation.yacht_model_id);
+    
     loadFromSimulation({
       commissionId: simulation.commission_id,
       commissionName: simulation.commission_name,
@@ -81,6 +103,8 @@ export default function Simulations() {
       transporteCost: simulation.transporte_cost || 0,
       customizacoesEstimadas: simulation.customizacoes_estimadas || 0,
       adjustedCommissionPercent: simulation.adjusted_commission_percent,
+      // Use current model price as original base price
+      originalBasePrice: currentModelPrice ?? simulation.faturamento_bruto,
       // Trade-In fields
       hasTradeIn: simulation.has_trade_in ?? false,
       tradeInBrand: simulation.trade_in_brand ?? "",
