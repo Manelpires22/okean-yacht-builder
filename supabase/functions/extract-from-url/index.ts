@@ -37,33 +37,14 @@ interface SpecsExtractedData {
   missingFields?: string[];
 }
 
-// Extrai imagens diretamente do markdown da página, separando por categoria
+// Extrai TODAS as imagens do markdown da página, classificando por URL/contexto
 function extractImagesFromMarkdown(markdown: string): { 
   exteriorImages: string[]; 
   interiorImages: string[] 
 } {
   const exteriorImages: string[] = [];
   const interiorImages: string[] = [];
-
-  // Regex para encontrar URLs de imagens no markdown
-  const imageRegex = /\!\[.*?\]\((https?:\/\/[^\s\)]+)\)/gi;
-  const directUrlRegex = /(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s\)]*)?)/gi;
-
-  // Padrões para identificar seções de imagens externas
-  const externalPatterns = [
-    /##\s*Imagens?\s*Extern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Exterior\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Fotos?\s*Extern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Galeria\s*Extern[ao]?\s*([\s\S]*?)(?=##|$)/i,
-  ];
-
-  // Padrões para identificar seções de imagens internas
-  const internalPatterns = [
-    /##\s*Imagens?\s*Intern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Interior\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Fotos?\s*Intern[ao]s?\s*([\s\S]*?)(?=##|$)/i,
-    /##\s*Galeria\s*Intern[ao]?\s*([\s\S]*?)(?=##|$)/i,
-  ];
+  const allImages: string[] = [];
 
   // Função para extrair URLs de uma seção
   const extractUrlsFromSection = (section: string): string[] => {
@@ -77,7 +58,7 @@ function extractImagesFromMarkdown(markdown: string): {
     }
     
     // Também pegar URLs diretas de imagens
-    const urlRegex = /(https?:\/\/[^\s\)\]]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s\)\]]*)?)/gi;
+    const urlRegex = /(https?:\/\/[^\s\)\]"']+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s\)\]"']*)?)/gi;
     while ((match = urlRegex.exec(section)) !== null) {
       if (match[1] && !urls.includes(match[1])) {
         urls.push(match[1]);
@@ -86,6 +67,16 @@ function extractImagesFromMarkdown(markdown: string): {
     
     return urls;
   };
+
+  // Padrões para identificar seções de imagens externas/exteriores
+  const externalPatterns = [
+    /#{1,3}\s*(?:Imagens?\s*Extern[ao]s?|Exterior|Fotos?\s*Extern[ao]s?|Galeria\s*Extern[ao]?|Gallery\s*Exterior|Exterior\s*Gallery|Exterior\s*Photos?)\s*([\s\S]*?)(?=#{1,3}|$)/i,
+  ];
+
+  // Padrões para identificar seções de imagens internas/interiores
+  const internalPatterns = [
+    /#{1,3}\s*(?:Imagens?\s*Intern[ao]s?|Interior|Fotos?\s*Intern[ao]s?|Galeria\s*Intern[ao]?|Gallery\s*Interior|Interior\s*Gallery|Interior\s*Photos?)\s*([\s\S]*?)(?=#{1,3}|$)/i,
+  ];
 
   // Tentar encontrar seção de imagens externas
   for (const pattern of externalPatterns) {
@@ -109,73 +100,55 @@ function extractImagesFromMarkdown(markdown: string): {
     }
   }
 
-  // Remover duplicatas
+  // Se não encontrou seções, extrair TODAS as imagens e classificar por URL
+  if (exteriorImages.length === 0 && interiorImages.length === 0) {
+    const allPageImages = extractUrlsFromSection(markdown);
+    console.log(`No sections found, extracting all ${allPageImages.length} images from page`);
+    
+    // Classificar por URL patterns
+    const interiorKeywords = ['interior', 'cabin', 'saloon', 'galley', 'bedroom', 'bathroom', 'cockpit', 'helm', 'salon', 'berth', 'stateroom', 'head', 'master', 'guest', 'vip', 'crew'];
+    const exteriorKeywords = ['exterior', 'hull', 'deck', 'bow', 'stern', 'profile', 'side', 'aerial', 'drone', 'water', 'sea', 'marina', 'port', 'running', 'cruising'];
+    const excludeKeywords = ['logo', 'icon', 'favicon', 'thumbnail', 'banner', 'header', 'footer', 'avatar', 'badge', 'button'];
+    
+    for (const imgUrl of allPageImages) {
+      const urlLower = imgUrl.toLowerCase();
+      
+      // Ignorar logos, ícones, etc.
+      if (excludeKeywords.some(kw => urlLower.includes(kw))) {
+        continue;
+      }
+      
+      if (interiorKeywords.some(kw => urlLower.includes(kw))) {
+        interiorImages.push(imgUrl);
+      } else if (exteriorKeywords.some(kw => urlLower.includes(kw))) {
+        exteriorImages.push(imgUrl);
+      } else {
+        // Se não tem keyword, colocar como exterior (padrão)
+        allImages.push(imgUrl);
+      }
+    }
+    
+    // Se ainda não classificou nada, dividir as imagens restantes igualmente
+    if (exteriorImages.length === 0 && interiorImages.length === 0 && allImages.length > 0) {
+      // Primeiras 60% como exterior, resto como interior
+      const exteriorCount = Math.ceil(allImages.length * 0.6);
+      exteriorImages.push(...allImages.slice(0, exteriorCount));
+      interiorImages.push(...allImages.slice(exteriorCount));
+      console.log(`Divided ${allImages.length} unclassified images: ${exteriorCount} exterior, ${allImages.length - exteriorCount} interior`);
+    } else if (allImages.length > 0) {
+      // Adicionar imagens não classificadas ao exterior
+      exteriorImages.push(...allImages);
+    }
+  }
+
+  // Remover duplicatas e limitar
   return { 
-    exteriorImages: [...new Set(exteriorImages)], 
-    interiorImages: [...new Set(interiorImages)]
+    exteriorImages: [...new Set(exteriorImages)].slice(0, 20), 
+    interiorImages: [...new Set(interiorImages)].slice(0, 20)
   };
 }
 
-// Fallback: Busca imagens no Google por categoria
-async function searchImagesByCategory(
-  brand: string, 
-  model: string, 
-  category: 'exterior' | 'interior'
-): Promise<string[]> {
-  if (!GOOGLE_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
-    console.log('Google API not configured, skipping image search');
-    return [];
-  }
-
-  const categoryTerms = category === 'exterior' 
-    ? 'exterior hull deck yacht boat' 
-    : 'interior cabin saloon galley bedroom bathroom yacht';
-  
-  const searchQuery = `${brand} ${model} ${categoryTerms}`;
-  console.log(`Searching ${category} images:`, searchQuery);
-
-  try {
-    const searchUrl = new URL("https://www.googleapis.com/customsearch/v1");
-    searchUrl.searchParams.set("key", GOOGLE_API_KEY);
-    searchUrl.searchParams.set("cx", GOOGLE_SEARCH_ENGINE_ID);
-    searchUrl.searchParams.set("q", searchQuery);
-    searchUrl.searchParams.set("searchType", "image");
-    searchUrl.searchParams.set("num", "10");
-    searchUrl.searchParams.set("imgSize", "large");
-    searchUrl.searchParams.set("safe", "active");
-
-    const response = await fetch(searchUrl.toString());
-    
-    if (!response.ok) {
-      console.error(`Google API error for ${category}:`, response.status);
-      return [];
-    }
-
-    const data = await response.json();
-    
-    const urls: string[] = [];
-    if (data.items && Array.isArray(data.items)) {
-      for (const item of data.items) {
-        if (item.link && typeof item.link === "string") {
-          const urlLower = item.link.toLowerCase();
-          // Filter out logos, icons, thumbnails
-          if (!urlLower.includes("logo") && 
-              !urlLower.includes("icon") && 
-              !urlLower.includes("thumbnail") && 
-              !urlLower.includes("favicon")) {
-            urls.push(item.link);
-          }
-        }
-      }
-    }
-
-    console.log(`Found ${urls.length} ${category} images`);
-    return urls.slice(0, 10);
-  } catch (error) {
-    console.error(`Error searching ${category} images:`, error);
-    return [];
-  }
-}
+// Função removida - extração limitada apenas ao conteúdo da página
 
 // Corrige parsing de números no formato brasileiro (25.000,50 = 25000.50)
 function parseBrazilianNumber(str: string): number | null {
@@ -552,19 +525,8 @@ ${markdown.substring(0, 4000)}`;
         interior: interiorImages.length 
       });
 
-      // Fallback: Se não encontrou imagens suficientes na página, buscar no Google
-      if (brand && model) {
-        if (exteriorImages.length < 3) {
-          console.log('Not enough exterior images from page, searching Google...');
-          const googleExterior = await searchImagesByCategory(brand, model, 'exterior');
-          exteriorImages = [...exteriorImages, ...googleExterior];
-        }
-        if (interiorImages.length < 3) {
-          console.log('Not enough interior images from page, searching Google...');
-          const googleInterior = await searchImagesByCategory(brand, model, 'interior');
-          interiorImages = [...interiorImages, ...googleInterior];
-        }
-      }
+      // Usar APENAS imagens encontradas na página (sem busca externa)
+      console.log('Using only page images - no external search');
 
       const result: BasicExtractedData = {
         brand,

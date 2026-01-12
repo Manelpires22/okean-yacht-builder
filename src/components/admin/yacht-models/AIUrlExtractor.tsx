@@ -143,7 +143,7 @@ export function AIUrlExtractor({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Extrai: Marca, Modelo, Descrição e busca fotos externas e internas automaticamente
+            Extrai: Marca, Modelo, Descrição e fotos encontradas na página
           </p>
 
           {lastExtraction && (
