@@ -465,46 +465,95 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
 
             {/* Preview Table */}
             <ScrollArea className="h-[350px] border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">Linha</TableHead>
-                    <TableHead>Marca</TableHead>
-                    <TableHead>Modelo</TableHead>
-                    <TableHead>Matrícula</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Resultado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {parsedRows.slice(0, 50).map((row) => (
-                    <TableRow key={row.rowNumber} className={row.error ? 'bg-destructive/10' : ''}>
-                      <TableCell className="font-mono text-xs">{row.rowNumber}</TableCell>
-                      <TableCell>{row.data['brand'] || '-'}</TableCell>
-                      <TableCell>{row.data['model'] || '-'}</TableCell>
-                      <TableCell className="font-mono font-bold">{row.data['hull_number']}</TableCell>
-                      <TableCell>
-                        <Badge variant={row.status === 'available' ? 'default' : 'secondary'}>
-                          {row.status === 'available' ? 'Disponível' : 'Contratada'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {row.error ? (
-                          <span className="flex items-center gap-1 text-destructive text-sm">
-                            <AlertCircle className="h-4 w-4" />
-                            {row.error}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-green-600 text-sm">
-                            <CheckCircle2 className="h-4 w-4" />
-                            OK
-                          </span>
-                        )}
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16 sticky left-0 bg-background z-10">Linha</TableHead>
+                      <TableHead className="whitespace-nowrap">Marca</TableHead>
+                      <TableHead className="whitespace-nowrap">Modelo</TableHead>
+                      <TableHead className="whitespace-nowrap">Matrícula</TableHead>
+                      
+                      {/* Job Stops */}
+                      {selectedColumns.has('job_stop_1_date') && <TableHead className="text-center text-xs px-2">JS1</TableHead>}
+                      {selectedColumns.has('job_stop_2_date') && <TableHead className="text-center text-xs px-2">JS2</TableHead>}
+                      {selectedColumns.has('job_stop_3_date') && <TableHead className="text-center text-xs px-2">JS3</TableHead>}
+                      {selectedColumns.has('job_stop_4_date') && <TableHead className="text-center text-xs px-2">JS4</TableHead>}
+                      
+                      {/* Produção */}
+                      {selectedColumns.has('hull_entry_date') && <TableHead className="text-center text-xs px-2">Entrada</TableHead>}
+                      {selectedColumns.has('barco_aberto_date') && <TableHead className="text-center text-xs px-2">Aberto</TableHead>}
+                      {selectedColumns.has('fechamento_convesdeck_date') && <TableHead className="text-center text-xs px-2">Convés</TableHead>}
+                      {selectedColumns.has('barco_fechado_date') && <TableHead className="text-center text-xs px-2">Fechado</TableHead>}
+                      
+                      {/* Testes */}
+                      {selectedColumns.has('teste_piscina_date') && <TableHead className="text-center text-xs px-2">Piscina</TableHead>}
+                      {selectedColumns.has('teste_mar_date') && <TableHead className="text-center text-xs px-2">Mar</TableHead>}
+                      {selectedColumns.has('entrega_comercial_date') && <TableHead className="text-center text-xs px-2">Entrega</TableHead>}
+                      
+                      <TableHead className="whitespace-nowrap">Status</TableHead>
+                      <TableHead className="whitespace-nowrap">Resultado</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {parsedRows.slice(0, 50).map((row) => {
+                      const formatPreviewDate = (dateStr: string | null | undefined) => {
+                        if (!dateStr) return <span className="text-muted-foreground">—</span>;
+                        try {
+                          return <span className="text-primary font-medium">{format(new Date(dateStr), "dd/MM")}</span>;
+                        } catch {
+                          return <span className="text-muted-foreground">—</span>;
+                        }
+                      };
+                      
+                      return (
+                        <TableRow key={row.rowNumber} className={row.error ? 'bg-destructive/10' : ''}>
+                          <TableCell className="font-mono text-xs sticky left-0 bg-background z-10">{row.rowNumber}</TableCell>
+                          <TableCell className="whitespace-nowrap">{row.data['brand'] || '-'}</TableCell>
+                          <TableCell className="whitespace-nowrap">{row.data['model'] || '-'}</TableCell>
+                          <TableCell className="font-mono font-bold whitespace-nowrap">{row.data['hull_number']}</TableCell>
+                          
+                          {/* Job Stops */}
+                          {selectedColumns.has('job_stop_1_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_1_date'])}</TableCell>}
+                          {selectedColumns.has('job_stop_2_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_2_date'])}</TableCell>}
+                          {selectedColumns.has('job_stop_3_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_3_date'])}</TableCell>}
+                          {selectedColumns.has('job_stop_4_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_4_date'])}</TableCell>}
+                          
+                          {/* Produção */}
+                          {selectedColumns.has('hull_entry_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['hull_entry_date'])}</TableCell>}
+                          {selectedColumns.has('barco_aberto_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['barco_aberto_date'])}</TableCell>}
+                          {selectedColumns.has('fechamento_convesdeck_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['fechamento_convesdeck_date'])}</TableCell>}
+                          {selectedColumns.has('barco_fechado_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['barco_fechado_date'])}</TableCell>}
+                          
+                          {/* Testes */}
+                          {selectedColumns.has('teste_piscina_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['teste_piscina_date'])}</TableCell>}
+                          {selectedColumns.has('teste_mar_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['teste_mar_date'])}</TableCell>}
+                          {selectedColumns.has('entrega_comercial_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['entrega_comercial_date'])}</TableCell>}
+                          
+                          <TableCell>
+                            <Badge variant={row.status === 'available' ? 'default' : 'secondary'}>
+                              {row.status === 'available' ? 'Disponível' : 'Contratada'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {row.error ? (
+                              <span className="flex items-center gap-1 text-destructive text-sm whitespace-nowrap">
+                                <AlertCircle className="h-4 w-4" />
+                                {row.error}
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-green-600 text-sm">
+                                <CheckCircle2 className="h-4 w-4" />
+                                OK
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
               {parsedRows.length > 50 && (
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Mostrando 50 de {parsedRows.length} linhas...
