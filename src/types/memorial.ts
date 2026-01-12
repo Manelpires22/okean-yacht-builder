@@ -14,6 +14,7 @@ export interface MemorialCategory {
 export interface MemorialItem {
   id: string;
   yacht_model_id: string;
+  code: string | null;
   category_id: string;
   category?: MemorialCategory;
   item_name: string;

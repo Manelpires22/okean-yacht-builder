@@ -60,6 +60,7 @@ const UNITS = [
 ];
 
 const memorialItemSchema = z.object({
+  code: z.string().optional(),
   category_id: z.string().uuid("Selecione uma categoria válida"),
   item_name: z.string().min(1, "Nome do item é obrigatório"),
   description: z.string().optional(),
@@ -107,6 +108,7 @@ export function MemorialItemDialog({
   const form = useForm<MemorialItemFormData>({
     resolver: zodResolver(memorialItemSchema),
     defaultValues: {
+      code: "",
       category_id: defaultCategoryId || "",
       item_name: "",
       description: "",
@@ -131,6 +133,7 @@ export function MemorialItemDialog({
         // Handle both new shape (category_id) and old shape (category.id)
         const categoryId = initialData.category_id || initialData.category?.id;
         form.reset({
+          code: initialData.code || "",
           category_id: categoryId || defaultCategoryId || "",
           item_name: initialData.item_name || "",
           description: initialData.description || "",
@@ -151,6 +154,7 @@ export function MemorialItemDialog({
         });
       } else {
         form.reset({
+          code: "",
           category_id: defaultCategoryId || "",
           item_name: "",
           description: "",
@@ -180,6 +184,7 @@ export function MemorialItemDialog({
 
       const payload = {
         yacht_model_id: yachtModelId,
+        code: data.code || null,
         category_id: data.category_id,
         category: selectedCategory.value, // Campo ENUM obrigatório
         item_name: data.item_name,
@@ -311,19 +316,35 @@ export function MemorialItemDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="item_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Item *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Motor Principal" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-4 gap-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: AUD-001" {...field} className="font-mono" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="item_name"
+                render={({ field }) => (
+                  <FormItem className="col-span-3">
+                    <FormLabel>Nome do Item *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Motor Principal" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
