@@ -8,12 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useHullNumbers, useDeleteHullNumber, HullNumber } from "@/hooks/useHullNumbers";
 import { ImportHullNumbersDialog } from "@/components/admin/hull-numbers/ImportHullNumbersDialog";
+import { ImportMasterPlanDialog } from "@/components/admin/hull-numbers/ImportMasterPlanDialog";
 import { CreateHullNumberDialog } from "@/components/admin/hull-numbers/CreateHullNumberDialog";
 import { EditHullNumberDialog } from "@/components/admin/hull-numbers/EditHullNumberDialog";
 import { ExportHullNumbersButton } from "@/components/admin/hull-numbers/ExportHullNumbersButton";
+import { HullProgressTimeline } from "@/components/admin/hull-numbers/HullProgressTimeline";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
+import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2, ClipboardList } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   available: "Disponível",
@@ -29,6 +31,7 @@ const statusVariants: Record<string, "default" | "secondary" | "destructive" | "
 
 export default function AdminHullNumbers() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [masterPlanDialogOpen, setMasterPlanDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingHullNumber, setEditingHullNumber] = useState<HullNumber | null>(null);
   const { data: hullNumbers, isLoading } = useHullNumbers();
@@ -44,14 +47,18 @@ export default function AdminHullNumbers() {
               Matrículas
             </h1>
             <p className="text-muted-foreground">
-              Gerencie as matrículas disponíveis para configuração de iates
+              Gerencie as matrículas e acompanhe o progresso de produção
             </p>
           </div>
           <div className="flex gap-2">
             <ExportHullNumbersButton hullNumbers={hullNumbers || []} disabled={isLoading} />
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              Importar Planilha
+              Importar Simples
+            </Button>
+            <Button variant="outline" onClick={() => setMasterPlanDialogOpen(true)}>
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Importar Plano Mestre
             </Button>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
@@ -89,6 +96,7 @@ export default function AdminHullNumbers() {
                     <TableHead>Matrícula</TableHead>
                     <TableHead>Entrada Casco</TableHead>
                     <TableHead>Entrega Prevista</TableHead>
+                    <TableHead>Progresso</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
@@ -104,6 +112,9 @@ export default function AdminHullNumbers() {
                       </TableCell>
                       <TableCell>
                         {format(new Date(hull.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell>
+                        <HullProgressTimeline hullNumber={hull} compact />
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusVariants[hull.status]}>
@@ -161,6 +172,11 @@ export default function AdminHullNumbers() {
       <ImportHullNumbersDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
+      />
+
+      <ImportMasterPlanDialog
+        open={masterPlanDialogOpen}
+        onOpenChange={setMasterPlanDialogOpen}
       />
 
       <CreateHullNumberDialog

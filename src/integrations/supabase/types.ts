@@ -681,38 +681,68 @@ export type Database = {
       }
       hull_numbers: {
         Row: {
+          barco_aberto_date: string | null
+          barco_fechado_date: string | null
           brand: string
           contract_id: string | null
           created_at: string | null
+          entrega_comercial_date: string | null
           estimated_delivery_date: string
+          fechamento_convesdeck_date: string | null
           hull_entry_date: string
           hull_number: string
           id: string
+          job_stop_1_date: string | null
+          job_stop_2_date: string | null
+          job_stop_3_date: string | null
+          job_stop_4_date: string | null
           status: string
+          teste_mar_date: string | null
+          teste_piscina_date: string | null
           updated_at: string | null
           yacht_model_id: string
         }
         Insert: {
+          barco_aberto_date?: string | null
+          barco_fechado_date?: string | null
           brand?: string
           contract_id?: string | null
           created_at?: string | null
+          entrega_comercial_date?: string | null
           estimated_delivery_date: string
+          fechamento_convesdeck_date?: string | null
           hull_entry_date: string
           hull_number: string
           id?: string
+          job_stop_1_date?: string | null
+          job_stop_2_date?: string | null
+          job_stop_3_date?: string | null
+          job_stop_4_date?: string | null
           status?: string
+          teste_mar_date?: string | null
+          teste_piscina_date?: string | null
           updated_at?: string | null
           yacht_model_id: string
         }
         Update: {
+          barco_aberto_date?: string | null
+          barco_fechado_date?: string | null
           brand?: string
           contract_id?: string | null
           created_at?: string | null
+          entrega_comercial_date?: string | null
           estimated_delivery_date?: string
+          fechamento_convesdeck_date?: string | null
           hull_entry_date?: string
           hull_number?: string
           id?: string
+          job_stop_1_date?: string | null
+          job_stop_2_date?: string | null
+          job_stop_3_date?: string | null
+          job_stop_4_date?: string | null
           status?: string
+          teste_mar_date?: string | null
+          teste_piscina_date?: string | null
           updated_at?: string | null
           yacht_model_id?: string
         }
