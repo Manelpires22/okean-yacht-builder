@@ -103,6 +103,7 @@ export function UpgradeDialog({
     const query = searchQuery.toLowerCase();
     return memorialItems.filter(item => 
       item.item_name.toLowerCase().includes(query) ||
+      item.code?.toLowerCase().includes(query) ||
       item.category?.label?.toLowerCase().includes(query)
     );
   }, [memorialItems, searchQuery]);
@@ -244,6 +245,9 @@ export function UpgradeDialog({
                           >
                             {selectedItem ? (
                               <span className="flex-1 text-left break-words">
+                                {selectedItem.code && (
+                                  <span className="font-mono text-muted-foreground">[{selectedItem.code}]</span>
+                                )}{selectedItem.code ? " " : ""}
                                 {selectedItem.item_name}
                                 {selectedItem.category && ` (${selectedItem.category.label})`}
                               </span>
@@ -281,18 +285,23 @@ export function UpgradeDialog({
                                   >
                                     <Check
                                       className={cn(
-                                        "mr-2 h-4 w-4",
+                                        "mr-2 h-4 w-4 shrink-0",
                                         field.value === item.id ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    <span className="flex-1 truncate">{item.item_name}</span>
-                                    {item.category && (
-                                      <span className="text-muted-foreground ml-2">
-                                        ({item.category.label})
-                                      </span>
-                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        {item.code && (
+                                          <span className="font-mono text-xs text-muted-foreground">[{item.code}]</span>
+                                        )}
+                                        <span className="truncate">{item.item_name}</span>
+                                      </div>
+                                      {item.category && (
+                                        <span className="text-xs text-muted-foreground">{item.category.label}</span>
+                                      )}
+                                    </div>
                                     {item.upgrade_count > 0 && (
-                                      <Badge variant="secondary" className="ml-2 text-xs">
+                                      <Badge variant="secondary" className="ml-2 text-xs shrink-0">
                                         {item.upgrade_count}
                                       </Badge>
                                     )}

@@ -95,7 +95,7 @@ export function useAllMemorialItemsForUpgrades(yachtModelId: string) {
       // Buscar itens do memorial
       const { data: items, error: itemsError } = await supabase
         .from('memorial_items')
-        .select('id, item_name, category_id, has_upgrades, category:memorial_categories(id, label)')
+        .select('id, item_name, code, category_id, has_upgrades, category:memorial_categories(id, label)')
         .eq('yacht_model_id', yachtModelId)
         .eq('is_active', true)
         .order('category_display_order')
