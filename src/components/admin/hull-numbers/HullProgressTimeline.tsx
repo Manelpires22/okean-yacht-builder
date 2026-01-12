@@ -37,10 +37,56 @@ const MILESTONES: MilestoneConfig[] = [
 ];
 
 export function HullProgressTimeline({ hullNumber, compact = false }: HullProgressTimelineProps) {
-  // Contar marcos concluídos
-  const completedCount = MILESTONES.filter(m => hullNumber[m.key]).length;
+  const today = new Date();
+  
+  // Calcular progresso baseado na posição temporal (hoje entre início e fim)
+  const calculateTimeProgress = (): number => {
+    const firstDate = hullNumber.hull_entry_date;
+    const lastDate = hullNumber.entrega_comercial_date || hullNumber.estimated_delivery_date;
+    
+    if (!firstDate || !lastDate) {
+      // Fallback: usar contagem de milestones preenchidos
+      const completedCount = MILESTONES.filter(m => hullNumber[m.key]).length;
+      return Math.round((completedCount / MILESTONES.length) * 100);
+    }
+    
+    const start = new Date(firstDate).getTime();
+    const end = new Date(lastDate).getTime();
+    const now = today.getTime();
+    
+    // Se ainda não começou
+    if (now < start) return 0;
+    
+    // Se já terminou
+    if (now >= end) return 100;
+    
+    // Calcular porcentagem baseada no tempo decorrido
+    const total = end - start;
+    const elapsed = now - start;
+    return Math.round((elapsed / total) * 100);
+  };
+
+  // Determinar índice do próximo milestone (primeiro com data futura)
+  const getNextMilestoneIndex = (): number => {
+    for (let i = 0; i < MILESTONES.length; i++) {
+      const value = hullNumber[MILESTONES[i].key] as string | null;
+      if (value && new Date(value) > today) {
+        return i;
+      }
+    }
+    return MILESTONES.length; // Todos concluídos ou passados
+  };
+
+  // Verificar se um milestone já passou (data anterior a hoje)
+  const isMilestonePast = (value: string | null): boolean => {
+    if (!value) return false;
+    return new Date(value) <= today;
+  };
+
+  const progressPercent = calculateTimeProgress();
+  const nextMilestoneIndex = getNextMilestoneIndex();
+  const completedCount = MILESTONES.filter(m => isMilestonePast(hullNumber[m.key] as string | null)).length;
   const totalCount = MILESTONES.length;
-  const progressPercent = Math.round((completedCount / totalCount) * 100);
 
   if (compact) {
     return (
@@ -49,15 +95,19 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1">
               {MILESTONES.map((milestone, index) => {
-                const isCompleted = !!hullNumber[milestone.key];
+                const value = hullNumber[milestone.key] as string | null;
+                const isPast = isMilestonePast(value);
+                const isNext = index === nextMilestoneIndex;
                 return (
                   <div
                     key={milestone.key}
                     className={cn(
                       "w-2 h-2 rounded-full transition-colors",
-                      isCompleted 
+                      isPast 
                         ? "bg-primary" 
-                        : "bg-muted-foreground/20"
+                        : isNext
+                          ? "bg-primary/50 animate-pulse"
+                          : "bg-muted-foreground/20"
                     )}
                   />
                 );
@@ -71,18 +121,19 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
             <div className="space-y-1">
               <p className="font-medium">{progressPercent}% concluído</p>
               <div className="space-y-0.5 text-xs">
-                {MILESTONES.map(m => {
+              {MILESTONES.map(m => {
                   const value = hullNumber[m.key] as string | null;
+                  const isPast = isMilestonePast(value);
                   return (
                     <div key={m.key} className="flex items-center gap-2">
                       <span className={cn(
                         "flex items-center gap-1",
-                        value ? "text-primary" : "text-muted-foreground"
+                        isPast ? "text-primary" : "text-muted-foreground"
                       )}>
                         {m.icon}
                       </span>
                       <span>{m.label}:</span>
-                      <span className={value ? "font-medium" : "text-muted-foreground"}>
+                      <span className={isPast ? "font-medium" : "text-muted-foreground"}>
                         {value ? format(new Date(value), "dd/MM/yy", { locale: ptBR }) : "—"}
                       </span>
                     </div>
@@ -121,7 +172,8 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
         <div className="relative flex justify-between">
           {MILESTONES.map((milestone, index) => {
             const value = hullNumber[milestone.key] as string | null;
-            const isCompleted = !!value;
+            const isPast = isMilestonePast(value);
+            const isNext = index === nextMilestoneIndex;
             
             return (
               <TooltipProvider key={milestone.key}>
@@ -131,9 +183,11 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
                       <div
                         className={cn(
                           "w-8 h-8 rounded-full flex items-center justify-center transition-colors z-10 border-2",
-                          isCompleted 
+                          isPast 
                             ? "bg-primary text-primary-foreground border-primary" 
-                            : "bg-background text-muted-foreground border-muted"
+                            : isNext
+                              ? "bg-primary/20 text-primary border-primary animate-pulse"
+                              : "bg-background text-muted-foreground border-muted"
                         )}
                       >
                         {milestone.icon}
@@ -142,7 +196,10 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
                         {milestone.shortLabel}
                       </span>
                       {value && (
-                        <span className="text-[10px] text-primary font-medium">
+                        <span className={cn(
+                          "text-[10px] font-medium",
+                          isPast ? "text-primary" : isNext ? "text-primary" : "text-muted-foreground"
+                        )}>
                           {format(new Date(value), "dd/MM", { locale: ptBR })}
                         </span>
                       )}
@@ -155,6 +212,8 @@ export function HullProgressTimeline({ hullNumber, compact = false }: HullProgre
                         {format(new Date(value), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                       </p>
                     )}
+                    {isPast && <p className="text-xs text-primary">✓ Concluído</p>}
+                    {isNext && !isPast && <p className="text-xs text-primary">→ Próximo</p>}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
