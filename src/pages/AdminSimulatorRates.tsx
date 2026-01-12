@@ -16,7 +16,9 @@ import { toast } from "sonner";
 export default function AdminSimulatorRates() {
   const { data: rates, isLoading } = useSimulatorExchangeRates();
   const updateRate = useUpdateExchangeRate();
-  const { refetch: fetchApiRate, isFetching: isFetchingApi } = useExchangeRate("EUR");
+  const { refetch: fetchEurRate, isFetching: isFetchingEur } = useExchangeRate("EUR");
+  const { refetch: fetchUsdRate, isFetching: isFetchingUsd } = useExchangeRate("USD");
+  const isFetchingApi = isFetchingEur || isFetchingUsd;
 
   const [editValues, setEditValues] = useState<Record<string, string>>({});
 
@@ -33,7 +35,10 @@ export default function AdminSimulatorRates() {
 
   const handleFetchFromApi = async (currency: string) => {
     try {
-      const result = await fetchApiRate();
+      const result = currency === "EUR" 
+        ? await fetchEurRate() 
+        : await fetchUsdRate();
+      
       if (result.data && typeof result.data === 'object' && 'rate' in result.data) {
         const rate = result.data.rate as number;
         await updateRate.mutateAsync({
