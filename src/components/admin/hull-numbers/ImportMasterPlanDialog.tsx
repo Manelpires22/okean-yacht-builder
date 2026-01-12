@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog,
@@ -430,7 +430,11 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
         <SelectTrigger className="w-72">
           <SelectValue placeholder="Selecione a coluna..." />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent 
+          className="max-h-60 z-[9999]"
+          position="popper"
+          sideOffset={4}
+        >
           {!field.required && (
             <SelectItem value="_none_">
               <span className="text-muted-foreground">(Não importar)</span>
@@ -539,7 +543,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
               </div>
             )}
 
-            <ScrollArea className="h-[400px] pr-4">
+            <div className="h-[400px] overflow-y-auto pr-4">
               <div className="space-y-6">
                 {renderFieldCategory('basic', 'Dados Básicos', <Ship className="h-4 w-4" />)}
                 <Separator />
@@ -549,7 +553,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
                 <Separator />
                 {renderFieldCategory('tests', 'Testes e Entrega', <TestTube className="h-4 w-4" />)}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         )}
 
