@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useHullNumbers, useDeleteHullNumber, HullNumber } from "@/hooks/useHullNumbers";
+import { useHullNumbers, useDeleteHullNumber, useResetUncontractedHullNumbers, HullNumber } from "@/hooks/useHullNumbers";
 import { ImportHullNumbersDialog } from "@/components/admin/hull-numbers/ImportHullNumbersDialog";
 import { ImportMasterPlanDialog } from "@/components/admin/hull-numbers/ImportMasterPlanDialog";
 import { CreateHullNumberDialog } from "@/components/admin/hull-numbers/CreateHullNumberDialog";
@@ -14,7 +14,7 @@ import { EditHullNumberDialog } from "@/components/admin/hull-numbers/EditHullNu
 import { ExportHullNumbersButton } from "@/components/admin/hull-numbers/ExportHullNumbersButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2, ClipboardList } from "lucide-react";
+import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2, ClipboardList, RefreshCw } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   available: "Disponível",
@@ -50,6 +50,11 @@ export default function AdminHullNumbers() {
   const [editingHullNumber, setEditingHullNumber] = useState<HullNumber | null>(null);
   const { data: hullNumbers, isLoading } = useHullNumbers();
   const deleteHullNumber = useDeleteHullNumber();
+  const resetMutation = useResetUncontractedHullNumbers();
+  
+  // Contagens para o botão de reset
+  const uncontractedCount = hullNumbers?.filter(h => !h.contract_id).length || 0;
+  const contractedCount = hullNumbers?.filter(h => h.contract_id).length || 0;
 
   return (
     <AdminLayout>
@@ -65,6 +70,37 @@ export default function AdminHullNumbers() {
             </p>
           </div>
           <div className="flex gap-2">
+            {/* Reset Seguro */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="text-destructive hover:text-destructive" disabled={uncontractedCount === 0}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset ({uncontractedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar Matrículas Não Contratadas</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação irá deletar <strong>{uncontractedCount}</strong> matrículas sem contrato vinculado.
+                    <br /><br />
+                    <strong>{contractedCount}</strong> matrículas contratadas serão preservadas para manter a integridade dos contratos.
+                    <br /><br />
+                    Isso é útil para limpar a tabela antes de reimportar o Plano Mestre.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => resetMutation.mutate()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {resetMutation.isPending ? "Limpando..." : `Deletar ${uncontractedCount} Matrículas`}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            
             <ExportHullNumbersButton hullNumbers={hullNumbers || []} disabled={isLoading} />
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />

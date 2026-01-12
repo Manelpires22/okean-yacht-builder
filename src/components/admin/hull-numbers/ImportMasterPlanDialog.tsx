@@ -108,6 +108,8 @@ interface DetectedHeader {
 }
 
 export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanDialogProps) {
+  // Ano base para datas no formato dd/MM (sem ano)
+  const currentYear = new Date().getFullYear();
   const [file, setFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [isParsing, setIsParsing] = useState(false);
@@ -166,25 +168,31 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
       const trimmed = value.trim();
       if (!trimmed || trimmed === '-' || trimmed === 'N/A') return null;
 
-      // Tentar parsear diferentes formatos
-      const formats = [
-        /^(\d{2})\/(\d{2})\/(\d{4})$/, // dd/mm/yyyy
-        /^(\d{4})-(\d{2})-(\d{2})$/,   // yyyy-mm-dd
-      ];
+      // Formato dd/mm/yyyy
+      const matchFull = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (matchFull) {
+        const day = matchFull[1].padStart(2, '0');
+        const month = matchFull[2].padStart(2, '0');
+        return `${matchFull[3]}-${month}-${day}`;
+      }
 
-      for (const regex of formats) {
-        const match = trimmed.match(regex);
-        if (match) {
-          if (regex === formats[0]) {
-            return `${match[3]}-${match[2]}-${match[1]}`;
-          }
-          return trimmed;
-        }
+      // Formato yyyy-mm-dd
+      const matchIso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (matchIso) {
+        return trimmed;
+      }
+
+      // Formato dd/mm (SEM ANO) - usar ano base (currentYear)
+      const matchShort = trimmed.match(/^(\d{1,2})\/(\d{1,2})$/);
+      if (matchShort) {
+        const day = matchShort[1].padStart(2, '0');
+        const month = matchShort[2].padStart(2, '0');
+        return `${currentYear}-${month}-${day}`;
       }
     }
 
     return null;
-  }, []);
+  }, [currentYear]);
 
   // Encontrar modelo pelo nome
   const findModelId = useCallback((modelName: string | null, brand: string | null): string | null => {
@@ -443,7 +451,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
         </SelectTrigger>
         <SelectContent 
           container={dialogContentRef.current}
-          className="max-h-60"
+          className="max-h-60 bg-background"
           position="popper"
           sideOffset={4}
           onCloseAutoFocus={(e) => e.preventDefault()}
@@ -484,8 +492,8 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent ref={dialogContentRef} className="max-w-4xl max-h-[90vh]">
+    <Dialog open={open} onOpenChange={handleClose} modal={false}>
+      <DialogContent ref={dialogContentRef} className="max-w-4xl max-h-[90vh]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
