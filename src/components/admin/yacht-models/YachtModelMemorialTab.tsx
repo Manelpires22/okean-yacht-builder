@@ -133,6 +133,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
       const searchLower = debouncedSearch.toLowerCase();
       filtered = filtered.filter(item =>
         item.item_name?.toLowerCase().includes(searchLower) ||
+        item.code?.toLowerCase().includes(searchLower) ||
         item.brand?.toLowerCase().includes(searchLower) ||
         item.model?.toLowerCase().includes(searchLower) ||
         item.description?.toLowerCase().includes(searchLower)
@@ -299,6 +300,7 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-16">Ordem</TableHead>
+                        <TableHead className="w-24">Código</TableHead>
                         <TableHead>Item</TableHead>
                         <TableHead>Marca</TableHead>
                         <TableHead>Modelo</TableHead>
@@ -318,6 +320,9 @@ export function YachtModelMemorialTab({ yachtModelId }: YachtModelMemorialTabPro
                           <TableRow key={item.id}>
                             <TableCell className="font-mono text-sm">
                               {item.display_order}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm text-muted-foreground">
+                              {item.code || "—"}
                             </TableCell>
                             <TableCell>
                               <div>

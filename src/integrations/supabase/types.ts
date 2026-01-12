@@ -852,6 +852,7 @@ export type Database = {
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order: number | null
           category_id: string
+          code: string | null
           configurable_sub_items: Json | null
           created_at: string | null
           created_by: string | null
@@ -878,6 +879,7 @@ export type Database = {
           category: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
           category_id: string
+          code?: string | null
           configurable_sub_items?: Json | null
           created_at?: string | null
           created_by?: string | null
@@ -904,6 +906,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["memorial_category"]
           category_display_order?: number | null
           category_id?: string
+          code?: string | null
           configurable_sub_items?: Json | null
           created_at?: string | null
           created_by?: string | null
