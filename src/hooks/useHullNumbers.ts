@@ -379,3 +379,50 @@ export function useUpsertHullNumbers() {
     },
   });
 }
+
+// Reset seguro: deletar matrículas não contratadas
+export function useResetUncontractedHullNumbers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      // Primeiro, contar quantas serão deletadas para feedback
+      const { count: countToDelete } = await supabase
+        .from('hull_numbers')
+        .select('*', { count: 'exact', head: true })
+        .is('contract_id', null);
+
+      const { count: countContracted } = await supabase
+        .from('hull_numbers')
+        .select('*', { count: 'exact', head: true })
+        .not('contract_id', 'is', null);
+
+      // Deletar apenas as que não têm contrato
+      const { error } = await supabase
+        .from('hull_numbers')
+        .delete()
+        .is('contract_id', null);
+
+      if (error) throw error;
+
+      return {
+        deleted: countToDelete || 0,
+        preserved: countContracted || 0,
+      };
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['hull-numbers'] });
+      toast({
+        title: "Reset concluído!",
+        description: `${results.deleted} matrículas deletadas. ${results.preserved} matrículas contratadas preservadas.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao resetar matrículas",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
