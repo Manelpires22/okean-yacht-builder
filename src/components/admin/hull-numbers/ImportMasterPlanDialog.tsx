@@ -416,6 +416,9 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     );
   }, [columnMappings]);
 
+  // Ref para o container do Dialog (para portalizar Select dentro dele)
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+
   // Renderizar selector de coluna para um campo
   const ColumnSelector = ({ field }: { field: FieldDefinition }) => (
     <div className="flex items-center gap-3 py-2">
@@ -431,9 +434,11 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
           <SelectValue placeholder="Selecione a coluna..." />
         </SelectTrigger>
         <SelectContent 
-          className="max-h-60 z-[9999]"
+          container={dialogContentRef.current}
+          className="max-h-60"
           position="popper"
           sideOffset={4}
+          onCloseAutoFocus={(e) => e.preventDefault()}
         >
           {!field.required && (
             <SelectItem value="_none_">
@@ -471,7 +476,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent ref={dialogContentRef} className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
