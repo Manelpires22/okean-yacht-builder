@@ -228,12 +228,21 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     return 'contracted';
   };
 
-  // Auto-detectar mapeamento de colunas baseado em keywords
+  // Auto-detectar mapeamento de colunas - PRIORIZA defaultColumn, keyword é fallback
   const autoDetectMappings = useCallback((headers: DetectedHeader[]) => {
     const newMappings: Record<string, string | null> = {};
     
     for (const field of FIELD_DEFINITIONS) {
-      // Tentar encontrar coluna por keywords no header
+      // 1. PRIORIDADE: usar defaultColumn se existir nos headers detectados
+      if (field.defaultColumn) {
+        const defaultExists = headers.some(h => h.letter === field.defaultColumn);
+        if (defaultExists) {
+          newMappings[field.key] = field.defaultColumn;
+          continue; // Já encontrou, pular keyword match
+        }
+      }
+      
+      // 2. FALLBACK: tentar encontrar por keywords no valor do header
       const match = headers.find(h => 
         field.autoDetectKeywords.some(keyword => 
           h.value.toLowerCase().includes(keyword.toLowerCase())
@@ -242,15 +251,12 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
       
       if (match) {
         newMappings[field.key] = match.letter;
-      } else if (field.defaultColumn) {
-        // Verificar se a coluna default existe nos headers
-        const defaultExists = headers.some(h => h.letter === field.defaultColumn);
-        newMappings[field.key] = defaultExists ? field.defaultColumn : null;
       } else {
         newMappings[field.key] = null;
       }
     }
     
+    console.log('Auto-detected mappings (defaults prioritized):', newMappings);
     setColumnMappings(newMappings);
   }, []);
 
