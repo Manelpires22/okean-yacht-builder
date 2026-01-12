@@ -66,6 +66,13 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
   const priceVariation = realATOsPrice;
   const daysVariation = realATOsDeliveryDays;
 
+  // Data base de entrega: hull_number OU calculada a partir de signed_at
+  const baseDeliveryDate = contract?.hull_number?.estimated_delivery_date
+    ? new Date(contract.hull_number.estimated_delivery_date)
+    : contract?.signed_at
+      ? addDays(new Date(contract.signed_at), liveContract.base_delivery_days)
+      : null;
+
   return (
     <>
     <Tabs defaultValue="resumo" className="space-y-6">
@@ -160,13 +167,13 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
               
               {/* Coluna PRAZOS */}
               <div className="space-y-6">
-                {/* 1. Entrega Prevista (data do hull_number) */}
+                {/* 1. Entrega Prevista (data do hull_number ou calculada) */}
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Entrega Prevista</p>
                   <p className="text-3xl font-bold text-primary">
-                    {contract?.hull_number?.estimated_delivery_date
-                      ? format(new Date(contract.hull_number.estimated_delivery_date), "dd/MM/yyyy", { locale: ptBR })
-                      : `${liveContract.base_delivery_days} dias`}
+                    {baseDeliveryDate
+                      ? format(baseDeliveryDate, "dd/MM/yyyy", { locale: ptBR })
+                      : "Data não definida"}
                   </p>
                 </div>
                 
@@ -192,16 +199,9 @@ export function LiveContractView({ contractId }: LiveContractViewProps) {
                     <Skeleton className="h-10 w-32" />
                   ) : (
                     <p className="text-4xl font-bold text-primary">
-                      {contract?.hull_number?.estimated_delivery_date
-                        ? format(
-                            addDays(
-                              new Date(contract.hull_number.estimated_delivery_date),
-                              daysVariation
-                            ),
-                            "dd/MM/yyyy",
-                            { locale: ptBR }
-                          )
-                        : `${realTotalDeliveryDays} dias`}
+                      {baseDeliveryDate
+                        ? format(addDays(baseDeliveryDate, daysVariation), "dd/MM/yyyy", { locale: ptBR })
+                        : "Data não definida"}
                     </p>
                   )}
                   {daysVariation > 0 && (
