@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useUpsertHullNumbers, HullNumberInsert } from "@/hooks/useHullNumbers";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { 
   FileSpreadsheet, 
   Upload, 
@@ -144,6 +144,14 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
   // Helper para parsear datas do Excel
   const parseExcelDate = useCallback((value: unknown): string | null => {
     if (!value) return null;
+
+    // Se for objeto Date (cellDates: true no XLSX)
+    if (value instanceof Date) {
+      if (isValid(value)) {
+        return format(value, 'yyyy-MM-dd');
+      }
+      return null;
+    }
 
     // Se for número (serial date do Excel)
     if (typeof value === 'number') {
@@ -439,6 +447,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
           position="popper"
           sideOffset={4}
           onCloseAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
         >
           {!field.required && (
             <SelectItem value="_none_">
