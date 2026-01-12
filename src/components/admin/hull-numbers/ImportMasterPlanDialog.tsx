@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog,
@@ -10,12 +10,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useUpsertHullNumbers, HullNumberInsert } from "@/hooks/useHullNumbers";
 import { format } from "date-fns";
@@ -29,7 +35,8 @@ import {
   Calendar,
   Wrench,
   TestTube,
-  Truck
+  Truck,
+  Wand2
 } from "lucide-react";
 
 interface ImportMasterPlanDialogProps {
@@ -37,30 +44,32 @@ interface ImportMasterPlanDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-interface ColumnMapping {
-  key: keyof HullNumberInsert | 'model';
+interface FieldDefinition {
+  key: string;
   label: string;
-  excelColumn: string;
   category: 'basic' | 'jobstops' | 'production' | 'tests';
   required?: boolean;
+  autoDetectKeywords: string[];
+  defaultColumn?: string;
 }
 
-// Mapeamento das colunas do Excel para os campos do banco
-const COLUMN_MAPPINGS: ColumnMapping[] = [
-  { key: 'brand', label: 'Marca', excelColumn: 'D', category: 'basic', required: true },
-  { key: 'model', label: 'Modelo', excelColumn: 'E', category: 'basic', required: true },
-  { key: 'hull_number', label: 'Matrícula', excelColumn: 'G', category: 'basic', required: true },
-  { key: 'job_stop_1_date', label: 'Job Stop 1', excelColumn: 'M', category: 'jobstops' },
-  { key: 'job_stop_2_date', label: 'Job Stop 2', excelColumn: 'O', category: 'jobstops' },
-  { key: 'job_stop_3_date', label: 'Job Stop 3', excelColumn: 'Q', category: 'jobstops' },
-  { key: 'job_stop_4_date', label: 'Job Stop 4', excelColumn: 'S', category: 'jobstops' },
-  { key: 'hull_entry_date', label: 'Ingresso Casco', excelColumn: 'AM', category: 'production', required: true },
-  { key: 'barco_aberto_date', label: 'Barco Aberto', excelColumn: 'AN', category: 'production' },
-  { key: 'fechamento_convesdeck_date', label: 'Fechamento Convés', excelColumn: 'AO', category: 'production' },
-  { key: 'barco_fechado_date', label: 'Barco Fechado', excelColumn: 'AP', category: 'production' },
-  { key: 'teste_piscina_date', label: 'Teste Piscina', excelColumn: 'AS', category: 'tests' },
-  { key: 'teste_mar_date', label: 'Teste Mar', excelColumn: 'AT', category: 'tests' },
-  { key: 'entrega_comercial_date', label: 'Entrega Comercial', excelColumn: 'AV', category: 'tests' },
+// Definição de campos com keywords para auto-detecção
+const FIELD_DEFINITIONS: FieldDefinition[] = [
+  { key: 'brand', label: 'Marca', category: 'basic', required: true, autoDetectKeywords: ['marca', 'brand'], defaultColumn: 'D' },
+  { key: 'model', label: 'Modelo', category: 'basic', required: true, autoDetectKeywords: ['modelo', 'model'], defaultColumn: 'E' },
+  { key: 'hull_number', label: 'Matrícula', category: 'basic', required: true, autoDetectKeywords: ['matrícula', 'matricula', 'hull', 'casco'], defaultColumn: 'G' },
+  { key: 'job_stop_1_date', label: 'Job Stop 1', category: 'jobstops', autoDetectKeywords: ['js1', 'js 1', 'job stop 1', 'jobstop1'], defaultColumn: 'M' },
+  { key: 'job_stop_2_date', label: 'Job Stop 2', category: 'jobstops', autoDetectKeywords: ['js2', 'js 2', 'job stop 2', 'jobstop2'], defaultColumn: 'O' },
+  { key: 'job_stop_3_date', label: 'Job Stop 3', category: 'jobstops', autoDetectKeywords: ['js3', 'js 3', 'job stop 3', 'jobstop3'], defaultColumn: 'Q' },
+  { key: 'job_stop_4_date', label: 'Job Stop 4', category: 'jobstops', autoDetectKeywords: ['js4', 'js 4', 'job stop 4', 'jobstop4'], defaultColumn: 'S' },
+  { key: 'hull_entry_date', label: 'Ingresso Casco', category: 'production', required: true, autoDetectKeywords: ['ingresso', 'entrada', 'entry', 'casco'], defaultColumn: 'AM' },
+  { key: 'barco_aberto_date', label: 'Barco Aberto', category: 'production', autoDetectKeywords: ['aberto', 'open'], defaultColumn: 'AN' },
+  { key: 'fechamento_convesdeck_date', label: 'Fechamento Convés', category: 'production', autoDetectKeywords: ['convés', 'conves', 'deck', 'fechamento'], defaultColumn: 'AO' },
+  { key: 'barco_fechado_date', label: 'Barco Fechado', category: 'production', autoDetectKeywords: ['fechado', 'closed'], defaultColumn: 'AP' },
+  { key: 'teste_piscina_date', label: 'Teste Piscina', category: 'tests', autoDetectKeywords: ['piscina', 'pool'], defaultColumn: 'AS' },
+  { key: 'teste_mar_date', label: 'Teste Mar', category: 'tests', autoDetectKeywords: ['mar', 'sea'], defaultColumn: 'AT' },
+  { key: 'entrega_comercial_date', label: 'Entrega Comercial', category: 'tests', autoDetectKeywords: ['entrega', 'delivery', 'comercial'], defaultColumn: 'AV' },
+  { key: 'status', label: 'Cliente (Status)', category: 'basic', autoDetectKeywords: ['cliente', 'client', 'customer'], defaultColumn: 'AA' },
 ];
 
 // Mapeamento de modelos da planilha para códigos do sistema
@@ -93,25 +102,32 @@ interface ParsedRow {
   error?: string;
 }
 
+interface DetectedHeader {
+  letter: string;
+  value: string;
+}
+
 export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
-  const [selectedColumns, setSelectedColumns] = useState<Set<string>>(
-    new Set(COLUMN_MAPPINGS.filter(c => c.required).map(c => c.key))
-  );
   const [isParsing, setIsParsing] = useState(false);
   const [step, setStep] = useState<'upload' | 'columns' | 'preview'>('upload');
-  const [headerRow, setHeaderRow] = useState(12); // Linha do header no Excel (padrão: 12)
+  const [headerRow, setHeaderRow] = useState(12);
+  
+  // Dynamic column mapping
+  const [detectedHeaders, setDetectedHeaders] = useState<DetectedHeader[]>([]);
+  const [columnMappings, setColumnMappings] = useState<Record<string, string | null>>({});
 
   const { data: yachtModels } = useYachtModels();
   const upsertMutation = useUpsertHullNumbers();
 
-  // Helper para converter número de coluna para letra do Excel
+  // Helper para converter índice de coluna para letra do Excel
   const columnIndexToLetter = (index: number): string => {
     let letter = '';
-    while (index >= 0) {
-      letter = String.fromCharCode((index % 26) + 65) + letter;
-      index = Math.floor(index / 26) - 1;
+    let idx = index;
+    while (idx >= 0) {
+      letter = String.fromCharCode((idx % 26) + 65) + letter;
+      idx = Math.floor(idx / 26) - 1;
     }
     return letter;
   };
@@ -194,7 +210,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     return model?.id || null;
   }, [yachtModels]);
 
-  // Parsear status da coluna AA (Cliente)
+  // Parsear status
   const parseStatus = (value: unknown): 'available' | 'contracted' => {
     const str = String(value || '').trim().toLowerCase();
     if (str === 'tbd' || str === 'a definir' || str === '' || str === '-') {
@@ -203,16 +219,78 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     return 'contracted';
   };
 
+  // Auto-detectar mapeamento de colunas baseado em keywords
+  const autoDetectMappings = useCallback((headers: DetectedHeader[]) => {
+    const newMappings: Record<string, string | null> = {};
+    
+    for (const field of FIELD_DEFINITIONS) {
+      // Tentar encontrar coluna por keywords no header
+      const match = headers.find(h => 
+        field.autoDetectKeywords.some(keyword => 
+          h.value.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+      
+      if (match) {
+        newMappings[field.key] = match.letter;
+      } else if (field.defaultColumn) {
+        // Verificar se a coluna default existe nos headers
+        const defaultExists = headers.some(h => h.letter === field.defaultColumn);
+        newMappings[field.key] = defaultExists ? field.defaultColumn : null;
+      } else {
+        newMappings[field.key] = null;
+      }
+    }
+    
+    setColumnMappings(newMappings);
+  }, []);
+
+  // Ler headers do Excel
+  const readHeaders = useCallback(async (fileToRead: File, row: number) => {
+    try {
+      const data = await fileToRead.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as unknown[][];
+      
+      // Pegar linha do header (row é 1-indexed, array é 0-indexed)
+      const headerRowData = jsonData[row - 1] || [];
+      
+      // Converter para array de {letter, value} - incluir todas as colunas até a última com conteúdo
+      const headers: DetectedHeader[] = [];
+      for (let idx = 0; idx < headerRowData.length; idx++) {
+        const val = headerRowData[idx];
+        headers.push({
+          letter: columnIndexToLetter(idx),
+          value: String(val || '').trim()
+        });
+      }
+      
+      setDetectedHeaders(headers);
+      autoDetectMappings(headers);
+    } catch (error) {
+      console.error('Erro ao ler headers:', error);
+    }
+  }, [autoDetectMappings, columnIndexToLetter]);
+
   // Handler para arquivo selecionado
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     setFile(selectedFile);
+    await readHeaders(selectedFile, headerRow);
     setStep('columns');
   };
 
-  // Parsear o arquivo com as colunas selecionadas
+  // Re-ler headers quando mudar a linha do header
+  useEffect(() => {
+    if (file && step === 'columns') {
+      readHeaders(file, headerRow);
+    }
+  }, [headerRow, file, step, readHeaders]);
+
+  // Parsear o arquivo com os mapeamentos dinâmicos
   const parseFile = useCallback(async () => {
     if (!file) return;
 
@@ -222,7 +300,6 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
       const workbook = XLSX.read(data, { type: 'array', cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       
-      // Converter para JSON com headers
       const jsonData = XLSX.utils.sheet_to_json(sheet, { 
         header: 1,
         defval: null,
@@ -237,25 +314,24 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
 
         const rowData: Record<string, string | null> = {};
         
-        // Extrair dados de cada coluna mapeada
-        for (const mapping of COLUMN_MAPPINGS) {
-          if (!selectedColumns.has(mapping.key)) continue;
+        // Extrair dados de cada campo usando o mapeamento dinâmico
+        for (const field of FIELD_DEFINITIONS) {
+          const mappedColumn = columnMappings[field.key];
+          if (!mappedColumn) continue;
           
-          const colIndex = letterToColumnIndex(mapping.excelColumn);
+          const colIndex = letterToColumnIndex(mappedColumn);
           const value = row[colIndex];
           
-          if (mapping.key === 'hull_number' || mapping.key === 'brand' || mapping.key === 'model') {
-            rowData[mapping.key] = value ? String(value).trim() : null;
+          if (field.key === 'hull_number' || field.key === 'brand' || field.key === 'model' || field.key === 'status') {
+            rowData[field.key] = value ? String(value).trim() : null;
           } else {
             // É uma data
-            rowData[mapping.key] = parseExcelDate(value);
+            rowData[field.key] = parseExcelDate(value);
           }
         }
 
-        // Ler status da coluna AA
-        const statusColIndex = letterToColumnIndex('AA');
-        const statusValue = row[statusColIndex];
-        const status = parseStatus(statusValue);
+        // Determinar status
+        const status = parseStatus(rowData['status']);
 
         // Validar dados obrigatórios
         const hullNumber = rowData['hull_number'];
@@ -280,23 +356,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     } finally {
       setIsParsing(false);
     }
-  }, [file, headerRow, selectedColumns, findModelId, parseExcelDate]);
-
-  // Toggle seleção de coluna
-  const toggleColumn = (key: string) => {
-    const mapping = COLUMN_MAPPINGS.find(c => c.key === key);
-    if (mapping?.required) return; // Não permitir desmarcar obrigatórias
-
-    setSelectedColumns(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  };
+  }, [file, headerRow, columnMappings, findModelId, parseExcelDate]);
 
   // Importar dados
   const handleImport = async () => {
@@ -328,7 +388,8 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
   const handleClose = () => {
     setFile(null);
     setParsedRows([]);
-    setSelectedColumns(new Set(COLUMN_MAPPINGS.filter(c => c.required).map(c => c.key)));
+    setDetectedHeaders([]);
+    setColumnMappings({});
     setStep('upload');
     onOpenChange(false);
   };
@@ -341,30 +402,63 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     return { total: parsedRows.length, valid: valid.length, invalid: invalid.length, available: available.length };
   }, [parsedRows]);
 
-  // Renderizar por categoria
-  const renderColumnCategory = (category: 'basic' | 'jobstops' | 'production' | 'tests', title: string, icon: React.ReactNode) => {
-    const columns = COLUMN_MAPPINGS.filter(c => c.category === category);
+  // Verificar se campos obrigatórios estão mapeados
+  const requiredFieldsMapped = useMemo(() => {
+    return FIELD_DEFINITIONS.filter(f => f.required).every(f => columnMappings[f.key]);
+  }, [columnMappings]);
+
+  // Campos mapeados para exibição no preview
+  const mappedDateFields = useMemo(() => {
+    return FIELD_DEFINITIONS.filter(f => 
+      f.category !== 'basic' && 
+      f.key !== 'status' && 
+      columnMappings[f.key]
+    );
+  }, [columnMappings]);
+
+  // Renderizar selector de coluna para um campo
+  const ColumnSelector = ({ field }: { field: FieldDefinition }) => (
+    <div className="flex items-center gap-3 py-2">
+      <div className="w-44 flex items-center gap-2">
+        <span className="text-sm font-medium">{field.label}</span>
+        {field.required && <Badge variant="secondary" className="text-[10px] px-1">Obrigatório</Badge>}
+      </div>
+      <Select 
+        value={columnMappings[field.key] || '_none_'} 
+        onValueChange={(v) => setColumnMappings(prev => ({...prev, [field.key]: v === '_none_' ? null : v}))}
+      >
+        <SelectTrigger className="w-72">
+          <SelectValue placeholder="Selecione a coluna..." />
+        </SelectTrigger>
+        <SelectContent>
+          {!field.required && (
+            <SelectItem value="_none_">
+              <span className="text-muted-foreground">(Não importar)</span>
+            </SelectItem>
+          )}
+          {detectedHeaders.map(h => (
+            <SelectItem key={h.letter} value={h.letter}>
+              <span className="font-mono mr-2 text-muted-foreground">{h.letter}</span>
+              <span className="truncate">{h.value || '(vazio)'}</span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
+  // Renderizar categoria de campos
+  const renderFieldCategory = (category: 'basic' | 'jobstops' | 'production' | 'tests', title: string, icon: React.ReactNode) => {
+    const fields = FIELD_DEFINITIONS.filter(f => f.category === category);
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           {icon}
           {title}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {columns.map(col => (
-            <div key={col.key} className="flex items-center space-x-2">
-              <Checkbox
-                id={col.key}
-                checked={selectedColumns.has(col.key)}
-                onCheckedChange={() => toggleColumn(col.key)}
-                disabled={col.required}
-              />
-              <Label htmlFor={col.key} className="text-sm flex items-center gap-1">
-                {col.label}
-                <span className="text-xs text-muted-foreground">(Col {col.excelColumn})</span>
-                {col.required && <Badge variant="secondary" className="text-[10px] px-1">Obrigatório</Badge>}
-              </Label>
-            </div>
+        <div className="pl-6 space-y-1">
+          {fields.map(field => (
+            <ColumnSelector key={field.key} field={field} />
           ))}
         </div>
       </div>
@@ -381,7 +475,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
           </DialogTitle>
           <DialogDescription>
             {step === 'upload' && "Selecione o arquivo Excel com o Plano Mestre de produção."}
-            {step === 'columns' && "Escolha quais colunas deseja importar."}
+            {step === 'columns' && "Mapeie as colunas do Excel para os campos do sistema."}
             {step === 'preview' && "Revise os dados antes de importar."}
           </DialogDescription>
         </DialogHeader>
@@ -415,26 +509,45 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
           </div>
         )}
 
-        {/* Step 2: Column Selection */}
+        {/* Step 2: Column Mapping */}
         {step === 'columns' && (
-          <div className="py-4 space-y-6">
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <FileSpreadsheet className="h-5 w-5" />
-              <span className="font-medium">{file?.name}</span>
-              <Button variant="ghost" size="sm" onClick={() => setStep('upload')}>
-                Trocar arquivo
-              </Button>
+          <div className="py-4 space-y-4">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                <span className="font-medium">{file?.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="headerRowEdit" className="text-sm">Linha do header:</Label>
+                <Input
+                  id="headerRowEdit"
+                  type="number"
+                  value={headerRow}
+                  onChange={(e) => setHeaderRow(parseInt(e.target.value) || 12)}
+                  className="w-16 h-8"
+                />
+                <Button variant="ghost" size="sm" onClick={() => setStep('upload')}>
+                  Trocar arquivo
+                </Button>
+              </div>
             </div>
+
+            {detectedHeaders.length > 0 && (
+              <div className="flex items-center gap-2 p-2 bg-primary/10 rounded-lg text-sm">
+                <Wand2 className="h-4 w-4 text-primary" />
+                <span>{detectedHeaders.filter(h => h.value).length} colunas detectadas. Mapeamento automático aplicado.</span>
+              </div>
+            )}
 
             <ScrollArea className="h-[400px] pr-4">
               <div className="space-y-6">
-                {renderColumnCategory('basic', 'Dados Básicos', <Ship className="h-4 w-4" />)}
+                {renderFieldCategory('basic', 'Dados Básicos', <Ship className="h-4 w-4" />)}
                 <Separator />
-                {renderColumnCategory('jobstops', 'Job Stops', <Calendar className="h-4 w-4" />)}
+                {renderFieldCategory('jobstops', 'Job Stops', <Calendar className="h-4 w-4" />)}
                 <Separator />
-                {renderColumnCategory('production', 'Marcos de Produção', <Wrench className="h-4 w-4" />)}
+                {renderFieldCategory('production', 'Marcos de Produção', <Wrench className="h-4 w-4" />)}
                 <Separator />
-                {renderColumnCategory('tests', 'Testes e Entrega', <TestTube className="h-4 w-4" />)}
+                {renderFieldCategory('tests', 'Testes e Entrega', <TestTube className="h-4 w-4" />)}
               </div>
             </ScrollArea>
           </div>
@@ -474,22 +587,12 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
                       <TableHead className="whitespace-nowrap">Modelo</TableHead>
                       <TableHead className="whitespace-nowrap">Matrícula</TableHead>
                       
-                      {/* Job Stops */}
-                      {selectedColumns.has('job_stop_1_date') && <TableHead className="text-center text-xs px-2">JS1</TableHead>}
-                      {selectedColumns.has('job_stop_2_date') && <TableHead className="text-center text-xs px-2">JS2</TableHead>}
-                      {selectedColumns.has('job_stop_3_date') && <TableHead className="text-center text-xs px-2">JS3</TableHead>}
-                      {selectedColumns.has('job_stop_4_date') && <TableHead className="text-center text-xs px-2">JS4</TableHead>}
-                      
-                      {/* Produção */}
-                      {selectedColumns.has('hull_entry_date') && <TableHead className="text-center text-xs px-2">Entrada</TableHead>}
-                      {selectedColumns.has('barco_aberto_date') && <TableHead className="text-center text-xs px-2">Aberto</TableHead>}
-                      {selectedColumns.has('fechamento_convesdeck_date') && <TableHead className="text-center text-xs px-2">Convés</TableHead>}
-                      {selectedColumns.has('barco_fechado_date') && <TableHead className="text-center text-xs px-2">Fechado</TableHead>}
-                      
-                      {/* Testes */}
-                      {selectedColumns.has('teste_piscina_date') && <TableHead className="text-center text-xs px-2">Piscina</TableHead>}
-                      {selectedColumns.has('teste_mar_date') && <TableHead className="text-center text-xs px-2">Mar</TableHead>}
-                      {selectedColumns.has('entrega_comercial_date') && <TableHead className="text-center text-xs px-2">Entrega</TableHead>}
+                      {/* Datas mapeadas dinamicamente */}
+                      {mappedDateFields.map(field => (
+                        <TableHead key={field.key} className="text-center text-xs px-2 whitespace-nowrap">
+                          {field.label.split(' ')[0]}
+                        </TableHead>
+                      ))}
                       
                       <TableHead className="whitespace-nowrap">Status</TableHead>
                       <TableHead className="whitespace-nowrap">Resultado</TableHead>
@@ -513,22 +616,12 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
                           <TableCell className="whitespace-nowrap">{row.data['model'] || '-'}</TableCell>
                           <TableCell className="font-mono font-bold whitespace-nowrap">{row.data['hull_number']}</TableCell>
                           
-                          {/* Job Stops */}
-                          {selectedColumns.has('job_stop_1_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_1_date'])}</TableCell>}
-                          {selectedColumns.has('job_stop_2_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_2_date'])}</TableCell>}
-                          {selectedColumns.has('job_stop_3_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_3_date'])}</TableCell>}
-                          {selectedColumns.has('job_stop_4_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['job_stop_4_date'])}</TableCell>}
-                          
-                          {/* Produção */}
-                          {selectedColumns.has('hull_entry_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['hull_entry_date'])}</TableCell>}
-                          {selectedColumns.has('barco_aberto_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['barco_aberto_date'])}</TableCell>}
-                          {selectedColumns.has('fechamento_convesdeck_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['fechamento_convesdeck_date'])}</TableCell>}
-                          {selectedColumns.has('barco_fechado_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['barco_fechado_date'])}</TableCell>}
-                          
-                          {/* Testes */}
-                          {selectedColumns.has('teste_piscina_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['teste_piscina_date'])}</TableCell>}
-                          {selectedColumns.has('teste_mar_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['teste_mar_date'])}</TableCell>}
-                          {selectedColumns.has('entrega_comercial_date') && <TableCell className="text-center text-xs px-2">{formatPreviewDate(row.data['entrega_comercial_date'])}</TableCell>}
+                          {/* Datas mapeadas dinamicamente */}
+                          {mappedDateFields.map(field => (
+                            <TableCell key={field.key} className="text-center text-xs px-2">
+                              {formatPreviewDate(row.data[field.key])}
+                            </TableCell>
+                          ))}
                           
                           <TableCell>
                             <Badge variant={row.status === 'available' ? 'default' : 'secondary'}>
@@ -569,7 +662,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
           </Button>
           
           {step === 'columns' && (
-            <Button onClick={parseFile} disabled={isParsing || selectedColumns.size === 0}>
+            <Button onClick={parseFile} disabled={isParsing || !requiredFieldsMapped}>
               {isParsing && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
               Analisar Arquivo
             </Button>
