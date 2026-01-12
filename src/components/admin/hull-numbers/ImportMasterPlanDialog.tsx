@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 import {
   Dialog,
@@ -15,13 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useYachtModels } from "@/hooks/useYachtModels";
 import { useUpsertHullNumbers, HullNumberInsert } from "@/hooks/useHullNumbers";
 import { format, isValid } from "date-fns";
@@ -68,7 +61,7 @@ const FIELD_DEFINITIONS: FieldDefinition[] = [
   { key: 'barco_fechado_date', label: 'Barco Fechado', category: 'production', autoDetectKeywords: ['fechado', 'closed'], defaultColumn: 'AP' },
   { key: 'teste_piscina_date', label: 'Teste Piscina', category: 'tests', autoDetectKeywords: ['piscina', 'pool'], defaultColumn: 'AS' },
   { key: 'teste_mar_date', label: 'Teste Mar', category: 'tests', autoDetectKeywords: ['mar', 'sea'], defaultColumn: 'AT' },
-  { key: 'entrega_comercial_date', label: 'Entrega Comercial', category: 'tests', autoDetectKeywords: ['entrega', 'delivery', 'comercial'], defaultColumn: 'AV' },
+  { key: 'entrega_comercial_date', label: 'Entrega Prevista', category: 'tests', autoDetectKeywords: ['entrega', 'delivery', 'comercial', 'prevista'], defaultColumn: 'AV' },
   { key: 'status', label: 'Cliente (Status)', category: 'basic', autoDetectKeywords: ['cliente', 'client', 'customer'], defaultColumn: 'AA' },
 ];
 
@@ -432,44 +425,30 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
     );
   }, [columnMappings]);
 
-  // Ref para o container do Dialog (para portalizar Select dentro dele)
-  const dialogContentRef = useRef<HTMLDivElement>(null);
-
-  // Renderizar selector de coluna para um campo
+  // Renderizar selector de coluna para um campo usando <select> nativo
   const ColumnSelector = ({ field }: { field: FieldDefinition }) => (
     <div className="flex items-center gap-3 py-2">
       <div className="w-44 flex items-center gap-2">
         <span className="text-sm font-medium">{field.label}</span>
         {field.required && <Badge variant="secondary" className="text-[10px] px-1">Obrigatório</Badge>}
       </div>
-      <Select 
-        value={columnMappings[field.key] || '_none_'} 
-        onValueChange={(v) => setColumnMappings(prev => ({...prev, [field.key]: v === '_none_' ? null : v}))}
+      <select
+        value={columnMappings[field.key] || '_none_'}
+        onChange={(e) => setColumnMappings(prev => ({
+          ...prev, 
+          [field.key]: e.target.value === '_none_' ? null : e.target.value
+        }))}
+        className="w-72 h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
       >
-        <SelectTrigger className="w-72">
-          <SelectValue placeholder="Selecione a coluna..." />
-        </SelectTrigger>
-        <SelectContent 
-          container={dialogContentRef.current}
-          className="max-h-60 bg-background"
-          position="popper"
-          sideOffset={4}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
-          {!field.required && (
-            <SelectItem value="_none_">
-              <span className="text-muted-foreground">(Não importar)</span>
-            </SelectItem>
-          )}
-          {detectedHeaders.map(h => (
-            <SelectItem key={h.letter} value={h.letter}>
-              <span className="font-mono mr-2 text-muted-foreground">{h.letter}</span>
-              <span className="truncate">{h.value || '(vazio)'}</span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        {!field.required && (
+          <option value="_none_">(Não importar)</option>
+        )}
+        {detectedHeaders.map(h => (
+          <option key={h.letter} value={h.letter}>
+            {h.letter} — {h.value || '(vazio)'}
+          </option>
+        ))}
+      </select>
     </div>
   );
 
@@ -492,8 +471,8 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose} modal={false}>
-      <DialogContent ref={dialogContentRef} className="max-w-4xl max-h-[90vh]" onInteractOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
+      <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
