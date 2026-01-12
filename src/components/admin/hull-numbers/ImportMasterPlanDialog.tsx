@@ -271,13 +271,18 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
       // Pegar linha do header (row é 1-indexed, array é 0-indexed)
       const headerRowData = jsonData[row - 1] || [];
       
-      // Converter para array de {letter, value} - incluir todas as colunas até a última com conteúdo
+      // Converter para array de {letter, value}
+      // Importante: incluir colunas vazias até o último índice da planilha (!ref)
       const headers: DetectedHeader[] = [];
-      for (let idx = 0; idx < headerRowData.length; idx++) {
+
+      const range = sheet['!ref'] ? XLSX.utils.decode_range(sheet['!ref']) : null;
+      const lastColIndex = range ? range.e.c : (headerRowData.length - 1);
+
+      for (let idx = 0; idx <= lastColIndex; idx++) {
         const val = headerRowData[idx];
         headers.push({
           letter: columnIndexToLetter(idx),
-          value: String(val || '').trim()
+          value: String(val ?? '').trim(),
         });
       }
       
