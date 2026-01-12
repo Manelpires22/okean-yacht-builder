@@ -483,7 +483,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-[95vw] w-[1400px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -573,7 +573,7 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
         {step === 'preview' && (
           <div className="py-4 space-y-4">
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="p-3 bg-muted rounded-lg text-center">
                 <p className="text-2xl font-bold">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">Total</p>
@@ -582,93 +582,87 @@ export function ImportMasterPlanDialog({ open, onOpenChange }: ImportMasterPlanD
                 <p className="text-2xl font-bold text-green-600">{stats.valid}</p>
                 <p className="text-xs text-muted-foreground">Válidos</p>
               </div>
-              <div className="p-3 bg-red-500/10 rounded-lg text-center">
-                <p className="text-2xl font-bold text-red-600">{stats.invalid}</p>
+              <div className="p-3 bg-destructive/10 rounded-lg text-center">
+                <p className="text-2xl font-bold text-destructive">{stats.invalid}</p>
                 <p className="text-xs text-muted-foreground">Com erro</p>
-              </div>
-              <div className="p-3 bg-blue-500/10 rounded-lg text-center">
-                <p className="text-2xl font-bold text-blue-600">{stats.available}</p>
-                <p className="text-xs text-muted-foreground">Disponíveis</p>
               </div>
             </div>
 
             {/* Preview Table */}
-            <ScrollArea className="h-[350px] border rounded-lg">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16 sticky left-0 bg-background z-10">Linha</TableHead>
-                      <TableHead className="whitespace-nowrap">Marca</TableHead>
-                      <TableHead className="whitespace-nowrap">Modelo</TableHead>
-                      <TableHead className="whitespace-nowrap">Matrícula</TableHead>
-                      
-                      {/* Datas mapeadas dinamicamente */}
-                      {mappedDateFields.map(field => (
-                        <TableHead key={field.key} className="text-center text-xs px-2 whitespace-nowrap">
-                          {field.label.split(' ')[0]}
-                        </TableHead>
-                      ))}
-                      
-                      <TableHead className="whitespace-nowrap">Status</TableHead>
-                      <TableHead className="whitespace-nowrap">Resultado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {parsedRows.slice(0, 50).map((row) => {
-                      const formatPreviewDate = (dateStr: string | null | undefined) => {
-                        if (!dateStr) return <span className="text-muted-foreground">—</span>;
-                        try {
-                          return <span className="text-primary font-medium">{format(new Date(dateStr), "dd/MM")}</span>;
-                        } catch {
-                          return <span className="text-muted-foreground">—</span>;
-                        }
-                      };
-                      
-                      return (
-                        <TableRow key={row.rowNumber} className={row.error ? 'bg-destructive/10' : ''}>
-                          <TableCell className="font-mono text-xs sticky left-0 bg-background z-10">{row.rowNumber}</TableCell>
-                          <TableCell className="whitespace-nowrap">{row.data['brand'] || '-'}</TableCell>
-                          <TableCell className="whitespace-nowrap">{row.data['model'] || '-'}</TableCell>
-                          <TableCell className="font-mono font-bold whitespace-nowrap">{row.data['hull_number']}</TableCell>
-                          
-                          {/* Datas mapeadas dinamicamente */}
-                          {mappedDateFields.map(field => (
-                            <TableCell key={field.key} className="text-center text-xs px-2">
-                              {formatPreviewDate(row.data[field.key])}
-                            </TableCell>
-                          ))}
-                          
-                          <TableCell>
-                            <Badge variant={row.status === 'available' ? 'default' : 'secondary'}>
-                              {row.status === 'available' ? 'Disponível' : 'Contratada'}
-                            </Badge>
+            <div className="h-[400px] border rounded-lg overflow-auto">
+              <Table className="min-w-max">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14 sticky left-0 bg-background z-10 text-xs">Linha</TableHead>
+                    <TableHead className="whitespace-nowrap text-xs min-w-[60px]">Marca</TableHead>
+                    <TableHead className="whitespace-nowrap text-xs min-w-[60px]">Modelo</TableHead>
+                    <TableHead className="whitespace-nowrap text-xs min-w-[80px]">Matrícula</TableHead>
+                    
+                    {/* Datas mapeadas dinamicamente */}
+                    {mappedDateFields.map(field => (
+                      <TableHead key={field.key} className="text-center text-[10px] px-1 min-w-[50px]">
+                        {field.label.replace('Job Stop ', 'JS').replace('Ingresso Casco', 'Ingresso').replace('Barco Aberto', 'Aberto').replace('Fechamento Convés', 'Convés').replace('Barco Fechado', 'Fechado').replace('Teste Piscina', 'Piscina').replace('Teste Mar', 'Mar').replace('Entrega Prevista', 'Entrega')}
+                      </TableHead>
+                    ))}
+                    
+                    <TableHead className="whitespace-nowrap text-xs min-w-[80px]">Status</TableHead>
+                    <TableHead className="whitespace-nowrap text-xs min-w-[100px]">Resultado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {parsedRows.slice(0, 100).map((row) => {
+                    const formatPreviewDate = (dateStr: string | null | undefined) => {
+                      if (!dateStr) return <span className="text-muted-foreground">—</span>;
+                      try {
+                        return <span className="text-primary font-medium text-xs">{format(new Date(dateStr), "dd/MM")}</span>;
+                      } catch {
+                        return <span className="text-muted-foreground">—</span>;
+                      }
+                    };
+                    
+                    return (
+                      <TableRow key={row.rowNumber} className={row.error ? 'bg-destructive/10' : ''}>
+                        <TableCell className="font-mono text-[10px] sticky left-0 bg-background z-10 py-1">{row.rowNumber}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs py-1">{row.data['brand'] || '-'}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs py-1">{row.data['model'] || '-'}</TableCell>
+                        <TableCell className="font-mono font-bold whitespace-nowrap text-xs py-1">{row.data['hull_number']}</TableCell>
+                        
+                        {/* Datas mapeadas dinamicamente */}
+                        {mappedDateFields.map(field => (
+                          <TableCell key={field.key} className="text-center px-1 py-1">
+                            {formatPreviewDate(row.data[field.key])}
                           </TableCell>
-                          <TableCell>
-                            {row.error ? (
-                              <span className="flex items-center gap-1 text-destructive text-sm whitespace-nowrap">
-                                <AlertCircle className="h-4 w-4" />
-                                {row.error}
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-green-600 text-sm">
-                                <CheckCircle2 className="h-4 w-4" />
-                                OK
-                              </span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-              {parsedRows.length > 50 && (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Mostrando 50 de {parsedRows.length} linhas...
+                        ))}
+                        
+                        <TableCell className="py-1">
+                          <Badge variant={row.status === 'available' ? 'default' : 'secondary'} className="text-[10px] px-1.5">
+                            {row.status === 'available' ? 'Disp.' : 'Contr.'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-1">
+                          {row.error ? (
+                            <span className="flex items-center gap-1 text-destructive text-[10px] whitespace-nowrap">
+                              <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate max-w-[120px]">{row.error}</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-green-600 text-xs">
+                              <CheckCircle2 className="h-3 w-3" />
+                              OK
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {parsedRows.length > 100 && (
+                <div className="p-2 text-center text-xs text-muted-foreground sticky bottom-0 bg-background border-t">
+                  Mostrando 100 de {parsedRows.length} linhas...
                 </div>
               )}
-            </ScrollArea>
+            </div>
           </div>
         )}
 
