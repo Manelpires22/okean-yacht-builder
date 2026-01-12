@@ -39,6 +39,7 @@ const formSchema = z.object({
   hull_number: z.string().min(1, "Informe a matrícula").max(20, "Máximo 20 caracteres"),
   hull_entry_date: z.string().min(1, "Informe a data de entrada"),
   estimated_delivery_date: z.string().min(1, "Informe a data de entrega"),
+  status: z.enum(['available', 'contracted']),
   // Job Stops
   job_stop_1_date: z.string().nullable().optional(),
   job_stop_2_date: z.string().nullable().optional(),
@@ -74,6 +75,7 @@ export function EditHullNumberDialog({ hullNumber, open, onOpenChange }: EditHul
       hull_number: "",
       hull_entry_date: "",
       estimated_delivery_date: "",
+      status: "available",
       job_stop_1_date: "",
       job_stop_2_date: "",
       job_stop_3_date: "",
@@ -89,12 +91,15 @@ export function EditHullNumberDialog({ hullNumber, open, onOpenChange }: EditHul
 
   useEffect(() => {
     if (hullNumber) {
+      // Normalize status: treat 'reserved' as 'available'
+      const normalizedStatus = hullNumber.status === 'contracted' ? 'contracted' : 'available';
       form.reset({
         brand: hullNumber.brand,
         yacht_model_id: hullNumber.yacht_model_id,
         hull_number: hullNumber.hull_number,
         hull_entry_date: hullNumber.hull_entry_date,
         estimated_delivery_date: hullNumber.estimated_delivery_date,
+        status: normalizedStatus,
         job_stop_1_date: hullNumber.job_stop_1_date || "",
         job_stop_2_date: hullNumber.job_stop_2_date || "",
         job_stop_3_date: hullNumber.job_stop_3_date || "",
@@ -119,6 +124,7 @@ export function EditHullNumberDialog({ hullNumber, open, onOpenChange }: EditHul
       hull_number: data.hull_number,
       hull_entry_date: data.hull_entry_date,
       estimated_delivery_date: data.estimated_delivery_date,
+      status: data.status,
       job_stop_1_date: data.job_stop_1_date || null,
       job_stop_2_date: data.job_stop_2_date || null,
       job_stop_3_date: data.job_stop_3_date || null,
@@ -271,6 +277,38 @@ export function EditHullNumberDialog({ hullNumber, open, onOpenChange }: EditHul
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="available">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-green-500" />
+                              Disponível
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="contracted">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-blue-500" />
+                              Contratada
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               {/* Tab: Job Stops */}
