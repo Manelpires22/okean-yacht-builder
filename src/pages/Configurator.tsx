@@ -9,6 +9,7 @@ import { ModelBaseTab } from "@/components/configurator/ModelBaseTab";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
 import { ConfigurationSummary } from "@/components/configurator/ConfigurationSummary";
 import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDialog";
+import { QuotationSavedDialog } from "@/components/configurator/QuotationSavedDialog";
 import { FreeCustomizationDialog } from "@/components/configurator/FreeCustomizationDialog";
 import { UpgradesTab } from "@/components/configurator/UpgradesTab";
 import { useConfigurationState, SelectedUpgrade, HullNumberData } from "@/hooks/useConfigurationState";
@@ -16,7 +17,7 @@ import { HullNumber } from "@/hooks/useHullNumbers";
 import { useOptions } from "@/hooks/useOptions";
 import { useMemorialCategories } from "@/hooks/useMemorialCategories";
 import { useYachtModels } from "@/hooks/useYachtModels";
-import { useSaveQuotation } from "@/hooks/useSaveQuotation";
+import { useSaveQuotation, SaveQuotationResult } from "@/hooks/useSaveQuotation";
 import { useQuotation } from "@/hooks/useQuotations";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { ArrowLeft, Plus, Trash2, CheckCircle, Clock, User, Ship, Settings, User
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/quotation-utils";
+import type { SimulatorPreloadData } from "@/types/simulator-preload";
 
 export default function Configurator() {
   const navigate = useNavigate();
@@ -34,6 +36,11 @@ export default function Configurator() {
   
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [freeCustomizationDialogOpen, setFreeCustomizationDialogOpen] = useState(false);
+  const [savedQuotationData, setSavedQuotationData] = useState<{
+    id: string;
+    number: string;
+    simulatorData: SimulatorPreloadData;
+  } | null>(null);
   
   const {
     state,
@@ -186,7 +193,7 @@ export default function Configurator() {
   }) => {
     if (!state.yacht_model_id) return;
 
-    await saveQuotation.mutateAsync({
+    const result = await saveQuotation.mutateAsync({
       quotationId: editQuotationId || undefined,
       yacht_model_id: state.yacht_model_id,
       base_price: state.base_price,
@@ -194,7 +201,7 @@ export default function Configurator() {
       selected_options: state.selected_options,
       selected_upgrades: state.selected_upgrades,
       customizations: state.customizations,
-      client_id: formData.client_id,
+      client_id: formData.client_id || state.client_data?.id,
       client_name: formData.client_name,
       client_email: formData.client_email,
       client_phone: formData.client_phone,
@@ -202,16 +209,32 @@ export default function Configurator() {
       options_discount_percentage: state.options_discount_percentage,
       notes: formData.notes,
       hull_number_id: state.hull_number_data?.id,
+      // Passar dados para integração com simulador
+      commission_data: state.commission_data || undefined,
+      client_data: state.client_data || undefined,
+      trade_in_data: state.trade_in_data || undefined,
     });
 
     setSaveDialogOpen(false);
-    clearConfiguration();
     
-    // Redirecionar para detalhes da cotação se editando, senão para lista
+    // Se estiver editando, ir direto para detalhes (sem opção de simulador)
     if (editQuotationId) {
+      clearConfiguration();
       navigate(`/quotations/${editQuotationId}`);
     } else {
-      navigate("/cotacoes");
+      // Nova cotação: mostrar dialog com opção de ir ao simulador
+      setSavedQuotationData({
+        id: result.quotation.id,
+        number: result.quotation.quotation_number,
+        simulatorData: result.simulatorData,
+      });
+    }
+  };
+
+  const handleCloseQuotationSavedDialog = (open: boolean) => {
+    if (!open) {
+      clearConfiguration();
+      setSavedQuotationData(null);
     }
   };
 
@@ -622,6 +645,16 @@ export default function Configurator() {
         onOpenChange={setFreeCustomizationDialogOpen}
         onSave={handleAddFreeCustomization}
       />
+
+      {savedQuotationData && (
+        <QuotationSavedDialog
+          open={!!savedQuotationData}
+          onOpenChange={handleCloseQuotationSavedDialog}
+          quotationId={savedQuotationData.id}
+          quotationNumber={savedQuotationData.number}
+          simulatorData={savedQuotationData.simulatorData}
+        />
+      )}
     </div>
   );
 }

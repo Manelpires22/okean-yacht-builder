@@ -6,13 +6,14 @@ import { generateQuotationNumberWithVersion } from "@/lib/quotation-utils";
 import { needsApproval } from "@/lib/approval-utils";
 import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { generateCustomizationCode } from "@/lib/customization-utils";
-import { SelectedOption, Customization } from "./useConfigurationState";
+import { SelectedOption, Customization, CommissionData, ClientData, TradeInData } from "./useConfigurationState";
 import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
 import { validateQuotation } from "./quotations/useQuotationValidation";
 import { useQuotationOptions } from "./quotations/useQuotationOptions";
 import { useQuotationCustomizations } from "./quotations/useQuotationCustomizations";
 import { useUserRole } from "./useUserRole";
 import { useSystemConfig } from "./useSystemConfig";
+import type { SimulatorPreloadData } from "@/types/simulator-preload";
 
 interface SaveQuotationData {
   quotationId?: string;
@@ -38,6 +39,15 @@ interface SaveQuotationData {
   options_discount_percentage?: number;
   notes?: string;
   hull_number_id?: string;
+  // Dados para integração com simulador
+  commission_data?: CommissionData;
+  client_data?: ClientData;
+  trade_in_data?: TradeInData;
+}
+
+export interface SaveQuotationResult {
+  quotation: any;
+  simulatorData: SimulatorPreloadData;
 }
 
 // Funções auxiliares
@@ -214,7 +224,53 @@ export function useSaveQuotation() {
           if (upgradesError) throw upgradesError;
         }
         
-        return quotation;
+        // ✅ Buscar nome do modelo para retorno
+        const { data: yachtModel } = await supabase
+          .from('yacht_models')
+          .select('name, code')
+          .eq('id', data.yacht_model_id)
+          .single();
+
+        // Calcular customizações estimadas para o simulador
+        const customizacoesEstimadas = 
+          totalOptionsPrice + 
+          totalUpgradesPrice + 
+          (data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0);
+
+        // Retornar cotação + dados para simulador
+        const result: SaveQuotationResult = {
+          quotation,
+          simulatorData: {
+            modelId: data.yacht_model_id,
+            modelName: yachtModel?.name || '',
+            modelCode: yachtModel?.code || '',
+            originalBasePrice: data.base_price,
+            faturamentoBruto: finalPrice,
+            customizacoesEstimadas,
+            commission: data.commission_data ? {
+              id: data.commission_data.id,
+              name: data.commission_data.name,
+              percent: data.commission_data.percent,
+              type: data.commission_data.type,
+            } : undefined,
+            client: data.client_data ? {
+              id: data.client_data.id,
+              name: data.client_data.name,
+            } : undefined,
+            tradeIn: data.trade_in_data?.hasTradeIn ? {
+              hasTradeIn: true,
+              tradeInBrand: data.trade_in_data.tradeInBrand,
+              tradeInModel: data.trade_in_data.tradeInModel,
+              tradeInYear: data.trade_in_data.tradeInYear,
+              tradeInEntryValue: data.trade_in_data.tradeInEntryValue,
+              tradeInRealValue: data.trade_in_data.tradeInRealValue,
+            } : undefined,
+            quotationId: quotation.id,
+            quotationNumber: quotation.quotation_number,
+          },
+        };
+
+        return result;
       }
 
       // ✅ MODO CRIAÇÃO: Criar nova cotação
@@ -365,9 +421,55 @@ export function useSaveQuotation() {
 
       // Descontos e customizações agora são gerenciados via workflow simplificado
 
-      return quotation;
+      // ✅ Buscar nome do modelo para retorno
+      const { data: yachtModel } = await supabase
+        .from('yacht_models')
+        .select('name, code')
+        .eq('id', data.yacht_model_id)
+        .single();
+
+      // Calcular customizações estimadas para o simulador
+      const customizacoesEstimadas = 
+        totalOptionsPrice + 
+        totalUpgradesPrice + 
+        (data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0);
+
+      // Retornar cotação + dados para simulador
+      const result: SaveQuotationResult = {
+        quotation,
+        simulatorData: {
+          modelId: data.yacht_model_id,
+          modelName: yachtModel?.name || '',
+          modelCode: yachtModel?.code || '',
+          originalBasePrice: data.base_price,
+          faturamentoBruto: finalPrice,
+          customizacoesEstimadas,
+          commission: data.commission_data ? {
+            id: data.commission_data.id,
+            name: data.commission_data.name,
+            percent: data.commission_data.percent,
+            type: data.commission_data.type,
+          } : undefined,
+          client: data.client_data ? {
+            id: data.client_data.id,
+            name: data.client_data.name,
+          } : undefined,
+          tradeIn: data.trade_in_data?.hasTradeIn ? {
+            hasTradeIn: true,
+            tradeInBrand: data.trade_in_data.tradeInBrand,
+            tradeInModel: data.trade_in_data.tradeInModel,
+            tradeInYear: data.trade_in_data.tradeInYear,
+            tradeInEntryValue: data.trade_in_data.tradeInEntryValue,
+            tradeInRealValue: data.trade_in_data.tradeInRealValue,
+          } : undefined,
+          quotationId: quotation.id,
+          quotationNumber: quotationNumber,
+        },
+      };
+
+      return result;
     },
-    onSuccess: (quotation) => {
+    onSuccess: (result: SaveQuotationResult) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       
       const statusMessages = {
@@ -377,8 +479,8 @@ export function useSaveQuotation() {
         'draft': 'salva como rascunho'
       };
       
-      const statusText = statusMessages[quotation.status as keyof typeof statusMessages] || 'salva com sucesso';
-      const message = `Cotação ${quotation.quotation_number} ${statusText}!`;
+      const statusText = statusMessages[result.quotation.status as keyof typeof statusMessages] || 'salva com sucesso';
+      const message = `Cotação ${result.quotation.quotation_number} ${statusText}!`;
       
       toast({
         title: "Sucesso!",
