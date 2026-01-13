@@ -81,8 +81,8 @@ async function fetchSimulatorData(yachtModelId: string) {
   let eurRate = 6.0;
   let usdRate = 5.0;
   exchangeRates?.forEach((rate: any) => {
-    if (rate.currency === 'EUR') eurRate = rate.rate;
-    if (rate.currency === 'USD') usdRate = rate.rate;
+    if (rate.currency === 'EUR') eurRate = rate.default_rate;
+    if (rate.currency === 'USD') usdRate = rate.default_rate;
   });
 
   return {
