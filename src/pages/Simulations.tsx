@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { SimulatorLayout } from "@/components/simulator/SimulatorLayout";
 import { MDCSimulationPanel } from "@/components/simulator/MDCSimulationPanel";
 import { SellerSelector } from "@/components/simulator/SellerSelector";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 
 export default function Simulations() {
   const location = useLocation();
+  const [isPreloading, setIsPreloading] = useState(false);
   const { state, updateField, selectCommission, selectClient, selectModel, goToStep, resetState, loadFromSimulation, resetToOriginal } = useSimulatorState();
 
   // Helper to fetch current model base price
@@ -34,7 +36,10 @@ export default function Simulations() {
     const preloadData = (location.state as { preloadFromQuotation?: SimulatorPreloadData })?.preloadFromQuotation;
     
     if (preloadData) {
-      loadQuotationIntoSimulator(preloadData);
+      setIsPreloading(true);
+      loadQuotationIntoSimulator(preloadData).finally(() => {
+        setIsPreloading(false);
+      });
       // Limpar state para não recarregar em refresh
       window.history.replaceState({}, document.title);
     }
@@ -226,6 +231,18 @@ export default function Simulations() {
       simulationNumber: simulation.simulation_number,
     });
   };
+
+  // Loading state when preloading from quotation
+  if (isPreloading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Carregando dados da cotação...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Initial: List of saved simulations
   if (state.currentStep === "list") {
