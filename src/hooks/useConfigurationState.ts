@@ -258,19 +258,46 @@ export function useConfigurationState() {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  const loadFromQuotation = useCallback((quotation: any) => {
+  // Interface para dados da simulação usados no loadFromQuotation
+  interface SimulationDataForLoad {
+    commission_id: string | null;
+    commission_name: string;
+    commission_percent: number;
+    commission_type: string | null;
+    has_trade_in: boolean | null;
+    trade_in_brand?: string | null;
+    trade_in_model?: string | null;
+    trade_in_year?: number | null;
+    trade_in_entry_value?: number | null;
+    trade_in_real_value?: number | null;
+  }
+
+  const loadFromQuotation = useCallback((quotation: any, simulationData?: SimulationDataForLoad | null) => {
     const optionCustomizations = quotation.quotation_customizations?.filter(
       (qc: any) => qc.option_id
     ) || [];
     
     setState({
-      // Preservar commission_data, client_data e trade_in_data se já tiver, senão null (cotação antiga)
-      commission_data: null,
+      // Carregar dados de comissão da simulação vinculada
+      commission_data: simulationData?.commission_id ? {
+        id: simulationData.commission_id,
+        name: simulationData.commission_name,
+        percent: simulationData.commission_percent,
+        type: simulationData.commission_type || '',
+      } : null,
       client_data: quotation.client_id ? {
         id: quotation.client_id,
         name: quotation.client_name,
       } : null,
-      trade_in_data: null, // Trade-in não é salvo na cotação atual
+      // Carregar dados de trade-in da simulação vinculada
+      trade_in_data: simulationData?.has_trade_in ? {
+        hasTradeIn: true,
+        tradeInBrand: simulationData.trade_in_brand || '',
+        tradeInModel: simulationData.trade_in_model || '',
+        tradeInYear: simulationData.trade_in_year || null,
+        tradeInEntryValue: simulationData.trade_in_entry_value || 0,
+        tradeInRealValue: simulationData.trade_in_real_value || 0,
+      } : null,
       yacht_model_id: quotation.yacht_model_id,
       base_price: quotation.base_price || 0,
       base_delivery_days: quotation.base_delivery_days || 0,

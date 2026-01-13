@@ -75,7 +75,7 @@ export default function Configurator() {
     existingQuotation.status === 'approved'
   );
 
-  // Carregar dados da cotação existente no estado
+  // Carregar dados da cotação existente no estado (incluindo dados da simulação vinculada)
   useEffect(() => {
     if (existingQuotation && editQuotationId && !isLoadingQuotation) {
       // Bloquear edição de cotações contratadas/aceitas
@@ -87,10 +87,39 @@ export default function Configurator() {
         return;
       }
       
-      loadFromQuotation(existingQuotation);
-      toast.success(`Editando cotação ${existingQuotation.quotation_number}`);
+      // Buscar dados da simulação vinculada para preservar vendedor e trade-in
+      const fetchSimulationAndLoad = async () => {
+        let simulationData = null;
+        
+        if (existingQuotation.simulation_id) {
+          const { supabase } = await import("@/integrations/supabase/client");
+          const { data: simulation } = await supabase
+            .from('simulations')
+            .select(`
+              commission_id,
+              commission_name,
+              commission_percent,
+              commission_type,
+              has_trade_in,
+              trade_in_brand,
+              trade_in_model,
+              trade_in_year,
+              trade_in_entry_value,
+              trade_in_real_value
+            `)
+            .eq('id', existingQuotation.simulation_id)
+            .single();
+          
+          simulationData = simulation;
+        }
+        
+        loadFromQuotation(existingQuotation, simulationData);
+        toast.success(`Editando cotação ${existingQuotation.quotation_number}`);
+      };
+      
+      fetchSimulationAndLoad();
     }
-  }, [existingQuotation, editQuotationId, isLoadingQuotation, isQuotationImmutable, navigate]);
+  }, [existingQuotation, editQuotationId, isLoadingQuotation, isQuotationImmutable, navigate, loadFromQuotation]);
 
   // Filtrar categorias que têm opções para o modelo selecionado
   const categoriesWithOptions = useMemo(() => {
