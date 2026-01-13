@@ -21,6 +21,7 @@ import { QuotationHeroSection } from "@/components/quotations/QuotationHeroSecti
 import { QuotationDetailsAccordion } from "@/components/quotations/QuotationDetailsAccordion";
 import { QuotationVersionHistory } from "@/components/quotations/QuotationVersionHistory";
 import { CustomizationWorkflowCard } from "@/components/quotations/CustomizationWorkflowCard";
+import { SimulationSummaryCard } from "@/components/quotations/SimulationSummaryCard";
 import { useQuotationStatus } from "@/hooks/useQuotationStatus";
 import { useQuotationApprovalStatus } from "@/hooks/useQuotationApprovalStatus";
 import { useQuotationRevalidation } from "@/hooks/useQuotationRevalidation";
