@@ -37,7 +37,15 @@ export interface HullNumberData {
   estimated_delivery_date: string;
 }
 
+export interface CommissionData {
+  id: string;
+  name: string;
+  percent: number;
+  type: string;
+}
+
 export interface ConfigurationState {
+  commission_data: CommissionData | null;
   yacht_model_id: string | null;
   base_price: number;
   base_delivery_days: number;
@@ -52,6 +60,7 @@ export interface ConfigurationState {
 const STORAGE_KEY = "yacht-configuration-draft";
 
 const getInitialState = (): ConfigurationState => ({
+  commission_data: null,
   yacht_model_id: null,
   base_price: 0,
   base_delivery_days: 0,
@@ -87,14 +96,22 @@ export function useConfigurationState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  const setCommission = useCallback((commission: CommissionData) => {
+    setState((prev) => ({
+      ...prev,
+      commission_data: commission,
+    }));
+  }, []);
+
   const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number, hullNumberData?: HullNumberData) => {
-    setState({
+    setState((prev) => ({
       ...getInitialState(),
+      commission_data: prev.commission_data, // Preservar a comissão selecionada
       yacht_model_id: modelId,
       base_price: basePrice,
       base_delivery_days: baseDeliveryDays,
       hull_number_data: hullNumberData || null,
-    });
+    }));
   }, []);
 
   const setBaseDiscount = useCallback((percentage: number) => {
@@ -198,6 +215,8 @@ export function useConfigurationState() {
     ) || [];
     
     setState({
+      // Preservar commission_data se já tiver, senão null (cotação antiga)
+      commission_data: null,
       yacht_model_id: quotation.yacht_model_id,
       base_price: quotation.base_price || 0,
       base_delivery_days: quotation.base_delivery_days || 0,
@@ -301,6 +320,7 @@ export function useConfigurationState() {
 
   return {
     state,
+    setCommission,
     setYachtModel,
     addOption,
     removeOption,
