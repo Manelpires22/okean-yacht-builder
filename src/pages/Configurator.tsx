@@ -138,16 +138,18 @@ export default function Configurator() {
     modelId: string,
     basePrice: number,
     baseDeliveryDays: number,
-    hullNumber?: HullNumber
+    hullNumber: HullNumber,
+    saleType: 'national' | 'export',
+    exportCountry: string | null
   ) => {
-    const hullData: HullNumberData | undefined = hullNumber ? {
+    const hullData: HullNumberData = {
       id: hullNumber.id,
       hull_number: hullNumber.hull_number,
       brand: hullNumber.brand,
       hull_entry_date: hullNumber.hull_entry_date,
       estimated_delivery_date: hullNumber.estimated_delivery_date,
-    } : undefined;
-    setYachtModel(modelId, basePrice, baseDeliveryDays, hullData);
+    };
+    setYachtModel(modelId, basePrice, baseDeliveryDays, hullData, saleType, exportCountry);
   };
 
   const handleToggleOption = (

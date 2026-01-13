@@ -958,6 +958,7 @@ export type Database = {
           brand: string | null
           code: string
           configurable_sub_items: Json | null
+          cost: number | null
           created_at: string | null
           created_by: string | null
           delivery_days_impact: number | null
@@ -983,6 +984,7 @@ export type Database = {
           brand?: string | null
           code: string
           configurable_sub_items?: Json | null
+          cost?: number | null
           created_at?: string | null
           created_by?: string | null
           delivery_days_impact?: number | null
@@ -1008,6 +1010,7 @@ export type Database = {
           brand?: string | null
           code?: string
           configurable_sub_items?: Json | null
+          cost?: number | null
           created_at?: string | null
           created_by?: string | null
           delivery_days_impact?: number | null
