@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ModelSelector } from "@/components/configurator/ModelSelector";
+import { SellerStep } from "@/components/configurator/SellerStep";
 import { MemorialDescritivo } from "@/components/configurator/MemorialDescritivo";
 import { ModelBaseTab } from "@/components/configurator/ModelBaseTab";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
@@ -34,6 +35,7 @@ export default function Configurator() {
   
   const {
     state,
+    setCommission,
     setYachtModel,
     addOption,
     removeOption,
@@ -207,6 +209,51 @@ export default function Configurator() {
     }
   };
 
+  // Verificar se está editando (pula etapas iniciais)
+  const isEditing = !!editQuotationId;
+
+  // ETAPA 1: Seleção de Vendedor (apenas para novas cotações)
+  if (!state.commission_data && !isEditing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SellerStep 
+          onSelect={setCommission}
+          onBack={() => navigate("/")}
+        />
+      </div>
+    );
+  }
+
+  // ETAPA 2: Seleção de Modelo (após vendedor ou se editando sem modelo)
+  if (!state.yacht_model_id && !isEditing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                clearConfiguration();
+                navigate("/");
+              }}
+              className="mb-4"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar para Home
+            </Button>
+            {state.commission_data && (
+              <p className="text-sm text-muted-foreground">
+                Vendedor: <span className="font-medium text-foreground">{state.commission_data.name}</span> ({state.commission_data.percent}%)
+              </p>
+            )}
+          </div>
+          <ModelSelector onSelect={handleSelectModel} />
+        </div>
+      </div>
+    );
+  }
+
+  // Se estiver editando mas sem modelo (erro), mostrar ModelSelector
   if (!state.yacht_model_id) {
     return (
       <div className="min-h-screen bg-background">
