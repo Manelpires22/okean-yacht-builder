@@ -44,8 +44,24 @@ export interface CommissionData {
   type: string;
 }
 
+export interface ClientData {
+  id: string;
+  name: string;
+}
+
+export interface TradeInData {
+  hasTradeIn: boolean;
+  tradeInBrand: string;
+  tradeInModel: string;
+  tradeInYear: number | null;
+  tradeInEntryValue: number;
+  tradeInRealValue: number;
+}
+
 export interface ConfigurationState {
   commission_data: CommissionData | null;
+  client_data: ClientData | null;
+  trade_in_data: TradeInData | null;
   yacht_model_id: string | null;
   base_price: number;
   base_delivery_days: number;
@@ -61,6 +77,8 @@ const STORAGE_KEY = "yacht-configuration-draft";
 
 const getInitialState = (): ConfigurationState => ({
   commission_data: null,
+  client_data: null,
+  trade_in_data: null,
   yacht_model_id: null,
   base_price: 0,
   base_delivery_days: 0,
@@ -103,10 +121,41 @@ export function useConfigurationState() {
     }));
   }, []);
 
+  const setClient = useCallback((client: ClientData) => {
+    setState((prev) => ({
+      ...prev,
+      client_data: client,
+    }));
+  }, []);
+
+  const setTradeIn = useCallback((tradeIn: TradeInData) => {
+    setState((prev) => ({
+      ...prev,
+      trade_in_data: tradeIn,
+    }));
+  }, []);
+
+  const clearClient = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      client_data: null,
+      trade_in_data: null, // Clear trade-in when going back to client step
+    }));
+  }, []);
+
+  const clearTradeIn = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      trade_in_data: null,
+    }));
+  }, []);
+
   const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number, hullNumberData?: HullNumberData) => {
     setState((prev) => ({
       ...getInitialState(),
       commission_data: prev.commission_data, // Preservar a comissão selecionada
+      client_data: prev.client_data, // Preservar o cliente selecionado
+      trade_in_data: prev.trade_in_data, // Preservar o trade-in
       yacht_model_id: modelId,
       base_price: basePrice,
       base_delivery_days: baseDeliveryDays,
@@ -215,8 +264,13 @@ export function useConfigurationState() {
     ) || [];
     
     setState({
-      // Preservar commission_data se já tiver, senão null (cotação antiga)
+      // Preservar commission_data, client_data e trade_in_data se já tiver, senão null (cotação antiga)
       commission_data: null,
+      client_data: quotation.client_id ? {
+        id: quotation.client_id,
+        name: quotation.client_name,
+      } : null,
+      trade_in_data: null, // Trade-in não é salvo na cotação atual
       yacht_model_id: quotation.yacht_model_id,
       base_price: quotation.base_price || 0,
       base_delivery_days: quotation.base_delivery_days || 0,
@@ -321,6 +375,10 @@ export function useConfigurationState() {
   return {
     state,
     setCommission,
+    setClient,
+    setTradeIn,
+    clearClient,
+    clearTradeIn,
     setYachtModel,
     addOption,
     removeOption,
