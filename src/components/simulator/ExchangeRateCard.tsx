@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RefreshCw, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,10 +49,12 @@ export function ExchangeRateCard({
     refetch();
   };
 
-  // Atualizar rate quando dados chegarem
-  if (data?.rate && !useManualRate && currentRate !== data.rate) {
-    onRateChange(data.rate);
-  }
+  // Atualizar rate quando dados chegarem (em useEffect para evitar update durante render)
+  useEffect(() => {
+    if (data?.rate && !useManualRate && currentRate !== data.rate) {
+      onRateChange(data.rate);
+    }
+  }, [data?.rate, useManualRate, currentRate, onRateChange]);
 
   const displayRate = useManualRate 
     ? parseFloat(manualRate.replace(',', '.')) || 0
