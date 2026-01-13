@@ -1,65 +1,95 @@
-# Guia de Migração PostgreSQL → SQL Server
+# Migração PostgreSQL → SQL Server
 
-Este documento descreve o processo de migração do schema do OKEAN CPQ de Supabase (PostgreSQL) para Microsoft SQL Server.
+Este documento descreve o processo de migração do schema e dados do OKEAN CPQ de Supabase (PostgreSQL) para Microsoft SQL Server.
 
 ## Índice
 
 1. [Visão Geral](#1-visão-geral)
-2. [Executando o Script](#2-executando-o-script)
-3. [Mapeamento de Tipos](#3-mapeamento-de-tipos)
-4. [ENUMs](#4-enums)
-5. [Limitações](#5-limitações)
-6. [Adaptações Necessárias](#6-adaptações-necessárias)
-7. [Migração de Dados](#7-migração-de-dados)
-8. [Segurança](#8-segurança)
+2. [Scripts Disponíveis](#2-scripts-disponíveis)
+3. [Geração do Schema (DDL)](#3-geração-do-schema-ddl)
+4. [Exportação de Dados](#4-exportação-de-dados)
+5. [Mapeamento de Tipos](#5-mapeamento-de-tipos)
+6. [ENUMs e CHECK Constraints](#6-enums-e-check-constraints)
+7. [Limitações e Soluções](#7-limitações-e-soluções)
+8. [Processo de Migração Completo](#8-processo-de-migração-completo)
+9. [Segurança no SQL Server](#9-segurança-no-sql-server)
 
 ---
 
 ## 1. Visão Geral
 
-### Arquivos Gerados
+A migração do OKEAN CPQ do Supabase para SQL Server envolve duas etapas principais:
 
-| Arquivo | Descrição |
-|---------|-----------|
-| `scripts/generate-sqlserver-schema.js` | Script Node.js para gerar DDL |
-| `output/okean-sqlserver-schema.sql` | Schema SQL Server gerado |
+| Etapa | Script | Output |
+|-------|--------|--------|
+| **1. Schema (DDL)** | `generate-sqlserver-schema.js` | `okean-sqlserver-schema.sql` |
+| **2. Dados** | `export-data-for-sqlserver.js` | CSVs + Scripts de importação |
 
-### Tabelas Incluídas (37 tabelas)
+### Tabelas Incluídas (37+ tabelas)
 
-**Core:**
-- `users`, `user_roles`, `clients`
+**Core:** `users`, `user_roles`, `clients`
 
-**Modelos e Memorial:**
-- `yacht_models`, `memorial_categories`, `memorial_items`, `memorial_upgrades`
+**Modelos e Memorial:** `yacht_models`, `memorial_categories`, `memorial_items`, `memorial_upgrades`
 
-**Opcionais e Configuração:**
-- `options`, `job_stops`, `hull_numbers`
+**Opcionais e Configuração:** `options`, `job_stops`, `hull_numbers`
 
-**Cotações:**
-- `quotations`, `quotation_options`, `quotation_upgrades`, `quotation_customizations`
+**Cotações:** `quotations`, `quotation_options`, `quotation_upgrades`, `quotation_customizations`
 
-**Contratos:**
-- `contracts`, `additional_to_orders`, `ato_configurations`
+**Contratos:** `contracts`, `additional_to_orders`, `ato_configurations`
 
-**Workflow:**
-- `customization_workflow_steps`, `ato_workflow_steps`, `contract_delivery_checklist`
+**Workflow:** `customization_workflow_steps`, `ato_workflow_steps`, `contract_delivery_checklist`
 
-**Simulador:**
-- `simulations`, `simulator_exchange_rates`, `simulator_commissions`, `simulator_model_costs`, `simulator_business_rules`
+**Simulador:** `simulations`
 
-**PDF:**
-- `pdf_templates`, `pdf_template_versions`, `pdf_generated`
+**PDF:** `pdf_templates`, `pdf_template_versions`, `pdf_generated`
 
-**Configuração:**
-- `discount_limits_config`, `role_permissions_config`, `pm_yacht_model_assignments`
-- `system_config`, `workflow_config`, `workflow_settings`
+**Configuração:** `discount_limits_config`, `role_permissions_config`, `pm_yacht_model_assignments`
 
-**Outros:**
-- `audit_logs`, `mfa_recovery_codes`
+**Outros:** `audit_logs`, `mfa_recovery_codes`
 
 ---
 
-## 2. Executando o Script
+## 2. Scripts Disponíveis
+
+### 2.1 Geração de Schema (DDL)
+
+```bash
+# Script para gerar CREATE TABLE, Foreign Keys, Indexes
+node scripts/generate-sqlserver-schema.js
+
+# Output: output/okean-sqlserver-schema.sql
+```
+
+### 2.2 Exportação de Dados
+
+```bash
+# Configurar variáveis de ambiente
+export SUPABASE_URL="https://qqxhkaowexieednyazwq.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="sua-service-role-key"
+
+# Exportar apenas CSV (padrão)
+node scripts/export-data-for-sqlserver.js
+
+# Exportar apenas INSERT statements
+node scripts/export-data-for-sqlserver.js --format=insert
+
+# Exportar ambos (CSV + INSERT)
+node scripts/export-data-for-sqlserver.js --format=both
+```
+
+### 2.3 Arquivos Gerados
+
+| Arquivo | Descrição |
+|---------|-----------|
+| `output/okean-sqlserver-schema.sql` | DDL completo (CREATE TABLE, FKs, Indexes) |
+| `output/data/*.csv` | Um arquivo CSV por tabela |
+| `output/data/*-inserts.sql` | INSERT statements por tabela |
+| `output/bulk-import-sqlserver.sql` | Script BULK INSERT pronto para SQL Server |
+| `output/all-data-inserts.sql` | Todos os INSERTs em um único arquivo |
+
+---
+
+## 3. Geração do Schema (DDL)
 
 ### Pré-requisitos
 
@@ -71,27 +101,108 @@ node --version
 npm install @supabase/supabase-js
 ```
 
-### Configuração
-
-```bash
-# Configurar variáveis de ambiente
-export SUPABASE_URL="https://qqxhkaowexieednyazwq.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="sua-service-role-key"
-```
-
 ### Execução
 
 ```bash
-# Executar script
 node scripts/generate-sqlserver-schema.js
 
 # Resultado
 # -> output/okean-sqlserver-schema.sql
 ```
 
+### O que o Script Gera
+
+1. **CREATE TABLE** para todas as tabelas
+2. **Primary Keys** (UNIQUEIDENTIFIER com NEWID())
+3. **CHECK Constraints** para ENUMs
+4. **Valores Default** convertidos para T-SQL
+5. **Foreign Keys** (ALTER TABLE separados)
+6. **Indexes** recomendados
+
 ---
 
-## 3. Mapeamento de Tipos
+## 4. Exportação de Dados
+
+### 4.1 Configuração
+
+```bash
+export SUPABASE_URL="https://qqxhkaowexieednyazwq.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="sua-service-role-key"
+```
+
+### 4.2 Formatos de Exportação
+
+#### Opção 1: CSV (Recomendado para grandes volumes)
+
+```bash
+node scripts/export-data-for-sqlserver.js --format=csv
+```
+
+**Vantagens:**
+- Melhor performance para grandes volumes
+- Suporte a BULK INSERT nativo do SQL Server
+- Arquivos menores
+
+**Output:**
+- `output/data/*.csv` - Um CSV por tabela
+- `output/bulk-import-sqlserver.sql` - Script de importação
+
+#### Opção 2: INSERT Statements
+
+```bash
+node scripts/export-data-for-sqlserver.js --format=insert
+```
+
+**Vantagens:**
+- Portabilidade (funciona em qualquer SQL Server)
+- Mais fácil de debugar
+- Pode ser executado via SSMS
+
+**Output:**
+- `output/data/*-inserts.sql` - INSERTs por tabela
+- `output/all-data-inserts.sql` - Arquivo único com todos os INSERTs
+
+#### Opção 3: Ambos
+
+```bash
+node scripts/export-data-for-sqlserver.js --format=both
+```
+
+### 4.3 Conversão de Dados
+
+O script converte automaticamente os tipos:
+
+| Tipo PostgreSQL | Valor Original | Valor Exportado |
+|-----------------|----------------|-----------------|
+| `boolean` | `true` / `false` | `1` / `0` |
+| `timestamp` | `2025-01-13T10:30:00Z` | `2025-01-13 10:30:00.000` |
+| `jsonb` / `json` | `{"key": "value"}` | `'{"key": "value"}'` |
+| `ARRAY` | `["a", "b"]` | `'["a", "b"]'` |
+| `NULL` | `null` | `NULL` ou campo vazio |
+
+### 4.4 Importando no SQL Server
+
+#### Via BULK INSERT (CSV)
+
+```sql
+-- 1. Executar o schema DDL primeiro
+-- 2. Copiar CSVs para o servidor SQL Server
+-- 3. Editar paths no bulk-import-sqlserver.sql
+-- 4. Executar o script
+
+sqlcmd -S servidor -d OkeanCPQ -i bulk-import-sqlserver.sql
+```
+
+#### Via INSERT Statements
+
+```sql
+-- Executar o arquivo combinado
+sqlcmd -S servidor -d OkeanCPQ -i all-data-inserts.sql
+```
+
+---
+
+## 5. Mapeamento de Tipos
 
 ### Tipos Básicos
 
@@ -103,27 +214,22 @@ node scripts/generate-sqlserver-schema.js
 | `boolean` | `BIT` | 1=true, 0=false |
 | `integer` | `INT` | |
 | `bigint` | `BIGINT` | |
-| `smallint` | `SMALLINT` | |
-| `numeric` | `DECIMAL(18,2)` | Ajuste precisão conforme necessário |
-| `real` | `REAL` | |
-| `double precision` | `FLOAT` | |
+| `numeric` | `DECIMAL(18,2)` | |
 
 ### Tipos de Data/Hora
 
-| PostgreSQL | SQL Server | Notas |
-|------------|------------|-------|
-| `timestamp with time zone` | `DATETIMEOFFSET` | Preserva timezone |
-| `timestamp without time zone` | `DATETIME2` | |
-| `date` | `DATE` | |
-| `time` | `TIME` | |
+| PostgreSQL | SQL Server |
+|------------|------------|
+| `timestamp with time zone` | `DATETIMEOFFSET` |
+| `timestamp without time zone` | `DATETIME2` |
+| `date` | `DATE` |
 
 ### Tipos Especiais
 
 | PostgreSQL | SQL Server | Notas |
 |------------|------------|-------|
-| `jsonb` / `json` | `NVARCHAR(MAX)` | JSON nativo SQL Server 2016+ |
+| `jsonb` / `json` | `NVARCHAR(MAX)` | Usar JSON_VALUE() para consultas |
 | `inet` | `VARCHAR(45)` | IPv4/IPv6 |
-| `bytea` | `VARBINARY(MAX)` | |
 | `ARRAY` | `NVARCHAR(MAX)` | Armazenar como JSON |
 | `USER-DEFINED` (enum) | `VARCHAR(n)` + CHECK | |
 
@@ -132,16 +238,13 @@ node scripts/generate-sqlserver-schema.js
 | PostgreSQL | SQL Server |
 |------------|------------|
 | `gen_random_uuid()` | `NEWID()` |
-| `uuid_generate_v4()` | `NEWID()` |
-| `now()` | `GETDATE()` ou `SYSDATETIMEOFFSET()` |
-| `CURRENT_TIMESTAMP` | `SYSDATETIMEOFFSET()` |
-| `true` | `1` |
-| `false` | `0` |
-| `'{}'` (array) | `'[]'` (JSON) |
+| `now()` | `SYSDATETIMEOFFSET()` |
+| `true` / `false` | `1` / `0` |
+| `'{}'` (array vazio) | `'[]'` |
 
 ---
 
-## 4. ENUMs
+## 6. ENUMs e CHECK Constraints
 
 ### Problema
 
@@ -177,21 +280,15 @@ CREATE TABLE user_roles (
 
 ---
 
-## 5. Limitações
+## 7. Limitações e Soluções
 
-### Row Level Security (RLS)
+### 7.1 Row Level Security (RLS)
 
-**PostgreSQL:** Suporte nativo a RLS com políticas por tabela.
+**PostgreSQL:** Suporte nativo a RLS.
 
-**SQL Server:** Não existe RLS nativo da mesma forma.
-
-**Alternativas:**
-1. **Views com segurança:** Criar views que filtram dados por usuário
-2. **Stored Procedures:** Encapsular acesso via procedures
-3. **Row-Level Security (SQL Server 2016+):** Usar Security Predicates
+**SQL Server (2016+):** Usar Security Predicates:
 
 ```sql
--- Exemplo: Security Policy no SQL Server 2016+
 CREATE FUNCTION dbo.fn_securitypredicate(@user_id UNIQUEIDENTIFIER)
 RETURNS TABLE
 WITH SCHEMABINDING
@@ -206,56 +303,37 @@ ADD FILTER PREDICATE dbo.fn_securitypredicate(created_by)
 ON dbo.quotations;
 ```
 
-### JSONB Operators
+### 7.2 JSONB Operators
 
 **PostgreSQL:**
 ```sql
--- Extrair valor
 SELECT data->>'name' FROM table;
-
--- Busca em JSON
 SELECT * FROM table WHERE data @> '{"key": "value"}';
 ```
 
 **SQL Server:**
 ```sql
--- Extrair valor
 SELECT JSON_VALUE(data, '$.name') FROM table;
-
--- Busca em JSON
 SELECT * FROM table WHERE JSON_VALUE(data, '$.key') = 'value';
-
--- Consultar array JSON
-SELECT * FROM table
-CROSS APPLY OPENJSON(data, '$.items') AS items;
 ```
 
-### Arrays
+### 7.3 Arrays
 
 **PostgreSQL:**
 ```sql
--- Array nativo
 SELECT * FROM table WHERE 'value' = ANY(array_column);
 ```
 
 **SQL Server:**
 ```sql
--- Armazenar como JSON e usar OPENJSON
 SELECT * FROM table
 CROSS APPLY OPENJSON(json_array_column) AS items
 WHERE items.value = 'value';
 ```
 
-### Functions e Triggers
+### 7.4 Functions e Triggers
 
-| Item | PostgreSQL | SQL Server |
-|------|------------|------------|
-| Linguagem | PL/pgSQL | T-SQL |
-| Funções | `CREATE FUNCTION` | `CREATE FUNCTION` ou `CREATE PROCEDURE` |
-| Triggers | `BEFORE/AFTER INSERT/UPDATE/DELETE` | `INSTEAD OF` ou `AFTER INSERT/UPDATE/DELETE` |
-| Return | `RETURNS TABLE` | `RETURNS TABLE` ou `OUTPUT` parameters |
-
-**Exemplo de conversão:**
+Triggers precisam ser reescritos de PL/pgSQL para T-SQL:
 
 ```sql
 -- PostgreSQL
@@ -282,130 +360,76 @@ END;
 
 ---
 
-## 6. Adaptações Necessárias
+## 8. Processo de Migração Completo
 
-### 6.1 Queries com JSON
+### Checklist
 
-**Antes (PostgreSQL):**
-```typescript
-const { data } = await supabase
-  .from('memorial_items')
-  .select('*')
-  .contains('technical_specs', { type: 'motor' });
+```
+1. PREPARAÇÃO
+   [ ] Instalar Node.js 18+
+   [ ] Configurar variáveis de ambiente
+   [ ] Criar database OkeanCPQ no SQL Server
+
+2. SCHEMA
+   [ ] Executar: node scripts/generate-sqlserver-schema.js
+   [ ] Revisar DDL gerado
+   [ ] Executar DDL no SQL Server
+
+3. DADOS
+   [ ] Executar: node scripts/export-data-for-sqlserver.js --format=both
+   [ ] Copiar CSVs para servidor SQL Server
+   [ ] Editar paths no bulk-import-sqlserver.sql
+   [ ] Executar importação
+
+4. VALIDAÇÃO
+   [ ] Verificar contagens de registros
+   [ ] Testar queries principais
+   [ ] Validar integridade referencial
+
+5. SEGURANÇA
+   [ ] Implementar Security Policies
+   [ ] Criar roles de database
+   [ ] Configurar auditoria
+
+6. APLICAÇÃO
+   [ ] Atualizar connection string
+   [ ] Ajustar queries com JSON/Array
+   [ ] Testar funcionalidades
 ```
 
-**Depois (SQL Server via API):**
-```sql
-SELECT * FROM memorial_items
-WHERE JSON_VALUE(technical_specs, '$.type') = 'motor';
-```
-
-### 6.2 Queries com Arrays
-
-**Antes (PostgreSQL):**
-```typescript
-const { data } = await supabase
-  .from('quotation_customizations')
-  .select('*')
-  .overlaps('file_paths', ['path1', 'path2']);
-```
-
-**Depois (SQL Server):**
-```sql
-SELECT * FROM quotation_customizations
-WHERE EXISTS (
-  SELECT 1 FROM OPENJSON(file_paths) fp
-  WHERE fp.value IN ('path1', 'path2')
-);
-```
-
-### 6.3 UUID Generation
-
-**PostgreSQL:** `gen_random_uuid()`
-
-**SQL Server:** `NEWID()`
-
-No código da aplicação, gerar UUIDs via biblioteca ao invés de depender do banco:
-
-```typescript
-import { v4 as uuidv4 } from 'uuid';
-const id = uuidv4();
-```
-
----
-
-## 7. Migração de Dados
-
-### 7.1 Ferramentas Recomendadas
-
-1. **Azure Data Studio** - Free, multiplataforma
-2. **SQL Server Migration Assistant (SSMA)** - Ferramenta oficial Microsoft
-3. **Azure Data Factory** - Para pipelines de ETL
-4. **BCP (Bulk Copy Program)** - Para grandes volumes
-
-### 7.2 Processo Sugerido
+### Diagrama de Processo
 
 ```mermaid
 graph TD
-    A[Exportar dados do Supabase] --> B[Transformar formatos]
-    B --> C[Criar schema no SQL Server]
-    C --> D[Importar dados]
-    D --> E[Validar integridade]
-    E --> F[Criar índices e constraints]
-```
-
-### 7.3 Exportar do Supabase
-
-```bash
-# Via pg_dump
-pg_dump -h db.qqxhkaowexieednyazwq.supabase.co \
-  -U postgres \
-  -d postgres \
-  --data-only \
-  --format=csv \
-  --table=public.quotations \
-  > quotations.csv
-```
-
-### 7.4 Importar no SQL Server
-
-```sql
--- Via BULK INSERT
-BULK INSERT dbo.quotations
-FROM 'C:\data\quotations.csv'
-WITH (
-    FORMAT = 'CSV',
-    FIRSTROW = 2,
-    FIELDTERMINATOR = ',',
-    ROWTERMINATOR = '\n',
-    CODEPAGE = '65001' -- UTF-8
-);
+    A[1. Gerar Schema DDL] --> B[2. Criar Database SQL Server]
+    B --> C[3. Executar DDL]
+    C --> D[4. Exportar Dados do Supabase]
+    D --> E[5. Importar Dados no SQL Server]
+    E --> F[6. Validar Integridade]
+    F --> G[7. Implementar Segurança]
+    G --> H[8. Testar Aplicação]
 ```
 
 ---
 
-## 8. Segurança
+## 9. Segurança no SQL Server
 
-### 8.1 Autenticação
+### 9.1 Autenticação
 
-O Supabase usa JWT com auth.users. No SQL Server, você precisará:
-
+Opções disponíveis:
 1. **Azure AD Integration** (recomendado para Azure SQL)
 2. **SQL Server Authentication**
 3. **Windows Authentication** (on-premises)
 
-### 8.2 Autorização
+### 9.2 Autorização
 
-**Implementar via:**
-
-1. **Database Roles:**
+**Database Roles:**
 ```sql
 CREATE ROLE app_vendedor;
-GRANT SELECT ON quotations TO app_vendedor;
-GRANT INSERT ON quotations TO app_vendedor;
+GRANT SELECT, INSERT, UPDATE ON quotations TO app_vendedor;
 ```
 
-2. **Stored Procedures:**
+**Stored Procedures:**
 ```sql
 CREATE PROCEDURE sp_GetUserQuotations
   @user_id UNIQUEIDENTIFIER
@@ -421,26 +445,14 @@ BEGIN
 END;
 ```
 
-3. **Application-Level Security:**
-```typescript
-// Validar role antes de executar query
-if (!user.hasRole('administrador')) {
-  query = query.where('created_by', user.id);
-}
-```
-
-### 8.3 Auditoria
-
-A tabela `audit_logs` será migrada. Para manter funcionalidade similar:
+### 9.3 Auditoria
 
 ```sql
--- Trigger de auditoria genérico
 CREATE TRIGGER tr_audit_quotations
 ON dbo.quotations
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
-  -- Inserir log de auditoria
   INSERT INTO audit_logs (
     user_id, action, table_name, record_id,
     old_values, new_values, created_at
@@ -464,28 +476,10 @@ END;
 
 ---
 
-## Checklist de Migração
-
-- [ ] Executar script de geração do schema
-- [ ] Revisar DDL gerado
-- [ ] Criar database no SQL Server
-- [ ] Executar DDL (tabelas sem FKs primeiro)
-- [ ] Adicionar Foreign Keys
-- [ ] Criar índices
-- [ ] Exportar dados do Supabase
-- [ ] Transformar dados (especialmente JSON/Arrays)
-- [ ] Importar dados
-- [ ] Validar contagens de registros
-- [ ] Reescrever triggers em T-SQL
-- [ ] Implementar segurança (roles, procedures)
-- [ ] Testar aplicação com novo backend
-- [ ] Ajustar queries com JSON/Array
-
----
-
 ## Suporte
 
 Para dúvidas sobre a migração, consulte:
 - [Documentação SQL Server](https://docs.microsoft.com/sql/sql-server/)
 - [Azure SQL Database](https://docs.microsoft.com/azure/azure-sql/)
+- [JSON no SQL Server](https://docs.microsoft.com/sql/relational-databases/json/json-data-sql-server)
 - [SSMA para PostgreSQL](https://docs.microsoft.com/sql/ssma/postgresql/)
