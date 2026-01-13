@@ -192,7 +192,7 @@ export function UpgradeDialog({
             {initialData ? "Editar Upgrade" : "Criar Upgrade"}
           </DialogTitle>
           <DialogDescription>
-            Upgrade substitui ou melhora um item do memorial padrão. O preço informado é o valor adicional (delta).
+            Upgrade substitui ou melhora um item do memorial padrão. O custo informado é o valor adicional (delta). O preço de venda será calculado automaticamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -430,7 +430,7 @@ export function UpgradeDialog({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preço Delta (R$) *</FormLabel>
+                    <FormLabel>Custo Delta (R$) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -448,7 +448,7 @@ export function UpgradeDialog({
                           💰 Crédito: {formatCurrency(Math.abs(field.value))}
                         </span>
                       ) : (
-                        "Valor adicional (positivo) ou crédito (negativo)"
+                        "Custo adicional (positivo) ou crédito (negativo). O preço de venda será calculado automaticamente."
                       )}
                     </FormDescription>
                     <FormMessage />
