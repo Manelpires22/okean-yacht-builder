@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ModelSelector } from "@/components/configurator/ModelSelector";
 import { SellerStep } from "@/components/configurator/SellerStep";
+import { ClientStep } from "@/components/configurator/ClientStep";
+import { TradeInStep } from "@/components/configurator/TradeInStep";
 import { MemorialDescritivo } from "@/components/configurator/MemorialDescritivo";
 import { ModelBaseTab } from "@/components/configurator/ModelBaseTab";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
@@ -20,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Trash2, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, CheckCircle, Clock, User, Ship, Settings, Users, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/quotation-utils";
@@ -36,6 +38,10 @@ export default function Configurator() {
   const {
     state,
     setCommission,
+    setClient,
+    setTradeIn,
+    clearClient,
+    clearTradeIn,
     setYachtModel,
     addOption,
     removeOption,
@@ -224,7 +230,36 @@ export default function Configurator() {
     );
   }
 
-  // ETAPA 2: Seleção de Modelo (após vendedor ou se editando sem modelo)
+  // ETAPA 2: Seleção de Cliente (apenas para novas cotações)
+  if (!state.client_data && !isEditing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ClientStep
+          commissionName={state.commission_data?.name || ""}
+          onSelect={setClient}
+          onBack={() => {
+            clearConfiguration();
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ETAPA 3: Trade-In (apenas para novas cotações)
+  if (state.trade_in_data === null && !isEditing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TradeInStep
+          commissionName={state.commission_data?.name || ""}
+          clientName={state.client_data?.name || ""}
+          onConfirm={setTradeIn}
+          onBack={clearClient}
+        />
+      </div>
+    );
+  }
+
+  // ETAPA 4: Seleção de Modelo (após vendedor, cliente e trade-in)
   if (!state.yacht_model_id && !isEditing) {
     return (
       <div className="min-h-screen bg-background">
@@ -232,20 +267,58 @@ export default function Configurator() {
           <div className="mb-6">
             <Button
               variant="ghost"
-              onClick={() => {
-                clearConfiguration();
-                navigate("/");
-              }}
+              onClick={clearTradeIn}
               className="mb-4"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar para Home
+              Voltar
             </Button>
-            {state.commission_data && (
+            
+            {/* Progress Steps */}
+            <div className="flex items-center justify-center gap-2 sm:gap-4 mb-6">
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">✓</div>
+                <span className="text-xs text-muted-foreground">Vendedor</span>
+              </div>
+              <div className="w-4 h-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">✓</div>
+                <span className="text-xs text-muted-foreground">Cliente</span>
+              </div>
+              <div className="w-4 h-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-primary/20 text-primary flex items-center justify-center">✓</div>
+                <span className="text-xs text-muted-foreground">Trade-In</span>
+              </div>
+              <div className="w-4 h-px bg-border" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                  <Ship className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-medium">Modelo</span>
+              </div>
+              <div className="w-4 h-px bg-border hidden sm:block" />
+              <div className="flex flex-col items-center gap-1 hidden sm:flex">
+                <div className="w-10 h-10 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+                  <Settings className="h-5 w-5" />
+                </div>
+                <span className="text-xs text-muted-foreground">Config</span>
+              </div>
+            </div>
+
+            <div className="text-center mb-6">
               <p className="text-sm text-muted-foreground">
-                Vendedor: <span className="font-medium text-foreground">{state.commission_data.name}</span> ({state.commission_data.percent}%)
+                Vendedor: <span className="font-medium text-foreground">{state.commission_data?.name}</span>
+                {" • "}
+                Cliente: <span className="font-medium text-foreground">{state.client_data?.name}</span>
+                {state.trade_in_data?.hasTradeIn && (
+                  <>
+                    {" • "}
+                    <span className="text-amber-600">Trade-In: {state.trade_in_data.tradeInBrand} {state.trade_in_data.tradeInModel}</span>
+                  </>
+                )}
               </p>
-            )}
+            </div>
           </div>
           <ModelSelector onSelect={handleSelectModel} />
         </div>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ArrowRight, User, Ship, Settings } from "lucide-react";
+import { ArrowLeft, ArrowRight, User, Ship, Settings, Users, Repeat } from "lucide-react";
 import { useSimulatorCommissions } from "@/hooks/useSimulatorConfig";
 import { cn } from "@/lib/utils";
 import type { CommissionData } from "@/hooks/useConfigurationState";
@@ -32,7 +32,7 @@ function StepIndicator({ step, label, active, completed, icon }: StepIndicatorPr
           !active && !completed && "bg-muted text-muted-foreground"
         )}
       >
-        {icon}
+        {completed ? "✓" : icon}
       </div>
       <span
         className={cn(
@@ -71,20 +71,24 @@ export function SellerStep({ onSelect, onBack }: SellerStepProps) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-lg">
+    <div className="container mx-auto px-4 py-8 max-w-xl">
       {/* Botão Voltar */}
       <Button variant="ghost" onClick={onBack} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para Home
       </Button>
 
-      {/* Progress Steps */}
-      <div className="flex items-center justify-center gap-4 mb-8">
+      {/* Progress Steps - 5 etapas */}
+      <div className="flex items-center justify-center gap-2 sm:gap-4 mb-8">
         <StepIndicator step={1} label="Vendedor" active icon={<User className="h-5 w-5" />} />
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        <StepIndicator step={2} label="Modelo" icon={<Ship className="h-5 w-5" />} />
+        <StepIndicator step={2} label="Cliente" icon={<Users className="h-5 w-5" />} />
         <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        <StepIndicator step={3} label="Configuração" icon={<Settings className="h-5 w-5" />} />
+        <StepIndicator step={3} label="Trade-In" icon={<Repeat className="h-5 w-5" />} />
+        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+        <StepIndicator step={4} label="Modelo" icon={<Ship className="h-5 w-5" />} />
+        <ArrowRight className="h-4 w-4 text-muted-foreground hidden sm:block" />
+        <StepIndicator step={5} label="Config" icon={<Settings className="h-5 w-5" />} />
       </div>
 
       {/* Card de Seleção */}
