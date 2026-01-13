@@ -382,7 +382,7 @@ export function YachtModelUpgradesTab({ yachtModelId }: YachtModelUpgradesTabPro
                             <TableHead>Código</TableHead>
                             <TableHead>Nome</TableHead>
                             <TableHead>Marca/Modelo</TableHead>
-                            <TableHead className="text-right">Preço Delta</TableHead>
+                            <TableHead className="text-right">Custo Delta</TableHead>
                             <TableHead className="text-right">Prazo</TableHead>
                             <TableHead>Job Stop</TableHead>
                             <TableHead>Item Vinculado</TableHead>

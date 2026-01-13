@@ -209,7 +209,7 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
                               <TableHead className="w-14">Imagem</TableHead>
                               <TableHead>Código</TableHead>
                               <TableHead>Nome</TableHead>
-                              <TableHead className="text-right">Preço</TableHead>
+                              <TableHead className="text-right">Custo</TableHead>
                               <TableHead className="text-right">Prazo (dias)</TableHead>
                               <TableHead>Job Stop</TableHead>
                               <TableHead>Status</TableHead>
@@ -429,13 +429,16 @@ export function YachtModelOptionsTab({ yachtModelId }: YachtModelOptionsTabProps
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="base_price">Preço Base (R$) *</Label>
+                <Label htmlFor="base_price">Custo (R$) *</Label>
                 <Input
                   id="base_price"
                   type="number"
                   step="0.01"
                   {...register("base_price", { valueAsNumber: true })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Valor de custo. O preço de venda será calculado automaticamente.
+                </p>
                 {errors.base_price && (
                   <p className="text-sm text-destructive">{errors.base_price.message}</p>
                 )}
