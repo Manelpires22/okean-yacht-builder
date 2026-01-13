@@ -43,8 +43,9 @@ export function useCreateRevision() {
           client_email: originalQuotation.client_email,
           client_phone: originalQuotation.client_phone,
           
-          // Copiar dados do modelo
+          // Copiar dados do modelo e matrícula
           yacht_model_id: originalQuotation.yacht_model_id,
+          hull_number_id: originalQuotation.hull_number_id,
           base_price: originalQuotation.base_price,
           base_discount_percentage: originalQuotation.base_discount_percentage,
           final_base_price: originalQuotation.final_base_price,

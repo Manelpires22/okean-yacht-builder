@@ -15,7 +15,7 @@ import {
 import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { Progress } from "@/components/ui/progress";
 import { AutoSizedValue } from "@/components/ui/auto-sized-value";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo } from "react";
 
@@ -28,12 +28,30 @@ export function ContractsDashboard() {
     if (!contracts?.length) return null;
     
     const activeContracts = contracts.filter(c => c.status === 'active');
-    const contractsWithDate = (activeContracts.length > 0 ? activeContracts : contracts)
-      .filter(c => c.hull_number?.estimated_delivery_date)
-      .map(c => ({
-        date: new Date(c.hull_number!.estimated_delivery_date),
-        hullNumber: c.hull_number!.hull_number
-      }))
+    const contractsToProcess = activeContracts.length > 0 ? activeContracts : contracts;
+    
+    const contractsWithDate = contractsToProcess
+      .map(c => {
+        // Priorizar data do hull_number
+        if (c.hull_number?.estimated_delivery_date) {
+          return {
+            date: new Date(c.hull_number.estimated_delivery_date),
+            hullNumber: c.hull_number.hull_number
+          };
+        }
+        
+        // Fallback: signed_at + base_delivery_days
+        if (c.signed_at && c.base_delivery_days) {
+          const estimatedDate = addDays(new Date(c.signed_at), c.base_delivery_days);
+          return {
+            date: estimatedDate,
+            hullNumber: c.contract_number // Usar número do contrato como identificador
+          };
+        }
+        
+        return null;
+      })
+      .filter((c): c is { date: Date; hullNumber: string } => c !== null)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
     
     return contractsWithDate[0] || null;
