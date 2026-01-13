@@ -84,6 +84,9 @@ export type Permission =
   | 'audit:view_logs'
   | 'audit:export_logs'
   
+  // Simulações
+  | 'simulations:view_mdc'
+  
   // Admin
   | 'admin:full_access';
 
@@ -124,7 +127,8 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
       'options:view',
       'yacht_models:view',
       'memorial:view',
-      'users:view'
+      'users:view',
+      'simulations:view_mdc'
     ],
     color: 'bg-purple-500/10 text-purple-500 border-purple-500/20'
   },
@@ -153,7 +157,8 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
       'yacht_models:edit',
       'memorial:view',
       'memorial:edit',
-      'users:view'
+      'users:view',
+      'simulations:view_mdc'
     ],
     color: 'bg-blue-500/10 text-blue-500 border-blue-500/20'
   },
@@ -283,7 +288,8 @@ export const ROLE_DEFINITIONS: Record<AppRole, RoleDefinition> = {
       'approvals:view',
       'approvals:review',
       'audit:view_logs',
-      'settings:view'
+      'settings:view',
+      'simulations:view_mdc'
     ],
     color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
   }
@@ -402,6 +408,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'audit:view_logs': 'Visualizar logs de auditoria',
   'audit:export_logs': 'Exportar logs de auditoria',
   
+  // Simulações
+  'simulations:view_mdc': 'Visualizar análise de margem (MDC)',
+  
   // Admin
   'admin:full_access': 'Acesso total ao sistema'
 };
@@ -466,6 +475,7 @@ export const PERMISSION_CATEGORIES = {
     'settings:edit_workflow',
     'audit:view_logs',
     'audit:export_logs',
+    'simulations:view_mdc',
     'admin:full_access'
   ]
 } as const;

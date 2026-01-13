@@ -1661,6 +1661,7 @@ export type Database = {
           sales_representative_id: string | null
           secure_token: string | null
           sent_at: string | null
+          simulation_id: string | null
           snapshot_json: Json | null
           status: string
           total_customizations_price: number | null
@@ -1696,6 +1697,7 @@ export type Database = {
           sales_representative_id?: string | null
           secure_token?: string | null
           sent_at?: string | null
+          simulation_id?: string | null
           snapshot_json?: Json | null
           status: string
           total_customizations_price?: number | null
@@ -1731,6 +1733,7 @@ export type Database = {
           sales_representative_id?: string | null
           secure_token?: string | null
           sent_at?: string | null
+          simulation_id?: string | null
           snapshot_json?: Json | null
           status?: string
           total_customizations_price?: number | null
@@ -1768,6 +1771,13 @@ export type Database = {
             columns: ["sales_representative_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
             referencedColumns: ["id"]
           },
           {
@@ -1842,6 +1852,7 @@ export type Database = {
           margem_bruta: number
           margem_percent: number
           notes: string | null
+          quotation_id: string | null
           royalties_percent: number
           sales_tax_percent: number
           simulation_number: string
@@ -1895,6 +1906,7 @@ export type Database = {
           margem_bruta: number
           margem_percent: number
           notes?: string | null
+          quotation_id?: string | null
           royalties_percent: number
           sales_tax_percent: number
           simulation_number: string
@@ -1948,6 +1960,7 @@ export type Database = {
           margem_bruta?: number
           margem_percent?: number
           notes?: string | null
+          quotation_id?: string | null
           royalties_percent?: number
           sales_tax_percent?: number
           simulation_number?: string
@@ -1978,6 +1991,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulations_quotation_id_fkey"
+            columns: ["quotation_id"]
+            isOneToOne: false
+            referencedRelation: "quotations"
             referencedColumns: ["id"]
           },
           {

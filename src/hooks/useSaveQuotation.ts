@@ -6,6 +6,7 @@ import { generateQuotationNumberWithVersion } from "@/lib/quotation-utils";
 import { needsApproval } from "@/lib/approval-utils";
 import { calculateQuotationStatus } from "@/lib/quotation-status-utils";
 import { generateCustomizationCode } from "@/lib/customization-utils";
+import { createOrUpdateSimulationFromQuotation } from "@/lib/simulation-from-quotation";
 import { SelectedOption, Customization, CommissionData, ClientData, TradeInData } from "./useConfigurationState";
 import { calculateQuotationPricing } from "./quotations/useQuotationPricing";
 import { validateQuotation } from "./quotations/useQuotationValidation";
@@ -13,7 +14,6 @@ import { useQuotationOptions } from "./quotations/useQuotationOptions";
 import { useQuotationCustomizations } from "./quotations/useQuotationCustomizations";
 import { useUserRole } from "./useUserRole";
 import { useSystemConfig } from "./useSystemConfig";
-import type { SimulatorPreloadData } from "@/types/simulator-preload";
 
 interface SaveQuotationData {
   quotationId?: string;
@@ -47,7 +47,6 @@ interface SaveQuotationData {
 
 export interface SaveQuotationResult {
   quotation: any;
-  simulatorData: SimulatorPreloadData;
 }
 
 // Funções auxiliares
@@ -224,40 +223,44 @@ export function useSaveQuotation() {
           if (upgradesError) throw upgradesError;
         }
         
-        // ✅ Buscar nome do modelo para retorno
+        // ✅ Buscar nome do modelo para criação de simulação
         const { data: yachtModel } = await supabase
           .from('yacht_models')
           .select('name, code')
           .eq('id', data.yacht_model_id)
           .single();
 
-        // Calcular customizações estimadas para o simulador
-        const customizacoesEstimadas = 
-          totalOptionsPrice + 
-          totalUpgradesPrice + 
-          (data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0);
+        // ✅ CRIAR/ATUALIZAR SIMULAÇÃO AUTOMATICAMENTE
+        try {
+          // Buscar cotação existente para verificar se já tem simulação
+          const { data: existingQuotation } = await supabase
+            .from('quotations')
+            .select('simulation_id')
+            .eq('id', data.quotationId)
+            .single();
 
-        // Retornar cotação + dados para simulador
-        const result: SaveQuotationResult = {
-          quotation,
-          simulatorData: {
-            modelId: data.yacht_model_id,
-            modelName: yachtModel?.name || '',
-            modelCode: yachtModel?.code || '',
-            originalBasePrice: data.base_price,
-            faturamentoBruto: finalPrice,
-            customizacoesEstimadas,
-            commission: data.commission_data ? {
+          const { simulationId } = await createOrUpdateSimulationFromQuotation({
+            quotationId: quotation.id,
+            quotationNumber: quotation.quotation_number,
+            yachtModelId: data.yacht_model_id,
+            yachtModelName: yachtModel?.name || '',
+            yachtModelCode: yachtModel?.code || '',
+            basePrice: data.base_price,
+            finalPrice,
+            optionsTotal: totalOptionsPrice,
+            upgradesTotal: totalUpgradesPrice,
+            customizationsTotal: data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0,
+            commissionData: data.commission_data ? {
               id: data.commission_data.id,
               name: data.commission_data.name,
               percent: data.commission_data.percent,
               type: data.commission_data.type,
             } : undefined,
-            client: data.client_data ? {
+            clientData: data.client_data ? {
               id: data.client_data.id,
               name: data.client_data.name,
             } : undefined,
-            tradeIn: data.trade_in_data?.hasTradeIn ? {
+            tradeInData: data.trade_in_data?.hasTradeIn ? {
               hasTradeIn: true,
               tradeInBrand: data.trade_in_data.tradeInBrand,
               tradeInModel: data.trade_in_data.tradeInModel,
@@ -265,12 +268,24 @@ export function useSaveQuotation() {
               tradeInEntryValue: data.trade_in_data.tradeInEntryValue,
               tradeInRealValue: data.trade_in_data.tradeInRealValue,
             } : undefined,
-            quotationId: quotation.id,
-            quotationNumber: quotation.quotation_number,
-          },
-        };
+            createdBy: user.id,
+          }, existingQuotation?.simulation_id || undefined);
 
-        return result;
+          // Vincular simulação à cotação se não estava vinculada
+          if (!existingQuotation?.simulation_id && simulationId) {
+            await supabase
+              .from('quotations')
+              .update({ simulation_id: simulationId })
+              .eq('id', quotation.id);
+          }
+
+          console.log('✅ Simulação criada/atualizada automaticamente:', simulationId);
+        } catch (simError) {
+          // Erro na simulação NÃO bloqueia salvamento da cotação
+          console.error('⚠️ Erro ao criar simulação automática (não-bloqueante):', simError);
+        }
+
+        return { quotation };
       }
 
       // ✅ MODO CRIAÇÃO: Criar nova cotação
@@ -421,40 +436,37 @@ export function useSaveQuotation() {
 
       // Descontos e customizações agora são gerenciados via workflow simplificado
 
-      // ✅ Buscar nome do modelo para retorno
+      // ✅ Buscar nome do modelo para criação de simulação
       const { data: yachtModel } = await supabase
         .from('yacht_models')
         .select('name, code')
         .eq('id', data.yacht_model_id)
         .single();
 
-      // Calcular customizações estimadas para o simulador
-      const customizacoesEstimadas = 
-        totalOptionsPrice + 
-        totalUpgradesPrice + 
-        (data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0);
-
-      // Retornar cotação + dados para simulador
-      const result: SaveQuotationResult = {
-        quotation,
-        simulatorData: {
-          modelId: data.yacht_model_id,
-          modelName: yachtModel?.name || '',
-          modelCode: yachtModel?.code || '',
-          originalBasePrice: data.base_price,
-          faturamentoBruto: finalPrice,
-          customizacoesEstimadas,
-          commission: data.commission_data ? {
+      // ✅ CRIAR SIMULAÇÃO AUTOMATICAMENTE
+      try {
+        const { simulationId } = await createOrUpdateSimulationFromQuotation({
+          quotationId: quotation.id,
+          quotationNumber: quotationNumber,
+          yachtModelId: data.yacht_model_id,
+          yachtModelName: yachtModel?.name || '',
+          yachtModelCode: yachtModel?.code || '',
+          basePrice: data.base_price,
+          finalPrice,
+          optionsTotal: totalOptionsPrice,
+          upgradesTotal: totalUpgradesPrice,
+          customizationsTotal: data.customizations?.reduce((sum, c) => sum + (c.pm_final_price || 0), 0) || 0,
+          commissionData: data.commission_data ? {
             id: data.commission_data.id,
             name: data.commission_data.name,
             percent: data.commission_data.percent,
             type: data.commission_data.type,
           } : undefined,
-          client: data.client_data ? {
+          clientData: data.client_data ? {
             id: data.client_data.id,
             name: data.client_data.name,
           } : undefined,
-          tradeIn: data.trade_in_data?.hasTradeIn ? {
+          tradeInData: data.trade_in_data?.hasTradeIn ? {
             hasTradeIn: true,
             tradeInBrand: data.trade_in_data.tradeInBrand,
             tradeInModel: data.trade_in_data.tradeInModel,
@@ -462,12 +474,24 @@ export function useSaveQuotation() {
             tradeInEntryValue: data.trade_in_data.tradeInEntryValue,
             tradeInRealValue: data.trade_in_data.tradeInRealValue,
           } : undefined,
-          quotationId: quotation.id,
-          quotationNumber: quotationNumber,
-        },
-      };
+          createdBy: user.id,
+        });
 
-      return result;
+        // Vincular simulação à cotação
+        if (simulationId) {
+          await supabase
+            .from('quotations')
+            .update({ simulation_id: simulationId })
+            .eq('id', quotation.id);
+        }
+
+        console.log('✅ Simulação criada automaticamente:', simulationId);
+      } catch (simError) {
+        // Erro na simulação NÃO bloqueia salvamento da cotação
+        console.error('⚠️ Erro ao criar simulação automática (não-bloqueante):', simError);
+      }
+
+      return { quotation };
     },
     onSuccess: (result: SaveQuotationResult) => {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });

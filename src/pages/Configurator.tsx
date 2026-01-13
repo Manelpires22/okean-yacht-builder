@@ -9,7 +9,6 @@ import { ModelBaseTab } from "@/components/configurator/ModelBaseTab";
 import { OptionCategorySection } from "@/components/configurator/OptionCategorySection";
 import { ConfigurationSummary } from "@/components/configurator/ConfigurationSummary";
 import { SaveQuotationDialog } from "@/components/configurator/SaveQuotationDialog";
-import { QuotationSavedDialog } from "@/components/configurator/QuotationSavedDialog";
 import { FreeCustomizationDialog } from "@/components/configurator/FreeCustomizationDialog";
 import { UpgradesTab } from "@/components/configurator/UpgradesTab";
 import { useConfigurationState, SelectedUpgrade, HullNumberData } from "@/hooks/useConfigurationState";
@@ -27,7 +26,6 @@ import { ArrowLeft, Plus, Trash2, CheckCircle, Clock, User, Ship, Settings, User
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/quotation-utils";
-import type { SimulatorPreloadData } from "@/types/simulator-preload";
 
 export default function Configurator() {
   const navigate = useNavigate();
@@ -36,11 +34,6 @@ export default function Configurator() {
   
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [freeCustomizationDialogOpen, setFreeCustomizationDialogOpen] = useState(false);
-  const [savedQuotationData, setSavedQuotationData] = useState<{
-    id: string;
-    number: string;
-    simulatorData: SimulatorPreloadData;
-  } | null>(null);
   
   const {
     state,
@@ -216,26 +209,10 @@ export default function Configurator() {
     });
 
     setSaveDialogOpen(false);
+    clearConfiguration();
     
-    // Se estiver editando, ir direto para detalhes (sem opção de simulador)
-    if (editQuotationId) {
-      clearConfiguration();
-      navigate(`/quotations/${editQuotationId}`);
-    } else {
-      // Nova cotação: mostrar dialog com opção de ir ao simulador
-      setSavedQuotationData({
-        id: result.quotation.id,
-        number: result.quotation.quotation_number,
-        simulatorData: result.simulatorData,
-      });
-    }
-  };
-
-  const handleCloseQuotationSavedDialog = (open: boolean) => {
-    if (!open) {
-      clearConfiguration();
-      setSavedQuotationData(null);
-    }
+    // Navegar direto para a cotação (simulação é criada automaticamente pelo hook)
+    navigate(`/quotations/${result.quotation.id}`);
   };
 
   // Verificar se está editando (pula etapas iniciais)
@@ -645,16 +622,6 @@ export default function Configurator() {
         onOpenChange={setFreeCustomizationDialogOpen}
         onSave={handleAddFreeCustomization}
       />
-
-      {savedQuotationData && (
-        <QuotationSavedDialog
-          open={!!savedQuotationData}
-          onOpenChange={handleCloseQuotationSavedDialog}
-          quotationId={savedQuotationData.id}
-          quotationNumber={savedQuotationData.number}
-          simulatorData={savedQuotationData.simulatorData}
-        />
-      )}
     </div>
   );
 }
