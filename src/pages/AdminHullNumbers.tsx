@@ -1,11 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useHullNumbers, useDeleteHullNumber, useResetUncontractedHullNumbers, HullNumber } from "@/hooks/useHullNumbers";
 import { ImportHullNumbersDialog } from "@/components/admin/hull-numbers/ImportHullNumbersDialog";
 import { ImportMasterPlanDialog } from "@/components/admin/hull-numbers/ImportMasterPlanDialog";
@@ -14,7 +22,7 @@ import { EditHullNumberDialog } from "@/components/admin/hull-numbers/EditHullNu
 import { ExportHullNumbersButton } from "@/components/admin/hull-numbers/ExportHullNumbersButton";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2, ClipboardList, RefreshCw } from "lucide-react";
+import { Anchor, FileSpreadsheet, Pencil, Plus, Trash2, ClipboardList, RefreshCw, Search, X } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
   available: "Disponível",
@@ -48,6 +56,12 @@ export default function AdminHullNumbers() {
   const [masterPlanDialogOpen, setMasterPlanDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingHullNumber, setEditingHullNumber] = useState<HullNumber | null>(null);
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [modelFilter, setModelFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  
   const { data: hullNumbers, isLoading } = useHullNumbers();
   const deleteHullNumber = useDeleteHullNumber();
   const resetMutation = useResetUncontractedHullNumbers();
@@ -55,6 +69,39 @@ export default function AdminHullNumbers() {
   // Contagens para o botão de reset
   const uncontractedCount = hullNumbers?.filter(h => !h.contract_id).length || 0;
   const contractedCount = hullNumbers?.filter(h => h.contract_id).length || 0;
+
+  // Unique models for filter dropdown
+  const uniqueModels = useMemo(() => {
+    if (!hullNumbers) return [];
+    const models = [...new Set(hullNumbers.map(h => h.yacht_model?.name).filter(Boolean))];
+    return models.sort() as string[];
+  }, [hullNumbers]);
+
+  // Filtered hull numbers
+  const filteredHullNumbers = useMemo(() => {
+    if (!hullNumbers) return [];
+    
+    return hullNumbers.filter(hull => {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || 
+        hull.hull_number.toLowerCase().includes(search) ||
+        hull.brand.toLowerCase().includes(search) ||
+        hull.yacht_model?.name?.toLowerCase().includes(search);
+      
+      const matchesModel = modelFilter === "all" || hull.yacht_model?.name === modelFilter;
+      const matchesStatus = statusFilter === "all" || hull.status === statusFilter;
+      
+      return matchesSearch && matchesModel && matchesStatus;
+    });
+  }, [hullNumbers, searchTerm, modelFilter, statusFilter]);
+
+  const hasActiveFilters = searchTerm || modelFilter !== "all" || statusFilter !== "all";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setModelFilter("all");
+    setStatusFilter("all");
+  };
 
   return (
     <AdminLayout>
@@ -123,6 +170,63 @@ export default function AdminHullNumbers() {
             <CardDescription>
               {hullNumbers?.length || 0} matrículas cadastradas
             </CardDescription>
+            
+            {/* Filters */}
+            {hullNumbers && hullNumbers.length > 0 && (
+              <div className="flex flex-col md:flex-row gap-3 pt-4">
+                {/* Global Search */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por matrícula, modelo ou marca..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                {/* Model Filter */}
+                <Select value={modelFilter} onValueChange={setModelFilter}>
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue placeholder="Todos modelos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos modelos</SelectItem>
+                    {uniqueModels.map(model => (
+                      <SelectItem key={model} value={model}>{model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full md:w-[150px]">
+                    <SelectValue placeholder="Todos status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos status</SelectItem>
+                    <SelectItem value="available">Disponível</SelectItem>
+                    <SelectItem value="reserved">Reservada</SelectItem>
+                    <SelectItem value="contracted">Contratada</SelectItem>
+                    <SelectItem value="delivered">Entregue</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Clear Filters */}
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="icon" onClick={clearFilters} title="Limpar filtros">
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+            
+            {/* Results Counter */}
+            {hullNumbers && hullNumbers.length > 0 && hasActiveFilters && (
+              <p className="text-sm text-muted-foreground pt-2">
+                Exibindo {filteredHullNumbers.length} de {hullNumbers.length} matrículas
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -136,6 +240,12 @@ export default function AdminHullNumbers() {
                 <Anchor className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium">Nenhuma matrícula cadastrada</p>
                 <p className="text-sm">Importe uma planilha ou adicione manualmente.</p>
+              </div>
+            ) : filteredHullNumbers.length === 0 && hasActiveFilters ? (
+              <div className="text-center py-12">
+                <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Nenhuma matrícula encontrada com os filtros atuais</p>
+                <Button variant="link" onClick={clearFilters}>Limpar filtros</Button>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-6">
@@ -189,7 +299,7 @@ export default function AdminHullNumbers() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {hullNumbers.map((hull) => (
+                    {filteredHullNumbers.map((hull) => (
                       <TableRow key={hull.id}>
                         {/* Identification */}
                         <TableCell className="font-medium whitespace-nowrap">{hull.brand}</TableCell>
