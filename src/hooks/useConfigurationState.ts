@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import type { SaleType } from "@/lib/pricing-markup";
 
 export interface SelectedOption {
   option_id: string;
@@ -71,6 +72,8 @@ export interface ConfigurationState {
   options_discount_percentage: number;
   customizations: Customization[];
   hull_number_data: HullNumberData | null;
+  sale_type: SaleType | null;
+  export_country: string | null;
 }
 
 const STORAGE_KEY = "yacht-configuration-draft";
@@ -88,6 +91,8 @@ const getInitialState = (): ConfigurationState => ({
   options_discount_percentage: 0,
   customizations: [],
   hull_number_data: null,
+  sale_type: null,
+  export_country: null,
 });
 
 export function useConfigurationState() {
@@ -150,7 +155,7 @@ export function useConfigurationState() {
     }));
   }, []);
 
-  const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number, hullNumberData?: HullNumberData) => {
+  const setYachtModel = useCallback((modelId: string, basePrice: number, baseDeliveryDays: number, hullNumberData?: HullNumberData, saleType?: SaleType, exportCountry?: string | null) => {
     setState((prev) => ({
       ...getInitialState(),
       commission_data: prev.commission_data, // Preservar a comissão selecionada
@@ -160,6 +165,16 @@ export function useConfigurationState() {
       base_price: basePrice,
       base_delivery_days: baseDeliveryDays,
       hull_number_data: hullNumberData || null,
+      sale_type: saleType || null,
+      export_country: exportCountry || null,
+    }));
+  }, []);
+
+  const setSaleType = useCallback((saleType: SaleType, exportCountry: string | null) => {
+    setState((prev) => ({
+      ...prev,
+      sale_type: saleType,
+      export_country: exportCountry,
     }));
   }, []);
 
@@ -342,6 +357,8 @@ export function useConfigurationState() {
         pm_final_price: qc.pm_final_price,
         pm_final_delivery_impact_days: qc.pm_final_delivery_impact_days,
       })) || [],
+      sale_type: null, // Will be re-selected when configuring
+      export_country: null,
     });
   }, []);
 
@@ -407,6 +424,7 @@ export function useConfigurationState() {
     clearClient,
     clearTradeIn,
     setYachtModel,
+    setSaleType,
     addOption,
     removeOption,
     updateOptionQuantity,

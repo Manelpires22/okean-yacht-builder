@@ -3,13 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useYachtModels } from "@/hooks/useYachtModels";
+import { useIsModelExportable } from "@/hooks/usePricingRules";
 import { formatCurrency } from "@/lib/quotation-utils";
 import { Ship } from "lucide-react";
 import { ConfigurationInitDialog } from "./ConfigurationInitDialog";
+import { SaleTypeDialog } from "./SaleTypeDialog";
 import { HullNumber } from "@/hooks/useHullNumbers";
+import type { SaleType } from "@/lib/pricing-markup";
 
 interface ModelSelectorProps {
-  onSelect: (modelId: string, basePrice: number, baseDeliveryDays: number, hullNumber: HullNumber) => void;
+  onSelect: (modelId: string, basePrice: number, baseDeliveryDays: number, hullNumber: HullNumber, saleType: SaleType, exportCountry: string | null) => void;
 }
 
 export function ModelSelector({ onSelect }: ModelSelectorProps) {
@@ -20,6 +23,13 @@ export function ModelSelector({ onSelect }: ModelSelectorProps) {
     basePrice: number;
     baseDeliveryDays: number;
   } | null>(null);
+  
+  // Estado para o fluxo após seleção do hull number
+  const [pendingHullNumber, setPendingHullNumber] = useState<HullNumber | null>(null);
+  const [showSaleTypeDialog, setShowSaleTypeDialog] = useState(false);
+  
+  // Verificar se o modelo selecionado é exportável
+  const { data: isExportable } = useIsModelExportable(selectedModel?.id || null);
 
   const handleModelClick = (model: any) => {
     setSelectedModel({
@@ -30,14 +40,40 @@ export function ModelSelector({ onSelect }: ModelSelectorProps) {
     });
   };
 
-  const handleConfirm = (hullNumber: HullNumber) => {
-    if (selectedModel) {
+  const handleHullNumberConfirm = (hullNumber: HullNumber) => {
+    if (!selectedModel) return;
+    
+    // Se modelo é exportável, mostrar dialog de tipo de venda
+    if (isExportable) {
+      setPendingHullNumber(hullNumber);
+      setShowSaleTypeDialog(true);
+    } else {
+      // Modelo não exportável, assumir nacional
       onSelect(
         selectedModel.id,
         selectedModel.basePrice,
         selectedModel.baseDeliveryDays,
-        hullNumber
+        hullNumber,
+        'national',
+        null
       );
+      setSelectedModel(null);
+    }
+  };
+
+  const handleSaleTypeConfirm = (saleType: SaleType, exportCountry: string | null) => {
+    if (selectedModel && pendingHullNumber) {
+      onSelect(
+        selectedModel.id,
+        selectedModel.basePrice,
+        selectedModel.baseDeliveryDays,
+        pendingHullNumber,
+        saleType,
+        exportCountry
+      );
+      setSelectedModel(null);
+      setPendingHullNumber(null);
+      setShowSaleTypeDialog(false);
     }
   };
 
@@ -131,13 +167,21 @@ export function ModelSelector({ onSelect }: ModelSelectorProps) {
         </div>
       </div>
 
-      {selectedModel && (
+      {selectedModel && !showSaleTypeDialog && (
         <ConfigurationInitDialog
-          open={!!selectedModel}
+          open={!!selectedModel && !showSaleTypeDialog}
           onOpenChange={(open) => !open && setSelectedModel(null)}
           yachtModelId={selectedModel.id}
           yachtModelName={selectedModel.name}
-          onConfirm={handleConfirm}
+          onConfirm={handleHullNumberConfirm}
+        />
+      )}
+
+      {showSaleTypeDialog && selectedModel && (
+        <SaleTypeDialog
+          open={showSaleTypeDialog}
+          modelName={selectedModel.name}
+          onConfirm={handleSaleTypeConfirm}
         />
       )}
     </>
