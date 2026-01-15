@@ -996,19 +996,18 @@ VALUES
 GO
 
 -- --------------------------------------------
--- Data: yacht_models (8 rows)
--- See separate file for complete data with descriptions
+-- Data: yacht_models (8 rows) - WITH JSON FIELDS
 -- --------------------------------------------
-INSERT INTO [dbo].[yacht_models] ([id], [name], [code], [brand], [base_price], [base_delivery_days], [is_active], [display_order], [cabins], [bathrooms], [beam], [cruise_speed], [image_url], [created_at], [updated_at])
+INSERT INTO [dbo].[yacht_models] ([id], [name], [code], [brand], [base_price], [base_delivery_days], [is_active], [display_order], [cabins], [bathrooms], [beam], [cruise_speed], [image_url], [technical_specifications], [gallery_images], [exterior_images], [interior_images], [created_at], [updated_at])
 VALUES 
-  ('a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'Ferretti Yachts 1000', N'FY1000', N'Ferretti Yachts', 79000000.00, 545, 1, 1, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1761356505576-fexpf9.jpg', '2025-10-24T18:22:16.842', '2026-01-12T19:45:55.477'),
-  ('6f5164f9-3cef-4f2e-8fae-54b2a84113be', N'Ferretti Yachts 850', N'FY850', N'Ferretti Yachts', 41500000.00, 500, 1, 2, N'4', N'4 + 1', 6.28, 27, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1761356505576-fexpf9.jpg', '2025-10-24T05:34:11.017', '2026-01-12T19:45:55.477'),
-  ('bea3cd21-8fe7-4224-969f-0d3a8cf349e7', N'Ferretti Yachts 670', N'FY670', N'Ferretti Yachts', 20990000.00, 450, 1, 3, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251215809-n8rfmm.jpg', '2025-10-24T18:27:07.809', '2026-01-12T19:45:55.477'),
-  ('3949b215-370c-4c17-85d4-de7dd8f8b2d8', N'Ferretti Yachts 580', N'FY580', N'Ferretti Yachts', 14500000.00, 420, 1, 4, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251353610-bwzwur.jpg', '2025-10-24T18:27:30.206', '2026-01-12T19:45:55.477'),
-  ('4c501b04-12da-46f7-8e10-16c5bc34910f', N'Ferretti Yachts 500', N'FY500', N'Ferretti Yachts', 10900000.00, 380, 1, 5, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251490660-c9xvph.jpg', '2025-10-24T18:27:54.426', '2026-01-12T19:45:55.477'),
-  ('aad0cf05-c32e-4078-897f-2a6db49a9f4f', N'OKEAN 57', N'OK57', N'OKEAN', 6510000.00, 320, 1, 6, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251621203-0iydxd.jpg', '2025-10-24T18:28:21.058', '2026-01-12T19:45:55.477'),
-  ('00475e39-18eb-4730-9399-536572b37163', N'OKEAN 52', N'OK52', N'OKEAN', 4800000.00, 280, 1, 7, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251729949-4vxjff.jpg', '2025-10-24T18:28:40.652', '2026-01-12T19:45:55.477'),
-  ('45d9b1e4-67da-4239-829a-c3568155878f', N'OKEAN 44', N'OK44', N'OKEAN', 2600000.00, 240, 1, 8, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251802696-6snafn.jpg', '2025-10-24T18:28:58.917', '2026-01-12T19:45:55.477');
+  ('a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'Ferretti Yachts 1000', N'FY1000', N'Ferretti Yachts', 79000000.00, 545, 1, 1, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1761356505576-fexpf9.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:22:16.842', '2026-01-12T19:45:55.477'),
+  ('6f5164f9-3cef-4f2e-8fae-54b2a84113be', N'Ferretti Yachts 850', N'FY850', N'Ferretti Yachts', 41500000.00, 500, 1, 2, N'4', N'4 + 1', 6.28, 27, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1761356505576-fexpf9.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T05:34:11.017', '2026-01-12T19:45:55.477'),
+  ('bea3cd21-8fe7-4224-969f-0d3a8cf349e7', N'Ferretti Yachts 670', N'FY670', N'Ferretti Yachts', 20990000.00, 450, 1, 3, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251215809-n8rfmm.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:27:07.809', '2026-01-12T19:45:55.477'),
+  ('3949b215-370c-4c17-85d4-de7dd8f8b2d8', N'Ferretti Yachts 580', N'FY580', N'Ferretti Yachts', 14500000.00, 420, 1, 4, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251353610-bwzwur.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:27:30.206', '2026-01-12T19:45:55.477'),
+  ('4c501b04-12da-46f7-8e10-16c5bc34910f', N'Ferretti Yachts 500', N'FY500', N'Ferretti Yachts', 10900000.00, 380, 1, 5, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251490660-c9xvph.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:27:54.426', '2026-01-12T19:45:55.477'),
+  ('aad0cf05-c32e-4078-897f-2a6db49a9f4f', N'OKEAN 57', N'OK57', N'OKEAN', 6510000.00, 320, 1, 6, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251621203-0iydxd.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:28:21.058', '2026-01-12T19:45:55.477'),
+  ('00475e39-18eb-4730-9399-536572b37163', N'OKEAN 52', N'OK52', N'OKEAN', 4800000.00, 280, 1, 7, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251729949-4vxjff.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:28:40.652', '2026-01-12T19:45:55.477'),
+  ('45d9b1e4-67da-4239-829a-c3568155878f', N'OKEAN 44', N'OK44', N'OKEAN', 2600000.00, 240, 1, 8, NULL, NULL, NULL, NULL, N'https://qqxhkaowexieednyazwq.supabase.co/storage/v1/object/public/yacht-images/models/1766251802696-6snafn.jpg', NULL, N'[]', N'[]', N'[]', '2025-10-24T18:28:58.917', '2026-01-12T19:45:55.477');
 GO
 
 -- --------------------------------------------
@@ -1035,21 +1034,21 @@ VALUES
 GO
 
 -- --------------------------------------------
--- Data: workflow_config (3 rows)
+-- Data: workflow_config (3 rows) - WITH JSON FIELDS
 -- --------------------------------------------
 INSERT INTO [dbo].[workflow_config] ([id], [config_key], [config_value], [updated_by], [updated_at])
 VALUES 
-  ('6e2417bc-7f0c-4c37-a149-f37e49b7c5f5', 'engineering_rate', '{"currency":"BRL","rate_per_hour":60}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.440'),
-  ('ad2a31ef-9e8e-48c6-842d-defc056dc230', 'contingency_percent', '{"percent":10}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.680'),
-  ('04c7479f-acc1-45bd-ab2c-5a8dcc62f3b5', 'sla_days', '{"planning_check":2,"pm_final":1,"pm_initial":2,"supply_quote":5}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.964');
+  ('6e2417bc-7f0c-4c37-a149-f37e49b7c5f5', 'engineering_rate', N'{"currency":"BRL","rate_per_hour":60}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.440'),
+  ('ad2a31ef-9e8e-48c6-842d-defc056dc230', 'contingency_percent', N'{"percent":10}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.680'),
+  ('04c7479f-acc1-45bd-ab2c-5a8dcc62f3b5', 'sla_days', N'{"planning_check":2,"pm_final":1,"pm_initial":2,"supply_quote":5}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-10-27T21:27:14.964');
 GO
 
 -- --------------------------------------------
--- Data: workflow_settings (1 row)
+-- Data: workflow_settings (1 row) - WITH JSON FIELDS
 -- --------------------------------------------
 INSERT INTO [dbo].[workflow_settings] ([id], [setting_key], [enabled], [config_data], [created_at], [updated_at])
 VALUES 
-  ('614d7545-7e33-4445-8cea-428ab882c34c', 'simplified_workflow', 1, '{"description":"Workflow simplificado ativado globalmente para todas as customizações"}', '2025-11-27T02:54:53.149', '2025-11-27T02:54:53.149');
+  ('614d7545-7e33-4445-8cea-428ab882c34c', 'simplified_workflow', 1, N'{"description":"Workflow simplificado ativado globalmente para todas as customizações"}', '2025-11-27T02:54:53.149', '2025-11-27T02:54:53.149');
 GO
 
 -- --------------------------------------------
@@ -1132,13 +1131,13 @@ VALUES
 GO
 
 -- --------------------------------------------
--- Data: approvals_backup (3 rows)
+-- Data: approvals_backup (3 rows) - WITH JSON FIELDS
 -- --------------------------------------------
 INSERT INTO [dbo].[approvals_backup] ([id], [quotation_id], [approval_type], [status], [notes], [request_details], [requested_by], [requested_at], [reviewed_by], [reviewed_at], [created_at], [updated_at])
 VALUES 
-  ('2146ca1a-fc4d-45e8-840c-3120a598e1bb', 'edd64f69-3c35-4bb7-a1cf-c4b7480a11a8', 'technical', 'approved', N'Customização livre: Hidro', '{"customization_code":"QT-2025-160-V1-CUS-001","customization_id":"8ad691a9-357a-400c-a206-72f17184bad0","customization_item_name":"Hidro","is_free_customization":true,"is_optional":false,"notes":"Hidromassagem...","quantity":1}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:02:32.238', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:03:02.099', '2025-11-25T21:02:32.238', '2025-11-25T21:03:02.439'),
-  ('6ab62742-49af-4d59-ba9e-79a9882cb6ac', 'edd64f69-3c35-4bb7-a1cf-c4b7480a11a8', 'technical', 'approved', NULL, '{"additional_cost":3552.33,"customization_item_name":"Customização: Aquecedor de Água 60L","delivery_impact_days":30}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:04:22.322', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:09:49.282', '2025-11-25T21:27:56.942', '2025-11-25T21:27:56.942'),
-  ('cd2e922f-2bea-4cce-b1f9-91157e2d4ac9', '68104fd5-89ae-4049-a20c-57e957a5072d', 'technical', 'approved', NULL, '{"additional_cost":0,"customization_code":"QT-2025-160-V3-CUS-003","customization_id":"cd8b6852-c370-4314-a082-875eb9eee596","customization_item_name":"Customização: Ar-Condicionado Adicional 18.000 BTU","delivery_impact_days":0,"option_id":"1b5db6e6-b7e6-4050-8ebd-113fa713b5f3"}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:12:53.139', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:32:13.007', '2025-11-25T21:31:29.444', '2025-11-25T21:32:13.352');
+  ('2146ca1a-fc4d-45e8-840c-3120a598e1bb', 'edd64f69-3c35-4bb7-a1cf-c4b7480a11a8', 'technical', 'approved', N'Customização livre: Hidro', N'{"customization_code":"QT-2025-160-V1-CUS-001","customization_id":"8ad691a9-357a-400c-a206-72f17184bad0","customization_item_name":"Hidro","is_free_customization":true,"is_optional":false,"memorial_item_id":null,"notes":"Hidromassagem\nUma Hidro com espaço para 4 pessoas, com luzes subaquaticas e agua aquecida. Importante ter um filtro muito bom","option_id":null,"quantity":1}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:02:32.238', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:03:02.099', '2025-11-25T21:02:32.238', '2025-11-25T21:03:02.439'),
+  ('6ab62742-49af-4d59-ba9e-79a9882cb6ac', 'edd64f69-3c35-4bb7-a1cf-c4b7480a11a8', 'technical', 'approved', NULL, N'{"additional_cost":3552.33,"customization_item_name":"Customização: Aquecedor de Água 60L","delivery_impact_days":30}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:04:22.322', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:09:49.282', '2025-11-25T21:27:56.942', '2025-11-25T21:27:56.942'),
+  ('cd2e922f-2bea-4cce-b1f9-91157e2d4ac9', '68104fd5-89ae-4049-a20c-57e957a5072d', 'technical', 'approved', NULL, N'{"additional_cost":0,"customization_code":"QT-2025-160-V3-CUS-003","customization_id":"cd8b6852-c370-4314-a082-875eb9eee596","customization_item_name":"Customização: Ar-Condicionado Adicional 18.000 BTU","delivery_impact_days":0,"option_id":"1b5db6e6-b7e6-4050-8ebd-113fa713b5f3"}', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:12:53.139', '237c5317-2496-41eb-b24a-337f9c966237', '2025-11-25T21:32:13.007', '2025-11-25T21:31:29.444', '2025-11-25T21:32:13.352');
 GO
 
 PRINT 'Base data inserted successfully!';
