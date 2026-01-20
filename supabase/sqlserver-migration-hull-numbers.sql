@@ -1,32 +1,90 @@
--- =============================================
+-- ================================================================
 -- OKEAN CPQ - SQL Server Migration Script
--- Table: hull_numbers (76 rows)
--- Generated: 2026-01-13
--- =============================================
+-- Table: hull_numbers
+-- ================================================================
+--
+-- IMPORTANTE: Este arquivo contém apenas o schema e instruções.
+-- Para obter todos os 76 registros de hull_numbers, use a Edge Function:
+--
+-- URL de Download:
+-- https://qqxhkaowexieednyazwq.supabase.co/functions/v1/generate-hull-numbers-sql
+--
+-- ================================================================
 
-SET NOCOUNT ON;
+-- Schema da tabela hull_numbers para SQL Server
+CREATE TABLE [dbo].[hull_numbers] (
+    [id] UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    [hull_number] NVARCHAR(50) NOT NULL,
+    [brand] NVARCHAR(100) NOT NULL DEFAULT 'FERRETTI',
+    [yacht_model_id] UNIQUEIDENTIFIER NOT NULL,
+    [status] NVARCHAR(50) NOT NULL DEFAULT 'available',
+    [hull_entry_date] DATE NOT NULL,
+    [estimated_delivery_date] DATE NOT NULL,
+    [job_stop_1_date] DATE NULL,
+    [job_stop_2_date] DATE NULL,
+    [job_stop_3_date] DATE NULL,
+    [job_stop_4_date] DATE NULL,
+    [barco_aberto_date] DATE NULL,
+    [barco_fechado_date] DATE NULL,
+    [fechamento_convesdeck_date] DATE NULL,
+    [teste_piscina_date] DATE NULL,
+    [teste_mar_date] DATE NULL,
+    [entrega_comercial_date] DATE NULL,
+    [contract_id] UNIQUEIDENTIFIER NULL,
+    [created_at] DATETIME2 NULL DEFAULT GETUTCDATE(),
+    [updated_at] DATETIME2 NULL DEFAULT GETUTCDATE(),
+    CONSTRAINT [PK_hull_numbers] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [UQ_hull_numbers_hull_number] UNIQUE ([hull_number]),
+    CONSTRAINT [FK_hull_numbers_yacht_model] FOREIGN KEY ([yacht_model_id]) 
+        REFERENCES [dbo].[yacht_models]([id]),
+    CONSTRAINT [FK_hull_numbers_contract] FOREIGN KEY ([contract_id]) 
+        REFERENCES [dbo].[contracts]([id]),
+    CONSTRAINT [CK_hull_numbers_status] CHECK ([status] IN ('available', 'reserved', 'contracted', 'delivered'))
+);
 GO
 
--- =============================================
--- INSERT DATA: hull_numbers
--- =============================================
-
-INSERT INTO [dbo].[hull_numbers] ([id], [hull_number], [brand], [yacht_model_id], [status], [hull_entry_date], [estimated_delivery_date], [contract_id], [job_stop_1_date], [job_stop_2_date], [job_stop_3_date], [job_stop_4_date], [barco_aberto_date], [fechamento_convesdeck_date], [barco_fechado_date], [teste_piscina_date], [teste_mar_date], [entrega_comercial_date], [created_at], [updated_at])
-VALUES 
-  ('5bd3bda8-3bfe-48e5-b6e1-ff4a7701db41', N'F100001', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'contracted', '2024-03-25', '2025-10-30', NULL, '2023-09-27', '2023-11-26', '2023-12-26', '2024-05-27', '2024-07-26', '2024-07-29', '2024-08-15', '2025-05-26', '2025-06-05', '2025-10-30', '2026-01-12T19:34:20.669', '2026-01-12T19:34:20.669'),
-  ('a862c545-d65e-4aec-bb1a-cf0d6ba4bab3', N'F100002', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'contracted', '2025-01-13', '2025-12-20', NULL, '2024-07-17', '2024-09-15', '2024-10-15', '2025-01-03', '2025-03-04', '2025-03-05', '2025-03-10', '2025-11-24', '2025-12-01', '2025-12-20', '2026-01-12T19:34:21.008', '2026-01-12T19:34:21.008'),
-  ('1d1e04ab-ef05-4746-b982-42ba161a98b5', N'F100003', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'contracted', '2025-09-30', '2026-06-02', NULL, '2025-04-03', '2025-06-02', '2025-07-02', '2025-09-20', '2025-11-19', '2025-11-21', '2025-11-26', '2026-05-08', '2026-05-20', '2026-06-02', '2026-01-12T19:34:27.317', '2026-01-12T19:34:27.317'),
-  ('4f46af9d-adcc-4b30-8e52-098758650c9d', N'F100004', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'contracted', '2026-02-27', '2026-09-25', NULL, '2025-08-31', '2025-10-30', '2025-11-29', '2026-02-21', '2026-04-22', '2026-04-23', '2026-04-28', '2026-09-01', '2026-09-14', '2026-09-25', '2026-01-12T19:34:27.731', '2026-01-12T19:34:27.731'),
-  ('4cdc3acb-0f3d-4671-b6f8-68dddc8a5a28', N'F100005', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'contracted', '2026-06-29', '2027-01-27', NULL, '2025-12-31', '2026-03-01', '2026-03-31', '2026-06-19', '2026-08-18', '2026-08-19', '2026-08-24', '2027-01-04', '2027-01-14', '2027-01-27', '2026-01-12T19:34:34.155', '2026-01-12T19:34:34.155'),
-  ('7ff7d093-a723-453f-abc0-3cf109e4030a', N'F100006', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'available', '2026-10-15', '2027-05-13', NULL, '2026-04-18', '2026-06-17', '2026-07-17', '2026-10-09', '2026-12-08', '2026-12-09', '2026-12-14', '2027-04-20', '2027-04-30', '2027-05-13', '2026-01-12T19:34:34.509', '2026-01-12T19:34:34.509'),
-  ('10cb9de9-c08d-48da-a4f2-24a230ad4421', N'F100007', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'available', '2027-02-08', '2027-08-27', NULL, '2026-08-12', '2026-10-11', '2026-11-10', '2027-01-29', '2027-03-30', '2027-03-31', '2027-04-05', '2027-08-04', '2027-08-16', '2027-08-27', '2026-01-12T19:34:35.006', '2026-01-12T19:34:35.006'),
-  ('dc7a1182-13ed-433e-baed-fba549d7090c', N'F100008', N'FERRETTI', 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb', N'available', '2027-05-25', '2027-12-13', NULL, '2026-11-26', '2027-01-25', '2027-02-24', '2027-05-15', '2027-07-14', '2027-07-15', '2027-07-20', '2027-11-18', '2027-11-30', '2027-12-13', '2026-01-12T19:34:35.380', '2026-01-12T19:34:35.380');
+-- Índices para performance
+CREATE INDEX [IX_hull_numbers_yacht_model_id] ON [dbo].[hull_numbers]([yacht_model_id]);
+CREATE INDEX [IX_hull_numbers_status] ON [dbo].[hull_numbers]([status]);
+CREATE INDEX [IX_hull_numbers_contract_id] ON [dbo].[hull_numbers]([contract_id]) WHERE [contract_id] IS NOT NULL;
 GO
 
--- Nota: Este arquivo contém uma amostra dos hull_numbers.
--- Para importar todos os 76 registros, execute a query completa no Supabase
--- e use o script de exportação de dados.
+-- ================================================================
+-- INSTRUÇÕES PARA MIGRAÇÃO COMPLETA:
+--
+-- 1. Execute o schema acima primeiro (após yacht_models e contracts)
+--
+-- 2. Baixe o arquivo SQL completo com todos os dados:
+--    https://qqxhkaowexieednyazwq.supabase.co/functions/v1/generate-hull-numbers-sql
+--
+-- 3. Execute o arquivo baixado para inserir todos os 76 registros
+--
+-- ================================================================
 
--- =============================================
--- Done!
--- =============================================
+-- Amostra de 3 registros (apenas para referência):
+/*
+INSERT INTO [dbo].[hull_numbers] (
+    [id], [hull_number], [brand], [yacht_model_id], [status],
+    [hull_entry_date], [estimated_delivery_date],
+    [job_stop_1_date], [job_stop_2_date], [job_stop_3_date], [job_stop_4_date],
+    [barco_aberto_date], [barco_fechado_date], [fechamento_convesdeck_date],
+    [teste_piscina_date], [teste_mar_date], [entrega_comercial_date],
+    [contract_id], [created_at], [updated_at]
+)
+VALUES
+(
+    N'5bd3bda8-3bfe-48e5-b6e1-ff4a7701db41',
+    N'F100001',
+    N'FERRETTI',
+    N'a0a5c97f-c1c2-48e6-a153-6a55ac416beb',
+    N'contracted',
+    '2024-03-25',
+    '2025-10-30',
+    '2023-09-27', '2023-11-26', '2023-12-26', '2024-05-27',
+    '2024-07-26', '2024-08-15', '2024-07-29',
+    '2025-05-26', '2025-06-05', '2025-10-30',
+    NULL,
+    '2026-01-12 19:34:20.669',
+    '2026-01-12 19:34:20.669'
+);
+*/
