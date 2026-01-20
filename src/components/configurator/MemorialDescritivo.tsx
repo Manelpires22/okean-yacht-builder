@@ -70,31 +70,34 @@ export function MemorialDescritivo({
     itemName: string;
     defaultQuantity?: number;
   } | null>(null);
-  const { data: items, isLoading } = useQuery({
+  const { data: items, isLoading, error } = useQuery({
     queryKey: ['memorial-items-public', yachtModelId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('memorial_items')
         .select(`
           *,
-          memorial_categories!inner(
+          memorial_categories(
             display_order,
             label
           )
         `)
         .eq('yacht_model_id', yachtModelId)
         .eq('is_active', true)
-        .order('display_order', { 
-          referencedTable: 'memorial_categories',
-          ascending: true 
-        })
+        .order('category_display_order')
         .order('display_order');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching memorial items:', error);
+        throw error;
+      }
       return data;
     },
     enabled: !!yachtModelId,
   });
+
+  // Debug log
+  console.log('MemorialDescritivo:', { yachtModelId, itemsCount: items?.length, isLoading, error });
 
   if (isLoading) {
     return (
