@@ -7,6 +7,7 @@
 
 -- =============================================
 -- FY850 - Ferretti Yachts 850
+-- ID: 6f5164f9-3cef-4f2e-8fae-54b2a84113be
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Ferretti Yachts',
@@ -28,10 +29,11 @@ UPDATE yacht_models SET
   cabins = 4,
   bathrooms = N'4 + 1',
   updated_at = GETDATE()
-WHERE code = 'FY850';
+WHERE id = '6f5164f9-3cef-4f2e-8fae-54b2a84113be';
 
 -- =============================================
 -- FY720 - Ferretti Yachts 720
+-- ID: 3949b215-370c-4c17-85d4-de7dd8f8b2d8
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Ferretti Yachts',
@@ -48,10 +50,11 @@ UPDATE yacht_models SET
   cabins = 5,
   bathrooms = N'3+1',
   updated_at = GETDATE()
-WHERE code = 'FY720';
+WHERE id = '3949b215-370c-4c17-85d4-de7dd8f8b2d8';
 
 -- =============================================
 -- FY670 - Ferretti Yachts 670
+-- ID: 4c501b04-12da-46f7-8e10-16c5bc34910f
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Ferretti Yachts',
@@ -73,10 +76,11 @@ UPDATE yacht_models SET
   bathrooms = N'3 + 1',
   hull_color = N'Branco',
   updated_at = GETDATE()
-WHERE code = 'FY670';
+WHERE id = '4c501b04-12da-46f7-8e10-16c5bc34910f';
 
 -- =============================================
 -- FY550 - Ferretti Yachts 550
+-- ID: 45d9b1e4-67da-4239-829a-c3568155878f
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Ferretti Yachts',
@@ -96,10 +100,11 @@ UPDATE yacht_models SET
   cabins = 3,
   bathrooms = N'2+1',
   updated_at = GETDATE()
-WHERE code = 'FY550';
+WHERE id = '45d9b1e4-67da-4239-829a-c3568155878f';
 
 -- =============================================
 -- OKEAN80 - Okean 80
+-- ID: bea3cd21-8fe7-4224-969f-0d3a8cf349e7
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Okean',
@@ -118,10 +123,11 @@ UPDATE yacht_models SET
   cabins = 4,
   bathrooms = N'4 + 1',
   updated_at = GETDATE()
-WHERE code = 'OKEAN80';
+WHERE id = 'bea3cd21-8fe7-4224-969f-0d3a8cf349e7';
 
 -- =============================================
--- OKEAN60 - Okean 60
+-- OKEAN57 - OKEAN Yachts 57
+-- ID: aad0cf05-c32e-4078-897f-2a6db49a9f4f
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Okean',
@@ -140,10 +146,11 @@ UPDATE yacht_models SET
   cabins = 3,
   bathrooms = N'2 + 1',
   updated_at = GETDATE()
-WHERE code = 'OKEAN60';
+WHERE id = 'aad0cf05-c32e-4078-897f-2a6db49a9f4f';
 
 -- =============================================
--- OKEAN50 - Okean 50
+-- OKEAN52 - OKEAN Yachts 52
+-- ID: 00475e39-18eb-4730-9399-536572b37163
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Okean',
@@ -161,15 +168,16 @@ UPDATE yacht_models SET
   cabins = 2,
   bathrooms = N'1 + 1',
   updated_at = GETDATE()
-WHERE code = 'OKEAN50';
+WHERE id = '00475e39-18eb-4730-9399-536572b37163';
 
 -- =============================================
 -- FY1000 - Ferretti Yachts 1000 (sem dados técnicos disponíveis)
+-- ID: a0a5c97f-c1c2-48e6-a153-6a55ac416beb
 -- =============================================
 UPDATE yacht_models SET
   brand = N'Ferretti Yachts',
   updated_at = GETDATE()
-WHERE code = 'FY1000';
+WHERE id = 'a0a5c97f-c1c2-48e6-a153-6a55ac416beb';
 
 -- =============================================
 -- Verification Query
@@ -177,6 +185,7 @@ WHERE code = 'FY1000';
 -- Run this to verify the updates were applied:
 /*
 SELECT 
+  id,
   code,
   name,
   brand,
@@ -194,4 +203,4 @@ ORDER BY display_order;
 */
 
 PRINT 'Yacht models technical data update completed successfully!';
-PRINT 'Updated models: FY850, FY720, FY670, FY550, OKEAN80, OKEAN60, OKEAN50, FY1000';
+PRINT 'Updated models: FY850, FY720, FY670, FY550, OKEAN80, OKEAN57, OKEAN52, FY1000';
